@@ -38,6 +38,16 @@
   let isLoadingProducts = $state(false);
   let isLoadingSpecifications = $state(false);
 
+  type SpecificationGroup = {
+    attributeName: string;
+    specifications: any[];
+  };
+  let specificationGroups = $state<SpecificationGroup[]>([]);
+  let generatedCombinations = $state<any[]>([]);
+  let combinationPrices = $state<
+    Record<string, { price: string; stock: string; sku: string }>
+  >({});
+
   let showCouponModal = $state(false);
   let couponForm = $state({
     type: "value",
@@ -71,6 +81,16 @@
   let showDeleteModal = $state(false);
   let itemToEdit = $state(null);
   let itemToDelete = $state(null);
+
+  let showVariationRequestModal = $state(false);
+  let variationRequestForm = $state({
+    product: "",
+    variations: [{ attribute_name: "", attribute_value: "" }],
+    justification: "",
+  });
+  let isLoadingVariationCategories = $state(false);
+  let variationProducts = $state([]);
+  let isLoadingVariationProducts = $state(false);
 
   const isRTL = derived(
     locale,
@@ -422,6 +442,10 @@
   async function loadSpecifications(productShortname: string) {
     isLoadingSpecifications = true;
     variationPrices = {};
+    generatedCombinations = [];
+    combinationPrices = {};
+    specificationGroups = [];
+
     try {
       const response = await getSpaceContents(
         "Ecommerce",
@@ -440,19 +464,77 @@
 
           return content?.product_id === productShortname;
         });
+        const attributeGroups: Record<string, Set<string>> = {};
+        const specsByAttributeValue: Record<string, any[]> = {};
 
-        const prices: Record<
-          string,
-          { price: string; stock: string; sku: string }
-        > = {};
         specifications.forEach((spec) => {
-          prices[spec.shortname] = {
-            price: "",
-            stock: "",
-            sku: "",
-          };
+          const content =
+            spec.attributes?.payload?.body?.content ||
+            spec.attributes?.payload?.body;
+
+          const specAttributes = content?.attributes || {};
+
+          Object.entries(specAttributes).forEach(([attrName, attrValue]) => {
+            if (!attributeGroups[attrName]) {
+              attributeGroups[attrName] = new Set();
+            }
+            attributeGroups[attrName].add(String(attrValue));
+          });
         });
-        variationPrices = prices;
+
+        const attributeNames = Object.keys(attributeGroups);
+        if (attributeNames.length > 1) {
+          specifications.forEach((spec) => {
+            const content =
+              spec.attributes?.payload?.body?.content ||
+              spec.attributes?.payload?.body;
+            const specAttributes = content?.attributes || {};
+
+            const key = attributeNames
+              .map((name) => `${name}:${specAttributes[name] || ""}`)
+              .sort()
+              .join("|");
+
+            if (!specsByAttributeValue[key]) {
+              specsByAttributeValue[key] = [];
+            }
+            specsByAttributeValue[key].push(spec);
+          });
+
+          specificationGroups = attributeNames.map((attrName) => ({
+            attributeName: attrName,
+            specifications: Array.from(attributeGroups[attrName]).map(
+              (value) => {
+                const spec = specifications.find((s) => {
+                  const content =
+                    s.attributes?.payload?.body?.content ||
+                    s.attributes?.payload?.body;
+                  return content?.attributes?.[attrName] === value;
+                });
+                return {
+                  attributeName: attrName,
+                  value: value,
+                  originalSpec: spec,
+                };
+              }
+            ),
+          }));
+
+          generateCombinationsFromSpecifications();
+        } else {
+          const prices: Record<
+            string,
+            { price: string; stock: string; sku: string }
+          > = {};
+          specifications.forEach((spec) => {
+            prices[spec.shortname] = {
+              price: "",
+              stock: "",
+              sku: "",
+            };
+          });
+          variationPrices = prices;
+        }
       }
     } catch (error) {
       console.error("Error loading specifications:", error);
@@ -465,11 +547,16 @@
   function handleCategoryChange() {
     if (selectedCategory) {
       loadProducts(selectedCategory);
+      if (showVariationRequestModal) {
+        loadVariationProducts(selectedCategory);
+      }
     } else {
       products = [];
       selectedProduct = "";
       specifications = [];
       variationPrices = {};
+      variationProducts = [];
+      variationRequestForm.product = "";
     }
   }
 
@@ -479,9 +566,62 @@
     } else {
       specifications = [];
       variationPrices = {};
+      generatedCombinations = [];
+      combinationPrices = {};
+      specificationGroups = [];
     }
   }
 
+  function generateCombinationsFromSpecifications() {
+    if (specificationGroups.length === 0) {
+      generatedCombinations = [];
+      combinationPrices = {};
+      return;
+    }
+
+    const combinations: any[] = [];
+    const specSets = specificationGroups.map((group) => group.specifications);
+
+    function cartesianProduct(
+      arrays: any[][],
+      index: number = 0,
+      current: any[] = []
+    ) {
+      if (index === arrays.length) {
+        const specs = current.map((item) => item.originalSpec);
+
+        const comboId = specs.map((spec) => spec.shortname).join("_");
+
+        const displayParts = current.map((item) => item.value);
+
+        const existing = combinationPrices[comboId];
+
+        combinations.push({
+          id: comboId,
+          specifications: specs,
+          displayName: displayParts.join(" - "),
+          attributes: current,
+        });
+
+        if (!existing) {
+          combinationPrices[comboId] = {
+            price: "",
+            stock: "",
+            sku: "",
+          };
+        }
+        return;
+      }
+
+      for (const spec of arrays[index]) {
+        cartesianProduct(arrays, index + 1, [...current, spec]);
+      }
+    }
+
+    cartesianProduct(specSets);
+    generatedCombinations = combinations;
+    combinationPrices = { ...combinationPrices };
+  }
   function closeModal() {
     showAddItemModal = false;
     selectedCategory = "";
@@ -490,71 +630,143 @@
     products = [];
     specifications = [];
     variationPrices = {};
+    generatedCombinations = [];
+    combinationPrices = {};
+    specificationGroups = [];
   }
 
   async function submitProductVariations() {
-    const filledVariations = Object.entries(variationPrices)
-      .filter(([_, data]) => data.price)
-      .map(([shortname, data]) => ({
-        shortname,
-        price: parseFloat(data.price),
-        stock: data.stock ? parseInt(data.stock) : 0,
-        sku: data.sku || "",
-      }));
+    if (generatedCombinations.length > 0) {
+      const filledCombinations = generatedCombinations.filter(
+        (combo) =>
+          combinationPrices[combo.id]?.price &&
+          parseFloat(combinationPrices[combo.id].price) > 0
+      );
 
-    if (filledVariations.length === 0) {
-      errorToastMessage("Please add price for at least one variation");
-      return;
-    }
-
-    try {
-      isLoading = true;
-      for (const variation of filledVariations) {
-        const selectedProductData = products.find(
-          (p) => p.shortname === selectedProduct
-        );
-        const selectedSpecData = specifications.find(
-          (s) => s.shortname === variation.shortname
-        );
-
-        const productData = {
-          displayname: `${getLocalizedDisplayName(selectedProductData)} - ${getLocalizedDisplayName(selectedSpecData)}`,
-          body: {
-            content: {
-              product_id: selectedProduct,
-              category_id: selectedCategory,
-              specification_id: variation.shortname,
-              price: variation.price,
-              stock: variation.stock,
-              sku: variation.sku,
-            },
-            content_type: "json",
-          },
-          tags: [
-            `category:${selectedCategory}`,
-            `product:${selectedProduct}`,
-            `specification:${variation.shortname}`,
-          ],
-          is_active: true,
-        };
-        await createEntity(
-          productData,
-          "Ecommerce",
-          "/sellers/products",
-          ResourceType.content,
-          "",
-          ""
-        );
+      if (filledCombinations.length === 0) {
+        errorToastMessage("Please add price for at least one variation");
+        return;
       }
 
-      successToastMessage("Products added successfully!");
-      closeModal();
-      await loadFolderContents("products");
-    } catch (error) {
-      console.error("Error creating products:", error);
-      errorToastMessage("Failed to create products");
-    } finally {
-      isLoading = false;
+      try {
+        isLoading = true;
+        for (const combo of filledCombinations) {
+          const selectedProductData = products.find(
+            (p) => p.shortname === selectedProduct
+          );
+
+          const priceData = combinationPrices[combo.id];
+
+          const specificationIds = combo.specifications.map(
+            (spec: any) => spec.shortname
+          );
+
+          const productData = {
+            displayname: `${getLocalizedDisplayName(selectedProductData)} - ${combo.displayName}`,
+            body: {
+              content: {
+                product_id: selectedProduct,
+                category_id: selectedCategory,
+                specification_ids: specificationIds,
+                price: parseFloat(priceData.price),
+                stock: priceData.stock ? parseInt(priceData.stock) : 0,
+                sku: priceData.sku || "",
+              },
+              content_type: "json",
+            },
+            tags: [
+              `category:${selectedCategory}`,
+              `product:${selectedProduct}`,
+              ...specificationIds.map((id: string) => `specification:${id}`),
+            ],
+            is_active: true,
+          };
+
+          await createEntity(
+            productData,
+            "Ecommerce",
+            "/sellers/products",
+            ResourceType.content,
+            "",
+            ""
+          );
+        }
+
+        successToastMessage(
+          `${filledCombinations.length} product variations added successfully!`
+        );
+        closeModal();
+        await loadFolderContents("products");
+      } catch (error) {
+        console.error("Error creating products:", error);
+        errorToastMessage("Failed to create products");
+      } finally {
+        isLoading = false;
+      }
+    } else {
+      const filledVariations = Object.entries(variationPrices)
+        .filter(([_, data]) => data.price)
+        .map(([shortname, data]) => ({
+          shortname,
+          price: parseFloat(data.price),
+          stock: data.stock ? parseInt(data.stock) : 0,
+          sku: data.sku || "",
+        }));
+
+      if (filledVariations.length === 0) {
+        errorToastMessage("Please add price for at least one variation");
+        return;
+      }
+
+      try {
+        isLoading = true;
+        for (const variation of filledVariations) {
+          const selectedProductData = products.find(
+            (p) => p.shortname === selectedProduct
+          );
+          const selectedSpecData = specifications.find(
+            (s) => s.shortname === variation.shortname
+          );
+
+          const productData = {
+            displayname: `${getLocalizedDisplayName(selectedProductData)} - ${getLocalizedDisplayName(selectedSpecData)}`,
+            body: {
+              content: {
+                product_id: selectedProduct,
+                category_id: selectedCategory,
+                specification_id: variation.shortname,
+                price: variation.price,
+                stock: variation.stock,
+                sku: variation.sku,
+              },
+              content_type: "json",
+            },
+            tags: [
+              `category:${selectedCategory}`,
+              `product:${selectedProduct}`,
+              `specification:${variation.shortname}`,
+            ],
+            is_active: true,
+          };
+          await createEntity(
+            productData,
+            "Ecommerce",
+            "/sellers/products",
+            ResourceType.content,
+            "",
+            ""
+          );
+        }
+
+        successToastMessage("Products added successfully!");
+        closeModal();
+        await loadFolderContents("products");
+      } catch (error) {
+        console.error("Error creating products:", error);
+        errorToastMessage("Failed to create products");
+      } finally {
+        isLoading = false;
+      }
     }
   }
 
@@ -891,6 +1103,124 @@
     bundleForm = { selectedProducts: [], price: "" };
   }
 
+  function openVariationRequestModal() {
+    variationRequestForm = {
+      product: "",
+      variations: [{ attribute_name: "", attribute_value: "" }],
+      justification: "",
+    };
+    categories = [];
+    variationProducts = [];
+    loadCategories();
+    showVariationRequestModal = true;
+  }
+
+  function closeVariationRequestModal() {
+    showVariationRequestModal = false;
+    variationRequestForm = {
+      product: "",
+      variations: [{ attribute_name: "", attribute_value: "" }],
+      justification: "",
+    };
+  }
+
+  function addVariationAttribute() {
+    variationRequestForm.variations = [
+      ...variationRequestForm.variations,
+      { attribute_name: "", attribute_value: "" },
+    ];
+  }
+
+  function removeVariationAttribute(index: number) {
+    if (variationRequestForm.variations.length > 1) {
+      variationRequestForm.variations = variationRequestForm.variations.filter(
+        (_, i) => i !== index
+      );
+    }
+  }
+
+  async function loadVariationProducts(categoryShortname: string) {
+    isLoadingVariationProducts = true;
+    variationRequestForm.product = "";
+    try {
+      const response = await getSpaceContents(
+        "Ecommerce",
+        "products",
+        "managed",
+        100,
+        0,
+        true
+      );
+
+      if (response?.records) {
+        variationProducts = response.records.filter((product) => {
+          const content =
+            product.attributes?.payload?.body?.content ||
+            product.attributes?.payload?.body;
+          return content?.category_id === categoryShortname;
+        });
+      }
+    } catch (error) {
+      console.error("Error loading products:", error);
+      errorToastMessage("Error loading products");
+    } finally {
+      isLoadingVariationProducts = false;
+    }
+  }
+
+  async function submitVariationRequest() {
+    if (
+      !variationRequestForm.product ||
+      variationRequestForm.variations.some(
+        (v) => !v.attribute_name || !v.attribute_value
+      ) ||
+      !variationRequestForm.justification
+    ) {
+      errorToastMessage("Please fill in all required fields");
+      return;
+    }
+
+    try {
+      isLoading = true;
+      const requestData = {
+        displayname: `Variation Request - ${variationRequestForm.product}`,
+        body: {
+          content: {
+            product_id: variationRequestForm.product,
+            seller_id: $user.shortname,
+            requested_variations: variationRequestForm.variations,
+            justification: variationRequestForm.justification,
+            status: "pending",
+          },
+          content_type: "json",
+        },
+        tags: [
+          `product:${variationRequestForm.product}`,
+          `seller:${$user.shortname}`,
+          "status:pending",
+        ],
+        is_active: true,
+      };
+
+      await createEntity(
+        requestData,
+        "Ecommerce",
+        "/sellers/variation_request",
+        ResourceType.content,
+        "",
+        ""
+      );
+
+      successToastMessage("Variation request submitted successfully!");
+      closeVariationRequestModal();
+    } catch (error) {
+      console.error("Error submitting variation request:", error);
+      errorToastMessage("Failed to submit variation request");
+    } finally {
+      isLoading = false;
+    }
+  }
+
   async function submitEdit() {
     if (!itemToEdit) return;
 
@@ -1093,34 +1423,58 @@
           </div>
         </div>
         {#if selectedFolder}
-          <button class="create-button" onclick={createItem}>
-            <svg
-              class="button-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
+          <div class="header-actions">
+            <button
+              class="create-button secondary-button"
+              onclick={openVariationRequestModal}
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            <span>
-              {#if selectedFolder === "products"}
-                {$_("seller_dashboard.create_product") || "Create Product"}
-              {:else if selectedFolder === "coupons"}
-                {$_("seller_dashboard.create_coupon") || "Create Coupon"}
-              {:else if selectedFolder === "branch"}
-                {$_("seller_dashboard.create_branch") || "Create Branch"}
-              {:else if selectedFolder === "bundles"}
-                {$_("seller_dashboard.add_bundle") || "Add Bundle"}
-              {:else}
-                {$_("seller_dashboard.create_item") || "Create Item"}
-              {/if}
-            </span>
-          </button>
+              <svg
+                class="button-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>
+                {$_("seller_dashboard.request_variation") ||
+                  "Request Variation"}
+              </span>
+            </button>
+            <button class="create-button" onclick={createItem}>
+              <svg
+                class="button-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>
+                {#if selectedFolder === "products"}
+                  {$_("seller_dashboard.create_product") || "Create Product"}
+                {:else if selectedFolder === "coupons"}
+                  {$_("seller_dashboard.create_coupon") || "Create Coupon"}
+                {:else if selectedFolder === "branch"}
+                  {$_("seller_dashboard.create_branch") || "Create Branch"}
+                {:else if selectedFolder === "bundles"}
+                  {$_("seller_dashboard.add_bundle") || "Add Bundle"}
+                {:else}
+                  {$_("seller_dashboard.create_item") || "Create Item"}
+                {/if}
+              </span>
+            </button>
+          </div>
         {/if}
       </div>
     </div>
@@ -1487,8 +1841,8 @@
 
 <!-- Add Item Modal -->
 {#if showAddItemModal}
-  <div class="modal-overlay" onclick={closeModal}>
-    <div class="modal-container" onclick={(e) => e.stopPropagation()}>
+  <div class="modal-overlay">
+    <div class="modal-container">
       <div class="modal-header">
         <h2 class="modal-title">
           {$_("seller_dashboard.add_product_item") || "Add Product Item"}
@@ -1637,12 +1991,100 @@
                 <div class="mini-spinner"></div>
                 <span>{$_("seller_dashboard.loading") || "Loading..."}</span>
               </div>
+            {:else if generatedCombinations.length > 0}
+              <div class="variations-table-wrapper">
+                <table class="variations-table">
+                  <thead>
+                    <tr>
+                      <th class="row-number-header" class:rtl={$isRTL}>#</th>
+                      {#if generatedCombinations[0]?.attributes}
+                        {#each generatedCombinations[0].attributes as attr}
+                          <th class="attribute-header" class:rtl={$isRTL}>
+                            <div class="attribute-header-content">
+                              <svg
+                                class="attribute-icon"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                                />
+                              </svg>
+                              {attr.attributeName}
+                            </div>
+                          </th>
+                        {/each}
+                      {/if}
+                      <th class:rtl={$isRTL}>
+                        {$_("seller_dashboard.sku") || "SKU"}
+                      </th>
+                      <th class:rtl={$isRTL}>
+                        {$_("seller_dashboard.stock") || "Stock"}
+                      </th>
+                      <th class:rtl={$isRTL}>
+                        {$_("seller_dashboard.price") || "Price"} ($)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {#each generatedCombinations as combo, index (combo.id)}
+                      <tr>
+                        <td class="row-number-cell">{index + 1}</td>
+                        {#if combo.attributes}
+                          {#each combo.attributes as attr}
+                            <td class="attribute-value-cell" class:rtl={$isRTL}>
+                              <span class="attribute-badge">{attr.value}</span>
+                            </td>
+                          {/each}
+                        {/if}
+                        <td>
+                          <input
+                            type="text"
+                            bind:value={combinationPrices[combo.id].sku}
+                            placeholder={$_("seller_dashboard.enter_sku") ||
+                              "Enter SKU..."}
+                            class="table-input sku-input-field"
+                            class:rtl={$isRTL}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="1"
+                            min="0"
+                            bind:value={combinationPrices[combo.id].stock}
+                            placeholder="0"
+                            class="table-input stock-input-field"
+                            class:rtl={$isRTL}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            bind:value={combinationPrices[combo.id].price}
+                            placeholder="0.00"
+                            class="table-input price-input-field"
+                            class:rtl={$isRTL}
+                          />
+                        </td>
+                      </tr>
+                    {/each}
+                  </tbody>
+                </table>
+              </div>
             {:else if specifications.length === 0}
               <p class="empty-message">
                 {$_("seller_dashboard.no_variations") ||
                   "No variations found for this product"}
               </p>
             {:else}
+              <!-- Single specifications (no multi-attribute combinations) -->
               <div class="variations-table-wrapper">
                 <table class="variations-table">
                   <thead>
@@ -1732,7 +2174,9 @@
           class="modal-button submit"
           onclick={submitProductVariations}
           disabled={!selectedProduct ||
-            Object.values(variationPrices).every((v) => !v.price)}
+            (generatedCombinations.length > 0
+              ? !Object.values(combinationPrices).some((v) => v.price)
+              : Object.values(variationPrices).every((v) => !v.price))}
         >
           {$_("seller_dashboard.add_items") || "Add Items"}
         </button>
@@ -1743,8 +2187,8 @@
 
 <!-- Coupon Modal -->
 {#if showCouponModal}
-  <div class="modal-overlay" onclick={closeCouponModal}>
-    <div class="modal-container" onclick={(e) => e.stopPropagation()}>
+  <div class="modal-overlay">
+    <div class="modal-container">
       <div class="modal-header">
         <h2 class="modal-title">
           {$_("seller_dashboard.create_coupon") || "Create Coupon"}
@@ -1875,8 +2319,8 @@
 
 <!-- Branch Modal -->
 {#if showBranchModal}
-  <div class="modal-overlay" onclick={closeBranchModal}>
-    <div class="modal-container" onclick={(e) => e.stopPropagation()}>
+  <div class="modal-overlay">
+    <div class="modal-container">
       <div class="modal-header">
         <h2 class="modal-title">
           {$_("seller_dashboard.create_branch") || "Create Branch"}
@@ -1994,8 +2438,8 @@
 
 <!-- Bundle Modal -->
 {#if showBundleModal}
-  <div class="modal-overlay" onclick={closeBundleModal}>
-    <div class="modal-container" onclick={(e) => e.stopPropagation()}>
+  <div class="modal-overlay">
+    <div class="modal-container">
       <div class="modal-header">
         <h2 class="modal-title">
           {$_("seller_dashboard.create_bundle") || "Add Bundle"}
@@ -2208,10 +2652,228 @@
   </div>
 {/if}
 
+<!-- Variation Request Modal -->
+{#if showVariationRequestModal}
+  <div class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          {$_("seller_dashboard.request_variation") || "Request New Variation"}
+        </h2>
+        <button
+          class="modal-close"
+          onclick={closeVariationRequestModal}
+          aria-label="Close"
+        >
+          <svg
+            class="close-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" class:rtl={$isRTL}>
+            <svg
+              class="label-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+              />
+            </svg>
+            <span>{$_("seller_dashboard.category") || "Category"}</span>
+          </label>
+          <select
+            bind:value={selectedCategory}
+            onchange={handleCategoryChange}
+            class="form-select"
+            class:rtl={$isRTL}
+            disabled={isLoadingCategories}
+          >
+            <option value=""
+              >{$_("seller_dashboard.select_category") ||
+                "Select a category"}</option
+            >
+            {#if isLoadingCategories}
+              <option disabled
+                >{$_("seller_dashboard.loading") || "Loading..."}</option
+              >
+            {:else}
+              {#each categories as category (category.shortname)}
+                <option value={category.shortname}>
+                  {getLocalizedDisplayName(category)}
+                </option>
+              {/each}
+            {/if}
+          </select>
+        </div>
+
+        {#if selectedCategory}
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              <svg
+                class="label-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                />
+              </svg>
+              <span>{$_("seller_dashboard.product") || "Product"}</span>
+            </label>
+            <select
+              bind:value={variationRequestForm.product}
+              class="form-select"
+              class:rtl={$isRTL}
+              disabled={isLoadingVariationProducts}
+            >
+              <option value=""
+                >{$_("seller_dashboard.select_product") ||
+                  "Select a product"}</option
+              >
+              {#if isLoadingVariationProducts}
+                <option disabled
+                  >{$_("seller_dashboard.loading") || "Loading..."}</option
+                >
+              {:else}
+                {#each variationProducts as product (product.shortname)}
+                  <option value={product.shortname}>
+                    {getLocalizedDisplayName(product)}
+                  </option>
+                {/each}
+              {/if}
+            </select>
+          </div>
+        {/if}
+
+        {#if variationRequestForm.product}
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              <span
+                >{$_("seller_dashboard.requested_variations") ||
+                  "Requested Variations"}</span
+              >
+            </label>
+
+            {#each variationRequestForm.variations as variation, index}
+              <div class="variation-attribute-row">
+                <input
+                  type="text"
+                  bind:value={variation.attribute_name}
+                  placeholder={$_("seller_dashboard.attribute_name") ||
+                    "Attribute Name (e.g., Size, Color)"}
+                  class="form-input variation-input"
+                  class:rtl={$isRTL}
+                />
+                <input
+                  type="text"
+                  bind:value={variation.attribute_value}
+                  placeholder={$_("seller_dashboard.attribute_value") ||
+                    "Value (e.g., Large, Red)"}
+                  class="form-input variation-input"
+                  class:rtl={$isRTL}
+                />
+                {#if variationRequestForm.variations.length > 1}
+                  <button
+                    class="remove-attribute-btn"
+                    onclick={() => removeVariationAttribute(index)}
+                    aria-label="Remove"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                {/if}
+              </div>
+            {/each}
+
+            <button class="add-attribute-btn" onclick={addVariationAttribute}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span
+                >{$_("seller_dashboard.add_attribute") ||
+                  "Add Another Attribute"}</span
+              >
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              <span
+                >{$_("seller_dashboard.justification") || "Justification"}</span
+              >
+            </label>
+            <textarea
+              bind:value={variationRequestForm.justification}
+              placeholder={$_("seller_dashboard.justification_placeholder") ||
+                "Explain why this variation is needed..."}
+              class="form-textarea"
+              class:rtl={$isRTL}
+              rows="4"
+            ></textarea>
+          </div>
+        {/if}
+      </div>
+
+      <div class="modal-footer">
+        <button
+          class="modal-button cancel"
+          onclick={closeVariationRequestModal}
+        >
+          {$_("seller_dashboard.cancel") || "Cancel"}
+        </button>
+        <button
+          class="modal-button submit"
+          onclick={submitVariationRequest}
+          disabled={!variationRequestForm.product ||
+            variationRequestForm.variations.some(
+              (v) => !v.attribute_name || !v.attribute_value
+            ) ||
+            !variationRequestForm.justification}
+        >
+          {$_("seller_dashboard.submit_request") || "Submit Request"}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <!-- Edit Modal -->
 {#if showEditModal && itemToEdit}
-  <div class="modal-overlay" onclick={closeEditModal}>
-    <div class="modal-container" onclick={(e) => e.stopPropagation()}>
+  <div class="modal-overlay">
+    <div class="modal-container">
       <div class="modal-header">
         <h2 class="modal-title">
           {$_("seller_dashboard.edit_item") || "Edit Item"}
@@ -2428,8 +3090,8 @@
 
 <!-- Delete Confirmation Modal -->
 {#if showDeleteModal && itemToDelete}
-  <div class="modal-overlay" onclick={closeDeleteModal}>
-    <div class="modal-container small" onclick={(e) => e.stopPropagation()}>
+  <div class="modal-overlay">
+    <div class="modal-container small">
       <div class="modal-header">
         <h2 class="modal-title">
           {$_("seller_dashboard.confirm_delete") || "Confirm Delete"}
@@ -2796,11 +3458,6 @@
     padding: 1rem 3.5rem 1rem 1.25rem;
   }
 
-  .search-input.rtl ~ .search-icon {
-    left: auto;
-    right: 1.25rem;
-  }
-
   .filters-group {
     display: flex;
     gap: 1rem;
@@ -2851,30 +3508,6 @@
 
   .filter-select.rtl {
     text-align: right;
-  }
-
-  .sort-toggle {
-    padding: 0.875rem 1.25rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 14px;
-    background: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .sort-toggle:hover {
-    background: #f7fafc;
-    border-color: #667eea;
-  }
-
-  .sort-icon {
-    width: 1.5rem;
-    height: 1.5rem;
-    color: #667eea;
-    stroke-width: 2.5;
   }
 
   /* Loading State */
@@ -3058,11 +3691,6 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
-  }
-
-  .type-icon {
-    width: 1rem;
-    height: 1rem;
   }
 
   .item-actions {
@@ -3261,10 +3889,6 @@
       min-width: 100%;
     }
 
-    .sort-toggle {
-      width: 100%;
-    }
-
     .items-grid,
     .folders-grid {
       grid-template-columns: 1fr;
@@ -3337,7 +3961,8 @@
     background: white;
     border-radius: 24px;
     box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
-    width: 50%;
+    width: 90%;
+    max-width: 1200px;
     max-height: 90vh;
     overflow: hidden;
     display: flex;
@@ -3527,17 +4152,21 @@
   }
 
   .variations-table-wrapper {
-    width: fit-content;
+    width: 100%;
     overflow-x: auto;
     border-radius: 12px;
     border: 2px solid #e2e8f0;
     background: white;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
 
   .variations-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.95rem;
+    min-width: 600px;
   }
 
   .variations-table thead {
@@ -3553,10 +4182,38 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .variations-table thead th:last-child {
+    border-right: none;
   }
 
   .variations-table thead th.rtl {
     text-align: right;
+  }
+
+  .row-number-header {
+    width: 50px;
+    text-align: center !important;
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .attribute-header {
+    min-width: 120px;
+  }
+
+  .attribute-header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-start;
+  }
+
+  .attribute-icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
   }
 
   .variations-table tbody tr {
@@ -3575,6 +4232,46 @@
   .variations-table tbody td {
     padding: 1rem;
     vertical-align: middle;
+    border-right: 1px solid #f1f5f9;
+  }
+
+  .variations-table tbody td:last-child {
+    border-right: none;
+  }
+
+  .row-number-cell {
+    text-align: center;
+    font-weight: 600;
+    color: #94a3b8;
+    background: #f8fafc;
+    font-size: 0.875rem;
+  }
+
+  .attribute-value-cell {
+    font-weight: 500;
+    color: #2d3748;
+  }
+
+  .attribute-value-cell.rtl {
+    text-align: right;
+  }
+
+  .attribute-badge {
+    display: inline-block;
+    padding: 0.375rem 0.875rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    transition: all 0.2s ease;
+  }
+
+  .attribute-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
   }
 
   .variation-name-cell {
@@ -3772,11 +4469,6 @@
     text-align: right;
   }
 
-  .bundle-search-input.rtl ~ .search-icon-small {
-    left: auto;
-    right: 1rem;
-  }
-
   .clear-search {
     position: absolute;
     right: 0.75rem;
@@ -3845,11 +4537,6 @@
     padding: 0.75rem 2.5rem 0.75rem 1rem;
     text-align: right;
     background-position: left 0.75rem center;
-  }
-
-  .bundle-filter-select.rtl ~ .filter-icon-small {
-    left: auto;
-    right: 0.875rem;
   }
 
   .no-results-message {
@@ -3976,5 +4663,139 @@
     .sku-input-field {
       min-width: 120px;
     }
+  }
+
+  .combinations-info-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%);
+    border-radius: 12px;
+    border-left: 4px solid #38b2ac;
+    margin-bottom: 1.5rem;
+  }
+
+  .info-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: #38b2ac;
+    flex-shrink: 0;
+  }
+
+  .info-text {
+    margin: 0;
+    color: #234e52;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  /* Variation Request Styles */
+  .header-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .secondary-button {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+  }
+
+  .secondary-button:hover {
+    background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+    transform: translateY(-1px);
+  }
+
+  .variation-attribute-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .variation-input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .remove-attribute-btn {
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fed7d7;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .remove-attribute-btn:hover {
+    background: #fc8181;
+  }
+
+  .remove-attribute-btn svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    stroke: #c53030;
+  }
+
+  .remove-attribute-btn:hover svg {
+    stroke: white;
+  }
+
+  .add-attribute-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.875rem;
+    background: #f7fafc;
+    border: 2px dashed #cbd5e0;
+    border-radius: 8px;
+    color: #4a5568;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 0.5rem;
+  }
+
+  .add-attribute-btn:hover {
+    background: #edf2f7;
+    border-color: #667eea;
+    color: #667eea;
+  }
+
+  .add-attribute-btn svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    stroke: currentColor;
+  }
+
+  .form-textarea {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: vertical;
+    transition: all 0.2s ease;
+    background: white;
+  }
+
+  .form-textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  .form-textarea.rtl {
+    text-align: right;
+    direction: rtl;
   }
 </style>
