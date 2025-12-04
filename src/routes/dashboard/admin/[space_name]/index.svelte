@@ -9,6 +9,16 @@
   import FolderForm from "@/components/forms/FolderForm.svelte";
   import MetaForm from "@/components/forms/MetaForm.svelte";
   import { formatNumberInText } from "@/lib/helpers";
+  import {
+    getLocalizedDisplayName,
+    getLocalizedDescription,
+    formatDate,
+    getItemIcon,
+    getResourceTypeColor,
+    filterBySearch,
+    sortItems,
+    matchesSearch,
+  } from "@/lib/utils/adminUtils";
 
   $goto;
 
@@ -124,8 +134,14 @@
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((item) => {
         const shortname = item.shortname?.toLowerCase() || "";
-        const displayName = getDisplayName(item).toLowerCase();
-        const description = getDescription(item).toLowerCase();
+        const displayName = getLocalizedDisplayName(
+          item,
+          $locale
+        ).toLowerCase();
+        const description = getLocalizedDescription(
+          item,
+          $locale
+        ).toLowerCase();
         const owner = item.attributes?.owner_shortname?.toLowerCase() || "";
 
         return (
@@ -153,8 +169,8 @@
 
       switch (sortBy) {
         case "name":
-          aValue = getDisplayName(a).toLowerCase();
-          bValue = getDisplayName(b).toLowerCase();
+          aValue = getLocalizedDisplayName(a, $locale).toLowerCase();
+          bValue = getLocalizedDisplayName(b, $locale).toLowerCase();
           break;
         case "type":
           aValue = a.resource_type || "";
@@ -173,8 +189,8 @@
           bValue = (b.attributes?.owner_shortname || "").toLowerCase();
           break;
         default:
-          aValue = getDisplayName(a).toLowerCase();
-          bValue = getDisplayName(b).toLowerCase();
+          aValue = getLocalizedDisplayName(a, $locale).toLowerCase();
+          bValue = getLocalizedDisplayName(b, $locale).toLowerCase();
       }
 
       if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
@@ -399,72 +415,7 @@
     }
   }
 
-  function getItemIcon(item: any): string {
-    switch (item.resource_type) {
-      case "folder":
-        return "📁";
-      case "content":
-        return "📄";
-      case "post":
-        return "📝";
-      case "ticket":
-        return "🎫";
-      case "user":
-        return "👤";
-      case "media":
-        return "🖼️";
-      default:
-        return "📋";
-    }
-  }
-
-  function getResourceTypeColor(resourceType: string): string {
-    switch (resourceType) {
-      case "folder":
-        return "bg-blue-100 text-blue-800";
-      case "content":
-        return "bg-green-100 text-green-800";
-      case "post":
-        return "bg-purple-100 text-purple-800";
-      case "ticket":
-        return "bg-orange-100 text-orange-800";
-      case "user":
-        return "bg-indigo-100 text-indigo-800";
-      case "media":
-        return "bg-pink-100 text-pink-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  }
-
-  function getDisplayName(item: any): string {
-    if (item.attributes?.displayname) {
-      return (
-        item.attributes.displayname[$locale] ||
-        item.attributes.displayname.en ||
-        item.attributes.displayname.ar ||
-        item.shortname
-      );
-    }
-    return item.shortname || "Unnamed Item";
-  }
-
-  function getDescription(item: any): string {
-    if (item.attributes?.description) {
-      return (
-        item.attributes.description[$locale] ||
-        item.attributes.description.en ||
-        item.attributes.description.ar ||
-        "No description available"
-      );
-    }
-    return "No description available";
-  }
-
-  function formatDate(dateString: string): string {
-    if (!dateString) return $_("common.not_available");
-    return new Date(dateString).toLocaleDateString($locale);
-  }
+  // Helper functions now imported from utility modules
 
   function goBack() {
     $goto("/dashboard/admin");
@@ -870,7 +821,7 @@
                     </div>
                     <div class="flex-1 min-w-0" class:text-right={$isRTL}>
                       <h3 class="text-sm font-semibold text-gray-900 truncate">
-                        {getDisplayName(item)}
+                        {getLocalizedDisplayName(item, $locale)}
                       </h3>
                       <p class="text-xs text-gray-500 mt-1">
                         <span
@@ -930,12 +881,12 @@
                 </div>
 
                 <div class="space-y-2">
-                  {#if getDescription(item) !== "No description available"}
+                  {#if getLocalizedDescription(item, $locale) !== "No description available"}
                     <p
                       class="text-xs text-gray-600 line-clamp-2"
                       class:text-right={$isRTL}
                     >
-                      {getDescription(item)}
+                      {getLocalizedDescription(item, $locale)}
                     </p>
                   {/if}
 

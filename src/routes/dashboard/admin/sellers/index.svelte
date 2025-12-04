@@ -12,6 +12,7 @@
     UserAddSolid,
   } from "flowbite-svelte-icons";
   import { createSeller, createFolder } from "@/lib/dmart_services";
+  import { validateSellerForm } from "@/lib/utils/validationUtils";
 
   $goto;
 
@@ -53,70 +54,18 @@
   async function handleSubmit(event: Event) {
     event.preventDefault();
 
-    errors = {
-      email: "",
-      password: "",
-      confirmPassword: "",
-      gender: "",
-      age: "",
-      address: "",
-      profession: "",
-      description: "",
-    };
+    // Use validation utility
+    const validation = validateSellerForm(formData, $_);
+    errors = validation.errors;
 
-    let isValid = true;
-
-    const trimmedEmail = formData.email.trim();
-
-    if (!trimmedEmail) {
-      errors.email = $_("EmailRequired") || "Email is required";
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      errors.email = $_("InvalidEmail") || "Invalid email format";
-      isValid = false;
-    }
-
-    if (!formData.password) {
-      errors.password = $_("PasswordRequired") || "Password is required";
-      isValid = false;
-    } else if (formData.password.length < 6) {
-      errors.password =
-        $_("PasswordTooShort") || "Password must be at least 6 characters";
-      isValid = false;
-    }
-
-    if (!formData.confirmPassword) {
-      errors.confirmPassword =
-        $_("ConfirmPasswordRequired") || "Please confirm password";
-      isValid = false;
-    } else if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword =
-        $_("PasswordsDoNotMatch") || "Passwords do not match";
-      isValid = false;
-    }
-
-    if (!formData.gender) {
-      errors.gender = $_("GenderRequired") || "Gender is required";
-      isValid = false;
-    }
-
-    if (
-      formData.age &&
-      (isNaN(Number(formData.age)) ||
-        Number(formData.age) < 1 ||
-        Number(formData.age) > 150)
-    ) {
-      errors.age = $_("InvalidAge") || "Invalid age";
-      isValid = false;
-    }
-
-    if (!isValid) {
+    if (!validation.isValid) {
       return;
     }
 
     isSubmitting = true;
 
     try {
+      const trimmedEmail = formData.email.trim();
       const sellerData = {
         shortname: formData.shortname,
         email: trimmedEmail,

@@ -19,6 +19,19 @@
     EditOutline,
     TrashBinOutline,
   } from "flowbite-svelte-icons";
+  import { getLocalizedDisplayName, formatDate } from "@/lib/utils/adminUtils";
+  import {
+    getSpecificationProduct,
+    getSpecificationAttributes,
+    getProductName,
+    filterSpecificationsByProduct,
+    getEntityContent,
+    buildEntityPayload,
+  } from "@/lib/utils/entityUtils";
+  import {
+    validateSpecificationForm,
+    formatCustomAttributes,
+  } from "@/lib/utils/validationUtils";
 
   $goto;
 
@@ -111,10 +124,8 @@
 
   function openEditModal(specification) {
     selectedSpecification = specification;
-    const content =
-      specification.attributes?.payload?.body?.content ||
-      specification.attributes?.payload?.body;
-    const attributes = content?.attributes || {};
+    const content = getEntityContent(specification);
+    const attributes = getSpecificationAttributes(specification);
 
     const customAttributes = Object.entries(attributes).map(([key, value]) => ({
       key,
@@ -122,7 +133,7 @@
     }));
 
     specificationForm = {
-      displayname: getLocalizedDisplayName(specification),
+      displayname: getLocalizedDisplayName(specification, $locale),
       product: content?.product_id || "",
       attributes: attributes,
       customAttributes:
@@ -293,56 +304,10 @@
     }
   }
 
-  function getLocalizedDisplayName(item) {
-    const displayname = item?.attributes?.displayname;
-
-    if (!displayname) {
-      return item?.shortname || "Untitled";
-    }
-
-    if (typeof displayname === "string") {
-      return displayname;
-    }
-
-    const localizedName =
-      displayname[$locale] ||
-      displayname.en ||
-      displayname.ar ||
-      displayname.ku;
-    return localizedName || item?.shortname || "Untitled";
-  }
-
-  function getSpecificationProduct(specification) {
-    const content =
-      specification.attributes?.payload?.body?.content ||
-      specification.attributes?.payload?.body;
-    return content?.product_id || null;
-  }
-
-  function getProductName(productId) {
-    const product = products.find((p) => p.shortname === productId);
-    return product ? getLocalizedDisplayName(product) : productId;
-  }
-
-  function getSpecificationAttributes(specification) {
-    const content =
-      specification.attributes?.payload?.body?.content ||
-      specification.attributes?.payload?.body;
-    return content?.attributes || {};
-  }
-
-  function formatDate(dateString: string): string {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString($locale);
-  }
+  // Helper functions now imported from utility modules
 
   const filteredSpecifications = $derived.by(() => {
-    if (selectedProductFilter === "all") {
-      return specifications;
-    }
-    return specifications.filter(
-      (s) => getSpecificationProduct(s) === selectedProductFilter
-    );
+    return filterSpecificationsByProduct(specifications, selectedProductFilter);
   });
 </script>
 
@@ -379,7 +344,7 @@
       <option value="all">{$_("common.all_products") || "All Products"}</option>
       {#each products as product}
         <option value={product.shortname}
-          >{getLocalizedDisplayName(product)}</option
+          >{getLocalizedDisplayName(product, $locale)}</option
         >
       {/each}
     </select>
@@ -409,7 +374,7 @@
         <div class="specification-card">
           <div class="specification-header">
             <h3 class="specification-name">
-              {getLocalizedDisplayName(specification)}
+              {getLocalizedDisplayName(specification, $locale)}
             </h3>
             <div class="specification-actions">
               <button
@@ -433,7 +398,11 @@
               >{$_("common.product") || "Product"}:</span
             >
             <span class="product-badge"
-              >{getProductName(getSpecificationProduct(specification))}</span
+              >{getProductName(
+                getSpecificationProduct(specification),
+                products,
+                $locale
+              )}</span
             >
           </div>
           <div class="specification-attributes">
@@ -452,7 +421,10 @@
           <div class="specification-meta">
             <span class="meta-item">Shortname: {specification.shortname}</span>
             <span class="meta-item"
-              >Created: {formatDate(specification.attributes?.created_at)}</span
+              >Created: {formatDate(
+                specification.attributes?.created_at,
+                $locale
+              )}</span
             >
           </div>
         </div>
@@ -513,7 +485,7 @@
               >
               {#each products as product}
                 <option value={product.shortname}
-                  >{getLocalizedDisplayName(product)}</option
+                  >{getLocalizedDisplayName(product, $locale)}</option
                 >
               {/each}
             </select>
@@ -622,7 +594,7 @@
               >
               {#each products as product}
                 <option value={product.shortname}
-                  >{getLocalizedDisplayName(product)}</option
+                  >{getLocalizedDisplayName(product, $locale)}</option
                 >
               {/each}
             </select>

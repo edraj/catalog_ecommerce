@@ -19,6 +19,9 @@
     EditOutline,
     TrashBinOutline,
   } from "flowbite-svelte-icons";
+  import { getLocalizedDisplayName, generateKey } from "@/lib/utils/adminUtils";
+  import { getVariationOptions, getOptionName } from "@/lib/utils/entityUtils";
+  import { validateOptionForm } from "@/lib/utils/validationUtils";
 
   $goto;
 
@@ -41,14 +44,7 @@
     value: "",
   });
 
-  function generateKey(): string {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-    let key = "";
-    for (let i = 0; i < 26; i++) {
-      key += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return key;
-  }
+  // Helper functions now imported from utility modules
 
   onMount(async () => {
     await loadVariations();
@@ -283,35 +279,7 @@
     }
   }
 
-  function getLocalizedDisplayName(item) {
-    const displayname = item?.attributes?.displayname;
-
-    if (!displayname) {
-      return item?.shortname || "Untitled";
-    }
-
-    if (typeof displayname === "string") {
-      return displayname;
-    }
-
-    const localizedName =
-      displayname[$locale] ||
-      displayname.en ||
-      displayname.ar ||
-      displayname.ku;
-    return localizedName || item?.shortname || "Untitled";
-  }
-
-  function getOptionName(option) {
-    const name = option?.name;
-    if (!name) return "Unnamed";
-
-    return name[$locale] || name.en || name.ar || "Unnamed";
-  }
-
-  function getVariationOptions(variation) {
-    return variation.attributes?.payload?.body?.options || [];
-  }
+  // Helper functions now imported from utility modules
 </script>
 
 <div class="variations-page" class:rtl={$isRTL}>
@@ -348,7 +316,7 @@
           <div class="variation-header">
             <div class="variation-info">
               <h3 class="variation-name">
-                {getLocalizedDisplayName(variation)}
+                {getLocalizedDisplayName(variation, $locale)}
               </h3>
               <span class="variation-shortname">{variation.shortname}</span>
             </div>
@@ -380,7 +348,9 @@
                         ></span>
                       {/if}
                       <div class="option-details">
-                        <span class="option-name">{getOptionName(option)}</span>
+                        <span class="option-name"
+                          >{getOptionName(option, $locale)}</span
+                        >
                         {#if variation.shortname === "colors" && option.value}
                           <span class="option-value">{option.value}</span>
                         {/if}

@@ -19,6 +19,17 @@
     EditOutline,
     TrashBinOutline,
   } from "flowbite-svelte-icons";
+  import { getLocalizedDisplayName, formatDate } from "@/lib/utils/adminUtils";
+  import {
+    getCategoryParentId,
+    getParentCategoryName,
+    isParentCategory,
+    getSubCategories,
+    getEntityContent,
+    buildEntityPayload,
+    countSubCategories,
+  } from "@/lib/utils/entityUtils";
+  import { validateCategoryForm } from "@/lib/utils/validationUtils";
 
   $goto;
 
@@ -86,11 +97,9 @@
 
   function openEditModal(category) {
     selectedCategory = category;
-    const content =
-      category.attributes?.payload?.body?.content ||
-      category.attributes?.payload?.body;
+    const content = getEntityContent(category);
     categoryForm = {
-      displayname: getLocalizedDisplayName(category),
+      displayname: getLocalizedDisplayName(category, $locale),
       description: content?.description || "",
       parent_category_id: content?.parent_category_id || "",
       tags: category.attributes?.tags || [],
@@ -214,50 +223,7 @@
     }
   }
 
-  function getLocalizedDisplayName(item) {
-    const displayname = item?.attributes?.displayname;
-
-    if (!displayname) {
-      return item?.shortname || "Untitled";
-    }
-
-    if (typeof displayname === "string") {
-      return displayname;
-    }
-
-    const localizedName =
-      displayname[$locale] ||
-      displayname.en ||
-      displayname.ar ||
-      displayname.ku;
-    return localizedName || item?.shortname || "Untitled";
-  }
-
-  function formatDate(dateString: string): string {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString($locale);
-  }
-
-  function getCategoryParentId(category) {
-    const content =
-      category.attributes?.payload?.body?.content ||
-      category.attributes?.payload?.body;
-    return content?.parent_category_id || null;
-  }
-
-  function getParentCategoryName(parentId) {
-    if (!parentId) return null;
-    const parent = categories.find((c) => c.shortname === parentId);
-    return parent ? getLocalizedDisplayName(parent) : parentId;
-  }
-
-  function isParentCategory(category) {
-    return !getCategoryParentId(category);
-  }
-
-  function getSubCategories(parentId) {
-    return categories.filter((c) => getCategoryParentId(c) === parentId);
-  }
+  // Helper functions now imported from utility modules
 
   function toggleCategory(categoryId) {
     console.log("Toggling category:", categoryId);
@@ -280,14 +246,10 @@
   });
 
   const filteredCategories = $derived.by(() => {
-    if (selectedParentFilter === "all") {
-      return parentCategories;
-    } else if (selectedParentFilter === "root") {
+    if (selectedParentFilter === "all" || selectedParentFilter === "root") {
       return parentCategories;
     } else {
-      return categories.filter(
-        (c) => getCategoryParentId(c) === selectedParentFilter
-      );
+      return getSubCategories(selectedParentFilter, categories);
     }
   });
 </script>
@@ -362,7 +324,10 @@
           <div class="list-col col-actions">Actions</div>
         </div>
         {#each filteredCategories as category}
-          {@const subCategories = getSubCategories(category.shortname)}
+          {@const subCategories = getSubCategories(
+            category.shortname,
+            categories
+          )}
           {@const hasSubCategories = subCategories.length > 0}
           {@const expanded = isExpanded(category.shortname)}
 
@@ -387,7 +352,7 @@
                 {/if}
                 <div class="name-wrapper">
                   <span class="category-name"
-                    >{getLocalizedDisplayName(category)}</span
+                    >{getLocalizedDisplayName(category, $locale)}</span
                   >
                   <span class="category-shortname">{category.shortname}</span>
                 </div>
@@ -401,7 +366,7 @@
                 "No description"}
             </div>
             <div class="list-col col-date">
-              {formatDate(category.attributes?.created_at)}
+              {formatDate(category.attributes?.created_at, $locale)}
             </div>
             <div class="list-col col-actions">
               <button
@@ -430,7 +395,7 @@
                     <span class="sub-category-icon">↳</span>
                     <div class="name-wrapper">
                       <span class="category-name"
-                        >{getLocalizedDisplayName(subCategory)}</span
+                        >{getLocalizedDisplayName(subCategory, $locale)}</span
                       >
                       <span class="category-shortname"
                         >{subCategory.shortname}</span
@@ -443,7 +408,7 @@
                     "No description"}
                 </div>
                 <div class="list-col col-date">
-                  {formatDate(subCategory.attributes?.created_at)}
+                  {formatDate(subCategory.attributes?.created_at, $locale)}
                 </div>
                 <div class="list-col col-actions">
                   <button
