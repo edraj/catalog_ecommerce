@@ -32,6 +32,14 @@
     validateSpecificationForm,
     formatCustomAttributes,
   } from "@/lib/utils/validationUtils";
+  import {
+    Modal,
+    Button,
+    IconButton,
+    Select,
+    LoadingSpinner,
+    EmptyState,
+  } from "@/components/ui";
 
   $goto;
 
@@ -323,13 +331,13 @@
           "Manage product variations and specifications"}
       </p>
     </div>
-    <button class="btn-create" onclick={openCreateModal}>
+    <Button variant="primary" onclick={openCreateModal}>
       <PlusOutline size="sm" />
       <span
         >{$_("admin_dashboard.create_specification") ||
           "Create Specification"}</span
       >
-    </button>
+    </Button>
   </div>
 
   <div class="filters">
@@ -351,23 +359,22 @@
   </div>
 
   {#if isLoading}
-    <div class="loading-state">
-      <div class="loading-spinner"></div>
-      <p>{$_("common.loading") || "Loading..."}</p>
-    </div>
+    <LoadingSpinner message={$_("common.loading") || "Loading..."} />
   {:else if filteredSpecifications.length === 0}
-    <div class="empty-state">
-      <p>
-        {selectedProductFilter === "all"
-          ? $_("admin_dashboard.no_specifications") || "No specifications found"
-          : $_("admin_dashboard.no_specifications_for_product") ||
-            "No specifications for this product"}
-      </p>
-      <button class="btn-create" onclick={openCreateModal}>
-        {$_("admin_dashboard.create_first_specification") ||
-          "Create First Specification"}
-      </button>
-    </div>
+    <EmptyState
+      icon="📋"
+      title={selectedProductFilter === "all"
+        ? $_("admin_dashboard.no_specifications") || "No specifications found"
+        : $_("admin_dashboard.no_specifications_for_product") ||
+          "No specifications for this product"}
+    >
+      {#snippet action()}
+        <Button variant="primary" onclick={openCreateModal}>
+          {$_("admin_dashboard.create_first_specification") ||
+            "Create First Specification"}
+        </Button>
+      {/snippet}
+    </EmptyState>
   {:else}
     <div class="specifications-grid">
       {#each filteredSpecifications as specification}
@@ -377,20 +384,19 @@
               {getLocalizedDisplayName(specification, $locale)}
             </h3>
             <div class="specification-actions">
-              <button
-                class="btn-icon"
+              <IconButton
                 onclick={() => openEditModal(specification)}
                 title="Edit"
               >
                 <EditOutline size="sm" />
-              </button>
-              <button
-                class="btn-icon delete"
+              </IconButton>
+              <IconButton
+                variant="delete"
                 onclick={() => openDeleteModal(specification)}
                 title="Delete"
               >
                 <TrashBinOutline size="sm" />
-              </button>
+              </IconButton>
             </div>
           </div>
           <div class="specification-product">
@@ -434,250 +440,235 @@
 </div>
 
 <!-- Create Modal -->
-{#if showCreateModal}
-  <div class="modal-overlay" onclick={closeCreateModal}>
-    <div class="modal-container large" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">
-        <h2>
-          {$_("admin_dashboard.create_specification") || "Create Specification"}
-        </h2>
-        <button class="modal-close" onclick={closeCreateModal}>&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="specification-name">{$_("common.name") || "Name"} *</label
+<Modal
+  bind:show={showCreateModal}
+  title={$_("admin_dashboard.create_specification") || "Create Specification"}
+  size="large"
+  onClose={closeCreateModal}
+>
+  {#snippet body()}
+    <div class="form-group">
+      <label for="specification-name">{$_("common.name") || "Name"} *</label>
+      <input
+        id="specification-name"
+        type="text"
+        bind:value={specificationForm.displayname}
+        placeholder={$_("admin_dashboard.enter_specification_name") ||
+          "Enter specification name (e.g., 'iPhone 15 - 128GB - Blue')"}
+        class="form-input"
+      />
+    </div>
+    <div class="form-group">
+      <label for="specification-product"
+        >{$_("common.product") || "Product"} *</label
+      >
+      {#if isLoadingProducts}
+        <div class="loading-message">Loading products...</div>
+      {:else if products.length === 0}
+        <div class="warning-message">
+          <p>⚠️ No products found. Please create products first.</p>
+          <button
+            class="btn-link"
+            onclick={() => window.open("/dashboard/admin/products", "_blank")}
+            type="button"
           >
-          <input
-            id="specification-name"
-            type="text"
-            bind:value={specificationForm.displayname}
-            placeholder={$_("admin_dashboard.enter_specification_name") ||
-              "Enter specification name (e.g., 'iPhone 15 - 128GB - Blue')"}
-            class="form-input"
-          />
-        </div>
-        <div class="form-group">
-          <label for="specification-product"
-            >{$_("common.product") || "Product"} *</label
-          >
-          {#if isLoadingProducts}
-            <div class="loading-message">Loading products...</div>
-          {:else if products.length === 0}
-            <div class="warning-message">
-              <p>⚠️ No products found. Please create products first.</p>
-              <button
-                class="btn-link"
-                onclick={() =>
-                  window.open("/dashboard/admin/products", "_blank")}
-                type="button"
-              >
-                Go to Products Management
-              </button>
-            </div>
-          {:else}
-            <select
-              id="specification-product"
-              bind:value={specificationForm.product}
-              class="form-input"
-            >
-              <option value=""
-                >{$_("common.select_product") || "Select a product"}</option
-              >
-              {#each products as product}
-                <option value={product.shortname}
-                  >{getLocalizedDisplayName(product, $locale)}</option
-                >
-              {/each}
-            </select>
-          {/if}
-        </div>
-        <div class="form-group">
-          <label>{$_("common.attributes") || "Attributes"} *</label>
-          <p class="form-help">
-            {$_("admin_dashboard.attributes_help") ||
-              "Define the variations (e.g., Color: Blue, Storage: 128GB)"}
-          </p>
-          {#each specificationForm.customAttributes as attr, index}
-            <div class="attribute-row">
-              <input
-                type="text"
-                bind:value={attr.key}
-                placeholder={$_("common.attribute_name") ||
-                  "Attribute name (e.g., Color)"}
-                class="form-input attribute-key-input"
-              />
-              <input
-                type="text"
-                bind:value={attr.value}
-                placeholder={$_("common.attribute_value") ||
-                  "Value (e.g., Blue)"}
-                class="form-input attribute-value-input"
-              />
-              <button
-                class="btn-icon-small delete"
-                onclick={() => removeCustomAttribute(index)}
-                disabled={specificationForm.customAttributes.length === 1}
-                title="Remove"
-              >
-                <TrashBinOutline size="xs" />
-              </button>
-            </div>
-          {/each}
-          <button class="btn-add-attribute" onclick={addCustomAttribute}>
-            <PlusOutline size="xs" />
-            <span>{$_("common.add_attribute") || "Add Attribute"}</span>
+            Go to Products Management
           </button>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick={closeCreateModal}>
-          {$_("common.cancel") || "Cancel"}
-        </button>
-        <button class="btn-primary" onclick={handleCreateSpecification}>
-          {$_("common.create") || "Create"}
-        </button>
-      </div>
+      {:else}
+        <select
+          id="specification-product"
+          bind:value={specificationForm.product}
+          class="form-input"
+        >
+          <option value=""
+            >{$_("common.select_product") || "Select a product"}</option
+          >
+          {#each products as product}
+            <option value={product.shortname}
+              >{getLocalizedDisplayName(product, $locale)}</option
+            >
+          {/each}
+        </select>
+      {/if}
     </div>
-  </div>
-{/if}
+    <div class="form-group">
+      <label>{$_("common.attributes") || "Attributes"} *</label>
+      <p class="form-help">
+        {$_("admin_dashboard.attributes_help") ||
+          "Define the variations (e.g., Color: Blue, Storage: 128GB)"}
+      </p>
+      {#each specificationForm.customAttributes as attr, index}
+        <div class="attribute-row">
+          <input
+            type="text"
+            bind:value={attr.key}
+            placeholder={$_("common.attribute_name") ||
+              "Attribute name (e.g., Color)"}
+            class="form-input attribute-key-input"
+          />
+          <input
+            type="text"
+            bind:value={attr.value}
+            placeholder={$_("common.attribute_value") || "Value (e.g., Blue)"}
+            class="form-input attribute-value-input"
+          />
+          <button
+            class="btn-icon-small delete"
+            onclick={() => removeCustomAttribute(index)}
+            disabled={specificationForm.customAttributes.length === 1}
+            title="Remove"
+          >
+            <TrashBinOutline size="xs" />
+          </button>
+        </div>
+      {/each}
+      <button class="btn-add-attribute" onclick={addCustomAttribute}>
+        <PlusOutline size="xs" />
+        <span>{$_("common.add_attribute") || "Add Attribute"}</span>
+      </button>
+    </div>
+  {/snippet}
+
+  {#snippet footer()}
+    <Button variant="secondary" onclick={closeCreateModal}>
+      {$_("common.cancel") || "Cancel"}
+    </Button>
+    <Button variant="primary" onclick={handleCreateSpecification}>
+      {$_("common.create") || "Create"}
+    </Button>
+  {/snippet}
+</Modal>
 
 <!-- Edit Modal -->
-{#if showEditModal}
-  <div class="modal-overlay" onclick={closeEditModal}>
-    <div class="modal-container large" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">
-        <h2>
-          {$_("admin_dashboard.edit_specification") || "Edit Specification"}
-        </h2>
-        <button class="modal-close" onclick={closeEditModal}>&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="edit-specification-name"
-            >{$_("common.name") || "Name"} *</label
+<Modal
+  bind:show={showEditModal}
+  title={$_("admin_dashboard.edit_specification") || "Edit Specification"}
+  size="large"
+  onClose={closeEditModal}
+>
+  {#snippet body()}
+    <div class="form-group">
+      <label for="edit-specification-name"
+        >{$_("common.name") || "Name"} *</label
+      >
+      <input
+        id="edit-specification-name"
+        type="text"
+        bind:value={specificationForm.displayname}
+        placeholder={$_("admin_dashboard.enter_specification_name") ||
+          "Enter specification name (e.g., 'iPhone 15 - 128GB - Blue')"}
+        class="form-input"
+      />
+    </div>
+    <div class="form-group">
+      <label for="edit-specification-product"
+        >{$_("common.product") || "Product"} *</label
+      >
+      {#if isLoadingProducts}
+        <div class="loading-message">Loading products...</div>
+      {:else if products.length === 0}
+        <div class="warning-message">
+          <p>⚠️ No products found. Please create products first.</p>
+          <button
+            class="btn-link"
+            onclick={() => window.open("/dashboard/admin/products", "_blank")}
+            type="button"
           >
-          <input
-            id="edit-specification-name"
-            type="text"
-            bind:value={specificationForm.displayname}
-            placeholder={$_("admin_dashboard.enter_specification_name") ||
-              "Enter specification name (e.g., 'iPhone 15 - 128GB - Blue')"}
-            class="form-input"
-          />
-        </div>
-        <div class="form-group">
-          <label for="edit-specification-product"
-            >{$_("common.product") || "Product"} *</label
-          >
-          {#if isLoadingProducts}
-            <div class="loading-message">Loading products...</div>
-          {:else if products.length === 0}
-            <div class="warning-message">
-              <p>⚠️ No products found. Please create products first.</p>
-              <button
-                class="btn-link"
-                onclick={() =>
-                  window.open("/dashboard/admin/products", "_blank")}
-                type="button"
-              >
-                Go to Products Management
-              </button>
-            </div>
-          {:else}
-            <select
-              id="edit-specification-product"
-              bind:value={specificationForm.product}
-              class="form-input"
-            >
-              <option value=""
-                >{$_("common.select_product") || "Select a product"}</option
-              >
-              {#each products as product}
-                <option value={product.shortname}
-                  >{getLocalizedDisplayName(product, $locale)}</option
-                >
-              {/each}
-            </select>
-          {/if}
-        </div>
-        <div class="form-group">
-          <label>{$_("common.attributes") || "Attributes"} *</label>
-          <p class="form-help">
-            {$_("admin_dashboard.attributes_help") ||
-              "Define the variations (e.g., Color: Blue, Storage: 128GB)"}
-          </p>
-          {#each specificationForm.customAttributes as attr, index}
-            <div class="attribute-row">
-              <input
-                type="text"
-                bind:value={attr.key}
-                placeholder={$_("common.attribute_name") ||
-                  "Attribute name (e.g., Color)"}
-                class="form-input attribute-key-input"
-              />
-              <input
-                type="text"
-                bind:value={attr.value}
-                placeholder={$_("common.attribute_value") ||
-                  "Value (e.g., Blue)"}
-                class="form-input attribute-value-input"
-              />
-              <button
-                class="btn-icon-small delete"
-                onclick={() => removeCustomAttribute(index)}
-                disabled={specificationForm.customAttributes.length === 1}
-                title="Remove"
-              >
-                <TrashBinOutline size="xs" />
-              </button>
-            </div>
-          {/each}
-          <button class="btn-add-attribute" onclick={addCustomAttribute}>
-            <PlusOutline size="xs" />
-            <span>{$_("common.add_attribute") || "Add Attribute"}</span>
+            Go to Products Management
           </button>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick={closeEditModal}>
-          {$_("common.cancel") || "Cancel"}
-        </button>
-        <button class="btn-primary" onclick={handleUpdateSpecification}>
-          {$_("common.save") || "Save Changes"}
-        </button>
-      </div>
+      {:else}
+        <select
+          id="edit-specification-product"
+          bind:value={specificationForm.product}
+          class="form-input"
+        >
+          <option value=""
+            >{$_("common.select_product") || "Select a product"}</option
+          >
+          {#each products as product}
+            <option value={product.shortname}
+              >{getLocalizedDisplayName(product, $locale)}</option
+            >
+          {/each}
+        </select>
+      {/if}
     </div>
-  </div>
-{/if}
+    <div class="form-group">
+      <label>{$_("common.attributes") || "Attributes"} *</label>
+      <p class="form-help">
+        {$_("admin_dashboard.attributes_help") ||
+          "Define the variations (e.g., Color: Blue, Storage: 128GB)"}
+      </p>
+      {#each specificationForm.customAttributes as attr, index}
+        <div class="attribute-row">
+          <input
+            type="text"
+            bind:value={attr.key}
+            placeholder={$_("common.attribute_name") ||
+              "Attribute name (e.g., Color)"}
+            class="form-input attribute-key-input"
+          />
+          <input
+            type="text"
+            bind:value={attr.value}
+            placeholder={$_("common.attribute_value") || "Value (e.g., Blue)"}
+            class="form-input attribute-value-input"
+          />
+          <button
+            class="btn-icon-small delete"
+            onclick={() => removeCustomAttribute(index)}
+            disabled={specificationForm.customAttributes.length === 1}
+            title="Remove"
+          >
+            <TrashBinOutline size="xs" />
+          </button>
+        </div>
+      {/each}
+      <button class="btn-add-attribute" onclick={addCustomAttribute}>
+        <PlusOutline size="xs" />
+        <span>{$_("common.add_attribute") || "Add Attribute"}</span>
+      </button>
+    </div>
+  {/snippet}
+
+  {#snippet footer()}
+    <Button variant="secondary" onclick={closeEditModal}>
+      {$_("common.cancel") || "Cancel"}
+    </Button>
+    <Button variant="primary" onclick={handleUpdateSpecification}>
+      {$_("common.save") || "Save Changes"}
+    </Button>
+  {/snippet}
+</Modal>
 
 <!-- Delete Modal -->
-{#if showDeleteModal}
-  <div class="modal-overlay" onclick={closeDeleteModal}>
-    <div class="modal-container small" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">
-        <h2>{$_("common.confirm_delete") || "Confirm Delete"}</h2>
-        <button class="modal-close" onclick={closeDeleteModal}>&times;</button>
-      </div>
-      <div class="modal-body">
-        <p>
-          {$_("admin_dashboard.delete_specification_confirm") ||
-            "Are you sure you want to delete this specification?"}
-        </p>
-        <p class="specification-name-highlight">
-          {getLocalizedDisplayName(selectedSpecification)}
-        </p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick={closeDeleteModal}>
-          {$_("common.cancel") || "Cancel"}
-        </button>
-        <button class="btn-danger" onclick={handleDeleteSpecification}>
-          {$_("common.delete") || "Delete"}
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
+<Modal
+  bind:show={showDeleteModal}
+  title={$_("common.confirm_delete") || "Confirm Delete"}
+  size="small"
+  onClose={closeDeleteModal}
+>
+  {#snippet body()}
+    <p>
+      {$_("admin_dashboard.delete_specification_confirm") ||
+        "Are you sure you want to delete this specification?"}
+    </p>
+    <p class="specification-name-highlight">
+      {getLocalizedDisplayName(selectedSpecification, $locale)}
+    </p>
+  {/snippet}
+
+  {#snippet footer()}
+    <Button variant="secondary" onclick={closeDeleteModal}>
+      {$_("common.cancel") || "Cancel"}
+    </Button>
+    <Button variant="danger" onclick={handleDeleteSpecification}>
+      {$_("common.delete") || "Delete"}
+    </Button>
+  {/snippet}
+</Modal>
 
 <style>
   .specifications-page {

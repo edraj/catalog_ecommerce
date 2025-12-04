@@ -30,6 +30,13 @@
     countSubCategories,
   } from "@/lib/utils/entityUtils";
   import { validateCategoryForm } from "@/lib/utils/validationUtils";
+  import {
+    Modal,
+    Button,
+    IconButton,
+    LoadingSpinner,
+    EmptyState,
+  } from "@/components/ui";
 
   $goto;
 
@@ -266,10 +273,10 @@
             "Manage your product categories"}
         </p>
       </div>
-      <button class="btn-create" onclick={openCreateModal}>
+      <Button variant="primary" onclick={openCreateModal}>
         <PlusOutline size="sm" />
         <span>{$_("admin_dashboard.create_category") || "New Category"}</span>
-      </button>
+      </Button>
     </div>
 
     {#if !isLoading && categories.length > 0}
@@ -301,20 +308,20 @@
     {/if}
 
     {#if isLoading}
-      <div class="loading-state">
-        <div class="loading-spinner"></div>
-        <p>{$_("common.loading") || "Loading..."}</p>
-      </div>
+      <LoadingSpinner message={$_("common.loading") || "Loading..."} />
     {:else if categories.length === 0}
-      <div class="empty-state">
-        <div class="empty-icon">📂</div>
-        <h3>{$_("admin_dashboard.no_categories") || "No categories yet"}</h3>
-        <p>Create your first category to get started</p>
-        <button class="btn-create-large" onclick={openCreateModal}>
-          <PlusOutline size="sm" />
-          {$_("admin_dashboard.create_first_category") || "Create Category"}
-        </button>
-      </div>
+      <EmptyState
+        icon="📂"
+        title={$_("admin_dashboard.no_categories") || "No categories yet"}
+        description="Create your first category to get started"
+      >
+        {#snippet action()}
+          <Button variant="primary" onclick={openCreateModal}>
+            <PlusOutline size="sm" />
+            {$_("admin_dashboard.create_first_category") || "Create Category"}
+          </Button>
+        {/snippet}
+      </EmptyState>
     {:else}
       <div class="categories-list">
         <div class="list-header">
@@ -369,20 +376,16 @@
               {formatDate(category.attributes?.created_at, $locale)}
             </div>
             <div class="list-col col-actions">
-              <button
-                class="btn-icon"
-                onclick={() => openEditModal(category)}
-                title="Edit"
-              >
+              <IconButton onclick={() => openEditModal(category)} title="Edit">
                 <EditOutline size="sm" />
-              </button>
-              <button
-                class="btn-icon btn-delete"
+              </IconButton>
+              <IconButton
+                variant="delete"
                 onclick={() => openDeleteModal(category)}
                 title="Delete"
               >
                 <TrashBinOutline size="sm" />
-              </button>
+              </IconButton>
             </div>
           </div>
 
@@ -411,20 +414,19 @@
                   {formatDate(subCategory.attributes?.created_at, $locale)}
                 </div>
                 <div class="list-col col-actions">
-                  <button
-                    class="btn-icon"
+                  <IconButton
                     onclick={() => openEditModal(subCategory)}
                     title="Edit"
                   >
                     <EditOutline size="sm" />
-                  </button>
-                  <button
-                    class="btn-icon btn-delete"
+                  </IconButton>
+                  <IconButton
+                    variant="delete"
                     onclick={() => openDeleteModal(subCategory)}
                     title="Delete"
                   >
                     <TrashBinOutline size="sm" />
-                  </button>
+                  </IconButton>
                 </div>
               </div>
             {/each}
@@ -436,187 +438,177 @@
 </div>
 
 <!-- Create Modal -->
-{#if showCreateModal}
-  <div class="modal-overlay" onclick={closeCreateModal}>
-    <div class="modal-container" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">
-        <h2>{$_("admin_dashboard.create_category") || "Create Category"}</h2>
-        <button class="modal-close" onclick={closeCreateModal}>&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="category-name"
-            >{$_("common.name") || "Name"}
-            <span class="required">*</span></label
-          >
-          <input
-            id="category-name"
-            type="text"
-            bind:value={categoryForm.displayname}
-            placeholder={$_("admin_dashboard.enter_category_name") ||
-              "Enter category name"}
-            class="form-input"
-          />
-        </div>
-        <div class="form-group">
-          <label for="parent-category"
-            >{$_("common.parent_category") || "Parent Category"} ({$_(
-              "common.optional"
-            ) || "Optional"})</label
-          >
-          <select
-            id="parent-category"
-            bind:value={categoryForm.parent_category_id}
-            class="form-input"
-          >
-            <option value=""
-              >{$_("common.none_top_level") ||
-                "None (Top-level category)"}</option
-            >
-            {#each parentCategories as parent}
-              <option value={parent.shortname}
-                >{getLocalizedDisplayName(parent)}</option
-              >
-            {/each}
-          </select>
-          <p class="form-hint">
-            {$_("admin_dashboard.parent_category_hint") ||
-              "Select a parent category to make this a sub-category"}
-          </p>
-        </div>
-        <div class="form-group">
-          <label for="category-description"
-            >{$_("common.description") || "Description"}</label
-          >
-          <textarea
-            id="category-description"
-            bind:value={categoryForm.description}
-            placeholder={$_("admin_dashboard.enter_category_description") ||
-              "Enter category description"}
-            class="form-textarea"
-            rows="4"
-          ></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick={closeCreateModal}>
-          {$_("common.cancel") || "Cancel"}
-        </button>
-        <button class="btn-primary" onclick={handleCreateCategory}>
-          {$_("common.create") || "Create Category"}
-        </button>
-      </div>
+<Modal
+  bind:show={showCreateModal}
+  title={$_("admin_dashboard.create_category") || "Create Category"}
+  onClose={closeCreateModal}
+>
+  {#snippet body()}
+    <div class="form-group">
+      <label for="category-name"
+        >{$_("common.name") || "Name"}
+        <span class="required">*</span></label
+      >
+      <input
+        id="category-name"
+        type="text"
+        bind:value={categoryForm.displayname}
+        placeholder={$_("admin_dashboard.enter_category_name") ||
+          "Enter category name"}
+        class="form-input"
+      />
     </div>
-  </div>
-{/if}
+    <div class="form-group">
+      <label for="parent-category"
+        >{$_("common.parent_category") || "Parent Category"} ({$_(
+          "common.optional"
+        ) || "Optional"})</label
+      >
+      <select
+        id="parent-category"
+        bind:value={categoryForm.parent_category_id}
+        class="form-input"
+      >
+        <option value=""
+          >{$_("common.none_top_level") || "None (Top-level category)"}</option
+        >
+        {#each parentCategories as parent}
+          <option value={parent.shortname}
+            >{getLocalizedDisplayName(parent)}</option
+          >
+        {/each}
+      </select>
+      <p class="form-hint">
+        {$_("admin_dashboard.parent_category_hint") ||
+          "Select a parent category to make this a sub-category"}
+      </p>
+    </div>
+    <div class="form-group">
+      <label for="category-description"
+        >{$_("common.description") || "Description"}</label
+      >
+      <textarea
+        id="category-description"
+        bind:value={categoryForm.description}
+        placeholder={$_("admin_dashboard.enter_category_description") ||
+          "Enter category description"}
+        class="form-textarea"
+        rows="4"
+      ></textarea>
+    </div>
+  {/snippet}
+
+  {#snippet footer()}
+    <Button variant="secondary" onclick={closeCreateModal}>
+      {$_("common.cancel") || "Cancel"}
+    </Button>
+    <Button variant="primary" onclick={handleCreateCategory}>
+      {$_("common.create") || "Create Category"}
+    </Button>
+  {/snippet}
+</Modal>
 
 <!-- Edit Modal -->
-{#if showEditModal}
-  <div class="modal-overlay" onclick={closeEditModal}>
-    <div class="modal-container" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">
-        <h2>{$_("admin_dashboard.edit_category") || "Edit Category"}</h2>
-        <button class="modal-close" onclick={closeEditModal}>&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="edit-category-name"
-            >{$_("common.name") || "Name"}
-            <span class="required">*</span></label
-          >
-          <input
-            id="edit-category-name"
-            type="text"
-            bind:value={categoryForm.displayname}
-            placeholder={$_("admin_dashboard.enter_category_name") ||
-              "Enter category name"}
-            class="form-input"
-          />
-        </div>
-        <div class="form-group">
-          <label for="edit-parent-category"
-            >{$_("common.parent_category") || "Parent Category"} ({$_(
-              "common.optional"
-            ) || "Optional"})</label
-          >
-          <select
-            id="edit-parent-category"
-            bind:value={categoryForm.parent_category_id}
-            class="form-input"
-          >
-            <option value=""
-              >{$_("common.none_top_level") ||
-                "None (Top-level category)"}</option
-            >
-            {#each parentCategories.filter((p) => p.shortname !== selectedCategory?.shortname) as parent}
-              <option value={parent.shortname}
-                >{getLocalizedDisplayName(parent)}</option
-              >
-            {/each}
-          </select>
-          <p class="form-hint">
-            {$_("admin_dashboard.parent_category_hint") ||
-              "Select a parent category to make this a sub-category"}
-          </p>
-        </div>
-        <div class="form-group">
-          <label for="edit-category-description"
-            >{$_("common.description") || "Description"}</label
-          >
-          <textarea
-            id="edit-category-description"
-            bind:value={categoryForm.description}
-            placeholder={$_("admin_dashboard.enter_category_description") ||
-              "Enter category description"}
-            class="form-textarea"
-            rows="4"
-          ></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick={closeEditModal}>
-          {$_("common.cancel") || "Cancel"}
-        </button>
-        <button class="btn-primary" onclick={handleUpdateCategory}>
-          {$_("common.save") || "Save Changes"}
-        </button>
-      </div>
+<Modal
+  bind:show={showEditModal}
+  title={$_("admin_dashboard.edit_category") || "Edit Category"}
+  onClose={closeEditModal}
+>
+  {#snippet body()}
+    <div class="form-group">
+      <label for="edit-category-name"
+        >{$_("common.name") || "Name"}
+        <span class="required">*</span></label
+      >
+      <input
+        id="edit-category-name"
+        type="text"
+        bind:value={categoryForm.displayname}
+        placeholder={$_("admin_dashboard.enter_category_name") ||
+          "Enter category name"}
+        class="form-input"
+      />
     </div>
-  </div>
-{/if}
+    <div class="form-group">
+      <label for="edit-parent-category"
+        >{$_("common.parent_category") || "Parent Category"} ({$_(
+          "common.optional"
+        ) || "Optional"})</label
+      >
+      <select
+        id="edit-parent-category"
+        bind:value={categoryForm.parent_category_id}
+        class="form-input"
+      >
+        <option value=""
+          >{$_("common.none_top_level") || "None (Top-level category)"}</option
+        >
+        {#each parentCategories.filter((p) => p.shortname !== selectedCategory?.shortname) as parent}
+          <option value={parent.shortname}
+            >{getLocalizedDisplayName(parent)}</option
+          >
+        {/each}
+      </select>
+      <p class="form-hint">
+        {$_("admin_dashboard.parent_category_hint") ||
+          "Select a parent category to make this a sub-category"}
+      </p>
+    </div>
+    <div class="form-group">
+      <label for="edit-category-description"
+        >{$_("common.description") || "Description"}</label
+      >
+      <textarea
+        id="edit-category-description"
+        bind:value={categoryForm.description}
+        placeholder={$_("admin_dashboard.enter_category_description") ||
+          "Enter category description"}
+        class="form-textarea"
+        rows="4"
+      ></textarea>
+    </div>
+  {/snippet}
+
+  {#snippet footer()}
+    <Button variant="secondary" onclick={closeEditModal}>
+      {$_("common.cancel") || "Cancel"}
+    </Button>
+    <Button variant="primary" onclick={handleUpdateCategory}>
+      {$_("common.save") || "Save Changes"}
+    </Button>
+  {/snippet}
+</Modal>
 
 <!-- Delete Modal -->
-{#if showDeleteModal}
-  <div class="modal-overlay" onclick={closeDeleteModal}>
-    <div class="modal-container small" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">
-        <h2>{$_("common.confirm_delete") || "Delete Category"}</h2>
-        <button class="modal-close" onclick={closeDeleteModal}>&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="delete-warning">
-          <div class="warning-icon">⚠️</div>
-          <p>
-            {$_("admin_dashboard.delete_category_confirm") ||
-              "Are you sure you want to delete this category?"}
-          </p>
-          <p class="category-name-highlight">
-            {getLocalizedDisplayName(selectedCategory)}
-          </p>
-          <p class="warning-text">This action cannot be undone.</p>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick={closeDeleteModal}>
-          {$_("common.cancel") || "Cancel"}
-        </button>
-        <button class="btn-danger" onclick={handleDeleteCategory}>
-          {$_("common.delete") || "Delete"}
-        </button>
-      </div>
+<Modal
+  bind:show={showDeleteModal}
+  title={$_("common.confirm_delete") || "Delete Category"}
+  size="small"
+  onClose={closeDeleteModal}
+>
+  {#snippet body()}
+    <div class="delete-warning">
+      <div class="warning-icon">⚠️</div>
+      <p>
+        {$_("admin_dashboard.delete_category_confirm") ||
+          "Are you sure you want to delete this category?"}
+      </p>
+      <p class="category-name-highlight">
+        {getLocalizedDisplayName(selectedCategory, $locale)}
+      </p>
+      <p class="warning-text">This action cannot be undone.</p>
     </div>
-  </div>
-{/if}
+  {/snippet}
+
+  {#snippet footer()}
+    <Button variant="secondary" onclick={closeDeleteModal}>
+      {$_("common.cancel") || "Cancel"}
+    </Button>
+    <Button variant="danger" onclick={handleDeleteCategory}>
+      {$_("common.delete") || "Delete"}
+    </Button>
+  {/snippet}
+</Modal>
 
 <style>
   .categories-page {
