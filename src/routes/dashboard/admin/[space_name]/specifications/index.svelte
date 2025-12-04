@@ -53,7 +53,7 @@
     isLoadingProducts = true;
     try {
       const response = await getSpaceContents(
-        "Ecommerce",
+        "e_commerce",
         "products",
         "managed",
         100,
@@ -76,7 +76,7 @@
     isLoading = true;
     try {
       const response = await getSpaceContents(
-        "Ecommerce",
+        "e_commerce",
         "product_specifications",
         "managed",
         100,
@@ -200,7 +200,7 @@
 
       await createEntity(
         specificationData,
-        "Ecommerce",
+        "e_commerce",
         "/product_specifications",
         ResourceType.content,
         "",
@@ -256,7 +256,7 @@
 
       await updateEntity(
         selectedSpecification.shortname,
-        "Ecommerce",
+        "e_commerce",
         selectedSpecification.subpath,
         selectedSpecification.resource_type,
         specificationData,
@@ -279,7 +279,7 @@
     try {
       await deleteEntity(
         selectedSpecification.shortname,
-        "Ecommerce",
+        "e_commerce",
         selectedSpecification.subpath,
         selectedSpecification.resource_type
       );

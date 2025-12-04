@@ -51,7 +51,7 @@
     isLoading = true;
     try {
       const response = await getSpaceContents(
-        "Ecommerce",
+        "e_commerce",
         "categories",
         "managed",
         100,
@@ -137,7 +137,7 @@
 
       await createEntity(
         categoryData,
-        "Ecommerce",
+        "e_commerce",
         "/categories",
         ResourceType.content,
         "",
@@ -177,7 +177,7 @@
 
       await updateEntity(
         selectedCategory.shortname,
-        "Ecommerce",
+        "e_commerce",
         selectedCategory.subpath,
         selectedCategory.resource_type,
         categoryData,
@@ -200,7 +200,7 @@
     try {
       await deleteEntity(
         selectedCategory.shortname,
-        "Ecommerce",
+        "e_commerce",
         selectedCategory.subpath,
         selectedCategory.resource_type
       );

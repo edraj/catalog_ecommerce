@@ -77,8 +77,13 @@ export async function signin(username: string, password: string) {
       account: account,
     };
     user.set(_user);
+
+    const userRoles = (account as any).roles || [];
+    roles.set(userRoles);
+
     if (typeof localStorage !== "undefined") {
       localStorage.setItem(KEY, JSON.stringify(_user));
+      localStorage.setItem("roles", JSON.stringify(userRoles));
       localStorage.setItem("rowPerPage", "15");
     }
   } else {
@@ -106,8 +111,13 @@ export async function loginBy(email: string, password: string) {
       account: account,
     };
     user.set(_user);
+
+    const userRoles = (account as any).roles || [];
+    roles.set(userRoles);
+
     if (typeof localStorage !== "undefined") {
       localStorage.setItem(KEY, JSON.stringify(_user));
+      localStorage.setItem("roles", JSON.stringify(userRoles));
       localStorage.setItem("rowPerPage", "15");
     }
   } else {
@@ -157,6 +167,7 @@ export async function checkExisting(
 
 export async function register(
   email: string,
+  shortname: string = "auto",
   otp: string,
   password: string,
   confirmPassword: string,
@@ -169,7 +180,7 @@ export async function register(
 
   const request: ActionRequestRecord = {
     resource_type: ResourceType.content,
-    shortname: "auto",
+    shortname: shortname,
     subpath: "/",
     attributes: {
       email: email,

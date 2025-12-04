@@ -28,15 +28,28 @@
   let showAddItemModal = $state(false);
   let categories = $state([]);
   let products = $state([]);
-  let specifications = $state([]);
+  let variations = $state({ colors: [], storages: [] });
+  let warranties = $state([]);
+  let commissionCategories = $state([]);
   let selectedCategory = $state("");
   let selectedProduct = $state("");
-  let variationPrices = $state<
-    Record<string, { price: string; stock: string; sku: string }>
-  >({});
+  let selectedWarranty = $state("");
+  let selectedCommissionCategory = $state("");
+  let productVariants = $state([]);
+  let selectedVariants = $state([]);
   let isLoadingCategories = $state(false);
   let isLoadingProducts = $state(false);
-  let isLoadingSpecifications = $state(false);
+  let isLoadingVariations = $state(false);
+  let isLoadingWarranties = $state(false);
+  let productSearchTerm = $state("");
+  let filteredProducts = $state([]);
+
+  let availabilityForm = $state({
+    hasFastDelivery: false,
+    hasFreeShipping: false,
+    estShippingFrom: 1,
+    estShippingTo: 5,
+  });
 
   type SpecificationGroup = {
     attributeName: string;
@@ -105,20 +118,49 @@
   async function loadFolders() {
     isLoading = true;
     try {
-      const response = await getSpaceContents(
-        "Ecommerce",
-        "sellers",
-        "managed",
-        100,
-        0,
-        true
-      );
-
-      if (response?.records) {
-        folders = response.records.filter(
-          (record) => record.resource_type === "folder"
-        );
-      }
+      const sellerShortname = $user.shortname;
+      folders = [
+        {
+          shortname: "available",
+          subpath: `/available/${sellerShortname}`,
+          resource_type: "folder",
+          attributes: {
+            displayname: { en: "Available Products", ar: "المنتجات المتاحة" },
+          },
+        },
+        {
+          shortname: "discounts",
+          subpath: `/discounts/${sellerShortname}`,
+          resource_type: "folder",
+          attributes: {
+            displayname: { en: "Discounts", ar: "الخصومات" },
+          },
+        },
+        {
+          shortname: "orders",
+          subpath: `/orders/${sellerShortname}`,
+          resource_type: "folder",
+          attributes: {
+            displayname: { en: "Orders", ar: "الطلبات" },
+          },
+        },
+        {
+          shortname: "sellers_coupons",
+          subpath: `/sellers_coupons/${sellerShortname}`,
+          resource_type: "folder",
+          attributes: {
+            displayname: { en: "Coupons", ar: "الكوبونات" },
+          },
+        },
+        {
+          shortname: "warranties",
+          subpath: `/warranties/${sellerShortname}`,
+          resource_type: "folder",
+          attributes: {
+            displayname: { en: "Warranties", ar: "الضمانات" },
+          },
+        },
+      ];
     } catch (error) {
       console.error("Error loading folders:", error);
       errorToastMessage(
@@ -133,9 +175,10 @@
     isLoading = true;
     selectedFolder = folderShortname;
     try {
+      const sellerShortname = $user.shortname;
       const response = await getSpaceContents(
-        "Ecommerce",
-        `sellers/${folderShortname}`,
+        "e_commerce",
+        `${folderShortname}/${sellerShortname}`,
         "managed",
         100,
         0,
@@ -166,7 +209,7 @@
   async function loadFilterCategories() {
     try {
       const response = await getSpaceContents(
-        "Ecommerce",
+        "e_commerce",
         "categories",
         "managed",
         100,
@@ -312,30 +355,31 @@
     const content = body.content || body;
 
     if (
-      item.subpath.includes("/products") &&
+      item.subpath.includes("/available") &&
       content.product_id &&
       content.category_id
     ) {
       return { type: "product", icon: "🛍️", color: "#667eea" };
     } else if (
-      item.subpath.includes("/coupons") &&
+      item.subpath.includes("/sellers_coupons") &&
       content.type &&
       content.amount !== undefined
     ) {
       return { type: "coupon", icon: "🎟️", color: "#10b981" };
     } else if (
-      item.subpath.includes("/branch") &&
-      content.name &&
-      content.city
+      item.subpath.includes("/discounts") &&
+      content.product_id &&
+      content.discount_percentage
     ) {
-      return { type: "branch", icon: "🏢", color: "#f59e0b" };
+      return { type: "discount", icon: "💰", color: "#ec4899" };
     } else if (
-      item.subpath.includes("/bundles") &&
-      ((content.product_ids && Array.isArray(content.product_ids)) ||
-        content.product_id) &&
-      content.price !== undefined
+      item.subpath.includes("/warranties") &&
+      content.product_id &&
+      content.warranty_duration
     ) {
-      return { type: "bundle", icon: "📦", color: "#8b5cf6" };
+      return { type: "warranty", icon: "🛡️", color: "#8b5cf6" };
+    } else if (item.subpath.includes("/orders") && content.order_id) {
+      return { type: "order", icon: "📦", color: "#f59e0b" };
     }
 
     return null;
@@ -369,15 +413,15 @@
   }
 
   function createItem() {
-    if (selectedFolder === "products") {
+    if (selectedFolder === "available") {
       showAddItemModal = true;
-      loadCategories();
-    } else if (selectedFolder === "coupons") {
+      loadProducts();
+    } else if (selectedFolder === "sellers_coupons") {
       openCouponModal();
-    } else if (selectedFolder === "branch") {
-      openBranchModal();
-    } else if (selectedFolder === "bundles") {
-      openBundleModal();
+    } else if (selectedFolder === "discounts") {
+      errorToastMessage("Discount creation coming soon");
+    } else if (selectedFolder === "warranties") {
+      errorToastMessage("Warranty creation coming soon");
     } else {
       $goto("/sellers/create");
     }
@@ -387,7 +431,7 @@
     isLoadingCategories = true;
     try {
       const response = await getSpaceContents(
-        "Ecommerce",
+        "e_commerce",
         "categories",
         "managed",
         100,
@@ -408,14 +452,14 @@
     }
   }
 
-  async function loadProducts(categoryShortname: string) {
+  async function loadProducts(categoryShortname?: string) {
     isLoadingProducts = true;
     selectedProduct = "";
-    specifications = [];
-    variationPrices = {};
+    productVariants = [];
+    selectedVariants = [];
     try {
       const response = await getSpaceContents(
-        "Ecommerce",
+        "e_commerce",
         "products",
         "managed",
         100,
@@ -424,12 +468,20 @@
       );
 
       if (response?.records) {
-        products = response.records.filter((product) => {
-          const content =
-            product.attributes?.payload?.body?.content ||
-            product.attributes?.payload?.body;
-          return content?.category_id === categoryShortname;
-        });
+        if (categoryShortname) {
+          products = response.records.filter((product) => {
+            const content = product.attributes?.payload?.body;
+            const categories = content?.categories_shortnames || [];
+            const mainCategory = content?.main_category_shortname;
+            return (
+              categories.includes(categoryShortname) ||
+              mainCategory === categoryShortname
+            );
+          });
+        } else {
+          products = response.records;
+        }
+        filteredProducts = products;
       }
     } catch (error) {
       console.error("Error loading products:", error);
@@ -439,17 +491,30 @@
     }
   }
 
+  function filterProducts() {
+    if (!productSearchTerm.trim()) {
+      filteredProducts = products;
+    } else {
+      const search = productSearchTerm.toLowerCase();
+      filteredProducts = products.filter((product) => {
+        const displayName = getLocalizedDisplayName(product).toLowerCase();
+        const shortname = product.shortname?.toLowerCase() || "";
+        return displayName.includes(search) || shortname.includes(search);
+      });
+    }
+  }
+
   async function loadSpecifications(productShortname: string) {
-    isLoadingSpecifications = true;
-    variationPrices = {};
+    isLoadingVariations = true;
+    productVariants = [];
     generatedCombinations = [];
     combinationPrices = {};
     specificationGroups = [];
 
     try {
       const response = await getSpaceContents(
-        "Ecommerce",
-        "product_specifications",
+        "e_commerce",
+        "variations",
         "managed",
         100,
         0,
@@ -457,92 +522,99 @@
       );
 
       if (response?.records) {
-        specifications = response.records.filter((spec) => {
-          const content =
-            spec.attributes?.payload?.body?.content ||
-            spec.attributes?.payload?.body;
+        const colorsData = response.records.find(
+          (v) => v.shortname === "colors"
+        );
+        const storagesData = response.records.find(
+          (v) => v.shortname === "storages"
+        );
 
-          return content?.product_id === productShortname;
-        });
-        const attributeGroups: Record<string, Set<string>> = {};
-        const specsByAttributeValue: Record<string, any[]> = {};
+        const colors = colorsData?.attributes?.payload?.body?.options || [];
+        const storages = storagesData?.attributes?.payload?.body?.options || [];
 
-        specifications.forEach((spec) => {
-          const content =
-            spec.attributes?.payload?.body?.content ||
-            spec.attributes?.payload?.body;
+        const selectedProductData = products.find(
+          (p) => p.shortname === productShortname
+        );
+        const productContent = selectedProductData?.attributes?.payload?.body;
+        const variationOptions = productContent?.variation_options || [];
 
-          const specAttributes = content?.attributes || {};
+        productVariants = [];
 
-          Object.entries(specAttributes).forEach(([attrName, attrValue]) => {
-            if (!attributeGroups[attrName]) {
-              attributeGroups[attrName] = new Set();
+        const colorVariation = variationOptions.find(
+          (opt) => opt.variation_shortname === "colors"
+        );
+        if (colorVariation && colors.length > 0) {
+          const selectedColorKeys = colorVariation.values || [];
+          colors.forEach((color) => {
+            if (selectedColorKeys.includes(color.key)) {
+              productVariants.push({
+                key: color.key,
+                type: "color",
+                shortname: `color_${color.key}`,
+                name: color.name,
+                hex: color.value,
+                qty: 0,
+                retailPrice: 0,
+                sku: "",
+                discount: { type: "amount", value: 0 },
+              });
             }
-            attributeGroups[attrName].add(String(attrValue));
           });
-        });
+        }
 
-        const attributeNames = Object.keys(attributeGroups);
-        if (attributeNames.length > 1) {
-          specifications.forEach((spec) => {
-            const content =
-              spec.attributes?.payload?.body?.content ||
-              spec.attributes?.payload?.body;
-            const specAttributes = content?.attributes || {};
-
-            const key = attributeNames
-              .map((name) => `${name}:${specAttributes[name] || ""}`)
-              .sort()
-              .join("|");
-
-            if (!specsByAttributeValue[key]) {
-              specsByAttributeValue[key] = [];
+        const storageVariation = variationOptions.find(
+          (opt) => opt.variation_shortname === "storages"
+        );
+        if (storageVariation && storages.length > 0) {
+          const selectedStorageKeys = storageVariation.values || [];
+          storages.forEach((storage) => {
+            if (selectedStorageKeys.includes(storage.key)) {
+              productVariants.push({
+                key: storage.key,
+                type: "storage",
+                shortname: `storage_${storage.key}`,
+                name: storage.name,
+                qty: 0,
+                retailPrice: 0,
+                sku: "",
+                discount: { type: "amount", value: 0 },
+              });
             }
-            specsByAttributeValue[key].push(spec);
           });
-
-          specificationGroups = attributeNames.map((attrName) => ({
-            attributeName: attrName,
-            specifications: Array.from(attributeGroups[attrName]).map(
-              (value) => {
-                const spec = specifications.find((s) => {
-                  const content =
-                    s.attributes?.payload?.body?.content ||
-                    s.attributes?.payload?.body;
-                  return content?.attributes?.[attrName] === value;
-                });
-                return {
-                  attributeName: attrName,
-                  value: value,
-                  originalSpec: spec,
-                };
-              }
-            ),
-          }));
-
-          generateCombinationsFromSpecifications();
-        } else {
-          const prices: Record<
-            string,
-            { price: string; stock: string; sku: string }
-          > = {};
-          specifications.forEach((spec) => {
-            prices[spec.shortname] = {
-              price: "",
-              stock: "",
-              sku: "",
-            };
-          });
-          variationPrices = prices;
         }
       }
     } catch (error) {
-      console.error("Error loading specifications:", error);
-      errorToastMessage("Error loading specifications");
+      console.error("Error loading variations:", error);
+      errorToastMessage("Error loading variations");
     } finally {
-      isLoadingSpecifications = false;
+      isLoadingVariations = false;
     }
   }
+
+  $effect(() => {
+    if (selectedCategory) {
+      loadProducts(selectedCategory);
+      if (showVariationRequestModal) {
+        loadVariationProducts(selectedCategory);
+      }
+    } else {
+      products = [];
+      selectedProduct = "";
+      productVariants = [];
+      variationProducts = [];
+      variationRequestForm.product = "";
+    }
+  });
+
+  $effect(() => {
+    if (selectedProduct) {
+      loadSpecifications(selectedProduct);
+    } else {
+      productVariants = [];
+      generatedCombinations = [];
+      combinationPrices = {};
+    }
+  });
 
   function handleCategoryChange() {
     if (selectedCategory) {
@@ -553,19 +625,31 @@
     } else {
       products = [];
       selectedProduct = "";
-      specifications = [];
-      variationPrices = {};
+      productVariants = [];
+      selectedVariants = [];
       variationProducts = [];
       variationRequestForm.product = "";
     }
+  }
+
+  function toggleVariantSelection(variantKey: string) {
+    const index = selectedVariants.indexOf(variantKey);
+    if (index > -1) {
+      selectedVariants = selectedVariants.filter((v) => v !== variantKey);
+    } else {
+      selectedVariants = [...selectedVariants, variantKey];
+    }
+  }
+
+  function isVariantSelected(variantKey: string): boolean {
+    return selectedVariants.includes(variantKey);
   }
 
   function handleProductChange() {
     if (selectedProduct) {
       loadSpecifications(selectedProduct);
     } else {
-      specifications = [];
-      variationPrices = {};
+      productVariants = [];
       generatedCombinations = [];
       combinationPrices = {};
       specificationGroups = [];
@@ -628,145 +712,97 @@
     selectedProduct = "";
     categories = [];
     products = [];
-    specifications = [];
-    variationPrices = {};
+    productVariants = [];
+    selectedVariants = [];
     generatedCombinations = [];
     combinationPrices = {};
     specificationGroups = [];
+    productSearchTerm = "";
+    filteredProducts = [];
   }
 
   async function submitProductVariations() {
-    if (generatedCombinations.length > 0) {
-      const filledCombinations = generatedCombinations.filter(
-        (combo) =>
-          combinationPrices[combo.id]?.price &&
-          parseFloat(combinationPrices[combo.id].price) > 0
+    const filledVariants = productVariants.filter(
+      (variant) =>
+        isVariantSelected(variant.key) &&
+        variant.retailPrice &&
+        parseFloat(variant.retailPrice.toString()) > 0
+    );
+
+    if (filledVariants.length === 0) {
+      errorToastMessage("Please add price for at least one variation");
+      return;
+    }
+
+    try {
+      isLoading = true;
+
+      const selectedProductData = products.find(
+        (p) => p.shortname === selectedProduct
       );
 
-      if (filledCombinations.length === 0) {
-        errorToastMessage("Please add price for at least one variation");
+      if (!selectedProductData) {
+        errorToastMessage("Selected product not found");
         return;
       }
 
-      try {
-        isLoading = true;
-        for (const combo of filledCombinations) {
-          const selectedProductData = products.find(
-            (p) => p.shortname === selectedProduct
-          );
-
-          const priceData = combinationPrices[combo.id];
-
-          const specificationIds = combo.specifications.map(
-            (spec: any) => spec.shortname
-          );
-
-          const productData = {
-            displayname: `${getLocalizedDisplayName(selectedProductData)} - ${combo.displayName}`,
-            body: {
-              content: {
-                product_id: selectedProduct,
-                category_id: selectedCategory,
-                specification_ids: specificationIds,
-                price: parseFloat(priceData.price),
-                stock: priceData.stock ? parseInt(priceData.stock) : 0,
-                sku: priceData.sku || "",
-              },
-              content_type: "json",
+      const variants = filledVariants.map((variant) => {
+        const variantData: any = {
+          key: variant.key,
+          qty: variant.qty ? parseInt(variant.qty.toString()) : 0,
+          sku: variant.sku || "",
+          retail_price: parseFloat(variant.retailPrice.toString()),
+          discount: variant.discount || { type: "amount", value: 0 },
+          options: [
+            {
+              key: variant.key,
+              variation_shortname:
+                variant.type === "color" ? "colors" : "storages",
             },
-            tags: [
-              `category:${selectedCategory}`,
-              `product:${selectedProduct}`,
-              ...specificationIds.map((id: string) => `specification:${id}`),
-            ],
-            is_active: true,
-          };
+          ],
+        };
 
-          await createEntity(
-            productData,
-            "Ecommerce",
-            "/sellers/products",
-            ResourceType.content,
-            "",
-            ""
-          );
-        }
+        return variantData;
+      });
 
-        successToastMessage(
-          `${filledCombinations.length} product variations added successfully!`
-        );
-        closeModal();
-        await loadFolderContents("products");
-      } catch (error) {
-        console.error("Error creating products:", error);
-        errorToastMessage("Failed to create products");
-      } finally {
-        isLoading = false;
-      }
-    } else {
-      const filledVariations = Object.entries(variationPrices)
-        .filter(([_, data]) => data.price)
-        .map(([shortname, data]) => ({
-          shortname,
-          price: parseFloat(data.price),
-          stock: data.stock ? parseInt(data.stock) : 0,
-          sku: data.sku || "",
-        }));
+      const availabilityData = {
+        displayname: getLocalizedDisplayName(selectedProductData),
+        body: {
+          sku: "",
+          variants: variants,
+          product_shortname: selectedProduct,
+          warranty_shortname: selectedWarranty || "",
+          commission_category: selectedCommissionCategory || "",
+          has_fast_delivery: availabilityForm.hasFastDelivery,
+          has_free_shipping: availabilityForm.hasFreeShipping,
+          est_shipping_days: {
+            from: availabilityForm.estShippingFrom || 1,
+            to: availabilityForm.estShippingTo || 5,
+          },
+        },
+        tags: [`product:${selectedProduct}`],
+        is_active: true,
+      };
 
-      if (filledVariations.length === 0) {
-        errorToastMessage("Please add price for at least one variation");
-        return;
-      }
+      await createEntity(
+        availabilityData,
+        "e_commerce",
+        `/available/${$user.shortname}`,
+        ResourceType.content,
+        "",
+        ""
+      );
 
-      try {
-        isLoading = true;
-        for (const variation of filledVariations) {
-          const selectedProductData = products.find(
-            (p) => p.shortname === selectedProduct
-          );
-          const selectedSpecData = specifications.find(
-            (s) => s.shortname === variation.shortname
-          );
-
-          const productData = {
-            displayname: `${getLocalizedDisplayName(selectedProductData)} - ${getLocalizedDisplayName(selectedSpecData)}`,
-            body: {
-              content: {
-                product_id: selectedProduct,
-                category_id: selectedCategory,
-                specification_id: variation.shortname,
-                price: variation.price,
-                stock: variation.stock,
-                sku: variation.sku,
-              },
-              content_type: "json",
-            },
-            tags: [
-              `category:${selectedCategory}`,
-              `product:${selectedProduct}`,
-              `specification:${variation.shortname}`,
-            ],
-            is_active: true,
-          };
-          await createEntity(
-            productData,
-            "Ecommerce",
-            "/sellers/products",
-            ResourceType.content,
-            "",
-            ""
-          );
-        }
-
-        successToastMessage("Products added successfully!");
-        closeModal();
-        await loadFolderContents("products");
-      } catch (error) {
-        console.error("Error creating products:", error);
-        errorToastMessage("Failed to create products");
-      } finally {
-        isLoading = false;
-      }
+      successToastMessage(
+        `Product availability with ${filledVariants.length} variant(s) added successfully!`
+      );
+      closeModal();
+      await loadFolderContents("available");
+    } catch (error) {
+      console.error("Error creating product availability:", error);
+      errorToastMessage("Failed to create product availability");
+    } finally {
+      isLoading = false;
     }
   }
 
@@ -817,8 +853,8 @@
 
       await createEntity(
         couponData,
-        "Ecommerce",
-        "/sellers/coupons",
+        "e_commerce",
+        `/sellers_coupons/${$user.shortname}`,
         ResourceType.content,
         "",
         ""
@@ -826,7 +862,7 @@
 
       successToastMessage("Coupon created successfully!");
       closeCouponModal();
-      await loadFolderContents("coupons");
+      await loadFolderContents("sellers_coupons");
     } catch (error) {
       console.error("Error creating coupon:", error);
       errorToastMessage("Failed to create coupon");
@@ -947,8 +983,8 @@
     isLoadingSellerProducts = true;
     try {
       const response = await getSpaceContents(
-        "Ecommerce",
-        "/sellers/products",
+        "e_commerce",
+        `/available/${$user.shortname}`,
         "managed",
         1000,
         0,
@@ -1063,10 +1099,10 @@
     const body = payload?.body;
     const content = body?.content || {};
 
-    if (item.subpath.includes("/products")) {
+    if (item.subpath.includes("/available")) {
       editItem(item);
       return;
-    } else if (item.subpath.includes("/coupons")) {
+    } else if (item.subpath.includes("/sellers_coupons")) {
       couponForm = {
         type: content.type || "value",
         minValue: content.min_value?.toString() || "",
@@ -1074,23 +1110,9 @@
         amount: content.amount?.toString() || "",
       };
       showEditModal = true;
-    } else if (item.subpath.includes("/branch")) {
-      branchForm = {
-        name: content.name || "",
-        country: content.country || "",
-        state: content.state || "",
-        city: content.city || "",
-        address: content.address || "",
-      };
+    } else if (item.subpath.includes("/discounts")) {
       showEditModal = true;
-    } else if (item.subpath.includes("/bundles")) {
-      bundleForm = {
-        selectedProducts:
-          content.product_ids ||
-          (content.product_id ? [content.product_id] : []),
-        price: content.price?.toString() || "",
-      };
-      loadSellerProducts();
+    } else if (item.subpath.includes("/warranties")) {
       showEditModal = true;
     }
   }
@@ -1144,7 +1166,7 @@
     variationRequestForm.product = "";
     try {
       const response = await getSpaceContents(
-        "Ecommerce",
+        "e_commerce",
         "products",
         "managed",
         100,
@@ -1154,10 +1176,9 @@
 
       if (response?.records) {
         variationProducts = response.records.filter((product) => {
-          const content =
-            product.attributes?.payload?.body?.content ||
-            product.attributes?.payload?.body;
-          return content?.category_id === categoryShortname;
+          const content = product.attributes?.payload?.body;
+          const categories = content?.categories_shortnames || [];
+          return categories.includes(categoryShortname);
         });
       }
     } catch (error) {
@@ -1204,8 +1225,8 @@
 
       await createEntity(
         requestData,
-        "Ecommerce",
-        "/sellers/variation_request",
+        "e_commerce",
+        "/variation_requests",
         ResourceType.content,
         "",
         ""
@@ -1229,7 +1250,7 @@
       let updateData;
       let subpath = itemToEdit.subpath;
 
-      if (subpath.includes("/coupons")) {
+      if (subpath.includes("/sellers_coupons")) {
         if (!couponForm.amount || !couponForm.minValue) {
           errorToastMessage("Please fill in all required fields");
           return;
@@ -1250,59 +1271,17 @@
           tags: itemToEdit.attributes.tags || [],
           is_active: true,
         };
-      } else if (subpath.includes("/branch")) {
-        if (
-          !branchForm.name ||
-          !branchForm.country ||
-          !branchForm.city ||
-          !branchForm.address
-        ) {
-          errorToastMessage("Please fill in all required fields");
-          return;
-        }
-        updateData = {
-          displayname: `Branch - ${branchForm.name}`,
-          body: {
-            content: {
-              name: branchForm.name,
-              country: branchForm.country,
-              state: branchForm.state,
-              city: branchForm.city,
-              address: branchForm.address,
-            },
-            content_type: "json",
-          },
-          tags: itemToEdit.attributes.tags || [],
-          is_active: true,
-        };
-      } else if (subpath.includes("/bundles")) {
-        if (bundleForm.selectedProducts.length < 2 || !bundleForm.price) {
-          errorToastMessage(
-            "Please select at least 2 products and enter a price"
-          );
-          return;
-        }
-        const productNames = bundleForm.selectedProducts
-          .map((shortname) => {
-            const product = sellerProducts.find(
-              (p) => p.shortname === shortname
-            );
-            return getLocalizedDisplayName(product);
-          })
-          .join(" + ");
+      } else if (subpath.includes("/discounts")) {
+        errorToastMessage("Discount updates coming soon");
+        return;
+      } else if (subpath.includes("/warranties")) {
+        errorToastMessage("Warranty updates coming soon");
+        return;
+      }
 
-        updateData = {
-          displayname: `Bundle - ${productNames}`,
-          body: {
-            content: {
-              product_ids: bundleForm.selectedProducts,
-              price: parseFloat(bundleForm.price),
-            },
-            content_type: "json",
-          },
-          tags: itemToEdit.attributes.tags || [],
-          is_active: true,
-        };
+      if (!updateData) {
+        errorToastMessage("Unable to update this item type");
+        return;
       }
 
       const { updateEntity } = await import("@/lib/dmart_services");
@@ -1845,7 +1824,7 @@
     <div class="modal-container">
       <div class="modal-header">
         <h2 class="modal-title">
-          {$_("seller_dashboard.add_product_item") || "Add Product Item"}
+          {$_("seller_dashboard.add_product_item") || "Add Product to Store"}
         </h2>
         <button class="modal-close" onclick={closeModal}>
           <svg
@@ -1865,7 +1844,7 @@
       </div>
 
       <div class="modal-body">
-        <!-- Category Selection -->
+        <!-- Product Search and Selection -->
         <div class="form-group">
           <label class="form-label" class:rtl={$isRTL}>
             <svg
@@ -1878,41 +1857,38 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
             <span
-              >{$_("seller_dashboard.select_category") ||
-                "Select Category"}</span
+              >{$_("seller_dashboard.search_products") ||
+                "Search Products"}</span
             >
           </label>
-          {#if isLoadingCategories}
-            <div class="loading-select">
-              <div class="mini-spinner"></div>
-              <span>{$_("seller_dashboard.loading") || "Loading..."}</span>
-            </div>
-          {:else}
-            <select
-              bind:value={selectedCategory}
-              onchange={handleCategoryChange}
-              class="form-select"
-              class:rtl={$isRTL}
-            >
-              <option value="">
-                {$_("seller_dashboard.choose_category") ||
-                  "Choose a category..."}
-              </option>
-              {#each categories as category}
-                <option value={category.shortname}>
-                  {getLocalizedDisplayName(category)}
-                </option>
-              {/each}
-            </select>
-          {/if}
+          <input
+            type="text"
+            bind:value={productSearchTerm}
+            oninput={filterProducts}
+            placeholder={$_("seller_dashboard.search_placeholder") ||
+              "Search by product name..."}
+            class="form-input"
+            class:rtl={$isRTL}
+          />
         </div>
 
-        <!-- Product Selection -->
-        {#if selectedCategory}
+        <!-- Product List -->
+        {#if isLoadingProducts}
+          <div class="loading-select">
+            <div class="mini-spinner"></div>
+            <span
+              >{$_("seller_dashboard.loading") || "Loading products..."}</span
+            >
+          </div>
+        {:else if filteredProducts.length === 0}
+          <p class="empty-message">
+            {$_("seller_dashboard.no_products_found") || "No products found"}
+          </p>
+        {:else}
           <div class="form-group">
             <label class="form-label" class:rtl={$isRTL}>
               <svg
@@ -1933,38 +1909,25 @@
                   "Select Product"}</span
               >
             </label>
-            {#if isLoadingProducts}
-              <div class="loading-select">
-                <div class="mini-spinner"></div>
-                <span>{$_("seller_dashboard.loading") || "Loading..."}</span>
-              </div>
-            {:else if products.length === 0}
-              <p class="empty-message">
-                {$_("seller_dashboard.no_products_in_category") ||
-                  "No products found in this category"}
-              </p>
-            {:else}
-              <select
-                bind:value={selectedProduct}
-                onchange={handleProductChange}
-                class="form-select"
-                class:rtl={$isRTL}
-              >
-                <option value="">
-                  {$_("seller_dashboard.choose_product") ||
-                    "Choose a product..."}
+            <select
+              bind:value={selectedProduct}
+              onchange={handleProductChange}
+              class="form-select"
+              class:rtl={$isRTL}
+            >
+              <option value="">
+                {$_("seller_dashboard.choose_product") || "Choose a product..."}
+              </option>
+              {#each filteredProducts as product}
+                <option value={product.shortname}>
+                  {getLocalizedDisplayName(product)}
                 </option>
-                {#each products as product}
-                  <option value={product.shortname}>
-                    {getLocalizedDisplayName(product)}
-                  </option>
-                {/each}
-              </select>
-            {/if}
+              {/each}
+            </select>
           </div>
         {/if}
 
-        <!-- Specifications/Variations -->
+        <!-- Variations Selection -->
         {#if selectedProduct}
           <div class="form-group">
             <label class="form-label" class:rtl={$isRTL}>
@@ -1982,185 +1945,135 @@
                 />
               </svg>
               <span
-                >{$_("seller_dashboard.product_variations") ||
-                  "Product Variations"}</span
+                >{$_("seller_dashboard.select_variations") ||
+                  "Select Variations to Add"}</span
               >
             </label>
-            {#if isLoadingSpecifications}
+            {#if isLoadingVariations}
               <div class="loading-select">
                 <div class="mini-spinner"></div>
                 <span>{$_("seller_dashboard.loading") || "Loading..."}</span>
               </div>
-            {:else if generatedCombinations.length > 0}
-              <div class="variations-table-wrapper">
-                <table class="variations-table">
-                  <thead>
-                    <tr>
-                      <th class="row-number-header" class:rtl={$isRTL}>#</th>
-                      {#if generatedCombinations[0]?.attributes}
-                        {#each generatedCombinations[0].attributes as attr}
-                          <th class="attribute-header" class:rtl={$isRTL}>
-                            <div class="attribute-header-content">
-                              <svg
-                                class="attribute-icon"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                  stroke-width="2"
-                                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                                />
-                              </svg>
-                              {attr.attributeName}
-                            </div>
-                          </th>
-                        {/each}
-                      {/if}
-                      <th class:rtl={$isRTL}>
-                        {$_("seller_dashboard.sku") || "SKU"}
-                      </th>
-                      <th class:rtl={$isRTL}>
-                        {$_("seller_dashboard.stock") || "Stock"}
-                      </th>
-                      <th class:rtl={$isRTL}>
-                        {$_("seller_dashboard.price") || "Price"} ($)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {#each generatedCombinations as combo, index (combo.id)}
-                      <tr>
-                        <td class="row-number-cell">{index + 1}</td>
-                        {#if combo.attributes}
-                          {#each combo.attributes as attr}
-                            <td class="attribute-value-cell" class:rtl={$isRTL}>
-                              <span class="attribute-badge">{attr.value}</span>
-                            </td>
-                          {/each}
-                        {/if}
-                        <td>
-                          <input
-                            type="text"
-                            bind:value={combinationPrices[combo.id].sku}
-                            placeholder={$_("seller_dashboard.enter_sku") ||
-                              "Enter SKU..."}
-                            class="table-input sku-input-field"
-                            class:rtl={$isRTL}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="1"
-                            min="0"
-                            bind:value={combinationPrices[combo.id].stock}
-                            placeholder="0"
-                            class="table-input stock-input-field"
-                            class:rtl={$isRTL}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            bind:value={combinationPrices[combo.id].price}
-                            placeholder="0.00"
-                            class="table-input price-input-field"
-                            class:rtl={$isRTL}
-                          />
-                        </td>
-                      </tr>
-                    {/each}
-                  </tbody>
-                </table>
+            {:else if productVariants.length === 0}
+              <div class="info-message">
+                <p>
+                  {$_("seller_dashboard.no_variations") ||
+                    "No variations available for this product at the moment"}
+                </p>
               </div>
-            {:else if specifications.length === 0}
-              <p class="empty-message">
-                {$_("seller_dashboard.no_variations") ||
-                  "No variations found for this product"}
-              </p>
             {:else}
-              <!-- Single specifications (no multi-attribute combinations) -->
-              <div class="variations-table-wrapper">
-                <table class="variations-table">
-                  <thead>
-                    <tr>
-                      <th class:rtl={$isRTL}>
-                        {$_("seller_dashboard.variation") || "Variation"}
-                      </th>
-                      <th class:rtl={$isRTL}>
-                        {$_("seller_dashboard.sku") || "SKU"}
-                      </th>
-                      <th class:rtl={$isRTL}>
-                        {$_("seller_dashboard.stock") || "Stock"}
-                      </th>
-                      <th class:rtl={$isRTL}>
-                        {$_("seller_dashboard.price") || "Price"} ($)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {#each specifications as spec}
-                      <tr>
-                        <td class="variation-name-cell" class:rtl={$isRTL}>
-                          <div class="variation-name-wrapper">
-                            <svg
-                              class="variation-icon"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                              />
-                            </svg>
-                            <span>{getLocalizedDisplayName(spec)}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            bind:value={variationPrices[spec.shortname].sku}
-                            placeholder={$_("seller_dashboard.enter_sku") ||
-                              "Enter SKU..."}
-                            class="table-input sku-input-field"
-                            class:rtl={$isRTL}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="1"
-                            min="0"
-                            bind:value={variationPrices[spec.shortname].stock}
-                            placeholder="0"
-                            class="table-input stock-input-field"
-                            class:rtl={$isRTL}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            bind:value={variationPrices[spec.shortname].price}
-                            placeholder="0.00"
-                            class="table-input price-input-field"
-                            class:rtl={$isRTL}
-                          />
-                        </td>
-                      </tr>
-                    {/each}
-                  </tbody>
-                </table>
+              <!-- Variants Selection with Checkboxes -->
+              <div class="variants-selection-grid">
+                {#each productVariants as variant}
+                  <div class="variant-checkbox-item">
+                    <label class="variant-checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={isVariantSelected(variant.key)}
+                        onchange={() => toggleVariantSelection(variant.key)}
+                        class="variant-checkbox"
+                      />
+                      <div class="variant-info">
+                        <div class="variant-name">
+                          {#if variant.type === "color" && variant.hex}
+                            <span
+                              class="color-swatch"
+                              style="background-color: {variant.hex}"
+                            ></span>
+                          {/if}
+                          <span>{variant.name?.en || variant.shortname}</span>
+                        </div>
+                        <div class="variant-type-badge">
+                          {variant.type === "color"
+                            ? $_("seller_dashboard.color") || "Color"
+                            : $_("seller_dashboard.storage") || "Storage"}
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                {/each}
               </div>
+
+              <!-- Details for Selected Variants -->
+              {#if selectedVariants.length > 0}
+                <div class="selected-variants-details">
+                  <h4 class="details-title">
+                    {$_("seller_dashboard.enter_details") ||
+                      "Enter Details for Selected Variations"}
+                  </h4>
+                  <div class="variations-table-wrapper">
+                    <table class="variations-table">
+                      <thead>
+                        <tr>
+                          <th class:rtl={$isRTL}>
+                            {$_("seller_dashboard.variation") || "Variation"}
+                          </th>
+                          <th class:rtl={$isRTL}>
+                            {$_("seller_dashboard.sku") || "SKU"}
+                          </th>
+                          <th class:rtl={$isRTL}>
+                            {$_("seller_dashboard.stock") || "Stock"}
+                          </th>
+                          <th class:rtl={$isRTL}>
+                            {$_("seller_dashboard.price") || "Price"} ($)
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {#each productVariants.filter( (v) => isVariantSelected(v.key) ) as variant}
+                          <tr>
+                            <td class="variation-name-cell" class:rtl={$isRTL}>
+                              <div class="variation-name-wrapper">
+                                {#if variant.type === "color" && variant.hex}
+                                  <span
+                                    class="color-swatch-small"
+                                    style="background-color: {variant.hex}"
+                                  ></span>
+                                {/if}
+                                <span
+                                  >{variant.name?.en || variant.shortname}</span
+                                >
+                              </div>
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                bind:value={variant.sku}
+                                placeholder={$_("seller_dashboard.enter_sku") ||
+                                  "Enter SKU..."}
+                                class="table-input sku-input-field"
+                                class:rtl={$isRTL}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                step="1"
+                                min="0"
+                                bind:value={variant.qty}
+                                placeholder="0"
+                                class="table-input stock-input-field"
+                                class:rtl={$isRTL}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                bind:value={variant.retailPrice}
+                                placeholder="0.00"
+                                class="table-input price-input-field"
+                                class:rtl={$isRTL}
+                              />
+                            </td>
+                          </tr>
+                        {/each}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {/if}
             {/if}
           </div>
         {/if}
@@ -2174,9 +2087,10 @@
           class="modal-button submit"
           onclick={submitProductVariations}
           disabled={!selectedProduct ||
-            (generatedCombinations.length > 0
-              ? !Object.values(combinationPrices).some((v) => v.price)
-              : Object.values(variationPrices).every((v) => !v.price))}
+            selectedVariants.length === 0 ||
+            !productVariants
+              .filter((v) => isVariantSelected(v.key))
+              .some((v) => v.retailPrice)}
         >
           {$_("seller_dashboard.add_items") || "Add Items"}
         </button>
@@ -4338,6 +4252,124 @@
   .table-input::placeholder {
     color: #cbd5e0;
     font-weight: 400;
+  }
+
+  /* Variant Selection Grid */
+  .variants-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .variant-checkbox-item {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  .variant-checkbox-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .variant-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .variant-checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+    accent-color: #667eea;
+    flex-shrink: 0;
+  }
+
+  .variant-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .variant-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 0.95rem;
+  }
+
+  .variant-name span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .color-swatch {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    border: 2px solid #e2e8f0;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .color-swatch-small {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    border: 2px solid #e2e8f0;
+    flex-shrink: 0;
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  .variant-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    color: #667eea;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: fit-content;
+  }
+
+  .selected-variants-details {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #e2e8f0;
+  }
+
+  .details-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .details-title::before {
+    content: "";
+    width: 4px;
+    height: 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
   }
 
   .modal-footer {

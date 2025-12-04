@@ -18,6 +18,7 @@
     PlusOutline,
     EditOutline,
     TrashBinOutline,
+    CheckOutline,
   } from "flowbite-svelte-icons";
 
   $goto;
@@ -29,8 +30,12 @@
 
   let products = $state([]);
   let categories = $state([]);
+  let variations = $state({ colors: [], storages: [] });
+  let specifications = $state([]);
   let isLoading = $state(true);
   let isLoadingCategories = $state(false);
+  let isLoadingVariations = $state(false);
+  let isLoadingSpecifications = $state(false);
   let showCreateModal = $state(false);
   let showEditModal = $state(false);
   let showDeleteModal = $state(false);
@@ -38,24 +43,38 @@
   let selectedCategoryFilter = $state("all");
 
   let productForm = $state({
-    displayname: "",
-    description: "",
-    parentCategory: "",
-    category: "",
-    price: "",
+    displayname_en: "",
+    displayname_ar: "",
+    description_en: "",
+    description_ar: "",
+    unit: "PC",
+    is_digital: false,
+    meta_title: "",
+    meta_description: "",
+    brand_shortname: "",
+    low_stock_quantity: 1,
+    categories: [],
+    main_category: "",
+    variation_options: [],
+    product_specifications: [],
+    category_specifications: [],
     tags: [],
   });
 
   onMount(async () => {
-    await loadCategories();
-    await loadProducts();
+    await Promise.all([
+      loadCategories(),
+      loadVariations(),
+      loadSpecifications(),
+      loadProducts(),
+    ]);
   });
 
   async function loadCategories() {
     isLoadingCategories = true;
     try {
       const response = await getSpaceContents(
-        "Ecommerce",
+        "e_commerce",
         "categories",
         "managed",
         100,
@@ -76,11 +95,67 @@
     }
   }
 
+  async function loadVariations() {
+    isLoadingVariations = true;
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "variations",
+        "managed",
+        100,
+        0,
+        true
+      );
+
+      if (response?.records) {
+        const colorsData = response.records.find(
+          (v) => v.shortname === "colors"
+        );
+        const storagesData = response.records.find(
+          (v) => v.shortname === "storages"
+        );
+
+        variations = {
+          colors: colorsData?.attributes?.payload?.body?.options || [],
+          storages: storagesData?.attributes?.payload?.body?.options || [],
+        };
+      }
+    } catch (error) {
+      console.error("Error loading variations:", error);
+      errorToastMessage("Failed to load variations");
+    } finally {
+      isLoadingVariations = false;
+    }
+  }
+
+  async function loadSpecifications() {
+    isLoadingSpecifications = true;
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "specifications",
+        "managed",
+        100,
+        0,
+        true
+      );
+
+      if (response?.records) {
+        specifications = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading specifications:", error);
+      errorToastMessage("Failed to load specifications");
+    } finally {
+      isLoadingSpecifications = false;
+    }
+  }
+
   async function loadProducts() {
     isLoading = true;
     try {
       const response = await getSpaceContents(
-        "Ecommerce",
+        "e_commerce",
         "products",
         "managed",
         100,
@@ -101,11 +176,21 @@
 
   function openCreateModal() {
     productForm = {
-      displayname: "",
-      description: "",
-      parentCategory: "",
-      category: "",
-      price: "",
+      displayname_en: "",
+      displayname_ar: "",
+      description_en: "",
+      description_ar: "",
+      unit: "PC",
+      is_digital: false,
+      meta_title: "",
+      meta_description: "",
+      brand_shortname: "",
+      low_stock_quantity: 1,
+      categories: [],
+      main_category: "",
+      variation_options: [],
+      product_specifications: [],
+      category_specifications: [],
       tags: [],
     };
     showCreateModal = true;
@@ -117,24 +202,27 @@
 
   function openEditModal(product) {
     selectedProduct = product;
-    const content =
-      product.attributes?.payload?.body?.content ||
-      product.attributes?.payload?.body;
-
-    const categoryId = content?.category_id || "";
-    const category = categories.find((c) => c.shortname === categoryId);
-    const parentCategoryId = category ? getCategoryParentId(category) : "";
+    const content = product.attributes?.payload?.body;
+    const displayname = product.attributes?.displayname || {};
+    const description = product.attributes?.description || {};
 
     productForm = {
-      displayname: getLocalizedDisplayName(product),
-      description: content?.description || "",
-      parentCategory: parentCategoryId || "",
-      category: parentCategoryId ? categoryId : "",
-      price: content?.base_price?.toString() || "",
-      tags:
-        product.attributes?.tags?.filter(
-          (tag) => !tag.startsWith("category:")
-        ) || [],
+      displayname_en: displayname.en || "",
+      displayname_ar: displayname.ar || "",
+      description_en: description.en || "",
+      description_ar: description.ar || "",
+      unit: content?.unit || "PC",
+      is_digital: content?.is_digital || false,
+      meta_title: content?.meta_title || "",
+      meta_description: content?.meta_description || "",
+      brand_shortname: content?.brand_shortname || "",
+      low_stock_quantity: content?.low_stock_quantity || 1,
+      categories: content?.categories_shortnames || [],
+      main_category: content?.main_category_shortname || "",
+      variation_options: content?.variation_options || [],
+      product_specifications: content?.product_specifications || [],
+      category_specifications: content?.category_specifications || [],
+      tags: product.attributes?.tags || [],
     };
     showEditModal = true;
   }
@@ -155,49 +243,54 @@
   }
 
   async function handleCreateProduct() {
-    if (!productForm.displayname.trim()) {
+    if (
+      !productForm.displayname_en.trim() &&
+      !productForm.displayname_ar.trim()
+    ) {
       errorToastMessage("Please enter a product name");
       return;
     }
 
-    if (!productForm.parentCategory) {
-      errorToastMessage("Please select a category");
+    if (!productForm.main_category) {
+      errorToastMessage("Please select a main category");
       return;
     }
 
-    if (hasSubCategories(productForm.parentCategory)) {
-      if (!productForm.category) {
-        errorToastMessage("Please select a sub-category for this category");
-        return;
-      }
-    }
-
-    const finalCategoryId = getFinalCategoryId();
-    if (!finalCategoryId) {
-      errorToastMessage("Please select a category");
+    if (productForm.categories.length === 0) {
+      errorToastMessage("Please select at least one category");
       return;
     }
 
     try {
+      console.log(productForm.displayname_en);
+
       const productData = {
-        displayname: productForm.displayname,
-        description: productForm.description,
+        displayname_en: productForm.displayname_en,
+        displayname_ar: productForm.displayname_ar,
+
+        description_en: productForm.description_en,
+        description_ar: productForm.description_ar,
         body: {
-          content: {
-            name: productForm.displayname,
-            description: productForm.description,
-            category_id: finalCategoryId,
-            base_price: productForm.price ? parseFloat(productForm.price) : 0,
-          },
+          unit: productForm.unit,
+          is_digital: productForm.is_digital,
+          meta_title: productForm.meta_title,
+          meta_description: productForm.meta_description,
+          brand_shortname: productForm.brand_shortname,
+          low_stock_quantity: productForm.low_stock_quantity,
+          variation_options: productForm.variation_options,
+          categories_shortnames: productForm.categories,
+          main_category_shortname: productForm.main_category,
+          product_specifications: productForm.product_specifications,
+          category_specifications: productForm.category_specifications,
           content_type: "json",
         },
-        tags: [...productForm.tags, `category:${finalCategoryId}`],
+        tags: productForm.tags,
         is_active: true,
       };
 
       await createEntity(
         productData,
-        "Ecommerce",
+        "e_commerce",
         "/products",
         ResourceType.content,
         "",
@@ -214,26 +307,21 @@
   }
 
   async function handleUpdateProduct() {
-    if (!productForm.displayname.trim()) {
+    if (
+      !productForm.displayname_en.trim() &&
+      !productForm.displayname_ar.trim()
+    ) {
       errorToastMessage("Please enter a product name");
       return;
     }
 
-    if (!productForm.parentCategory) {
-      errorToastMessage("Please select a category");
+    if (!productForm.main_category) {
+      errorToastMessage("Please select a main category");
       return;
     }
 
-    if (hasSubCategories(productForm.parentCategory)) {
-      if (!productForm.category) {
-        errorToastMessage("Please select a sub-category for this category");
-        return;
-      }
-    }
-
-    const finalCategoryId = getFinalCategoryId();
-    if (!finalCategoryId) {
-      errorToastMessage("Please select a category");
+    if (productForm.categories.length === 0) {
+      errorToastMessage("Please select at least one category");
       return;
     }
 
@@ -241,22 +329,35 @@
 
     try {
       const productData = {
-        displayname: productForm.displayname,
-        description: productForm.description,
+        displayname: {
+          en: productForm.displayname_en,
+          ar: productForm.displayname_ar,
+        },
+        description: {
+          en: productForm.description_en,
+          ar: productForm.description_ar,
+        },
         content: {
-          name: productForm.displayname,
-          description: productForm.description,
-          category_id: finalCategoryId,
-          base_price: productForm.price ? parseFloat(productForm.price) : 0,
+          unit: productForm.unit,
+          is_digital: productForm.is_digital,
+          meta_title: productForm.meta_title,
+          meta_description: productForm.meta_description,
+          brand_shortname: productForm.brand_shortname,
+          low_stock_quantity: productForm.low_stock_quantity,
+          variation_options: productForm.variation_options,
+          categories_shortnames: productForm.categories,
+          main_category_shortname: productForm.main_category,
+          product_specifications: productForm.product_specifications,
+          category_specifications: productForm.category_specifications,
         },
         content_type: "json",
-        tags: [...productForm.tags, `category:${finalCategoryId}`],
+        tags: productForm.tags,
         is_active: true,
       };
 
       await updateEntity(
         selectedProduct.shortname,
-        "Ecommerce",
+        "e_commerce",
         selectedProduct.subpath,
         selectedProduct.resource_type,
         productData,
@@ -279,7 +380,7 @@
     try {
       await deleteEntity(
         selectedProduct.shortname,
-        "Ecommerce",
+        "e_commerce",
         selectedProduct.subpath,
         selectedProduct.resource_type
       );
@@ -294,7 +395,7 @@
   }
 
   function getLocalizedDisplayName(item) {
-    const displayname = item?.attributes?.displayname;
+    const displayname = item?.attributes?.displayname.en;
 
     if (!displayname) {
       return item?.shortname || "Untitled";
@@ -312,18 +413,14 @@
     return localizedName || item?.shortname || "Untitled";
   }
 
-  function getProductCategory(product) {
-    const content =
-      product.attributes?.payload?.body?.content ||
-      product.attributes?.payload?.body;
-    return content?.category_id || null;
+  function getProductMainCategory(product) {
+    const content = product.attributes?.payload?.body;
+    return content?.main_category_shortname || null;
   }
 
-  function getProductPrice(product) {
-    const content =
-      product.attributes?.payload?.body?.content ||
-      product.attributes?.payload?.body;
-    return content?.base_price || 0;
+  function getProductCategories(product) {
+    const content = product.attributes?.payload?.body;
+    return content?.categories_shortnames || [];
   }
 
   function getCategoryName(categoryId) {
@@ -332,10 +429,8 @@
   }
 
   function getCategoryParentId(category) {
-    const content =
-      category.attributes?.payload?.body?.content ||
-      category.attributes?.payload?.body;
-    return content?.parent_category_id || null;
+    const content = category.attributes?.payload?.body;
+    return content?.parent_category_shortname || null;
   }
 
   function isParentCategory(category) {
@@ -346,26 +441,69 @@
     return categories.filter((c) => getCategoryParentId(c) === parentId);
   }
 
-  function hasSubCategories(categoryId) {
-    return getSubCategories(categoryId).length > 0;
-  }
-
   const parentCategories = $derived.by(() => {
     return categories.filter((c) => isParentCategory(c));
   });
 
-  const availableSubCategories = $derived.by(() => {
-    if (!productForm.parentCategory) return [];
-    return getSubCategories(productForm.parentCategory);
-  });
-
-  function getFinalCategoryId() {
-    if (productForm.category) {
-      return productForm.category;
-    } else if (productForm.parentCategory) {
-      return productForm.parentCategory;
+  function toggleCategory(categoryId) {
+    const index = productForm.categories.indexOf(categoryId);
+    if (index > -1) {
+      productForm.categories = productForm.categories.filter(
+        (id) => id !== categoryId
+      );
+      if (productForm.main_category === categoryId) {
+        productForm.main_category = "";
+      }
+    } else {
+      productForm.categories = [...productForm.categories, categoryId];
+      if (!productForm.main_category) {
+        productForm.main_category = categoryId;
+      }
     }
-    return "";
+  }
+
+  function setMainCategory(categoryId) {
+    if (!productForm.categories.includes(categoryId)) {
+      productForm.categories = [...productForm.categories, categoryId];
+    }
+    productForm.main_category = categoryId;
+  }
+
+  function toggleVariationValue(variationType: string, valueKey: string) {
+    const existingOption = productForm.variation_options.find(
+      (opt) => opt.variation_shortname === variationType
+    );
+
+    if (existingOption) {
+      if (existingOption.values.includes(valueKey)) {
+        existingOption.values = existingOption.values.filter(
+          (v) => v !== valueKey
+        );
+        if (existingOption.values.length === 0) {
+          productForm.variation_options = productForm.variation_options.filter(
+            (opt) => opt.variation_shortname !== variationType
+          );
+        }
+      } else {
+        existingOption.values = [...existingOption.values, valueKey];
+      }
+      productForm.variation_options = [...productForm.variation_options];
+    } else {
+      productForm.variation_options = [
+        ...productForm.variation_options,
+        { variation_shortname: variationType, values: [valueKey] },
+      ];
+    }
+  }
+
+  function isVariationSelected(
+    variationType: string,
+    valueKey: string
+  ): boolean {
+    const option = productForm.variation_options.find(
+      (opt) => opt.variation_shortname === variationType
+    );
+    return option ? option.values.includes(valueKey) : false;
   }
 
   function formatDate(dateString: string): string {
@@ -377,9 +515,10 @@
     if (selectedCategoryFilter === "all") {
       return products;
     }
-    return products.filter(
-      (p) => getProductCategory(p) === selectedCategoryFilter
-    );
+    return products.filter((p) => {
+      const categories = getProductCategories(p);
+      return categories.includes(selectedCategoryFilter);
+    });
   });
 </script>
 
@@ -391,7 +530,7 @@
       </h1>
       <p class="page-description">
         {$_("admin_dashboard.products_description") ||
-          "Manage products and their categories"}
+          "Manage your products with categories, variations, and specifications"}
       </p>
     </div>
     <button class="btn-create" onclick={openCreateModal}>
@@ -401,21 +540,21 @@
   </div>
 
   <div class="filters">
-    <label for="category-filter"
-      >{$_("common.filter_by_category") || "Filter by Category"}:</label
-    >
+    <label for="category-filter">
+      {$_("common.filter_by_category") || "Filter by Category"}:
+    </label>
     <select
       id="category-filter"
       bind:value={selectedCategoryFilter}
       class="filter-select"
     >
-      <option value="all"
-        >{$_("common.all_categories") || "All Categories"}</option
-      >
+      <option value="all">
+        {$_("common.all_categories") || "All Categories"}
+      </option>
       {#each categories as category}
-        <option value={category.shortname}
-          >{getLocalizedDisplayName(category)}</option
-        >
+        <option value={category.shortname}>
+          {getLocalizedDisplayName(category)}
+        </option>
       {/each}
     </select>
   </div>
@@ -427,60 +566,83 @@
     </div>
   {:else if filteredProducts.length === 0}
     <div class="empty-state">
+      <div class="empty-icon">📦</div>
+      <h3>{$_("admin_dashboard.no_products") || "No products found"}</h3>
       <p>
         {selectedCategoryFilter === "all"
-          ? $_("admin_dashboard.no_products") || "No products found"
+          ? $_("admin_dashboard.no_products_description") ||
+            "Start by creating your first product"
           : $_("admin_dashboard.no_products_in_category") ||
             "No products in this category"}
       </p>
-      <button class="btn-create" onclick={openCreateModal}>
+      <button class="btn-create-large" onclick={openCreateModal}>
+        <PlusOutline size="md" />
         {$_("admin_dashboard.create_first_product") || "Create First Product"}
       </button>
     </div>
   {:else}
-    <div class="products-list">
-      <div class="list-header">
-        <div class="list-col col-name">Name</div>
-        <div class="list-col col-description">Description</div>
-        <div class="list-col col-category">Category</div>
-        <div class="list-col col-price">Price</div>
-        <div class="list-col col-actions">Actions</div>
-      </div>
+    <div class="products-grid">
       {#each filteredProducts as product}
-        <div class="list-row">
-          <div class="list-col col-name">
-            <span class="product-name">{getLocalizedDisplayName(product)}</span>
-            <span class="product-shortname">{product.shortname}</span>
+        <div class="product-card">
+          <div class="product-header">
+            <div class="product-info">
+              <h3 class="product-name">{getLocalizedDisplayName(product)}</h3>
+              <span class="product-shortname">{product.shortname}</span>
+            </div>
+            <div class="product-actions">
+              <button
+                class="btn-icon"
+                onclick={() => openEditModal(product)}
+                title="Edit"
+              >
+                <EditOutline size="sm" />
+              </button>
+              <button
+                class="btn-icon delete"
+                onclick={() => openDeleteModal(product)}
+                title="Delete"
+              >
+                <TrashBinOutline size="sm" />
+              </button>
+            </div>
           </div>
-          <div class="list-col col-description">
-            {product.attributes?.payload?.body?.content?.description ||
-              "No description"}
+
+          <div class="product-body">
+            {#if getProductMainCategory(product)}
+              <div class="product-main-category">
+                <span class="label">Main Category:</span>
+                <span class="category-badge main">
+                  {getCategoryName(getProductMainCategory(product))}
+                </span>
+              </div>
+            {/if}
+
+            {#if getProductCategories(product).length > 1}
+              <div class="product-categories">
+                <span class="label">Categories:</span>
+                <div class="category-tags">
+                  {#each getProductCategories(product) as categoryId}
+                    {#if categoryId !== getProductMainCategory(product)}
+                      <span class="category-badge">
+                        {getCategoryName(categoryId)}
+                      </span>
+                    {/if}
+                  {/each}
+                </div>
+              </div>
+            {/if}
           </div>
-          <div class="list-col col-category">
-            <span class="category-badge"
-              >{getCategoryName(getProductCategory(product))}</span
+
+          <div class="product-footer">
+            <span class="product-date">
+              {formatDate(product.attributes?.created_at)}
+            </span>
+            <span
+              class="product-status"
+              class:active={product.attributes?.is_active}
             >
-          </div>
-          <div class="list-col col-price">
-            {getProductPrice(product) > 0
-              ? `$${getProductPrice(product).toFixed(2)}`
-              : "-"}
-          </div>
-          <div class="list-col col-actions">
-            <button
-              class="btn-icon"
-              onclick={() => openEditModal(product)}
-              title="Edit"
-            >
-              <EditOutline size="sm" />
-            </button>
-            <button
-              class="btn-icon delete"
-              onclick={() => openDeleteModal(product)}
-              title="Delete"
-            >
-              <TrashBinOutline size="sm" />
-            </button>
+              {product.attributes?.is_active ? "Active" : "Inactive"}
+            </span>
           </div>
         </div>
       {/each}
@@ -488,268 +650,306 @@
   {/if}
 </div>
 
-<!-- Create Modal -->
-{#if showCreateModal}
+<!-- Create/Edit Modal -->
+{#if showCreateModal || showEditModal}
   <div
     class="modal-overlay"
-    role="button"
-    tabindex="0"
-    onclick={closeCreateModal}
-    onkeydown={(e) => e.key === "Escape" && closeCreateModal()}
+    onclick={showCreateModal ? closeCreateModal : closeEditModal}
   >
-    <div
-      class="modal-container"
-      role="dialog"
-      aria-modal="true"
-      tabindex="-1"
-      onclick={(e) => e.stopPropagation()}
-      onkeydown={(e) => e.stopPropagation()}
-    >
+    <div class="modal-container large" onclick={(e) => e.stopPropagation()}>
       <div class="modal-header">
-        <h2>{$_("admin_dashboard.create_product") || "Create Product"}</h2>
-        <button class="modal-close" onclick={closeCreateModal}>&times;</button>
+        <h2>
+          {showCreateModal
+            ? $_("admin_dashboard.create_product") || "Create Product"
+            : $_("admin_dashboard.edit_product") || "Edit Product"}
+        </h2>
+        <button
+          class="modal-close"
+          onclick={showCreateModal ? closeCreateModal : closeEditModal}
+        >
+          &times;
+        </button>
       </div>
+
       <div class="modal-body">
-        <div class="form-group">
-          <label for="product-name">{$_("common.name") || "Name"} *</label>
-          <input
-            id="product-name"
-            type="text"
-            bind:value={productForm.displayname}
-            placeholder={$_("admin_dashboard.enter_product_name") ||
-              "Enter product name"}
-            class="form-input"
-          />
+        <!-- Basic Information -->
+        <div class="form-section">
+          <h3 class="section-title">Basic Information</h3>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="displayname-en">Display Name (English) *</label>
+              <input
+                id="displayname-en"
+                type="text"
+                bind:value={productForm.displayname_en}
+                placeholder="Enter product name in English"
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="displayname-ar">Display Name (Arabic) *</label>
+              <input
+                id="displayname-ar"
+                type="text"
+                bind:value={productForm.displayname_ar}
+                placeholder="أدخل اسم المنتج بالعربية"
+                class="form-input"
+                dir="rtl"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="description-en">Description (English)</label>
+              <textarea
+                id="description-en"
+                bind:value={productForm.description_en}
+                placeholder="Enter product description in English"
+                class="form-textarea"
+                rows="3"
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="description-ar">Description (Arabic)</label>
+              <textarea
+                id="description-ar"
+                bind:value={productForm.description_ar}
+                placeholder="أدخل وصف المنتج بالعربية"
+                class="form-textarea"
+                rows="3"
+                dir="rtl"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="unit">Unit *</label>
+              <select
+                id="unit"
+                bind:value={productForm.unit}
+                class="form-input"
+              >
+                <option value="PC">PC (Piece)</option>
+                <option value="KG">KG (Kilogram)</option>
+                <option value="M">M (Meter)</option>
+                <option value="L">L (Liter)</option>
+                <option value="BOX">BOX</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="low-stock">Low Stock Quantity</label>
+              <input
+                id="low-stock"
+                type="number"
+                min="0"
+                bind:value={productForm.low_stock_quantity}
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" bind:checked={productForm.is_digital} />
+              <span>Digital Product</span>
+            </label>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="product-category"
-            >{$_("common.category") || "Category"} *</label
-          >
+
+        <!-- Categories -->
+        <div class="form-section">
+          <h3 class="section-title">Categories *</h3>
+          <p class="section-description">
+            Select one or more categories. Mark one as main category.
+          </p>
+
           {#if isLoadingCategories}
             <div class="loading-message">Loading categories...</div>
           {:else if categories.length === 0}
             <div class="warning-message">
               <p>⚠️ No categories found. Please create categories first.</p>
-              <button
-                class="btn-link"
-                onclick={() =>
-                  window.open("/dashboard/admin/categories", "_blank")}
-                type="button"
-              >
-                Go to Categories Management
-              </button>
             </div>
           {:else}
-            <select
-              id="product-category"
-              bind:value={productForm.parentCategory}
-              class="form-input"
-              onchange={() => {
-                productForm.category = "";
-              }}
-            >
-              <option value=""
-                >{$_("common.select_category") || "Select a category"}</option
-              >
+            <div class="categories-selection">
               {#each parentCategories as category}
-                <option value={category.shortname}
-                  >{getLocalizedDisplayName(category)}</option
-                >
-              {/each}
-            </select>
+                <div class="category-item">
+                  <label class="category-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={productForm.categories.includes(
+                        category.shortname
+                      )}
+                      onchange={() => toggleCategory(category.shortname)}
+                    />
+                    <span>{getLocalizedDisplayName(category)}</span>
+                  </label>
 
-            {#if productForm.parentCategory && hasSubCategories(productForm.parentCategory)}
-              <div class="sub-category-section">
-                <label for="product-sub-category"
-                  >{$_("common.sub_category") || "Sub-category"} *</label
-                >
-                <select
-                  id="product-sub-category"
-                  bind:value={productForm.category}
-                  class="form-input"
-                >
-                  <option value=""
-                    >{$_("common.select_sub_category") ||
-                      "Select a sub-category"}</option
-                  >
-                  {#each availableSubCategories as subCategory}
-                    <option value={subCategory.shortname}
-                      >{getLocalizedDisplayName(subCategory)}</option
+                  {#if productForm.categories.includes(category.shortname)}
+                    <button
+                      type="button"
+                      class="btn-main-category"
+                      class:is-main={productForm.main_category ===
+                        category.shortname}
+                      onclick={() => setMainCategory(category.shortname)}
+                      title="Set as main category"
                     >
-                  {/each}
-                </select>
-              </div>
-            {/if}
-          {/if}
-        </div>
-        <div class="form-group">
-          <label for="product-description"
-            >{$_("common.description") || "Description"}</label
-          >
-          <textarea
-            id="product-description"
-            bind:value={productForm.description}
-            placeholder={$_("admin_dashboard.enter_product_description") ||
-              "Enter product description"}
-            class="form-textarea"
-            rows="3"
-          ></textarea>
-        </div>
-        <div class="form-group">
-          <label for="product-price"
-            >{$_("common.base_price") || "Base Price (Optional)"}</label
-          >
-          <input
-            id="product-price"
-            type="number"
-            step="0.01"
-            min="0"
-            bind:value={productForm.price}
-            placeholder="0.00"
-            class="form-input"
-          />
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick={closeCreateModal}>
-          {$_("common.cancel") || "Cancel"}
-        </button>
-        <button class="btn-primary" onclick={handleCreateProduct}>
-          {$_("common.create") || "Create"}
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
+                      {#if productForm.main_category === category.shortname}
+                        <CheckOutline size="xs" /> Main
+                      {:else}
+                        Set as Main
+                      {/if}
+                    </button>
+                  {/if}
+                </div>
 
-<!-- Edit Modal -->
-{#if showEditModal}
-  <div
-    class="modal-overlay"
-    role="button"
-    tabindex="0"
-    onclick={closeEditModal}
-    onkeydown={(e) => e.key === "Escape" && closeEditModal()}
-  >
-    <div
-      class="modal-container"
-      role="dialog"
-      aria-modal="true"
-      tabindex="-1"
-      onclick={(e) => e.stopPropagation()}
-      onkeydown={(e) => e.stopPropagation()}
-    >
-      <div class="modal-header">
-        <h2>{$_("admin_dashboard.edit_product") || "Edit Product"}</h2>
-        <button class="modal-close" onclick={closeEditModal}>&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="edit-product-name">{$_("common.name") || "Name"} *</label>
-          <input
-            id="edit-product-name"
-            type="text"
-            bind:value={productForm.displayname}
-            placeholder={$_("admin_dashboard.enter_product_name") ||
-              "Enter product name"}
-            class="form-input"
-          />
-        </div>
-        <div class="form-group">
-          <label for="edit-product-category"
-            >{$_("common.category") || "Category"} *</label
-          >
-          {#if isLoadingCategories}
-            <div class="loading-message">Loading categories...</div>
-          {:else if categories.length === 0}
-            <div class="warning-message">
-              <p>⚠️ No categories found. Please create categories first.</p>
-              <button
-                class="btn-link"
-                onclick={() =>
-                  window.open("/dashboard/admin/categories", "_blank")}
-                type="button"
-              >
-                Go to Categories Management
-              </button>
+                <!-- Sub-categories -->
+                {#each getSubCategories(category.shortname) as subCategory}
+                  <div class="category-item sub">
+                    <label class="category-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={productForm.categories.includes(
+                          subCategory.shortname
+                        )}
+                        onchange={() => toggleCategory(subCategory.shortname)}
+                      />
+                      <span>└ {getLocalizedDisplayName(subCategory)}</span>
+                    </label>
+
+                    {#if productForm.categories.includes(subCategory.shortname)}
+                      <button
+                        type="button"
+                        class="btn-main-category"
+                        class:is-main={productForm.main_category ===
+                          subCategory.shortname}
+                        onclick={() => setMainCategory(subCategory.shortname)}
+                        title="Set as main category"
+                      >
+                        {#if productForm.main_category === subCategory.shortname}
+                          <CheckOutline size="xs" /> Main
+                        {:else}
+                          Set as Main
+                        {/if}
+                      </button>
+                    {/if}
+                  </div>
+                {/each}
+              {/each}
             </div>
-          {:else}
-            <select
-              id="edit-product-category"
-              bind:value={productForm.parentCategory}
-              class="form-input"
-              onchange={() => {
-                productForm.category = "";
-              }}
-            >
-              <option value=""
-                >{$_("common.select_category") || "Select a category"}</option
-              >
-              {#each parentCategories as category}
-                <option value={category.shortname}
-                  >{getLocalizedDisplayName(category)}</option
-                >
-              {/each}
-            </select>
-
-            {#if productForm.parentCategory && hasSubCategories(productForm.parentCategory)}
-              <div class="sub-category-section">
-                <label for="edit-product-sub-category"
-                  >{$_("common.sub_category") || "Sub-category"} *</label
-                >
-                <select
-                  id="edit-product-sub-category"
-                  bind:value={productForm.category}
-                  class="form-input"
-                >
-                  <option value=""
-                    >{$_("common.select_sub_category") ||
-                      "Select a sub-category"}</option
-                  >
-                  {#each availableSubCategories as subCategory}
-                    <option value={subCategory.shortname}
-                      >{getLocalizedDisplayName(subCategory)}</option
-                    >
-                  {/each}
-                </select>
-              </div>
-            {/if}
           {/if}
         </div>
-        <div class="form-group">
-          <label for="edit-product-description"
-            >{$_("common.description") || "Description"}</label
-          >
-          <textarea
-            id="edit-product-description"
-            bind:value={productForm.description}
-            placeholder={$_("admin_dashboard.enter_product_description") ||
-              "Enter product description"}
-            class="form-textarea"
-            rows="3"
-          ></textarea>
+
+        <!-- Variations -->
+        <div class="form-section">
+          <h3 class="section-title">Variations (Optional)</h3>
+
+          {#if variations.colors.length > 0}
+            <div class="variation-group">
+              <h4 class="variation-title">Colors</h4>
+              <div class="variation-options">
+                {#each variations.colors as color}
+                  <button
+                    type="button"
+                    class="variation-option color"
+                    class:selected={isVariationSelected("colors", color.key)}
+                    onclick={() => toggleVariationValue("colors", color.key)}
+                    title={color.name?.en || color.name?.ar}
+                  >
+                    <span
+                      class="color-swatch"
+                      style="background-color: {color.value}"
+                    ></span>
+                    <span class="color-name"
+                      >{color.name?.en || color.name?.ar}</span
+                    >
+                  </button>
+                {/each}
+              </div>
+            </div>
+          {/if}
+
+          {#if variations.storages.length > 0}
+            <div class="variation-group">
+              <h4 class="variation-title">Storage</h4>
+              <div class="variation-options">
+                {#each variations.storages as storage}
+                  <button
+                    type="button"
+                    class="variation-option"
+                    class:selected={isVariationSelected(
+                      "storages",
+                      storage.key
+                    )}
+                    onclick={() =>
+                      toggleVariationValue("storages", storage.key)}
+                  >
+                    {storage.name?.en || storage.name?.ar}
+                  </button>
+                {/each}
+              </div>
+            </div>
+          {/if}
         </div>
-        <div class="form-group">
-          <label for="edit-product-price"
-            >{$_("common.base_price") || "Base Price (Optional)"}</label
-          >
-          <input
-            id="edit-product-price"
-            type="number"
-            step="0.01"
-            min="0"
-            bind:value={productForm.price}
-            placeholder="0.00"
-            class="form-input"
-          />
+
+        <!-- SEO Meta -->
+        <div class="form-section">
+          <h3 class="section-title">SEO & Meta Information</h3>
+
+          <div class="form-group">
+            <label for="meta-title">Meta Title</label>
+            <input
+              id="meta-title"
+              type="text"
+              bind:value={productForm.meta_title}
+              placeholder="SEO meta title"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="meta-description">Meta Description</label>
+            <textarea
+              id="meta-description"
+              bind:value={productForm.meta_description}
+              placeholder="SEO meta description"
+              class="form-textarea"
+              rows="2"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="brand">Brand Shortname</label>
+            <input
+              id="brand"
+              type="text"
+              bind:value={productForm.brand_shortname}
+              placeholder="Brand identifier"
+              class="form-input"
+            />
+          </div>
         </div>
       </div>
+
       <div class="modal-footer">
-        <button class="btn-secondary" onclick={closeEditModal}>
+        <button
+          class="btn-secondary"
+          onclick={showCreateModal ? closeCreateModal : closeEditModal}
+        >
           {$_("common.cancel") || "Cancel"}
         </button>
-        <button class="btn-primary" onclick={handleUpdateProduct}>
-          {$_("common.save") || "Save Changes"}
+        <button
+          class="btn-primary"
+          onclick={showCreateModal ? handleCreateProduct : handleUpdateProduct}
+        >
+          {showCreateModal
+            ? $_("common.create") || "Create"
+            : $_("common.update") || "Update"}
         </button>
       </div>
     </div>
@@ -758,34 +958,24 @@
 
 <!-- Delete Modal -->
 {#if showDeleteModal}
-  <div
-    class="modal-overlay"
-    role="button"
-    tabindex="0"
-    onclick={closeDeleteModal}
-    onkeydown={(e) => e.key === "Escape" && closeDeleteModal()}
-  >
-    <div
-      class="modal-container small"
-      role="dialog"
-      aria-modal="true"
-      tabindex="-1"
-      onclick={(e) => e.stopPropagation()}
-      onkeydown={(e) => e.stopPropagation()}
-    >
+  <div class="modal-overlay" onclick={closeDeleteModal}>
+    <div class="modal-container small" onclick={(e) => e.stopPropagation()}>
       <div class="modal-header">
-        <h2>{$_("common.confirm_delete") || "Confirm Delete"}</h2>
+        <h2>{$_("admin_dashboard.delete_product") || "Delete Product"}</h2>
         <button class="modal-close" onclick={closeDeleteModal}>&times;</button>
       </div>
+
       <div class="modal-body">
-        <p>
-          {$_("admin_dashboard.delete_product_confirm") ||
-            "Are you sure you want to delete this product?"}
-        </p>
-        <p class="product-name-highlight">
-          {getLocalizedDisplayName(selectedProduct)}
-        </p>
+        <div class="delete-warning">
+          <div class="warning-icon">⚠️</div>
+          <p>Are you sure you want to delete this product?</p>
+          <p class="product-name-highlight">
+            {selectedProduct ? getLocalizedDisplayName(selectedProduct) : ""}
+          </p>
+          <p class="warning-text">This action cannot be undone.</p>
+        </div>
       </div>
+
       <div class="modal-footer">
         <button class="btn-secondary" onclick={closeDeleteModal}>
           {$_("common.cancel") || "Cancel"}
@@ -801,8 +991,8 @@
 <style>
   .products-page {
     min-height: 100vh;
-    padding: 2.5rem;
-    background: #ffffff;
+    background: #f8f9fa;
+    padding: 2rem 1rem;
   }
 
   .rtl {
@@ -813,9 +1003,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2.5rem;
+    margin-bottom: 2rem;
     flex-wrap: wrap;
-    gap: 1.5rem;
+    gap: 1rem;
   }
 
   .header-content {
@@ -825,14 +1015,42 @@
   .page-title {
     font-size: 2rem;
     font-weight: 700;
+    color: #1a1a1a;
     margin: 0 0 0.5rem 0;
-    color: #1f2937;
   }
 
   .page-description {
-    font-size: 1rem;
-    margin: 0;
+    font-size: 0.95rem;
     color: #6b7280;
+    margin: 0;
+  }
+
+  .btn-create,
+  .btn-create-large {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-create-large {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+  }
+
+  .btn-create:hover,
+  .btn-create-large:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
   }
 
   .filters {
@@ -840,28 +1058,28 @@
     align-items: center;
     gap: 1rem;
     margin-bottom: 2rem;
-    background: #ffffff;
-    padding: 1rem;
+    background: white;
+    padding: 1rem 1.5rem;
     border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
   }
 
   .filters label {
     font-weight: 600;
     color: #374151;
-    font-size: 0.875rem;
+    font-size: 0.9rem;
   }
 
   .filter-select {
     padding: 0.5rem 0.75rem;
     border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
+    border-radius: 0.5rem;
     background: white;
-    color: #1f2937;
-    font-size: 0.875rem;
+    color: #1a1a1a;
+    font-size: 0.9rem;
     cursor: pointer;
-    transition: border-color 0.2s;
-    min-width: 200px;
+    transition: all 0.2s;
+    min-width: 220px;
   }
 
   .filter-select:hover {
@@ -870,31 +1088,8 @@
 
   .filter-select:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  .btn-create {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1rem;
-    background: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-
-  .btn-create:hover {
-    background: #2563eb;
-  }
-
-  .btn-create:active {
-    background: #1d4ed8;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   }
 
   .loading-state,
@@ -903,23 +1098,46 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 60vh;
+    min-height: 50vh;
     gap: 1rem;
+    background: white;
+    border-radius: 1rem;
+    padding: 3rem;
   }
 
-  .loading-state p,
+  .empty-state {
+    text-align: center;
+  }
+
+  .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  .empty-state h3 {
+    font-size: 1.5rem;
+    color: #1a1a1a;
+    margin: 0 0 0.5rem 0;
+  }
+
   .empty-state p {
     color: #6b7280;
-    font-size: 1rem;
+    margin: 0 0 1.5rem 0;
   }
 
   .loading-spinner {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 3rem;
+    height: 3rem;
     border: 3px solid #e5e7eb;
-    border-top-color: #3b82f6;
+    border-top-color: #2563eb;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
+  }
+
+  .loading-state p {
+    color: #6b7280;
+    font-size: 0.95rem;
   }
 
   @keyframes spin {
@@ -928,94 +1146,100 @@
     }
   }
 
-  /* List Styles */
-  .products-list {
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .product-card {
     background: white;
     border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    overflow: hidden;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    transition: all 0.2s;
   }
 
-  .list-header {
+  .product-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+  }
+
+  .product-header {
     display: flex;
-    background: #f9fafb;
-    padding: 1rem;
-    border-bottom: 2px solid #e5e7eb;
-    font-weight: 600;
-    color: #374151;
-    font-size: 0.875rem;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
   }
 
-  .list-row {
-    display: flex;
-    padding: 1rem;
-    border-bottom: 1px solid #e5e7eb;
-    transition: background-color 0.15s;
-    align-items: center;
-  }
-
-  .list-row:last-child {
-    border-bottom: none;
-  }
-
-  .list-row:hover {
-    background: #f9fafb;
-  }
-
-  .list-col {
-    padding: 0 0.5rem;
-    font-size: 0.875rem;
-  }
-
-  .col-name {
-    flex: 0 0 20%;
+  .product-info {
+    flex: 1;
     min-width: 0;
-  }
-
-  .col-description {
-    flex: 0 0 35%;
-    min-width: 0;
-    color: #6b7280;
-    line-height: 1.5;
-  }
-
-  .col-category {
-    flex: 0 0 15%;
-    min-width: 0;
-  }
-
-  .col-price {
-    flex: 0 0 15%;
-    min-width: 0;
-    color: #1f2937;
-    font-weight: 500;
-  }
-
-  .col-actions {
-    flex: 0 0 15%;
-    min-width: 0;
-    display: flex;
-    gap: 0.5rem;
-    justify-content: flex-end;
   }
 
   .product-name {
-    display: block;
+    font-size: 1.125rem;
     font-weight: 600;
-    color: #1f2937;
-    margin-bottom: 0.25rem;
+    color: #1a1a1a;
+    margin: 0 0 0.25rem 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .product-shortname {
-    display: block;
     font-size: 0.75rem;
     color: #9ca3af;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: block;
+  }
+
+  .product-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .btn-icon {
+    padding: 0.5rem;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    color: #6b7280;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-icon:hover {
+    background: #e5e7eb;
+    color: #374151;
+  }
+
+  .btn-icon.delete:hover {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  .product-body {
+    margin-bottom: 1rem;
+  }
+
+  .product-main-category,
+  .product-categories {
+    margin-bottom: 0.75rem;
+  }
+
+  .label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 0.5rem;
   }
 
   .category-badge {
@@ -1028,29 +1252,41 @@
     font-weight: 600;
   }
 
-  .btn-icon {
-    padding: 0.5rem;
-    border: none;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    background: #f9fafb;
-    color: #6b7280;
-    transition: all 0.2s;
+  .category-badge.main {
+    background: #2563eb;
+    color: white;
+  }
+
+  .category-tags {
     display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .product-footer {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+    font-size: 0.75rem;
   }
 
-  .btn-icon:hover {
-    background: #f3f4f6;
+  .product-date {
+    color: #9ca3af;
   }
 
-  .btn-icon.delete {
-    color: #dc2626;
-  }
-
-  .btn-icon.delete:hover {
+  .product-status {
+    padding: 0.25rem 0.5rem;
     background: #fee2e2;
+    color: #dc2626;
+    border-radius: 0.25rem;
+    font-weight: 600;
+  }
+
+  .product-status.active {
+    background: #d1fae5;
+    color: #065f46;
   }
 
   /* Modal Styles */
@@ -1065,20 +1301,28 @@
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    backdrop-filter: blur(4px);
+    padding: 1rem;
   }
 
   .modal-container {
     background: white;
-    border-radius: 0.5rem;
-    max-width: 500px;
-    width: 90%;
+    border-radius: 0.75rem;
+    max-width: 600px;
+    width: 100%;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-container.large {
+    max-width: 900px;
   }
 
   .modal-container.small {
-    max-width: 400px;
+    max-width: 420px;
   }
 
   .modal-header {
@@ -1086,21 +1330,22 @@
     justify-content: space-between;
     align-items: center;
     padding: 1.5rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid #f3f4f6;
+    flex-shrink: 0;
   }
 
   .modal-header h2 {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
-    color: #1f2937;
+    color: #1a1a1a;
   }
 
   .modal-close {
-    background: transparent;
+    background: none;
     border: none;
-    font-size: 1.5rem;
-    color: #6b7280;
+    font-size: 1.75rem;
+    color: #9ca3af;
     cursor: pointer;
     padding: 0;
     width: 2rem;
@@ -1108,21 +1353,55 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0.25rem;
+    border-radius: 0.375rem;
     transition: all 0.2s;
   }
 
   .modal-close:hover {
     background: #f3f4f6;
-    color: #374151;
+    color: #6b7280;
   }
 
   .modal-body {
     padding: 1.5rem;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .form-section {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .form-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .section-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 1rem 0;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
   }
 
   .form-group {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
   }
 
   .form-group:last-child {
@@ -1132,59 +1411,217 @@
   label {
     display: block;
     margin-bottom: 0.5rem;
-    font-weight: 600;
+    font-weight: 500;
     color: #374151;
     font-size: 0.875rem;
-  }
-
-  .sub-category-section {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: #f9fafb;
-    border-radius: 0.5rem;
-    border: 1px solid #e5e7eb;
-  }
-
-  .sub-category-section label {
-    color: #2563eb;
   }
 
   .form-input,
   .form-textarea {
     width: 100%;
-    padding: 0.625rem 0.75rem;
+    padding: 0.75rem;
     border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    color: #1f2937;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    color: #1a1a1a;
     transition: all 0.2s;
     box-sizing: border-box;
-    background: white;
-  }
-
-  .form-input:hover,
-  .form-textarea:hover {
-    border-color: #9ca3af;
+    font-family: inherit;
   }
 
   .form-input:focus,
   .form-textarea:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   }
 
   .form-textarea {
     resize: vertical;
-    font-family: inherit;
+    line-height: 1.5;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    width: 1.125rem;
+    height: 1.125rem;
+    cursor: pointer;
+  }
+
+  .categories-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .category-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: #f9fafb;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+  }
+
+  .category-item:hover {
+    background: #f3f4f6;
+  }
+
+  .category-item.sub {
+    margin-left: 2rem;
+    background: #f3f4f6;
+  }
+
+  .category-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    flex: 1;
+  }
+
+  .category-checkbox input[type="checkbox"] {
+    width: 1.125rem;
+    height: 1.125rem;
+    cursor: pointer;
+  }
+
+  .btn-main-category {
+    padding: 0.375rem 0.75rem;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .btn-main-category:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+  }
+
+  .btn-main-category.is-main {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: white;
+  }
+
+  .variation-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .variation-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .variation-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 0.75rem 0;
+  }
+
+  .variation-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .variation-option {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .variation-option:hover {
+    border-color: #2563eb;
+  }
+
+  .variation-option.selected {
+    background: #eff6ff;
+    border-color: #2563eb;
+    color: #1e40af;
+  }
+
+  .variation-option.color {
+    min-width: 120px;
+  }
+
+  .color-swatch {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 1px #e5e7eb;
+  }
+
+  .color-name {
+    font-size: 0.75rem;
+  }
+
+  .loading-message,
+  .warning-message {
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 0.5rem;
+    color: #6b7280;
+    text-align: center;
+  }
+
+  .warning-message {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .delete-warning {
+    text-align: center;
+  }
+
+  .warning-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .delete-warning p {
+    color: #6b7280;
+    margin: 0 0 0.5rem 0;
     line-height: 1.5;
   }
 
   .product-name-highlight {
     font-weight: 600;
-    color: #1f2937;
-    margin: 0.75rem 0 0 0;
-    font-size: 1rem;
+    color: #1a1a1a;
+    font-size: 1.125rem;
+    margin: 1rem 0 !important;
+  }
+
+  .warning-text {
+    font-size: 0.875rem;
+    color: #dc2626;
+    margin-top: 1rem !important;
   }
 
   .modal-footer {
@@ -1192,41 +1629,37 @@
     justify-content: flex-end;
     gap: 0.75rem;
     padding: 1.5rem;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid #f3f4f6;
+    flex-shrink: 0;
   }
 
   .btn-secondary,
   .btn-primary,
   .btn-danger {
-    padding: 0.625rem 1rem;
+    padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .btn-secondary {
-    background: #f9fafb;
+    background: #f3f4f6;
     color: #374151;
-    border: 1px solid #d1d5db;
   }
 
   .btn-secondary:hover {
-    background: #f3f4f6;
+    background: #e5e7eb;
   }
 
   .btn-primary {
-    background: #3b82f6;
+    background: #2563eb;
     color: white;
   }
 
   .btn-primary:hover {
-    background: #2563eb;
-  }
-
-  .btn-primary:active {
     background: #1d4ed8;
   }
 
@@ -1239,81 +1672,9 @@
     background: #b91c1c;
   }
 
-  .btn-danger:active {
-    background: #991b1b;
-  }
-
-  .loading-message {
-    padding: 1rem;
-    background: #f9fafb;
-    border-radius: 0.375rem;
-    color: #6b7280;
-    text-align: center;
-    font-size: 0.875rem;
-  }
-
-  .warning-message {
-    padding: 1rem;
-    background: #fef3c7;
-    border: 1px solid #fbbf24;
-    border-radius: 0.375rem;
-    color: #92400e;
-  }
-
-  .warning-message p {
-    margin: 0 0 0.5rem 0;
-    font-size: 0.875rem;
-  }
-
-  .btn-link {
-    background: none;
-    border: none;
-    color: #3b82f6;
-    text-decoration: underline;
-    cursor: pointer;
-    padding: 0;
-    font-size: 0.875rem;
-    transition: color 0.2s;
-  }
-
-  .btn-link:hover {
-    color: #2563eb;
-  }
-
-  .modal-container::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .modal-container::-webkit-scrollbar-track {
-    background: #f3f4f6;
-  }
-
-  .modal-container::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 3px;
-  }
-
-  .modal-container::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
-  }
-
-  @media (max-width: 1024px) {
-    .col-description {
-      flex: 0 0 30%;
-    }
-
-    .col-name {
-      flex: 0 0 25%;
-    }
-  }
-
   @media (max-width: 768px) {
     .products-page {
-      padding: 1.5rem;
-    }
-
-    .page-title {
-      font-size: 1.5rem;
+      padding: 1rem;
     }
 
     .header {
@@ -1321,44 +1682,22 @@
       align-items: stretch;
     }
 
-    .filters {
-      flex-direction: column;
-      align-items: stretch;
+    .products-grid {
+      grid-template-columns: 1fr;
     }
 
-    .filter-select {
-      width: 100%;
-    }
-
-    .products-list {
-      overflow-x: auto;
-    }
-
-    .list-header,
-    .list-row {
-      min-width: 700px;
+    .form-row {
+      grid-template-columns: 1fr;
     }
 
     .modal-container {
-      width: 95%;
+      margin: 0;
+      border-radius: 0;
+      max-height: 100vh;
     }
 
-    .modal-header,
-    .modal-body,
-    .modal-footer {
-      padding: 1.25rem;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .list-header,
-    .list-row {
-      font-size: 0.75rem;
-      padding: 0.75rem;
-    }
-
-    .list-col {
-      padding: 0 0.25rem;
+    .category-item.sub {
+      margin-left: 1rem;
     }
   }
 </style>
