@@ -23,13 +23,18 @@
   import { getVariationOptions, getOptionName } from "@/lib/utils/entityUtils";
   import { validateOptionForm } from "@/lib/utils/validationUtils";
   import {
-    Modal,
     Button,
     IconButton,
     FormInput,
     LoadingSpinner,
     EmptyState,
   } from "@/components/ui";
+  import {
+    AddOptionModal,
+    EditOptionModal,
+    DeleteOptionModal,
+  } from "@/components/modals";
+  import type { OptionFormData } from "@/components/modals/AddOptionModal.svelte";
 
   $goto;
 
@@ -45,12 +50,7 @@
   let showEditOptionModal = $state(false);
   let showDeleteOptionModal = $state(false);
   let selectedOption = $state(null);
-
-  let optionForm = $state({
-    name_en: "",
-    name_ar: "",
-    value: "",
-  });
+  let editFormData = $state<OptionFormData | undefined>(undefined);
 
   // Helper functions now imported from utility modules
 
@@ -83,11 +83,6 @@
 
   function openAddOptionModal(variation) {
     selectedVariation = variation;
-    optionForm = {
-      name_en: "",
-      name_ar: "",
-      value: variation.shortname === "colors" ? "#000000" : "",
-    };
     showAddOptionModal = true;
   }
 
@@ -99,7 +94,7 @@
   function openEditOptionModal(variation, option) {
     selectedVariation = variation;
     selectedOption = option;
-    optionForm = {
+    editFormData = {
       name_en: option.name?.en || "",
       name_ar: option.name?.ar || "",
       value: option.value || "",
@@ -125,13 +120,13 @@
     selectedOption = null;
   }
 
-  async function handleAddOption() {
-    if (!optionForm.name_en.trim() && !optionForm.name_ar.trim()) {
+  async function handleAddOption(formData: OptionFormData) {
+    if (!formData.name_en.trim() && !formData.name_ar.trim()) {
       errorToastMessage("Please enter an option name");
       return;
     }
 
-    if (selectedVariation.shortname === "colors" && !optionForm.value.trim()) {
+    if (selectedVariation.shortname === "colors" && !formData.value.trim()) {
       errorToastMessage("Please enter a color value");
       return;
     }
@@ -142,13 +137,13 @@
       const newOption: any = {
         key: generateKey(),
         name: {
-          en: optionForm.name_en,
-          ar: optionForm.name_ar,
+          en: formData.name_en,
+          ar: formData.name_ar,
         },
       };
 
       if (selectedVariation.shortname === "colors") {
-        newOption.value = optionForm.value;
+        newOption.value = formData.value;
       }
 
       const updatedOptions = [...currentOptions, newOption];
@@ -184,13 +179,13 @@
     }
   }
 
-  async function handleUpdateOption() {
-    if (!optionForm.name_en.trim() && !optionForm.name_ar.trim()) {
+  async function handleUpdateOption(formData: OptionFormData) {
+    if (!formData.name_en.trim() && !formData.name_ar.trim()) {
       errorToastMessage("Please enter an option name");
       return;
     }
 
-    if (selectedVariation.shortname === "colors" && !optionForm.value.trim()) {
+    if (selectedVariation.shortname === "colors" && !formData.value.trim()) {
       errorToastMessage("Please enter a color value");
       return;
     }
@@ -203,13 +198,13 @@
           const updated: any = {
             key: opt.key,
             name: {
-              en: optionForm.name_en,
-              ar: optionForm.name_ar,
+              en: formData.name_en,
+              ar: formData.name_ar,
             },
           };
 
           if (selectedVariation.shortname === "colors") {
-            updated.value = optionForm.value;
+            updated.value = formData.value;
           }
 
           return updated;
@@ -390,173 +385,29 @@
   {/if}
 </div>
 
-<!-- Add Option Modal -->
-<Modal
+<!-- Modal Components -->
+<AddOptionModal
   bind:show={showAddOptionModal}
-  title="Add {selectedVariation?.shortname === 'colors'
-    ? 'Color'
-    : 'Storage'} Option"
   onClose={closeAddOptionModal}
->
-  {#snippet body()}
-    <div class="form-row">
-      <div class="form-group">
-        <label for="name-en">Name (English) *</label>
-        <input
-          id="name-en"
-          type="text"
-          bind:value={optionForm.name_en}
-          placeholder="Enter name in English"
-          class="form-input"
-        />
-      </div>
+  onSubmit={handleAddOption}
+  variationType={selectedVariation?.shortname || ""}
+/>
 
-      <div class="form-group">
-        <label for="name-ar">Name (Arabic) *</label>
-        <input
-          id="name-ar"
-          type="text"
-          bind:value={optionForm.name_ar}
-          placeholder="أدخل الاسم بالعربية"
-          class="form-input"
-          dir="rtl"
-        />
-      </div>
-    </div>
-
-    {#if selectedVariation?.shortname === "colors"}
-      <div class="form-group">
-        <label for="color-value">Color Value (Hex) *</label>
-        <div class="color-input-wrapper">
-          <input
-            id="color-value"
-            type="color"
-            bind:value={optionForm.value}
-            class="color-picker"
-          />
-          <input
-            type="text"
-            bind:value={optionForm.value}
-            placeholder="#000000"
-            class="form-input"
-            pattern="^#[0-9A-Fa-f]{6}$"
-          />
-        </div>
-        <p class="form-hint">
-          Select a color or enter a hex code (e.g., #FF5733)
-        </p>
-      </div>
-    {/if}
-  {/snippet}
-
-  {#snippet footer()}
-    <Button variant="secondary" onclick={closeAddOptionModal}>
-      {$_("common.cancel") || "Cancel"}
-    </Button>
-    <Button variant="primary" onclick={handleAddOption}>
-      {$_("common.add") || "Add"}
-    </Button>
-  {/snippet}
-</Modal>
-
-<!-- Edit Option Modal -->
-<Modal
+<EditOptionModal
   bind:show={showEditOptionModal}
-  title="Edit {selectedVariation?.shortname === 'colors'
-    ? 'Color'
-    : 'Storage'} Option"
   onClose={closeEditOptionModal}
->
-  {#snippet body()}
-    <div class="form-row">
-      <div class="form-group">
-        <label for="edit-name-en">Name (English) *</label>
-        <input
-          id="edit-name-en"
-          type="text"
-          bind:value={optionForm.name_en}
-          placeholder="Enter name in English"
-          class="form-input"
-        />
-      </div>
+  onSubmit={handleUpdateOption}
+  variationType={selectedVariation?.shortname || ""}
+  option={selectedOption}
+  initialData={editFormData}
+/>
 
-      <div class="form-group">
-        <label for="edit-name-ar">Name (Arabic) *</label>
-        <input
-          id="edit-name-ar"
-          type="text"
-          bind:value={optionForm.name_ar}
-          placeholder="أدخل الاسم بالعربية"
-          class="form-input"
-          dir="rtl"
-        />
-      </div>
-    </div>
-
-    {#if selectedVariation?.shortname === "colors"}
-      <div class="form-group">
-        <label for="edit-color-value">Color Value (Hex) *</label>
-        <div class="color-input-wrapper">
-          <input
-            id="edit-color-value"
-            type="color"
-            bind:value={optionForm.value}
-            class="color-picker"
-          />
-          <input
-            type="text"
-            bind:value={optionForm.value}
-            placeholder="#000000"
-            class="form-input"
-            pattern="^#[0-9A-Fa-f]{6}$"
-          />
-        </div>
-        <p class="form-hint">
-          Select a color or enter a hex code (e.g., #FF5733)
-        </p>
-      </div>
-    {/if}
-  {/snippet}
-
-  {#snippet footer()}
-    <Button variant="secondary" onclick={closeEditOptionModal}>
-      {$_("common.cancel") || "Cancel"}
-    </Button>
-    <Button variant="primary" onclick={handleUpdateOption}>
-      {$_("common.update") || "Update"}
-    </Button>
-  {/snippet}
-</Modal>
-
-<!-- Delete Option Modal -->
-<Modal
+<DeleteOptionModal
   bind:show={showDeleteOptionModal}
-  title={$_("admin_dashboard.delete_option") || "Delete Option"}
-  size="small"
   onClose={closeDeleteOptionModal}
->
-  {#snippet body()}
-    <div class="delete-warning">
-      <div class="warning-icon">⚠️</div>
-      <p>Are you sure you want to delete this option?</p>
-      <p class="option-name-highlight">
-        {selectedOption ? getOptionName(selectedOption, $locale) : ""}
-      </p>
-      <p class="warning-text">
-        This action cannot be undone and may affect products using this option.
-      </p>
-    </div>
-  {/snippet}
-
-  {#snippet footer()}
-    <Button variant="secondary" onclick={closeDeleteOptionModal}>
-      {$_("common.cancel") || "Cancel"}
-    </Button>
-    <Button variant="danger" onclick={handleDeleteOption}>
-      {$_("common.delete") || "Delete"}
-    </Button>
-  {/snippet}
-</Modal>
+  onConfirm={handleDeleteOption}
+  option={selectedOption}
+/>
 
 <style>
   .variations-page {

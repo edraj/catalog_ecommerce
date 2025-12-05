@@ -31,12 +31,17 @@
   } from "@/lib/utils/entityUtils";
   import { validateCategoryForm } from "@/lib/utils/validationUtils";
   import {
-    Modal,
     Button,
     IconButton,
     LoadingSpinner,
     EmptyState,
   } from "@/components/ui";
+  import {
+    CreateCategoryModal,
+    EditCategoryModal,
+    DeleteCategoryModal,
+  } from "@/components/modals";
+  import type { CategoryFormData } from "@/components/modals/CreateCategoryModal.svelte";
 
   $goto;
 
@@ -53,13 +58,7 @@
   let selectedCategory = $state(null);
   let selectedParentFilter = $state("all");
   let expandedCategories = $state(new Set());
-
-  let categoryForm = $state({
-    displayname: "",
-    description: "",
-    parent_category_id: "",
-    tags: [],
-  });
+  let editFormData = $state<CategoryFormData | undefined>(undefined);
 
   onMount(async () => {
     await loadCategories();
@@ -89,12 +88,6 @@
   }
 
   function openCreateModal() {
-    categoryForm = {
-      displayname: "",
-      description: "",
-      parent_category_id: "",
-      tags: [],
-    };
     showCreateModal = true;
   }
 
@@ -105,11 +98,10 @@
   function openEditModal(category) {
     selectedCategory = category;
     const content = getEntityContent(category);
-    categoryForm = {
+    editFormData = {
       displayname: getLocalizedDisplayName(category, $locale),
       description: content?.description || "",
       parent_category_id: content?.parent_category_id || "",
-      tags: category.attributes?.tags || [],
     };
     showEditModal = true;
   }
@@ -117,6 +109,7 @@
   function closeEditModal() {
     showEditModal = false;
     selectedCategory = null;
+    editFormData = undefined;
   }
 
   function openDeleteModal(category) {
@@ -129,25 +122,25 @@
     selectedCategory = null;
   }
 
-  async function handleCreateCategory() {
-    if (!categoryForm.displayname.trim()) {
+  async function handleCreateCategory(formData: CategoryFormData) {
+    if (!formData.displayname.trim()) {
       errorToastMessage("Please enter a category name");
       return;
     }
 
     try {
       const categoryData = {
-        displayname: categoryForm.displayname,
-        description: categoryForm.description,
+        displayname: formData.displayname,
+        description: formData.description,
         body: {
           content: {
-            name: categoryForm.displayname,
-            description: categoryForm.description,
-            parent_category_id: categoryForm.parent_category_id || null,
+            name: formData.displayname,
+            description: formData.description,
+            parent_category_id: formData.parent_category_id || null,
           },
           content_type: "json",
         },
-        tags: categoryForm.tags,
+        tags: [],
         is_active: true,
       };
 
@@ -169,8 +162,8 @@
     }
   }
 
-  async function handleUpdateCategory() {
-    if (!categoryForm.displayname.trim()) {
+  async function handleUpdateCategory(formData: CategoryFormData) {
+    if (!formData.displayname.trim()) {
       errorToastMessage("Please enter a category name");
       return;
     }
@@ -179,15 +172,15 @@
 
     try {
       const categoryData = {
-        displayname: categoryForm.displayname,
-        description: categoryForm.description,
+        displayname: formData.displayname,
+        description: formData.description,
         content: {
-          name: categoryForm.displayname,
-          description: categoryForm.description,
-          parent_category_id: categoryForm.parent_category_id || null,
+          name: formData.displayname,
+          description: formData.description,
+          parent_category_id: formData.parent_category_id || null,
         },
         content_type: "json",
-        tags: categoryForm.tags,
+        tags: selectedCategory.attributes?.tags || [],
         is_active: true,
       };
 
@@ -437,178 +430,29 @@
   </div>
 </div>
 
-<!-- Create Modal -->
-<Modal
+<!-- Modal Components -->
+<CreateCategoryModal
   bind:show={showCreateModal}
-  title={$_("admin_dashboard.create_category") || "Create Category"}
   onClose={closeCreateModal}
->
-  {#snippet body()}
-    <div class="form-group">
-      <label for="category-name"
-        >{$_("common.name") || "Name"}
-        <span class="required">*</span></label
-      >
-      <input
-        id="category-name"
-        type="text"
-        bind:value={categoryForm.displayname}
-        placeholder={$_("admin_dashboard.enter_category_name") ||
-          "Enter category name"}
-        class="form-input"
-      />
-    </div>
-    <div class="form-group">
-      <label for="parent-category"
-        >{$_("common.parent_category") || "Parent Category"} ({$_(
-          "common.optional"
-        ) || "Optional"})</label
-      >
-      <select
-        id="parent-category"
-        bind:value={categoryForm.parent_category_id}
-        class="form-input"
-      >
-        <option value=""
-          >{$_("common.none_top_level") || "None (Top-level category)"}</option
-        >
-        {#each parentCategories as parent}
-          <option value={parent.shortname}
-            >{getLocalizedDisplayName(parent)}</option
-          >
-        {/each}
-      </select>
-      <p class="form-hint">
-        {$_("admin_dashboard.parent_category_hint") ||
-          "Select a parent category to make this a sub-category"}
-      </p>
-    </div>
-    <div class="form-group">
-      <label for="category-description"
-        >{$_("common.description") || "Description"}</label
-      >
-      <textarea
-        id="category-description"
-        bind:value={categoryForm.description}
-        placeholder={$_("admin_dashboard.enter_category_description") ||
-          "Enter category description"}
-        class="form-textarea"
-        rows="4"
-      ></textarea>
-    </div>
-  {/snippet}
+  onSubmit={handleCreateCategory}
+  {parentCategories}
+/>
 
-  {#snippet footer()}
-    <Button variant="secondary" onclick={closeCreateModal}>
-      {$_("common.cancel") || "Cancel"}
-    </Button>
-    <Button variant="primary" onclick={handleCreateCategory}>
-      {$_("common.create") || "Create Category"}
-    </Button>
-  {/snippet}
-</Modal>
-
-<!-- Edit Modal -->
-<Modal
+<EditCategoryModal
   bind:show={showEditModal}
-  title={$_("admin_dashboard.edit_category") || "Edit Category"}
   onClose={closeEditModal}
->
-  {#snippet body()}
-    <div class="form-group">
-      <label for="edit-category-name"
-        >{$_("common.name") || "Name"}
-        <span class="required">*</span></label
-      >
-      <input
-        id="edit-category-name"
-        type="text"
-        bind:value={categoryForm.displayname}
-        placeholder={$_("admin_dashboard.enter_category_name") ||
-          "Enter category name"}
-        class="form-input"
-      />
-    </div>
-    <div class="form-group">
-      <label for="edit-parent-category"
-        >{$_("common.parent_category") || "Parent Category"} ({$_(
-          "common.optional"
-        ) || "Optional"})</label
-      >
-      <select
-        id="edit-parent-category"
-        bind:value={categoryForm.parent_category_id}
-        class="form-input"
-      >
-        <option value=""
-          >{$_("common.none_top_level") || "None (Top-level category)"}</option
-        >
-        {#each parentCategories.filter((p) => p.shortname !== selectedCategory?.shortname) as parent}
-          <option value={parent.shortname}
-            >{getLocalizedDisplayName(parent)}</option
-          >
-        {/each}
-      </select>
-      <p class="form-hint">
-        {$_("admin_dashboard.parent_category_hint") ||
-          "Select a parent category to make this a sub-category"}
-      </p>
-    </div>
-    <div class="form-group">
-      <label for="edit-category-description"
-        >{$_("common.description") || "Description"}</label
-      >
-      <textarea
-        id="edit-category-description"
-        bind:value={categoryForm.description}
-        placeholder={$_("admin_dashboard.enter_category_description") ||
-          "Enter category description"}
-        class="form-textarea"
-        rows="4"
-      ></textarea>
-    </div>
-  {/snippet}
+  onSubmit={handleUpdateCategory}
+  {parentCategories}
+  category={selectedCategory}
+  initialData={editFormData}
+/>
 
-  {#snippet footer()}
-    <Button variant="secondary" onclick={closeEditModal}>
-      {$_("common.cancel") || "Cancel"}
-    </Button>
-    <Button variant="primary" onclick={handleUpdateCategory}>
-      {$_("common.save") || "Save Changes"}
-    </Button>
-  {/snippet}
-</Modal>
-
-<!-- Delete Modal -->
-<Modal
+<DeleteCategoryModal
   bind:show={showDeleteModal}
-  title={$_("common.confirm_delete") || "Delete Category"}
-  size="small"
   onClose={closeDeleteModal}
->
-  {#snippet body()}
-    <div class="delete-warning">
-      <div class="warning-icon">⚠️</div>
-      <p>
-        {$_("admin_dashboard.delete_category_confirm") ||
-          "Are you sure you want to delete this category?"}
-      </p>
-      <p class="category-name-highlight">
-        {getLocalizedDisplayName(selectedCategory, $locale)}
-      </p>
-      <p class="warning-text">This action cannot be undone.</p>
-    </div>
-  {/snippet}
-
-  {#snippet footer()}
-    <Button variant="secondary" onclick={closeDeleteModal}>
-      {$_("common.cancel") || "Cancel"}
-    </Button>
-    <Button variant="danger" onclick={handleDeleteCategory}>
-      {$_("common.delete") || "Delete"}
-    </Button>
-  {/snippet}
-</Modal>
+  onConfirm={handleDeleteCategory}
+  category={selectedCategory}
+/>
 
 <style>
   .categories-page {
@@ -650,102 +494,6 @@
     font-size: 0.95rem;
     color: #6b7280;
     margin: 0;
-  }
-
-  .btn-create {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: #2563eb;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .btn-create:hover {
-    background: #1d4ed8;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-  }
-
-  .btn-create-large {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 1rem 2rem;
-    background: #2563eb;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .btn-create-large:hover {
-    background: #1d4ed8;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
-  }
-
-  .loading-state,
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 50vh;
-    gap: 1rem;
-    background: white;
-    border-radius: 1rem;
-    padding: 3rem;
-  }
-
-  .empty-state {
-    text-align: center;
-  }
-
-  .empty-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-  }
-
-  .empty-state h3 {
-    font-size: 1.5rem;
-    color: #1a1a1a;
-    margin: 0 0 0.5rem 0;
-  }
-
-  .empty-state p {
-    color: #6b7280;
-    margin: 0 0 1.5rem 0;
-  }
-
-  .loading-spinner {
-    width: 3rem;
-    height: 3rem;
-    border: 3px solid #e5e7eb;
-    border-top-color: #2563eb;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  .loading-state p {
-    color: #6b7280;
-    font-size: 0.95rem;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
   }
 
   .filters {
@@ -989,225 +737,6 @@
     line-height: 1.4;
   }
 
-  .btn-icon {
-    padding: 0.5rem;
-    background: #f3f4f6;
-    border: none;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    color: #6b7280;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .btn-icon:hover {
-    background: #e5e7eb;
-    color: #374151;
-  }
-
-  .btn-icon.btn-delete:hover {
-    background: #fee2e2;
-    color: #dc2626;
-  }
-
-  /* Modal Styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(4px);
-  }
-
-  .modal-container {
-    background: white;
-    border-radius: 0.75rem;
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  }
-
-  .modal-container.small {
-    max-width: 420px;
-  }
-
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem;
-    border-bottom: 1px solid #f3f4f6;
-  }
-
-  .modal-header h2 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #1a1a1a;
-  }
-
-  .modal-close {
-    background: none;
-    border: none;
-    font-size: 1.75rem;
-    color: #9ca3af;
-    cursor: pointer;
-    padding: 0;
-    width: 2rem;
-    height: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.375rem;
-    transition: all 0.2s;
-  }
-
-  .modal-close:hover {
-    background: #f3f4f6;
-    color: #6b7280;
-  }
-
-  .modal-body {
-    padding: 1.5rem;
-  }
-
-  .form-group {
-    margin-bottom: 1.25rem;
-  }
-
-  .form-group:last-child {
-    margin-bottom: 0;
-  }
-
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: #374151;
-    font-size: 0.9rem;
-  }
-
-  .required {
-    color: #dc2626;
-  }
-
-  .form-hint {
-    margin-top: 0.5rem;
-    font-size: 0.8rem;
-    color: #6b7280;
-    font-style: italic;
-  }
-
-  .form-input,
-  .form-textarea {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    font-size: 0.95rem;
-    color: #1a1a1a;
-    transition: all 0.2s;
-    box-sizing: border-box;
-    font-family: inherit;
-  }
-
-  .form-input:focus,
-  .form-textarea:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  }
-
-  .form-textarea {
-    resize: vertical;
-    line-height: 1.5;
-  }
-
-  .delete-warning {
-    text-align: center;
-  }
-
-  .warning-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-  }
-
-  .delete-warning p {
-    color: #6b7280;
-    margin: 0 0 0.5rem 0;
-    line-height: 1.5;
-  }
-
-  .category-name-highlight {
-    font-weight: 600;
-    color: #1a1a1a;
-    font-size: 1.125rem;
-    margin: 1rem 0 !important;
-  }
-
-  .warning-text {
-    font-size: 0.875rem;
-    color: #dc2626;
-    margin-top: 1rem !important;
-  }
-
-  .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    padding: 1.5rem;
-    border-top: 1px solid #f3f4f6;
-  }
-
-  .btn-secondary,
-  .btn-primary,
-  .btn-danger {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .btn-secondary {
-    background: #f3f4f6;
-    color: #374151;
-  }
-
-  .btn-secondary:hover {
-    background: #e5e7eb;
-  }
-
-  .btn-primary {
-    background: #2563eb;
-    color: white;
-  }
-
-  .btn-primary:hover {
-    background: #1d4ed8;
-  }
-
-  .btn-danger {
-    background: #dc2626;
-    color: white;
-  }
-
-  .btn-danger:hover {
-    background: #b91c1c;
-  }
-
   @media (max-width: 768px) {
     .categories-page {
       padding: 1rem;
@@ -1217,11 +746,6 @@
       flex-direction: column;
       align-items: stretch;
       margin-bottom: 1.5rem;
-    }
-
-    .btn-create {
-      width: 100%;
-      justify-content: center;
     }
 
     .page-title {
