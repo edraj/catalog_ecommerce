@@ -241,12 +241,13 @@ export async function createEntity(
           subpath: subpath,
           attributes: {
             displayname: {
-              en: data.displayname || "",
+              en: data.displayname_en || "",
+              // ar: data.displayname_ar || "",
             },
             description: {
-              en: data.description || "",
-              ar: "",
-              ku: "",
+              en: data.description_en || "",
+              ar: data.description_ar || "",
+              ku: data.description_ku || "",
             },
             is_active: data.is_active || true,
             workflow_shortname: workflow_shortname,
@@ -324,6 +325,42 @@ export async function createFolder(
             content_type: "json",
           },
           is_active: true,
+        },
+      },
+    ],
+  };
+
+  const response: ActionResponse = await Dmart.request(actionRequest);
+  if (response.status == "success" && response.records.length > 0) {
+    return response.records[0].shortname;
+  }
+  return null;
+}
+
+export async function createSeller(data: any) {
+  let actionRequest: ActionRequest;
+
+  actionRequest = {
+    space_name: "management",
+    request_type: RequestType.create,
+    records: [
+      {
+        resource_type: ResourceType.user,
+        shortname: data.shortname || "auto",
+        subpath: "users",
+        attributes: {
+          email: data.email,
+          displayname: {
+            en: "",
+            ar: "",
+          },
+          password: data.password,
+          description: { en: data.description },
+          roles: [data.role],
+          payload: {
+            content_type: "json",
+            body: "",
+          },
         },
       },
     ],
