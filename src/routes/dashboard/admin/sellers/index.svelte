@@ -181,9 +181,6 @@
 
         await createFolder(spaceName, config.subpath, folderData, false);
       }
-      console.log(
-        `Successfully created folder structure for seller: ${sellerShortname}`
-      );
     } catch (error) {
       console.error("Error creating seller folders:", error);
     }

@@ -226,7 +226,6 @@
   // Helper functions now imported from utility modules
 
   function toggleCategory(categoryId) {
-    console.log("Toggling category:", categoryId);
     if (expandedCategories.has(categoryId)) {
       expandedCategories.delete(categoryId);
       expandedCategories = new Set(expandedCategories);
@@ -234,7 +233,6 @@
       expandedCategories.add(categoryId);
       expandedCategories = new Set(expandedCategories);
     }
-    console.log("Expanded categories:", expandedCategories);
   }
 
   function isExpanded(categoryId) {

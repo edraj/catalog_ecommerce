@@ -229,8 +229,6 @@ export async function createEntity(
   schema_shortname: string,
   content_type: string = "json"
 ) {
-  console.log("=------------:", data);
-
   let actionRequest: ActionRequest;
   if (workflow_shortname || schema_shortname) {
     actionRequest = {

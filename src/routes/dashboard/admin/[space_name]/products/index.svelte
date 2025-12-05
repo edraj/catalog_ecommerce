@@ -262,8 +262,6 @@
     }
 
     try {
-      console.log(productForm.displayname_en);
-
       const productData = {
         displayname_en: productForm.displayname_en,
         displayname_ar: productForm.displayname_ar,

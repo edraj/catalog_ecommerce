@@ -129,7 +129,6 @@
     if (!selectedRequest) return;
 
     try {
-      console.log(selectedRequest);
       isLoading = true;
       const content =
         selectedRequest.attributes?.payload?.body?.content ||
