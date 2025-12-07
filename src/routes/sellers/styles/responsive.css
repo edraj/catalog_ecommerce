@@ -1,0 +1,87 @@
+/* Responsive Design */
+@media (max-width: 768px) {
+  .seller-dashboard-container {
+    padding: 1rem;
+  }
+
+  .dashboard-header {
+    padding: 1.5rem;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .back-button {
+    align-self: flex-start;
+  }
+
+  .create-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dashboard-title {
+    font-size: 1.5rem;
+  }
+
+  .filters-section {
+    padding: 1rem;
+  }
+
+  .filters-group {
+    flex-direction: column;
+  }
+
+  .filter-item {
+    min-width: 100%;
+  }
+
+  .items-grid,
+  .folders-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .item-card-header {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .item-type-badge {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-title {
+    font-size: 1.25rem;
+  }
+
+  .dashboard-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .item-title {
+    font-size: 1.1rem;
+  }
+
+  .folder-title {
+    font-size: 1.2rem;
+  }
+
+  .empty-icon {
+    width: 4rem;
+    height: 4rem;
+  }
+
+  .empty-title {
+    font-size: 1.4rem;
+  }
+}

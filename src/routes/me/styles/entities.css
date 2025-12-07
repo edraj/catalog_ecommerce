@@ -1,0 +1,205 @@
+.empty-state {
+    text-align: center;
+    padding: 8rem 0;
+  }
+
+  .empty-content {
+    max-width: 28rem;
+    margin: 0 auto;
+  }
+
+  .empty-icon {
+    width: 8rem;
+    height: 8rem;
+    margin: 0 auto 2rem;
+    background-color: #eff6ff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .empty-svg {
+    width: 4rem;
+    height: 4rem;
+    color: #2563eb;
+  }
+
+  .empty-title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 1rem;
+  }
+
+  .empty-description {
+    font-size: 1.25rem;
+    color: #6b7280;
+    margin-bottom: 2rem;
+  }
+
+  .create-entity-btn {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .create-entity-btn:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
+  }
+
+  .entities-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .entity-card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+  }
+
+  .entity-card:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .entity-content {
+    padding: 2rem;
+  }
+
+  .entity-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .entity-info {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  .entity-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .entity-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.75rem;
+    line-height: 1.3;
+    transition: color 0.2s ease;
+  }
+
+  .entity-card:hover .entity-title {
+    color: #2563eb;
+  }
+
+  .entity-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .entity-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #f3f4f6;
+    padding: 0.5rem 0.75rem;
+    border-radius: 9999px;
+  }
+
+  .meta-icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .entity-status {
+    background-color: #dbeafe;
+    color: #1e40af;
+    padding: 0.5rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 600;
+  }
+
+  .entity-actions {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .entity-stats {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+  }
+
+  .stat-item.reactions {
+    background-color: #fef2f2;
+    color: #dc2626;
+  }
+
+  .stat-item.comments {
+    background-color: #eff6ff;
+    color: #2563eb;
+  }
+
+  .stat-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .stat-count {
+    font-weight: 700;
+  }
+
+  .entity-arrow {
+    background-color: #2563eb;
+    padding: 0.75rem;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+
+  .entity-card:hover .entity-arrow {
+    transform: scale(1.1);
+  }
+
+  .arrow-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: white;
+    transition: transform 0.2s ease;
+  }
+
+  .arrow-icon.rtl {
+    transform: rotate(180deg);
+  }

@@ -1,0 +1,122 @@
+/* Bundle Search and Filter Styles */
+.bundle-filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.bundle-search {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-icon-small {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.125rem;
+  height: 1.125rem;
+  stroke: #a0aec0;
+  pointer-events: none;
+}
+
+.bundle-search-input {
+  width: 100%;
+  padding: 0.75rem 2.75rem 0.75rem 2.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.bundle-search-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.bundle-search-input.rtl {
+  padding: 0.75rem 2.75rem 0.75rem 2.75rem;
+  text-align: right;
+}
+
+.clear-search {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.clear-search:hover {
+  background: #f7fafc;
+}
+
+.clear-search svg {
+  width: 1rem;
+  height: 1rem;
+  stroke: #a0aec0;
+}
+
+.bundle-category-filter {
+  position: relative;
+  min-width: 180px;
+}
+
+.filter-icon-small {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  stroke: #a0aec0;
+  pointer-events: none;
+}
+
+.bundle-filter-select {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23a0aec0'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem;
+}
+
+.bundle-filter-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.bundle-filter-select.rtl {
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  text-align: right;
+  background-position: left 0.75rem center;
+}
+
+.no-results-message {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #a0aec0;
+  font-size: 0.95rem;
+  font-style: italic;
+}

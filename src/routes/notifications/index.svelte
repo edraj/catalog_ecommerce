@@ -20,6 +20,7 @@
     successToastMessage,
     errorToastMessage,
   } from "@/lib/toasts_messages";
+  import "./styles/index.css";
 
   $goto;
 

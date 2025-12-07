@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "@roxi/routify";
   import { _, locale } from "@/i18n";
-  import "./index.css";
+  import "./styles/index.css";
   import {
     EnvelopeSolid,
     EyeSlashSolid,
@@ -309,7 +309,7 @@
               bind:value={formData.email}
               placeholder={$_("EmailPlaceholder") || "seller@example.com"}
               class="form-input"
-              class:error={errors.email}
+              class:error={errors..email}
               disabled={isSubmitting}
               required
             />

@@ -1,0 +1,25 @@
+.profile-page {
+    min-height: 100vh;
+    background-color: #f8fafc;
+    padding: 2rem 1rem;
+  }
+
+  .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }

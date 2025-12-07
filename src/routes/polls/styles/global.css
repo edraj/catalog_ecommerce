@@ -1,0 +1,36 @@
+.rtl {
+    direction: rtl;
+  }
+
+  .polls-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    padding: 5rem 0;
+  }
+
+  .loading-content {
+    text-align: center;
+  }
+
+  @media (max-width: 768px) {
+    .polls-container {
+      padding: 1rem;
+    }
+  }

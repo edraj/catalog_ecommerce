@@ -1,0 +1,91 @@
+.polls-controls {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .search-container {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+    pointer-events: none;
+  }
+
+  .rtl .search-icon {
+    left: auto;
+    right: 1rem;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    background: white;
+  }
+
+  .rtl .search-input {
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .filter-tabs {
+    display: flex;
+    background: white;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+  }
+
+  .filter-tab {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    background: white;
+    color: #6b7280;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-right: 1px solid #e5e7eb;
+  }
+
+  .filter-tab:last-child {
+    border-right: none;
+  }
+
+  .filter-tab:hover {
+    background: #f9fafb;
+    color: #374151;
+  }
+
+  .filter-tab.active {
+    background: #3b82f6;
+    color: white;
+  }
+
+  @media (max-width: 768px) {
+    .polls-controls {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .search-container {
+      max-width: none;
+    }
+  }

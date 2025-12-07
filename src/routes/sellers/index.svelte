@@ -34,7 +34,7 @@
     type ProductVariant,
     type SpecificationGroup,
   } from "@/lib/utils/productVariationUtils";
-  import "./index.css";
+  import "./styles/index.css";
   import FolderCard from "@/components/sellers/FolderCard.svelte";
   import ItemCard from "@/components/sellers/ItemCard.svelte";
   import DeleteConfirmModal from "@/components/sellers/DeleteConfirmModal.svelte";

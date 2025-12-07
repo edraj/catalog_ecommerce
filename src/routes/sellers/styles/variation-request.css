@@ -1,0 +1,85 @@
+/* Variation Request Styles */
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.secondary-button {
+  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+}
+
+.secondary-button:hover {
+  background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+  transform: translateY(-1px);
+}
+
+.variation-attribute-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.variation-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.remove-attribute-btn {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fed7d7;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.remove-attribute-btn:hover {
+  background: #fc8181;
+}
+
+.remove-attribute-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke: #c53030;
+}
+
+.remove-attribute-btn:hover svg {
+  stroke: white;
+}
+
+.add-attribute-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.875rem;
+  background: #f7fafc;
+  border: 2px dashed #cbd5e0;
+  border-radius: 8px;
+  color: #4a5568;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.add-attribute-btn:hover {
+  background: #edf2f7;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.add-attribute-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke: currentColor;
+}

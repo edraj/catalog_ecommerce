@@ -1,0 +1,45 @@
+.rtl .table-header {
+    text-align: right;
+  }
+
+  .rtl .table-header-actions {
+    text-align: left;
+  }
+
+  .rtl .tag-icon-inline {
+    margin-right: 0;
+    margin-left: 0.25rem;
+  }
+
+  .rtl .engagement-icon {
+    margin-right: 0;
+    margin-left: 0.25rem;
+  }
+
+  .rtl .date-icon {
+    margin-right: 0;
+    margin-left: 0.5rem;
+  }
+
+  .rtl .action-icon {
+    margin-right: 0;
+    margin-left: 0.25rem;
+  }
+
+  @media (max-width: 768px) {
+    .rtl .entry-content {
+      flex-direction: column;
+      space-x-reverse: 0;
+    }
+
+    .rtl .engagement-stats {
+      flex-direction: row;
+      space-x-reverse: 0;
+    }
+
+    .rtl .action-buttons {
+      flex-direction: row;
+      space-x-reverse: 0;
+      justify-content: flex-start;
+    }
+  }
