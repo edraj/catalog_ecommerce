@@ -43,6 +43,8 @@
   import BranchModal from "@/components/sellers/BranchModal.svelte";
   import BundleModal from "@/components/sellers/BundleModal.svelte";
   import VariationRequestModal from "@/components/sellers/VariationRequestModal.svelte";
+  import DiscountModal from "@/components/sellers/DiscountModal.svelte";
+  import WarrantyModal from "@/components/sellers/WarrantyModal.svelte";
   import EditModal from "@/components/sellers/EditModal.svelte";
 
   $goto;
@@ -127,6 +129,31 @@
   let bundleProductSearch = $state("");
   let bundleCategoryFilter = $state("all");
   let productCategories = $state([]);
+
+  let showWarrantyModal = $state(false);
+  let warrantyForm = $state({
+    displaynameEn: "",
+    displaynameAr: "",
+    displaynameKu: "",
+    descriptionEn: "",
+    descriptionAr: "",
+    descriptionKu: "",
+    isGlobal: true,
+    brandShortname: "",
+  });
+
+  let showDiscountModal = $state(false);
+  let discountForm = $state({
+    type: "",
+    typeShortname: "",
+    value: "",
+    validFrom: "",
+    validTo: "",
+  });
+  let discountCategories = $state([]);
+  let isLoadingDiscountCategories = $state(false);
+  let warrantyCategories = $state([]);
+  let isLoadingWarrantyCategories = $state(false);
 
   let showEditModal = $state(false);
   let showDeleteModal = $state(false);
@@ -361,9 +388,9 @@
     } else if (selectedFolder === "sellers_coupons") {
       openCouponModal();
     } else if (selectedFolder === "discounts") {
-      errorToastMessage("Discount creation coming soon");
+      openDiscountModal();
     } else if (selectedFolder === "warranties") {
-      errorToastMessage("Warranty creation coming soon");
+      openWarrantyModal();
     } else {
       $goto("/sellers/create");
     }
@@ -1004,6 +1031,212 @@
     branchForm = { name: "", country: "", state: "", city: "", address: "" };
     bundleForm = { selectedProducts: [], price: "" };
     brands = [];
+  }
+
+  async function openDiscountModal() {
+    showDiscountModal = true;
+    discountForm = {
+      type: "",
+      typeShortname: "",
+      value: "",
+      validFrom: "",
+      validTo: "",
+    };
+    await Promise.all([loadBrands(), loadDiscountCategories()]);
+  }
+
+  function closeDiscountModal() {
+    showDiscountModal = false;
+    discountForm = {
+      type: "",
+      typeShortname: "",
+      value: "",
+      validFrom: "",
+      validTo: "",
+    };
+    brands = [];
+    discountCategories = [];
+  }
+
+  async function loadDiscountCategories() {
+    isLoadingDiscountCategories = true;
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "categories",
+        "managed",
+        100,
+        0,
+        true
+      );
+
+      if (response?.records) {
+        discountCategories = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading categories:", error);
+    } finally {
+      isLoadingDiscountCategories = false;
+    }
+  }
+
+  async function submitDiscount() {
+    if (
+      !discountForm.type ||
+      !discountForm.typeShortname ||
+      !discountForm.value ||
+      !discountForm.validFrom ||
+      !discountForm.validTo
+    ) {
+      errorToastMessage("Please fill in all required fields");
+      return;
+    }
+
+    try {
+      isLoading = true;
+      const discountData = {
+        displayname: {
+          en: null,
+          ar: null,
+          ku: null,
+        },
+        body: {
+          type: discountForm.type,
+          type_shortname: discountForm.typeShortname,
+          value: parseInt(discountForm.value),
+          validity: {
+            from: discountForm.validFrom,
+            to: discountForm.validTo,
+          },
+        },
+        tags: [],
+        is_active: true,
+      };
+
+      await createEntity(
+        discountData,
+        "e_commerce",
+        `/discounts/${$user.shortname}`,
+        ResourceType.content,
+        "",
+        ""
+      );
+
+      successToastMessage("Discount created successfully!");
+      closeDiscountModal();
+      await loadFolderContents("discounts");
+    } catch (error) {
+      console.error("Error creating discount:", error);
+      errorToastMessage("Failed to create discount");
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  async function openWarrantyModal() {
+    showWarrantyModal = true;
+    warrantyForm = {
+      displaynameEn: "",
+      displaynameAr: "",
+      displaynameKu: "",
+      descriptionEn: "",
+      descriptionAr: "",
+      descriptionKu: "",
+      isGlobal: true,
+      brandShortname: "",
+    };
+    await loadBrands();
+  }
+
+  function closeWarrantyModal() {
+    showWarrantyModal = false;
+    warrantyForm = {
+      displaynameEn: "",
+      displaynameAr: "",
+      displaynameKu: "",
+      descriptionEn: "",
+      descriptionAr: "",
+      descriptionKu: "",
+      isGlobal: true,
+      brandShortname: "",
+    };
+    brands = [];
+  }
+
+  async function loadWarrantyCategories() {
+    isLoadingWarrantyCategories = true;
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "categories",
+        "managed",
+        100,
+        0,
+        true
+      );
+
+      if (response?.records) {
+        warrantyCategories = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading categories:", error);
+    } finally {
+      isLoadingWarrantyCategories = false;
+    }
+  }
+
+  async function submitWarranty() {
+    if (!warrantyForm.displaynameEn || !warrantyForm.descriptionEn) {
+      errorToastMessage("Please fill in English name and description");
+      return;
+    }
+
+    if (!warrantyForm.isGlobal && !warrantyForm.brandShortname) {
+      errorToastMessage("Please select a brand for non-global warranty");
+      return;
+    }
+
+    try {
+      isLoading = true;
+      const warrantyData = {
+        displayname: {
+          en: warrantyForm.displaynameEn,
+          ar: warrantyForm.displaynameAr || null,
+          ku: warrantyForm.displaynameKu || null,
+        },
+        description: {
+          en: warrantyForm.descriptionEn,
+          ar: warrantyForm.descriptionAr || null,
+          ku: warrantyForm.descriptionKu || null,
+        },
+        body: {
+          is_global: warrantyForm.isGlobal,
+          brand_shortname: warrantyForm.isGlobal
+            ? ""
+            : warrantyForm.brandShortname,
+        },
+        tags: [],
+        is_active: true,
+      };
+
+      await createEntity(
+        warrantyData,
+        "e_commerce",
+        `/warranties/${$user.shortname}`,
+        ResourceType.content,
+        "",
+        ""
+      );
+
+      successToastMessage("Warranty created successfully!");
+      closeWarrantyModal();
+      await loadFolderContents("warranties");
+    } catch (error) {
+      console.error("Error creating warranty:", error);
+      errorToastMessage("Failed to create warranty");
+    } finally {
+      isLoading = false;
+    }
   }
 
   function openVariationRequestModal() {
@@ -1886,6 +2119,32 @@
   onCategoryChange={handleCategoryChange}
   onAddAttribute={addVariationAttribute}
   onRemoveAttribute={removeVariationAttribute}
+  getLocalizedDisplayName={getItemDisplayName}
+/>
+
+<!-- Warranty Modal -->
+<WarrantyModal
+  bind:show={showWarrantyModal}
+  isRTL={$isRTL}
+  bind:warrantyForm
+  {brands}
+  {isLoadingBrands}
+  onClose={closeWarrantyModal}
+  onSubmit={submitWarranty}
+  getLocalizedDisplayName={getItemDisplayName}
+/>
+
+<!-- Discount Modal -->
+<DiscountModal
+  bind:show={showDiscountModal}
+  isRTL={$isRTL}
+  bind:discountForm
+  {brands}
+  categories={discountCategories}
+  {isLoadingBrands}
+  isLoadingCategories={isLoadingDiscountCategories}
+  onClose={closeDiscountModal}
+  onSubmit={submitDiscount}
   getLocalizedDisplayName={getItemDisplayName}
 />
 
