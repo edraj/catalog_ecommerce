@@ -216,39 +216,42 @@
   font-weight: 600;
 }
 
-.specification-attributes {
+.specification-options {
   margin-bottom: 1rem;
 }
 
-.attributes-title {
+.options-title {
   font-size: 0.875rem;
   font-weight: 600;
   color: #374151;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.75rem 0;
 }
 
-.attributes-list {
+.options-list {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.attribute-item {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  background: #f9fafb;
-  border-radius: 0.25rem;
+.option-item {
+  display: inline-flex;
+  padding: 0.5rem 0.875rem;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
   font-size: 0.875rem;
+  transition: all 0.2s;
 }
 
-.attribute-key {
-  font-weight: 600;
-  color: #4b5563;
+.option-item:hover {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 }
 
-.attribute-value {
-  color: #6b7280;
+.option-value {
+  font-weight: 500;
+  color: #1e40af;
 }
 
 .specification-meta {

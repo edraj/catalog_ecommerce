@@ -7,45 +7,46 @@
 
   export interface SpecificationFormData {
     displayname: string;
-    product: string;
-    attributes: Record<string, any>;
-    customAttributes: Array<{ key: string; value: string }>;
+    displayname_ar?: string;
+    displayname_ku?: string;
+    options: Array<{
+      key: string;
+      name: {
+        en: string;
+        ar?: string;
+        ku?: string;
+      };
+    }>;
   }
 
   interface Props {
     show: boolean;
     onClose: () => void;
     onSubmit: (formData: SpecificationFormData) => void;
-    products: Array<any>;
-    isLoadingProducts: boolean;
   }
 
-  let {
-    show = $bindable(),
-    onClose,
-    onSubmit,
-    products,
-    isLoadingProducts,
-  }: Props = $props();
+  let { show = $bindable(), onClose, onSubmit }: Props = $props();
 
   let formData = $state<SpecificationFormData>({
     displayname: "",
-    product: "",
-    attributes: {},
-    customAttributes: [{ key: "", value: "" }],
+    displayname_ar: "",
+    displayname_ku: "",
+    options: [{ key: generateKey(), name: { en: "", ar: "", ku: "" } }],
   });
 
-  function addCustomAttribute() {
-    formData.customAttributes = [
-      ...formData.customAttributes,
-      { key: "", value: "" },
+  function generateKey(): string {
+    return Math.random().toString(36).substring(2, 15);
+  }
+
+  function addOption() {
+    formData.options = [
+      ...formData.options,
+      { key: generateKey(), name: { en: "", ar: "", ku: "" } },
     ];
   }
 
-  function removeCustomAttribute(index: number) {
-    formData.customAttributes = formData.customAttributes.filter(
-      (_, i) => i !== index
-    );
+  function removeOption(index: number) {
+    formData.options = formData.options.filter((_, i) => i !== index);
   }
 
   function handleSubmit() {
@@ -57,9 +58,9 @@
     if (!show) {
       formData = {
         displayname: "",
-        product: "",
-        attributes: {},
-        customAttributes: [{ key: "", value: "" }],
+        displayname_ar: "",
+        displayname_ku: "",
+        options: [{ key: generateKey(), name: { en: "", ar: "", ku: "" } }],
       };
     }
   });
@@ -73,84 +74,93 @@
 >
   {#snippet body()}
     <div class="form-group">
-      <label for="specification-name">{$_("common.name") || "Name"} *</label>
+      <label for="specification-name-en"
+        >{$_("common.name") || "Name"} (English) *</label
+      >
       <input
-        id="specification-name"
+        id="specification-name-en"
         type="text"
         bind:value={formData.displayname}
         placeholder={$_("admin_dashboard.enter_specification_name") ||
-          "Enter specification name (e.g., 'iPhone 15 - 128GB - Blue')"}
+          "Enter specification name (e.g., 'RAM', 'Operating System')"}
         class="form-input"
       />
     </div>
+
     <div class="form-group">
-      <label for="specification-product"
-        >{$_("common.product") || "Product"} *</label
+      <label for="specification-name-ar"
+        >{$_("common.name") || "Name"} (Arabic)</label
       >
-      {#if isLoadingProducts}
-        <div class="loading-message">Loading products...</div>
-      {:else if products.length === 0}
-        <div class="warning-message">
-          <p>⚠️ No products found. Please create products first.</p>
-          <button
-            class="btn-link"
-            onclick={() => window.open("/dashboard/admin/products", "_blank")}
-            type="button"
-          >
-            Go to Products Management
-          </button>
-        </div>
-      {:else}
-        <select
-          id="specification-product"
-          bind:value={formData.product}
-          class="form-input"
-        >
-          <option value=""
-            >{$_("common.select_product") || "Select a product"}</option
-          >
-          {#each products as product}
-            <option value={product.shortname}
-              >{getLocalizedDisplayName(product, $locale)}</option
-            >
-          {/each}
-        </select>
-      {/if}
+      <input
+        id="specification-name-ar"
+        type="text"
+        bind:value={formData.displayname_ar}
+        placeholder="أدخل اسم المواصفة"
+        class="form-input"
+        dir="rtl"
+      />
     </div>
+
     <div class="form-group">
-      <label>{$_("common.attributes") || "Attributes"} *</label>
+      <label for="specification-name-ku"
+        >{$_("common.name") || "Name"} (Kurdish)</label
+      >
+      <input
+        id="specification-name-ku"
+        type="text"
+        bind:value={formData.displayname_ku}
+        placeholder="ناوی تایبەتمەندی"
+        class="form-input"
+        dir="rtl"
+      />
+    </div>
+
+    <div class="form-group">
+      <label>{$_("common.options") || "Options"} *</label>
       <p class="form-help">
-        {$_("admin_dashboard.attributes_help") ||
-          "Define the variations (e.g., Color: Blue, Storage: 128GB)"}
+        {$_("admin_dashboard.options_help") ||
+          "Define the available options for this specification (e.g., for RAM: 4GB, 8GB, 12GB)"}
       </p>
-      {#each formData.customAttributes as attr, index}
-        <div class="attribute-row">
-          <input
-            type="text"
-            bind:value={attr.key}
-            placeholder={$_("common.attribute_name") ||
-              "Attribute name (e.g., Color)"}
-            class="form-input attribute-key-input"
-          />
-          <input
-            type="text"
-            bind:value={attr.value}
-            placeholder={$_("common.attribute_value") || "Value (e.g., Blue)"}
-            class="form-input attribute-value-input"
-          />
-          <button
-            class="btn-icon-small delete"
-            onclick={() => removeCustomAttribute(index)}
-            disabled={formData.customAttributes.length === 1}
-            title="Remove"
-          >
-            <TrashBinOutline size="xs" />
-          </button>
+      {#each formData.options as option, index}
+        <div class="option-group">
+          <div class="option-header">
+            <span class="option-label">Option {index + 1}</span>
+            <button
+              class="btn-icon-small delete"
+              onclick={() => removeOption(index)}
+              disabled={formData.options.length === 1}
+              title="Remove"
+            >
+              <TrashBinOutline size="xs" />
+            </button>
+          </div>
+          <div class="option-fields">
+            <input
+              type="text"
+              bind:value={option.name.en}
+              placeholder="English (e.g., '4 GB')"
+              class="form-input"
+            />
+            <input
+              type="text"
+              bind:value={option.name.ar}
+              placeholder="Arabic (e.g., '4 جيجابايت')"
+              class="form-input"
+              dir="rtl"
+            />
+            <input
+              type="text"
+              bind:value={option.name.ku}
+              placeholder="Kurdish"
+              class="form-input"
+              dir="rtl"
+            />
+          </div>
         </div>
       {/each}
-      <button class="btn-add-attribute" onclick={addCustomAttribute}>
+      <button class="btn-add-attribute" onclick={addOption}>
         <PlusOutline size="xs" />
-        <span>{$_("common.add_attribute") || "Add Attribute"}</span>
+        <span>{$_("common.add_option") || "Add Option"}</span>
       </button>
     </div>
   {/snippet}
@@ -202,49 +212,31 @@
     margin-bottom: 0.75rem;
   }
 
-  .loading-message {
+  .option-group {
+    margin-bottom: 1rem;
     padding: 1rem;
-    text-align: center;
-    color: #6b7280;
     background: #f9fafb;
+    border: 1px solid #e5e7eb;
     border-radius: 0.5rem;
   }
 
-  .warning-message {
-    padding: 1rem;
-    background: #fef3c7;
-    border: 1px solid #f59e0b;
-    border-radius: 0.5rem;
-    text-align: center;
-  }
-
-  .warning-message p {
-    margin: 0 0 0.75rem 0;
-    color: #92400e;
-  }
-
-  .btn-link {
-    color: #2563eb;
-    text-decoration: underline;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-
-  .attribute-row {
+  .option-header {
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    justify-content: space-between;
     align-items: center;
+    margin-bottom: 0.75rem;
   }
 
-  .attribute-key-input {
-    flex: 1;
+  .option-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
   }
 
-  .attribute-value-input {
-    flex: 1.5;
+  .option-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   .btn-icon-small {
