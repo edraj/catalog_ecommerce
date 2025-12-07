@@ -9,10 +9,22 @@
  * @returns Parent category ID or null
  */
 export function getCategoryParentId(category: any): string | null {
-  const content =
-    typeof category.attributes?.payload?.body === "string"
-      ? JSON.parse(category.attributes.payload.body)
-      : category.attributes?.payload?.body;
+  const body = category.attributes?.payload?.body;
+
+  if (!body) return null;
+
+  // Handle string format (JSON string)
+  if (typeof body === "string") {
+    try {
+      const parsed = JSON.parse(body);
+      return parsed?.content?.parent_category_id || null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Handle object format
+  const content = body.content || body;
   return content?.parent_category_id || null;
 }
 
@@ -192,15 +204,18 @@ export function getEntityContent(entity: any): any {
 
   if (!payload) return {};
 
+  // Handle string format
   if (typeof payload === "string") {
     try {
-      return JSON.parse(payload);
+      const parsed = JSON.parse(payload);
+      return parsed.content || parsed;
     } catch {
       return {};
     }
   }
 
-  return payload;
+  // Handle object format - extract content if it exists
+  return payload.content || payload;
 }
 
 /**
