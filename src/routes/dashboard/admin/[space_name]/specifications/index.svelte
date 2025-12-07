@@ -21,22 +21,10 @@
     TrashBinOutline,
   } from "flowbite-svelte-icons";
   import { getLocalizedDisplayName, formatDate } from "@/lib/utils/adminUtils";
-  import {
-    getSpecificationProduct,
-    getSpecificationAttributes,
-    getProductName,
-    filterSpecificationsByProduct,
-    getEntityContent,
-    buildEntityPayload,
-  } from "@/lib/utils/entityUtils";
-  import {
-    validateSpecificationForm,
-    formatCustomAttributes,
-  } from "@/lib/utils/validationUtils";
+  import { getEntityContent } from "@/lib/utils/entityUtils";
   import {
     Button,
     IconButton,
-    Select,
     LoadingSpinner,
     EmptyState,
   } from "@/components/ui";
@@ -55,43 +43,16 @@
   );
 
   let specifications = $state([]);
-  let products = $state([]);
   let isLoading = $state(true);
-  let isLoadingProducts = $state(false);
   let showCreateModal = $state(false);
   let showEditModal = $state(false);
   let showDeleteModal = $state(false);
   let selectedSpecification = $state(null);
-  let selectedProductFilter = $state("all");
   let editFormData = $state<SpecificationFormData | undefined>(undefined);
 
   onMount(async () => {
-    await loadProducts();
     await loadSpecifications();
   });
-
-  async function loadProducts() {
-    isLoadingProducts = true;
-    try {
-      const response = await getSpaceContents(
-        "e_commerce",
-        "products",
-        "managed",
-        100,
-        0,
-        true
-      );
-
-      if (response?.records) {
-        products = response.records;
-      }
-    } catch (error) {
-      console.error("Error loading products:", error);
-      errorToastMessage("Failed to load products");
-    } finally {
-      isLoadingProducts = false;
-    }
-  }
 
   async function loadSpecifications() {
     isLoading = true;
@@ -127,21 +88,18 @@
   function openEditModal(specification) {
     selectedSpecification = specification;
     const content = getEntityContent(specification);
-    const attributes = getSpecificationAttributes(specification);
-
-    const customAttributes = Object.entries(attributes).map(([key, value]) => ({
-      key,
-      value: value.toString(),
-    }));
+    const displayname = specification.attributes?.displayname || {};
 
     editFormData = {
-      displayname: getLocalizedDisplayName(specification, $locale),
-      product: content?.product_id || "",
-      attributes: attributes,
-      customAttributes:
-        customAttributes.length > 0
-          ? customAttributes
-          : [{ key: "", value: "" }],
+      displayname: displayname.en || "",
+      displayname_ar: displayname.ar || "",
+      displayname_ku: displayname.ku || "",
+      options: content?.options || [
+        {
+          key: Math.random().toString(36).substring(2, 15),
+          name: { en: "", ar: "", ku: "" },
+        },
+      ],
     };
     showEditModal = true;
   }
@@ -167,35 +125,25 @@
       return;
     }
 
-    if (!formData.product) {
-      errorToastMessage("Please select a product");
-      return;
-    }
-
-    const attributes = {};
-    formData.customAttributes.forEach((attr) => {
-      if (attr.key && attr.value) {
-        attributes[attr.key] = attr.value;
-      }
-    });
-
-    if (Object.keys(attributes).length === 0) {
-      errorToastMessage("Please add at least one attribute");
+    const validOptions = formData.options.filter((opt) => opt.name.en.trim());
+    if (validOptions.length === 0) {
+      errorToastMessage("Please add at least one option with an English name");
       return;
     }
 
     try {
       const specificationData = {
-        displayname: formData.displayname,
+        displayname_en: formData.displayname,
+        displayname_ar: formData.displayname_ar || "",
+        displayname_ku: formData.displayname_ku || "",
+
         body: {
           content: {
-            name: formData.displayname,
-            product_id: formData.product,
-            attributes: attributes,
+            options: validOptions,
           },
           content_type: "json",
         },
-        tags: [`product:${formData.product}`],
+        tags: [],
         is_active: true,
       };
 
@@ -223,20 +171,9 @@
       return;
     }
 
-    if (!formData.product) {
-      errorToastMessage("Please select a product");
-      return;
-    }
-
-    const attributes = {};
-    formData.customAttributes.forEach((attr) => {
-      if (attr.key && attr.value) {
-        attributes[attr.key] = attr.value;
-      }
-    });
-
-    if (Object.keys(attributes).length === 0) {
-      errorToastMessage("Please add at least one attribute");
+    const validOptions = formData.options.filter((opt) => opt.name.en.trim());
+    if (validOptions.length === 0) {
+      errorToastMessage("Please add at least one option with an English name");
       return;
     }
 
@@ -244,14 +181,16 @@
 
     try {
       const specificationData = {
-        displayname: formData.displayname,
+        displayname: {
+          en: formData.displayname,
+          ar: formData.displayname_ar || "",
+          ku: formData.displayname_ku || "",
+        },
         content: {
-          name: formData.displayname,
-          product_id: formData.product,
-          attributes: attributes,
+          options: validOptions,
         },
         content_type: "json",
-        tags: [`product:${formData.product}`],
+        tags: selectedSpecification.attributes?.tags || [],
         is_active: true,
       };
 
@@ -294,23 +233,28 @@
     }
   }
 
-  // Helper functions now imported from utility modules
+  // Helper function to get options from specification
+  function getSpecificationOptions(specification: any): any[] {
+    const content = getEntityContent(specification);
+    return content?.options || [];
+  }
 
-  const filteredSpecifications = $derived.by(() => {
-    return filterSpecificationsByProduct(specifications, selectedProductFilter);
-  });
+  function getOptionName(option: any, locale: string): string {
+    if (!option?.name) return "";
+    if (typeof option.name === "string") return option.name;
+    return option.name[locale] || option.name.en || option.name.ar || "";
+  }
 </script>
 
 <div class="specifications-page" class:rtl={$isRTL}>
   <div class="header">
     <div class="header-content">
       <h1 class="page-title">
-        {$_("admin_dashboard.product_specifications") ||
-          "Product Specifications Management"}
+        {$_("admin_dashboard.specifications") || "Specifications Management"}
       </h1>
       <p class="page-description">
         {$_("admin_dashboard.specifications_description") ||
-          "Manage product variations and specifications"}
+          "Manage product specifications and their available options"}
       </p>
     </div>
     <Button variant="primary" onclick={openCreateModal}>
@@ -322,33 +266,14 @@
     </Button>
   </div>
 
-  <div class="filters">
-    <label for="product-filter"
-      >{$_("common.filter_by_product") || "Filter by Product"}:</label
-    >
-    <select
-      id="product-filter"
-      bind:value={selectedProductFilter}
-      class="filter-select"
-    >
-      <option value="all">{$_("common.all_products") || "All Products"}</option>
-      {#each products as product}
-        <option value={product.shortname}
-          >{getLocalizedDisplayName(product, $locale)}</option
-        >
-      {/each}
-    </select>
-  </div>
-
   {#if isLoading}
     <LoadingSpinner message={$_("common.loading") || "Loading..."} />
-  {:else if filteredSpecifications.length === 0}
+  {:else if specifications.length === 0}
     <EmptyState
       icon="📋"
-      title={selectedProductFilter === "all"
-        ? $_("admin_dashboard.no_specifications") || "No specifications found"
-        : $_("admin_dashboard.no_specifications_for_product") ||
-          "No specifications for this product"}
+      title={$_("admin_dashboard.no_specifications") ||
+        "No specifications found"}
+      description="Create your first specification to get started"
     >
       {#snippet action()}
         <Button variant="primary" onclick={openCreateModal}>
@@ -359,7 +284,7 @@
     </EmptyState>
   {:else}
     <div class="specifications-grid">
-      {#each filteredSpecifications as specification}
+      {#each specifications as specification}
         <div class="specification-card">
           <div class="specification-header">
             <h3 class="specification-name">
@@ -381,27 +306,16 @@
               </IconButton>
             </div>
           </div>
-          <div class="specification-product">
-            <span class="product-label"
-              >{$_("common.product") || "Product"}:</span
-            >
-            <span class="product-badge"
-              >{getProductName(
-                getSpecificationProduct(specification),
-                products,
-                $locale
-              )}</span
-            >
-          </div>
-          <div class="specification-attributes">
-            <h4 class="attributes-title">
-              {$_("common.attributes") || "Attributes"}:
+          <div class="specification-options">
+            <h4 class="options-title">
+              {$_("common.options") || "Options"}:
             </h4>
-            <div class="attributes-list">
-              {#each Object.entries(getSpecificationAttributes(specification)) as [key, value]}
-                <div class="attribute-item">
-                  <span class="attribute-key">{key}:</span>
-                  <span class="attribute-value">{value}</span>
+            <div class="options-list">
+              {#each getSpecificationOptions(specification) as option}
+                <div class="option-item">
+                  <span class="option-value"
+                    >{getOptionName(option, $locale)}</span
+                  >
                 </div>
               {/each}
             </div>
@@ -426,16 +340,12 @@
   bind:show={showCreateModal}
   onClose={closeCreateModal}
   onSubmit={handleCreateSpecification}
-  {products}
-  {isLoadingProducts}
 />
 
 <EditSpecificationModal
   bind:show={showEditModal}
   onClose={closeEditModal}
   onSubmit={handleUpdateSpecification}
-  {products}
-  {isLoadingProducts}
   specification={selectedSpecification}
   initialData={editFormData}
 />

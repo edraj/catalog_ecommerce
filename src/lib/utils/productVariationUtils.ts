@@ -17,6 +17,7 @@ export interface ProductVariant {
     type: string;
     value: number;
   };
+  optionKey?: string; // Original option key from variation
 }
 
 export interface SpecificationGroup {
@@ -60,6 +61,7 @@ export function loadProductVariations(
           retailPrice: 0,
           sku: "",
           discount: { type: "amount", value: 0 },
+          optionKey: color.key, // Store original option key
         });
       }
     });
@@ -82,6 +84,7 @@ export function loadProductVariations(
           retailPrice: 0,
           sku: "",
           discount: { type: "amount", value: 0 },
+          optionKey: storage.key, // Store original option key
         });
       }
     });
@@ -197,12 +200,15 @@ export function prepareVariantsForSubmission(
     sku: variant.sku || "",
     retail_price: parseFloat(variant.retailPrice.toString()),
     discount: variant.discount || { type: "amount", value: 0 },
-    options: [
-      {
-        key: variant.key,
-        variation_shortname: variant.type === "color" ? "colors" : "storages",
-      },
-    ],
+    options: variant.optionKey
+      ? [
+          {
+            key: variant.optionKey,
+            variation_shortname:
+              variant.type === "color" ? "colors" : "storages",
+          },
+        ]
+      : [],
   }));
 }
 

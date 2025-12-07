@@ -43,6 +43,8 @@
   import BranchModal from "@/components/sellers/BranchModal.svelte";
   import BundleModal from "@/components/sellers/BundleModal.svelte";
   import VariationRequestModal from "@/components/sellers/VariationRequestModal.svelte";
+  import DiscountModal from "@/components/sellers/DiscountModal.svelte";
+  import WarrantyModal from "@/components/sellers/WarrantyModal.svelte";
   import EditModal from "@/components/sellers/EditModal.svelte";
 
   $goto;
@@ -59,6 +61,8 @@
   let categories = $state([]);
   let products = $state([]);
   let variations = $state({ colors: [], storages: [] });
+  let allVariations = $state([]);
+  let productsMap = $state(new Map());
   let warranties = $state([]);
   let commissionCategories = $state([]);
   let selectedCategory = $state("");
@@ -89,11 +93,21 @@
 
   let showCouponModal = $state(false);
   let couponForm = $state({
-    type: "value",
-    minValue: "",
-    maxValue: "",
-    amount: "",
+    code: "",
+    type: "individual",
+    discountType: "percentage",
+    discountValue: "",
+    minimumSpend: "",
+    maximumAmount: "",
+    maximumUses: "",
+    maximumPerUser: "1",
+    validFrom: "",
+    validTo: "",
+    brandShortnames: [],
   });
+
+  let brands = $state([]);
+  let isLoadingBrands = $state(false);
 
   let showBranchModal = $state(false);
   let branchForm = $state({
@@ -115,6 +129,31 @@
   let bundleProductSearch = $state("");
   let bundleCategoryFilter = $state("all");
   let productCategories = $state([]);
+
+  let showWarrantyModal = $state(false);
+  let warrantyForm = $state({
+    displaynameEn: "",
+    displaynameAr: "",
+    displaynameKu: "",
+    descriptionEn: "",
+    descriptionAr: "",
+    descriptionKu: "",
+    isGlobal: true,
+    brandShortname: "",
+  });
+
+  let showDiscountModal = $state(false);
+  let discountForm = $state({
+    type: "",
+    typeShortname: "",
+    value: "",
+    validFrom: "",
+    validTo: "",
+  });
+  let discountCategories = $state([]);
+  let isLoadingDiscountCategories = $state(false);
+  let warrantyCategories = $state([]);
+  let isLoadingWarrantyCategories = $state(false);
 
   let showEditModal = $state(false);
   let showDeleteModal = $state(false);
@@ -177,6 +216,12 @@
 
       if (response?.records) {
         items = response.records;
+
+        // Load variations and products for available folder
+        if (folderShortname === "available") {
+          await Promise.all([loadAllVariations(), loadAllProducts()]);
+        }
+
         applyFilters();
       }
     } catch (error) {
@@ -213,6 +258,88 @@
     } catch (error) {
       console.error("Error loading categories:", error);
     }
+  }
+
+  async function loadAllVariations() {
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "variations",
+        "managed",
+        100,
+        0,
+        true
+      );
+      if (response?.records) {
+        allVariations = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading variations:", error);
+    }
+  }
+
+  async function loadBrands() {
+    isLoadingBrands = true;
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "brands",
+        "managed",
+        1000,
+        0,
+        true
+      );
+      if (response?.records) {
+        brands = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading brands:", error);
+    } finally {
+      isLoadingBrands = false;
+    }
+  }
+
+  async function loadAllProducts() {
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "products",
+        "managed",
+        100,
+        0,
+        true
+      );
+      if (response?.records) {
+        productsMap = new Map(response.records.map((p) => [p.shortname, p]));
+      }
+    } catch (error) {
+      console.error("Error loading products:", error);
+    }
+  }
+
+  function resolveOptionKey(
+    optionKey: string,
+    variationShortname: string
+  ): string {
+    const variation = allVariations.find(
+      (v) => v.shortname === variationShortname
+    );
+    if (!variation) return optionKey;
+
+    const body = variation.attributes?.payload?.body;
+    const options = body?.options || [];
+    const option = options.find((opt: any) => opt.key === optionKey);
+
+    if (option?.name) {
+      return option.name[$locale] || option.name.en || optionKey;
+    }
+    return optionKey;
+  }
+
+  function getProductName(productShortname: string): string {
+    const product = productsMap.get(productShortname);
+    if (!product) return productShortname;
+    return getLocalizedDisplayName(product, $locale);
   }
 
   function applyFilters() {
@@ -261,9 +388,9 @@
     } else if (selectedFolder === "sellers_coupons") {
       openCouponModal();
     } else if (selectedFolder === "discounts") {
-      errorToastMessage("Discount creation coming soon");
+      openDiscountModal();
     } else if (selectedFolder === "warranties") {
-      errorToastMessage("Warranty creation coming soon");
+      openWarrantyModal();
     } else {
       $goto("/sellers/create");
     }
@@ -475,7 +602,11 @@
       );
 
       const availabilityData = {
-        displayname: getLocalizedDisplayName(selectedProductData, $locale),
+        displayname: {
+          en: getLocalizedDisplayName(selectedProductData, $locale),
+          ar: selectedProductData.attributes?.displayname?.ar || "",
+          ku: selectedProductData.attributes?.displayname?.ku || "",
+        },
         body: {
           sku: "",
           variants: variants,
@@ -491,14 +622,16 @@
         },
         tags: [`product:${selectedProduct}`],
         is_active: true,
+        workflow_shortname: "availability",
+        state: "open",
       };
 
       await createEntity(
         availabilityData,
         "e_commerce",
         `/available/${$user.shortname}`,
-        ResourceType.content,
-        "",
+        ResourceType.ticket,
+        "availability",
         ""
       );
 
@@ -515,28 +648,49 @@
     }
   }
 
-  function openCouponModal() {
+  async function openCouponModal() {
     showCouponModal = true;
     couponForm = {
-      type: "value",
-      minValue: "",
-      maxValue: "",
-      amount: "",
+      code: "",
+      type: "individual",
+      discountType: "percentage",
+      discountValue: "",
+      minimumSpend: "",
+      maximumAmount: "",
+      maximumUses: "",
+      maximumPerUser: "1",
+      validFrom: "",
+      validTo: "",
+      brandShortnames: [],
     };
+    await loadBrands();
   }
 
   function closeCouponModal() {
     showCouponModal = false;
     couponForm = {
-      type: "value",
-      minValue: "",
-      maxValue: "",
-      amount: "",
+      code: "",
+      type: "individual",
+      discountType: "percentage",
+      discountValue: "",
+      minimumSpend: "",
+      maximumAmount: "",
+      maximumUses: "",
+      maximumPerUser: "1",
+      validFrom: "",
+      validTo: "",
+      brandShortnames: [],
     };
+    brands = [];
   }
 
   async function submitCoupon() {
-    if (!couponForm.amount || !couponForm.minValue) {
+    if (
+      !couponForm.code ||
+      !couponForm.discountValue ||
+      !couponForm.validFrom ||
+      !couponForm.validTo
+    ) {
       errorToastMessage("Please fill in all required fields");
       return;
     }
@@ -544,17 +698,35 @@
     try {
       isLoading = true;
       const couponData = {
-        displayname: `Coupon - ${couponForm.type} - ${couponForm.amount}`,
+        displayname: {
+          en: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+          ar: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+          ku: null,
+        },
         body: {
-          content: {
-            type: couponForm.type,
-            min_value: parseFloat(couponForm.minValue),
-            max_value: couponForm.maxValue
-              ? parseFloat(couponForm.maxValue)
-              : null,
-            amount: parseFloat(couponForm.amount),
+          code: couponForm.code.toUpperCase(),
+          type: couponForm.type,
+          discount_type: couponForm.discountType,
+          discount_value: parseFloat(couponForm.discountValue),
+          minimum_spend: couponForm.minimumSpend
+            ? parseFloat(couponForm.minimumSpend)
+            : 0,
+          maximum_amount: couponForm.maximumAmount
+            ? parseFloat(couponForm.maximumAmount)
+            : null,
+          maximum_uses: couponForm.maximumUses
+            ? parseInt(couponForm.maximumUses)
+            : null,
+          maximum_per_user: parseInt(couponForm.maximumPerUser) || 1,
+          usage_count: 0,
+          validity: {
+            from: couponForm.validFrom,
+            to: couponForm.validTo,
           },
-          content_type: "json",
+          applies_to: {
+            brand_shortnames: couponForm.brandShortnames,
+          },
+          seller_shortname: $user.shortname,
         },
         tags: [],
         is_active: true,
@@ -563,7 +735,7 @@
       await createEntity(
         couponData,
         "e_commerce",
-        `/sellers_coupons/${$user.shortname}`,
+        `/coupons/${$user.shortname}`,
         ResourceType.content,
         "",
         ""
@@ -805,7 +977,7 @@
     }
   }
 
-  function openEditModal(item) {
+  async function openEditModal(item) {
     itemToEdit = item;
     const payload = item.attributes?.payload;
     const body = payload?.body;
@@ -814,13 +986,24 @@
     if (item.subpath.includes("/available")) {
       editItem(item);
       return;
-    } else if (item.subpath.includes("/sellers_coupons")) {
+    } else if (
+      item.subpath.includes("/coupons") ||
+      item.subpath.includes("/sellers_coupons")
+    ) {
       couponForm = {
-        type: content.type || "value",
-        minValue: content.min_value?.toString() || "",
-        maxValue: content.max_value?.toString() || "",
-        amount: content.amount?.toString() || "",
+        code: content.code || "",
+        type: content.type || "individual",
+        discountType: content.discount_type || "percentage",
+        discountValue: content.discount_value?.toString() || "",
+        minimumSpend: content.minimum_spend?.toString() || "",
+        maximumAmount: content.maximum_amount?.toString() || "",
+        maximumUses: content.maximum_uses?.toString() || "",
+        maximumPerUser: content.maximum_per_user?.toString() || "1",
+        validFrom: content.validity?.from || "",
+        validTo: content.validity?.to || "",
+        brandShortnames: content.applies_to?.brand_shortnames || [],
       };
+      await loadBrands();
       showEditModal = true;
     } else if (item.subpath.includes("/discounts")) {
       showEditModal = true;
@@ -832,9 +1015,228 @@
   function closeEditModal() {
     showEditModal = false;
     itemToEdit = null;
-    couponForm = { type: "value", minValue: "", maxValue: "", amount: "" };
+    couponForm = {
+      code: "",
+      type: "individual",
+      discountType: "percentage",
+      discountValue: "",
+      minimumSpend: "",
+      maximumAmount: "",
+      maximumUses: "",
+      maximumPerUser: "1",
+      validFrom: "",
+      validTo: "",
+      brandShortnames: [],
+    };
     branchForm = { name: "", country: "", state: "", city: "", address: "" };
     bundleForm = { selectedProducts: [], price: "" };
+    brands = [];
+  }
+
+  async function openDiscountModal() {
+    showDiscountModal = true;
+    discountForm = {
+      type: "",
+      typeShortname: "",
+      value: "",
+      validFrom: "",
+      validTo: "",
+    };
+    await Promise.all([loadBrands(), loadDiscountCategories()]);
+  }
+
+  function closeDiscountModal() {
+    showDiscountModal = false;
+    discountForm = {
+      type: "",
+      typeShortname: "",
+      value: "",
+      validFrom: "",
+      validTo: "",
+    };
+    brands = [];
+    discountCategories = [];
+  }
+
+  async function loadDiscountCategories() {
+    isLoadingDiscountCategories = true;
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "categories",
+        "managed",
+        100,
+        0,
+        true
+      );
+
+      if (response?.records) {
+        discountCategories = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading categories:", error);
+    } finally {
+      isLoadingDiscountCategories = false;
+    }
+  }
+
+  async function submitDiscount() {
+    if (
+      !discountForm.type ||
+      !discountForm.typeShortname ||
+      !discountForm.value ||
+      !discountForm.validFrom ||
+      !discountForm.validTo
+    ) {
+      errorToastMessage("Please fill in all required fields");
+      return;
+    }
+
+    try {
+      isLoading = true;
+      const discountData = {
+        displayname: {
+          en: null,
+          ar: null,
+          ku: null,
+        },
+        body: {
+          type: discountForm.type,
+          type_shortname: discountForm.typeShortname,
+          value: parseInt(discountForm.value),
+          validity: {
+            from: discountForm.validFrom,
+            to: discountForm.validTo,
+          },
+        },
+        tags: [],
+        is_active: true,
+      };
+
+      await createEntity(
+        discountData,
+        "e_commerce",
+        `/discounts/${$user.shortname}`,
+        ResourceType.content,
+        "",
+        ""
+      );
+
+      successToastMessage("Discount created successfully!");
+      closeDiscountModal();
+      await loadFolderContents("discounts");
+    } catch (error) {
+      console.error("Error creating discount:", error);
+      errorToastMessage("Failed to create discount");
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  async function openWarrantyModal() {
+    showWarrantyModal = true;
+    warrantyForm = {
+      displaynameEn: "",
+      displaynameAr: "",
+      displaynameKu: "",
+      descriptionEn: "",
+      descriptionAr: "",
+      descriptionKu: "",
+      isGlobal: true,
+      brandShortname: "",
+    };
+    await loadBrands();
+  }
+
+  function closeWarrantyModal() {
+    showWarrantyModal = false;
+    warrantyForm = {
+      displaynameEn: "",
+      displaynameAr: "",
+      displaynameKu: "",
+      descriptionEn: "",
+      descriptionAr: "",
+      descriptionKu: "",
+      isGlobal: true,
+      brandShortname: "",
+    };
+    brands = [];
+  }
+
+  async function loadWarrantyCategories() {
+    isLoadingWarrantyCategories = true;
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "categories",
+        "managed",
+        100,
+        0,
+        true
+      );
+
+      if (response?.records) {
+        warrantyCategories = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading categories:", error);
+    } finally {
+      isLoadingWarrantyCategories = false;
+    }
+  }
+
+  async function submitWarranty() {
+    if (!warrantyForm.displaynameEn || !warrantyForm.descriptionEn) {
+      errorToastMessage("Please fill in English name and description");
+      return;
+    }
+
+    if (!warrantyForm.isGlobal && !warrantyForm.brandShortname) {
+      errorToastMessage("Please select a brand for non-global warranty");
+      return;
+    }
+
+    try {
+      isLoading = true;
+      const warrantyData = {
+        displayname: {
+          en: warrantyForm.displaynameEn,
+          ar: warrantyForm.displaynameAr || null,
+          ku: warrantyForm.displaynameKu || null,
+        },
+        description: {
+          en: warrantyForm.descriptionEn,
+          ar: warrantyForm.descriptionAr || null,
+          ku: warrantyForm.descriptionKu || null,
+        },
+        body: {
+          is_global: warrantyForm.isGlobal,
+          brand_shortname: warrantyForm.isGlobal
+            ? ""
+            : warrantyForm.brandShortname,
+        },
+        tags: [],
+        is_active: true,
+      };
+
+      await createEntity(
+        warrantyData,
+        "e_commerce",
+        `/warranties/${$user.shortname}`,
+        ResourceType.content,
+        "",
+        ""
+      );
+
+      successToastMessage("Warranty created successfully!");
+      closeWarrantyModal();
+      await loadFolderContents("warranties");
+    } catch (error) {
+      console.error("Error creating warranty:", error);
+      errorToastMessage("Failed to create warranty");
+    } finally {
+      isLoading = false;
+    }
   }
 
   function openVariationRequestModal() {
@@ -962,23 +1364,49 @@
       let updateData;
       let subpath = itemToEdit.subpath;
 
-      if (subpath.includes("/sellers_coupons")) {
-        if (!couponForm.amount || !couponForm.minValue) {
+      if (
+        subpath.includes("/coupons") ||
+        subpath.includes("/sellers_coupons")
+      ) {
+        if (
+          !couponForm.code ||
+          !couponForm.discountValue ||
+          !couponForm.validFrom ||
+          !couponForm.validTo
+        ) {
           errorToastMessage("Please fill in all required fields");
           return;
         }
         updateData = {
-          displayname: `Coupon - ${couponForm.type} - ${couponForm.amount}`,
+          displayname: {
+            en: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+            ar: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+            ku: null,
+          },
           body: {
-            content: {
-              type: couponForm.type,
-              min_value: parseFloat(couponForm.minValue),
-              max_value: couponForm.maxValue
-                ? parseFloat(couponForm.maxValue)
-                : null,
-              amount: parseFloat(couponForm.amount),
+            code: couponForm.code.toUpperCase(),
+            type: couponForm.type,
+            discount_type: couponForm.discountType,
+            discount_value: parseFloat(couponForm.discountValue),
+            minimum_spend: couponForm.minimumSpend
+              ? parseFloat(couponForm.minimumSpend)
+              : 0,
+            maximum_amount: couponForm.maximumAmount
+              ? parseFloat(couponForm.maximumAmount)
+              : null,
+            maximum_uses: couponForm.maximumUses
+              ? parseInt(couponForm.maximumUses)
+              : null,
+            maximum_per_user: parseInt(couponForm.maximumPerUser) || 1,
+            usage_count: itemToEdit.attributes?.payload?.body?.usage_count || 0,
+            validity: {
+              from: couponForm.validFrom,
+              to: couponForm.validTo,
             },
-            content_type: "json",
+            applies_to: {
+              brand_shortnames: couponForm.brandShortnames,
+            },
+            seller_shortname: $user.shortname,
           },
           tags: itemToEdit.attributes.tags || [],
           is_active: true,
@@ -1478,9 +1906,41 @@
               <div class="item-card-body">
                 <div class="item-title-row">
                   <h3 class="item-title" class:rtl={$isRTL}>
-                    {getLocalizedDisplayName(item, $locale)}
+                    {#if item.resource_type === "ticket" && item.attributes?.payload?.body?.product_shortname}
+                      {getProductName(
+                        item.attributes.payload.body.product_shortname
+                      )}
+                    {:else}
+                      {getLocalizedDisplayName(item, $locale)}
+                    {/if}
                   </h3>
-                  {#if getItemCategory(item)}
+                  {#if item.resource_type === "ticket" && item.attributes?.state}
+                    {@const stateColors = {
+                      open: {
+                        bg: "#fef3c7",
+                        text: "#92400e",
+                        border: "#fde68a",
+                      },
+                      approved: {
+                        bg: "#d1fae5",
+                        text: "#065f46",
+                        border: "#a7f3d0",
+                      },
+                      rejected: {
+                        bg: "#fee2e2",
+                        text: "#991b1b",
+                        border: "#fecaca",
+                      },
+                    }}
+                    {@const stateColor =
+                      stateColors[item.attributes.state] || stateColors.open}
+                    <span
+                      class="item-category-badge"
+                      style="background: {stateColor.bg}; color: {stateColor.text}; border-color: {stateColor.border};"
+                    >
+                      <span class="category-text">{item.attributes.state}</span>
+                    </span>
+                  {:else if getItemCategory(item)}
                     {@const category = getItemCategory(item)}
                     <span
                       class="item-category-badge"
@@ -1492,7 +1952,59 @@
                   {/if}
                 </div>
                 <p class="item-shortname">{item.shortname}</p>
-                {#if getContentPreview(item)}
+
+                {#if item.resource_type === "ticket" && item.attributes?.payload?.body}
+                  {@const body = item.attributes.payload.body}
+                  {@const variants = body.variants || []}
+                  <div class="availability-details">
+                    <p class="availability-meta">
+                      <strong>{variants.length}</strong>
+                      variant{variants.length !== 1 ? "s" : ""}
+                    </p>
+                    {#if variants.length > 0}
+                      <div class="variant-preview">
+                        {#each variants.slice(0, 3) as variant}
+                          {@const optionNames =
+                            variant.options
+                              ?.map((opt: any) =>
+                                resolveOptionKey(
+                                  opt.key,
+                                  opt.variation_shortname
+                                )
+                              )
+                              .join(" + ") || ""}
+                          <div class="variant-item">
+                            <span class="variant-name">{optionNames}</span>
+                            <span class="variant-price"
+                              >${variant.retail_price}</span
+                            >
+                            <span class="variant-stock">Qty: {variant.qty}</span
+                            >
+                          </div>
+                        {/each}
+                        {#if variants.length > 3}
+                          <p class="more-variants">
+                            +{variants.length - 3} more
+                          </p>
+                        {/if}
+                      </div>
+                    {/if}
+                    {#if body.has_fast_delivery || body.has_free_shipping}
+                      <div class="shipping-badges">
+                        {#if body.has_fast_delivery}
+                          <span class="shipping-badge fast"
+                            >⚡ Fast Delivery</span
+                          >
+                        {/if}
+                        {#if body.has_free_shipping}
+                          <span class="shipping-badge free"
+                            >🚚 Free Shipping</span
+                          >
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+                {:else if getContentPreview(item)}
                   <p class="item-preview" class:rtl={$isRTL}>
                     {getContentPreview(item)}
                   </p>
@@ -1558,8 +2070,11 @@
   bind:show={showCouponModal}
   isRTL={$isRTL}
   bind:couponForm
+  {brands}
+  {isLoadingBrands}
   onClose={closeCouponModal}
   onSubmit={submitCoupon}
+  getLocalizedDisplayName={getItemDisplayName}
 />
 
 <!-- Branch Modal -->
@@ -1607,6 +2122,32 @@
   getLocalizedDisplayName={getItemDisplayName}
 />
 
+<!-- Warranty Modal -->
+<WarrantyModal
+  bind:show={showWarrantyModal}
+  isRTL={$isRTL}
+  bind:warrantyForm
+  {brands}
+  {isLoadingBrands}
+  onClose={closeWarrantyModal}
+  onSubmit={submitWarranty}
+  getLocalizedDisplayName={getItemDisplayName}
+/>
+
+<!-- Discount Modal -->
+<DiscountModal
+  bind:show={showDiscountModal}
+  isRTL={$isRTL}
+  bind:discountForm
+  {brands}
+  categories={discountCategories}
+  {isLoadingBrands}
+  isLoadingCategories={isLoadingDiscountCategories}
+  onClose={closeDiscountModal}
+  onSubmit={submitDiscount}
+  getLocalizedDisplayName={getItemDisplayName}
+/>
+
 <!-- Edit Modal -->
 <EditModal
   bind:show={showEditModal}
@@ -1617,6 +2158,8 @@
   bind:bundleForm
   {isLoadingSellerProducts}
   {sellerProducts}
+  {brands}
+  {isLoadingBrands}
   onClose={closeEditModal}
   onSubmit={submitEdit}
   onToggleProduct={toggleProductSelection}

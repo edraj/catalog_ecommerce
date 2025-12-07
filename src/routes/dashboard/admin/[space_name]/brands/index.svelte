@@ -1,0 +1,804 @@
+<script lang="ts">
+  import { onMount } from "svelte";
+  import "./index.css";
+  import { goto } from "@roxi/routify";
+  import {
+    getSpaceContents,
+    createEntity,
+    updateEntity,
+    deleteEntity,
+  } from "@/lib/dmart_services";
+  import { ResourceType } from "@edraj/tsdmart";
+  import {
+    errorToastMessage,
+    successToastMessage,
+  } from "@/lib/toasts_messages";
+  import { _, locale } from "@/i18n";
+  import { derived } from "svelte/store";
+  import {
+    PlusOutline,
+    EditOutline,
+    TrashBinOutline,
+    SearchOutline,
+  } from "flowbite-svelte-icons";
+  import { getLocalizedDisplayName, formatDate } from "@/lib/utils/adminUtils";
+
+  $goto;
+
+  const isRTL = derived(
+    locale,
+    ($locale) => $locale === "ar" || $locale === "ku"
+  );
+
+  let brands = $state([]);
+  let filteredBrands = $state([]);
+  let isLoading = $state(true);
+  let showCreateModal = $state(false);
+  let showEditModal = $state(false);
+  let showDeleteModal = $state(false);
+  let selectedBrand = $state(null);
+  let searchTerm = $state("");
+  let topBrandsFilter = $state("all");
+
+  let createForm = $state({
+    displayname_en: "",
+    displayname_ar: "",
+    displayname_ku: "",
+    description_en: "",
+    description_ar: "",
+    description_ku: "",
+    isTop: false,
+  });
+
+  let editForm = $state({
+    displayname_en: "",
+    displayname_ar: "",
+    displayname_ku: "",
+    description_en: "",
+    description_ar: "",
+    description_ku: "",
+    isTop: false,
+  });
+
+  onMount(async () => {
+    await loadBrands();
+  });
+
+  async function loadBrands() {
+    isLoading = true;
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "brands",
+        "managed",
+        1000,
+        0,
+        true
+      );
+
+      if (response?.records) {
+        brands = response.records;
+        applyFilters();
+      }
+    } catch (error) {
+      console.error("Error loading brands:", error);
+      errorToastMessage("Failed to load brands");
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function applyFilters() {
+    let result = [...brands];
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      result = result.filter((brand) => {
+        const displayname = getLocalizedDisplayName(
+          brand,
+          $locale
+        ).toLowerCase();
+        const shortname = brand.shortname?.toLowerCase() || "";
+        const description =
+          brand.attributes?.description?.[$locale]?.toLowerCase() || "";
+        return (
+          displayname.includes(searchLower) ||
+          shortname.includes(searchLower) ||
+          description.includes(searchLower)
+        );
+      });
+    }
+
+    // Filter by top brands
+    if (topBrandsFilter === "top") {
+      result = result.filter(
+        (brand) => brand.attributes?.payload?.body?.top === true
+      );
+    } else if (topBrandsFilter === "regular") {
+      result = result.filter(
+        (brand) => brand.attributes?.payload?.body?.top !== true
+      );
+    }
+
+    filteredBrands = result;
+  }
+
+  function openCreateModal() {
+    createForm = {
+      displayname_en: "",
+      displayname_ar: "",
+      displayname_ku: "",
+      description_en: "",
+      description_ar: "",
+      description_ku: "",
+      isTop: false,
+    };
+    showCreateModal = true;
+  }
+
+  function closeCreateModal() {
+    showCreateModal = false;
+  }
+
+  function openEditModal(brand) {
+    selectedBrand = brand;
+    editForm = {
+      displayname_en: brand.attributes?.displayname?.en || "",
+      displayname_ar: brand.attributes?.displayname?.ar || "",
+      displayname_ku: brand.attributes?.displayname?.ku || "",
+      description_en: brand.attributes?.description?.en || "",
+      description_ar: brand.attributes?.description?.ar || "",
+      description_ku: brand.attributes?.description?.ku || "",
+      isTop: brand.attributes?.payload?.body?.top === true,
+    };
+    showEditModal = true;
+  }
+
+  function closeEditModal() {
+    showEditModal = false;
+    selectedBrand = null;
+  }
+
+  function openDeleteModal(brand) {
+    selectedBrand = brand;
+    showDeleteModal = true;
+  }
+
+  function closeDeleteModal() {
+    showDeleteModal = false;
+    selectedBrand = null;
+  }
+
+  async function handleCreateBrand() {
+    if (!createForm.displayname_en.trim()) {
+      errorToastMessage("Please enter a brand name in English");
+      return;
+    }
+
+    try {
+      const brandData = {
+        displayname_en: createForm.displayname_en,
+        displayname_ar: createForm.displayname_ar || createForm.displayname_en,
+        displayname_ku: createForm.displayname_ku || null,
+
+        description_en: createForm.description_en,
+        description_ar: createForm.description_ar || createForm.description_en,
+        description_ku: createForm.description_ku || null,
+        body: {
+          top: createForm.isTop,
+        },
+        tags: [],
+        is_active: true,
+      };
+
+      await createEntity(
+        brandData,
+        "e_commerce",
+        "/brands",
+        ResourceType.content,
+        "",
+        ""
+      );
+
+      successToastMessage("Brand created successfully!");
+      closeCreateModal();
+      await loadBrands();
+    } catch (error) {
+      console.error("Error creating brand:", error);
+      errorToastMessage("Failed to create brand");
+    }
+  }
+
+  async function handleUpdateBrand() {
+    if (!editForm.displayname_en.trim()) {
+      errorToastMessage("Please enter a brand name in English");
+      return;
+    }
+
+    if (!selectedBrand) return;
+
+    try {
+      const brandData = {
+        displayname: {
+          en: editForm.displayname_en,
+          ar: editForm.displayname_ar || editForm.displayname_en,
+          ku: editForm.displayname_ku || null,
+        },
+        description: {
+          en: editForm.description_en,
+          ar: editForm.description_ar || editForm.description_en,
+          ku: editForm.description_ku || null,
+        },
+        body: {
+          top: editForm.isTop,
+        },
+        tags: selectedBrand.attributes?.tags || [],
+        is_active: true,
+      };
+
+      await updateEntity(
+        selectedBrand.shortname,
+        "e_commerce",
+        selectedBrand.subpath,
+        selectedBrand.resource_type,
+        brandData,
+        "",
+        ""
+      );
+
+      successToastMessage("Brand updated successfully!");
+      closeEditModal();
+      await loadBrands();
+    } catch (error) {
+      console.error("Error updating brand:", error);
+      errorToastMessage("Failed to update brand");
+    }
+  }
+
+  async function handleDeleteBrand() {
+    if (!selectedBrand) return;
+
+    try {
+      await deleteEntity(
+        selectedBrand.shortname,
+        "e_commerce",
+        selectedBrand.subpath,
+        selectedBrand.resource_type
+      );
+
+      successToastMessage("Brand deleted successfully!");
+      closeDeleteModal();
+      await loadBrands();
+    } catch (error) {
+      console.error("Error deleting brand:", error);
+      errorToastMessage("Failed to delete brand");
+    }
+  }
+
+  $effect(() => {
+    applyFilters();
+  });
+</script>
+
+<div class="admin-container">
+  <div class="admin-content">
+    <!-- Header -->
+    <div class="admin-header">
+      <div class="header-left">
+        <div class="header-icon-wrapper">
+          <svg class="header-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 2.18l8 4V17c0 4.52-3.15 8.75-8 9.83-4.85-1.08-8-5.31-8-9.83V8.18l8-4z"
+            />
+          </svg>
+        </div>
+        <div>
+          <h1 class="admin-title" class:rtl={$isRTL}>
+            {$_("brands.title") || "Brands Management"}
+          </h1>
+          <p class="admin-subtitle" class:rtl={$isRTL}>
+            {$_("brands.subtitle") || "Manage product brands and manufacturers"}
+          </p>
+        </div>
+      </div>
+      <button class="create-button" onclick={openCreateModal}>
+        <PlusOutline class="button-icon" />
+        <span>{$_("brands.create_brand") || "Create Brand"}</span>
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section">
+      <div class="search-bar">
+        <SearchOutline class="search-icon" />
+        <input
+          type="text"
+          bind:value={searchTerm}
+          placeholder={$_("brands.search_placeholder") || "Search brands..."}
+          class="search-input"
+          class:rtl={$isRTL}
+        />
+      </div>
+
+      <div class="filters-group">
+        <select
+          bind:value={topBrandsFilter}
+          class="filter-select"
+          class:rtl={$isRTL}
+        >
+          <option value="all">{$_("brands.all_brands") || "All Brands"}</option>
+          <option value="top">{$_("brands.top_brands") || "Top Brands"}</option>
+          <option value="regular"
+            >{$_("brands.regular_brands") || "Regular Brands"}</option
+          >
+        </select>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    {#if !isLoading}
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-label">{$_("brands.total") || "Total"}:</span>
+          <span class="stat-value">{brands.length}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">{$_("brands.showing") || "Showing"}:</span>
+          <span class="stat-value">{filteredBrands.length}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label"
+            >{$_("brands.top_brands") || "Top Brands"}:</span
+          >
+          <span class="stat-value"
+            >{brands.filter((b) => b.attributes?.payload?.body?.top === true)
+              .length}</span
+          >
+        </div>
+      </div>
+    {/if}
+
+    <!-- Content -->
+    {#if isLoading}
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">
+          {$_("brands.loading") || "Loading brands..."}
+        </p>
+      </div>
+    {:else if filteredBrands.length === 0}
+      <div class="empty-state">
+        <svg
+          class="empty-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.5"
+            d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"
+          />
+        </svg>
+        <h3 class="empty-title">
+          {$_("brands.no_brands") || "No brands found"}
+        </h3>
+        <p class="empty-description">
+          {$_("brands.no_brands_description") ||
+            "Create your first brand to get started"}
+        </p>
+        <button class="create-button-large" onclick={openCreateModal}>
+          <PlusOutline class="button-icon" />
+          <span
+            >{$_("brands.create_first_brand") ||
+              "Create Your First Brand"}</span
+          >
+        </button>
+      </div>
+    {:else}
+      <div class="list-container">
+        <div class="list-header">
+          <div class="list-header-cell name-cell">
+            {$_("brands.name") || "Brand Name"}
+          </div>
+          <div class="list-header-cell description-cell">
+            {$_("brands.description") || "Description"}
+          </div>
+          <div class="list-header-cell status-cell">
+            {$_("brands.status") || "Status"}
+          </div>
+          <div class="list-header-cell date-cell">
+            {$_("brands.created") || "Created"}
+          </div>
+          <div class="list-header-cell actions-cell">
+            {$_("brands.actions") || "Actions"}
+          </div>
+        </div>
+
+        <div class="list-body">
+          {#each filteredBrands as brand (brand.shortname)}
+            <div class="list-row">
+              <div class="list-cell name-cell">
+                <div class="brand-info">
+                  <div class="brand-icon">
+                    {getLocalizedDisplayName(brand, $locale)
+                      .charAt(0)
+                      .toUpperCase()}
+                  </div>
+                  <div>
+                    <div class="brand-name" class:rtl={$isRTL}>
+                      {getLocalizedDisplayName(brand, $locale)}
+                    </div>
+                    <div class="brand-shortname">{brand.shortname}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="list-cell description-cell">
+                <p class="brand-description" class:rtl={$isRTL}>
+                  {brand.attributes?.description?.[$locale] ||
+                    brand.attributes?.description?.en ||
+                    "-"}
+                </p>
+              </div>
+
+              <div class="list-cell status-cell">
+                {#if brand.attributes?.payload?.body?.top === true}
+                  <span class="status-badge top">
+                    <svg
+                      class="badge-icon"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    {$_("brands.top") || "Top Brand"}
+                  </span>
+                {:else}
+                  <span class="status-badge regular">
+                    {$_("brands.regular") || "Regular"}
+                  </span>
+                {/if}
+              </div>
+
+              <div class="list-cell date-cell">
+                <span class="date-text">
+                  {formatDate(brand.attributes.created_at)}
+                </span>
+              </div>
+
+              <div class="list-cell actions-cell">
+                <div class="actions-group">
+                  <button
+                    class="action-button edit"
+                    onclick={() => openEditModal(brand)}
+                    title={$_("brands.edit") || "Edit"}
+                  >
+                    <EditOutline />
+                  </button>
+                  <button
+                    class="action-button delete"
+                    onclick={() => openDeleteModal(brand)}
+                    title={$_("brands.delete") || "Delete"}
+                  >
+                    <TrashBinOutline />
+                  </button>
+                </div>
+              </div>
+            </div>
+          {/each}
+        </div>
+      </div>
+    {/if}
+  </div>
+</div>
+
+<!-- Create Modal -->
+{#if showCreateModal}
+  <div class="modal-overlay" onclick={closeCreateModal}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h2 class="modal-title" class:rtl={$isRTL}>
+          {$_("brands.create_brand") || "Create Brand"}
+        </h2>
+        <button class="modal-close" onclick={closeCreateModal}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-section">
+          <h3 class="section-title">
+            {$_("brands.basic_info") || "Basic Information"}
+          </h3>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.name_en") || "Brand Name (English)"}
+              <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              bind:value={createForm.displayname_en}
+              placeholder="e.g., Apple, Samsung"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.name_ar") || "Brand Name (Arabic)"}
+            </label>
+            <input
+              type="text"
+              bind:value={createForm.displayname_ar}
+              placeholder="مثال: آبل، سامسونج"
+              class="form-input rtl"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.name_ku") || "Brand Name (Kurdish)"}
+            </label>
+            <input
+              type="text"
+              bind:value={createForm.displayname_ku}
+              class="form-input rtl"
+            />
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="section-title">
+            {$_("brands.descriptions") || "Descriptions"}
+          </h3>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.description_en") || "Description (English)"}
+            </label>
+            <textarea
+              bind:value={createForm.description_en}
+              rows="3"
+              placeholder="Brief description of the brand..."
+              class="form-textarea"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.description_ar") || "Description (Arabic)"}
+            </label>
+            <textarea
+              bind:value={createForm.description_ar}
+              rows="3"
+              placeholder="وصف مختصر للعلامة التجارية..."
+              class="form-textarea rtl"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.description_ku") || "Description (Kurdish)"}
+            </label>
+            <textarea
+              bind:value={createForm.description_ku}
+              rows="3"
+              class="form-textarea rtl"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              bind:checked={createForm.isTop}
+              class="form-checkbox"
+            />
+            <span class:rtl={$isRTL}>
+              {$_("brands.mark_as_top") || "Mark as Top Brand"}
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="button-secondary" onclick={closeCreateModal}>
+          {$_("brands.cancel") || "Cancel"}
+        </button>
+        <button class="button-primary" onclick={handleCreateBrand}>
+          {$_("brands.create") || "Create Brand"}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Edit Modal -->
+{#if showEditModal && selectedBrand}
+  <div class="modal-overlay" onclick={closeEditModal}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h2 class="modal-title" class:rtl={$isRTL}>
+          {$_("brands.edit_brand") || "Edit Brand"}
+        </h2>
+        <button class="modal-close" onclick={closeEditModal}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-section">
+          <h3 class="section-title">
+            {$_("brands.basic_info") || "Basic Information"}
+          </h3>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.name_en") || "Brand Name (English)"}
+              <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              bind:value={editForm.displayname_en}
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.name_ar") || "Brand Name (Arabic)"}
+            </label>
+            <input
+              type="text"
+              bind:value={editForm.displayname_ar}
+              class="form-input rtl"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.name_ku") || "Brand Name (Kurdish)"}
+            </label>
+            <input
+              type="text"
+              bind:value={editForm.displayname_ku}
+              class="form-input rtl"
+            />
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="section-title">
+            {$_("brands.descriptions") || "Descriptions"}
+          </h3>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.description_en") || "Description (English)"}
+            </label>
+            <textarea
+              bind:value={editForm.description_en}
+              rows="3"
+              class="form-textarea"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.description_ar") || "Description (Arabic)"}
+            </label>
+            <textarea
+              bind:value={editForm.description_ar}
+              rows="3"
+              class="form-textarea rtl"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.description_ku") || "Description (Kurdish)"}
+            </label>
+            <textarea
+              bind:value={editForm.description_ku}
+              rows="3"
+              class="form-textarea rtl"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              bind:checked={editForm.isTop}
+              class="form-checkbox"
+            />
+            <span class:rtl={$isRTL}>
+              {$_("brands.mark_as_top") || "Mark as Top Brand"}
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="button-secondary" onclick={closeEditModal}>
+          {$_("brands.cancel") || "Cancel"}
+        </button>
+        <button class="button-primary" onclick={handleUpdateBrand}>
+          {$_("brands.update") || "Update Brand"}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Delete Modal -->
+{#if showDeleteModal && selectedBrand}
+  <div class="modal-overlay" onclick={closeDeleteModal}>
+    <div class="modal-content small" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h2 class="modal-title" class:rtl={$isRTL}>
+          {$_("brands.delete_brand") || "Delete Brand"}
+        </h2>
+        <button class="modal-close" onclick={closeDeleteModal}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="delete-confirmation">
+          <div class="delete-icon">
+            <TrashBinOutline />
+          </div>
+          <p class="delete-message" class:rtl={$isRTL}>
+            {$_("brands.delete_confirmation") ||
+              "Are you sure you want to delete this brand?"}
+          </p>
+          <p class="delete-brand-name" class:rtl={$isRTL}>
+            <strong>{getLocalizedDisplayName(selectedBrand, $locale)}</strong>
+          </p>
+          <p class="delete-warning" class:rtl={$isRTL}>
+            {$_("brands.delete_warning") || "This action cannot be undone."}
+          </p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="button-secondary" onclick={closeDeleteModal}>
+          {$_("brands.cancel") || "Cancel"}
+        </button>
+        <button class="button-danger" onclick={handleDeleteBrand}>
+          {$_("brands.delete") || "Delete"}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}

@@ -242,7 +242,7 @@ export async function createEntity(
           attributes: {
             displayname: {
               en: data.displayname_en || "",
-              // ar: data.displayname_ar || "",
+              ar: data.displayname_ar || "",
             },
             description: {
               en: data.description_en || "",
