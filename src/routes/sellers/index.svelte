@@ -91,11 +91,21 @@
 
   let showCouponModal = $state(false);
   let couponForm = $state({
-    type: "value",
-    minValue: "",
-    maxValue: "",
-    amount: "",
+    code: "",
+    type: "individual",
+    discountType: "percentage",
+    discountValue: "",
+    minimumSpend: "",
+    maximumAmount: "",
+    maximumUses: "",
+    maximumPerUser: "1",
+    validFrom: "",
+    validTo: "",
+    brandShortnames: [],
   });
+
+  let brands = $state([]);
+  let isLoadingBrands = $state(false);
 
   let showBranchModal = $state(false);
   let branchForm = $state({
@@ -238,6 +248,27 @@
       }
     } catch (error) {
       console.error("Error loading variations:", error);
+    }
+  }
+
+  async function loadBrands() {
+    isLoadingBrands = true;
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "brands",
+        "managed",
+        1000,
+        0,
+        true
+      );
+      if (response?.records) {
+        brands = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading brands:", error);
+    } finally {
+      isLoadingBrands = false;
     }
   }
 
@@ -590,28 +621,49 @@
     }
   }
 
-  function openCouponModal() {
+  async function openCouponModal() {
     showCouponModal = true;
     couponForm = {
-      type: "value",
-      minValue: "",
-      maxValue: "",
-      amount: "",
+      code: "",
+      type: "individual",
+      discountType: "percentage",
+      discountValue: "",
+      minimumSpend: "",
+      maximumAmount: "",
+      maximumUses: "",
+      maximumPerUser: "1",
+      validFrom: "",
+      validTo: "",
+      brandShortnames: [],
     };
+    await loadBrands();
   }
 
   function closeCouponModal() {
     showCouponModal = false;
     couponForm = {
-      type: "value",
-      minValue: "",
-      maxValue: "",
-      amount: "",
+      code: "",
+      type: "individual",
+      discountType: "percentage",
+      discountValue: "",
+      minimumSpend: "",
+      maximumAmount: "",
+      maximumUses: "",
+      maximumPerUser: "1",
+      validFrom: "",
+      validTo: "",
+      brandShortnames: [],
     };
+    brands = [];
   }
 
   async function submitCoupon() {
-    if (!couponForm.amount || !couponForm.minValue) {
+    if (
+      !couponForm.code ||
+      !couponForm.discountValue ||
+      !couponForm.validFrom ||
+      !couponForm.validTo
+    ) {
       errorToastMessage("Please fill in all required fields");
       return;
     }
@@ -619,17 +671,35 @@
     try {
       isLoading = true;
       const couponData = {
-        displayname: `Coupon - ${couponForm.type} - ${couponForm.amount}`,
+        displayname: {
+          en: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+          ar: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+          ku: null,
+        },
         body: {
-          content: {
-            type: couponForm.type,
-            min_value: parseFloat(couponForm.minValue),
-            max_value: couponForm.maxValue
-              ? parseFloat(couponForm.maxValue)
-              : null,
-            amount: parseFloat(couponForm.amount),
+          code: couponForm.code.toUpperCase(),
+          type: couponForm.type,
+          discount_type: couponForm.discountType,
+          discount_value: parseFloat(couponForm.discountValue),
+          minimum_spend: couponForm.minimumSpend
+            ? parseFloat(couponForm.minimumSpend)
+            : 0,
+          maximum_amount: couponForm.maximumAmount
+            ? parseFloat(couponForm.maximumAmount)
+            : null,
+          maximum_uses: couponForm.maximumUses
+            ? parseInt(couponForm.maximumUses)
+            : null,
+          maximum_per_user: parseInt(couponForm.maximumPerUser) || 1,
+          usage_count: 0,
+          validity: {
+            from: couponForm.validFrom,
+            to: couponForm.validTo,
           },
-          content_type: "json",
+          applies_to: {
+            brand_shortnames: couponForm.brandShortnames,
+          },
+          seller_shortname: $user.shortname,
         },
         tags: [],
         is_active: true,
@@ -638,7 +708,7 @@
       await createEntity(
         couponData,
         "e_commerce",
-        `/sellers_coupons/${$user.shortname}`,
+        `/coupons/${$user.shortname}`,
         ResourceType.content,
         "",
         ""
@@ -880,7 +950,7 @@
     }
   }
 
-  function openEditModal(item) {
+  async function openEditModal(item) {
     itemToEdit = item;
     const payload = item.attributes?.payload;
     const body = payload?.body;
@@ -889,13 +959,24 @@
     if (item.subpath.includes("/available")) {
       editItem(item);
       return;
-    } else if (item.subpath.includes("/sellers_coupons")) {
+    } else if (
+      item.subpath.includes("/coupons") ||
+      item.subpath.includes("/sellers_coupons")
+    ) {
       couponForm = {
-        type: content.type || "value",
-        minValue: content.min_value?.toString() || "",
-        maxValue: content.max_value?.toString() || "",
-        amount: content.amount?.toString() || "",
+        code: content.code || "",
+        type: content.type || "individual",
+        discountType: content.discount_type || "percentage",
+        discountValue: content.discount_value?.toString() || "",
+        minimumSpend: content.minimum_spend?.toString() || "",
+        maximumAmount: content.maximum_amount?.toString() || "",
+        maximumUses: content.maximum_uses?.toString() || "",
+        maximumPerUser: content.maximum_per_user?.toString() || "1",
+        validFrom: content.validity?.from || "",
+        validTo: content.validity?.to || "",
+        brandShortnames: content.applies_to?.brand_shortnames || [],
       };
+      await loadBrands();
       showEditModal = true;
     } else if (item.subpath.includes("/discounts")) {
       showEditModal = true;
@@ -907,9 +988,22 @@
   function closeEditModal() {
     showEditModal = false;
     itemToEdit = null;
-    couponForm = { type: "value", minValue: "", maxValue: "", amount: "" };
+    couponForm = {
+      code: "",
+      type: "individual",
+      discountType: "percentage",
+      discountValue: "",
+      minimumSpend: "",
+      maximumAmount: "",
+      maximumUses: "",
+      maximumPerUser: "1",
+      validFrom: "",
+      validTo: "",
+      brandShortnames: [],
+    };
     branchForm = { name: "", country: "", state: "", city: "", address: "" };
     bundleForm = { selectedProducts: [], price: "" };
+    brands = [];
   }
 
   function openVariationRequestModal() {
@@ -1037,23 +1131,49 @@
       let updateData;
       let subpath = itemToEdit.subpath;
 
-      if (subpath.includes("/sellers_coupons")) {
-        if (!couponForm.amount || !couponForm.minValue) {
+      if (
+        subpath.includes("/coupons") ||
+        subpath.includes("/sellers_coupons")
+      ) {
+        if (
+          !couponForm.code ||
+          !couponForm.discountValue ||
+          !couponForm.validFrom ||
+          !couponForm.validTo
+        ) {
           errorToastMessage("Please fill in all required fields");
           return;
         }
         updateData = {
-          displayname: `Coupon - ${couponForm.type} - ${couponForm.amount}`,
+          displayname: {
+            en: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+            ar: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+            ku: null,
+          },
           body: {
-            content: {
-              type: couponForm.type,
-              min_value: parseFloat(couponForm.minValue),
-              max_value: couponForm.maxValue
-                ? parseFloat(couponForm.maxValue)
-                : null,
-              amount: parseFloat(couponForm.amount),
+            code: couponForm.code.toUpperCase(),
+            type: couponForm.type,
+            discount_type: couponForm.discountType,
+            discount_value: parseFloat(couponForm.discountValue),
+            minimum_spend: couponForm.minimumSpend
+              ? parseFloat(couponForm.minimumSpend)
+              : 0,
+            maximum_amount: couponForm.maximumAmount
+              ? parseFloat(couponForm.maximumAmount)
+              : null,
+            maximum_uses: couponForm.maximumUses
+              ? parseInt(couponForm.maximumUses)
+              : null,
+            maximum_per_user: parseInt(couponForm.maximumPerUser) || 1,
+            usage_count: itemToEdit.attributes?.payload?.body?.usage_count || 0,
+            validity: {
+              from: couponForm.validFrom,
+              to: couponForm.validTo,
             },
-            content_type: "json",
+            applies_to: {
+              brand_shortnames: couponForm.brandShortnames,
+            },
+            seller_shortname: $user.shortname,
           },
           tags: itemToEdit.attributes.tags || [],
           is_active: true,
@@ -1717,8 +1837,11 @@
   bind:show={showCouponModal}
   isRTL={$isRTL}
   bind:couponForm
+  {brands}
+  {isLoadingBrands}
   onClose={closeCouponModal}
   onSubmit={submitCoupon}
+  getLocalizedDisplayName={getItemDisplayName}
 />
 
 <!-- Branch Modal -->
@@ -1776,6 +1899,8 @@
   bind:bundleForm
   {isLoadingSellerProducts}
   {sellerProducts}
+  {brands}
+  {isLoadingBrands}
   onClose={closeEditModal}
   onSubmit={submitEdit}
   onToggleProduct={toggleProductSelection}
