@@ -1,4 +1,5 @@
 <script>
+    import "./global.css";
     import DashboardHeader from "@/components/DashboardHeader.svelte";
     import {signout} from "@/stores/user";
     import {onMount} from "svelte";
