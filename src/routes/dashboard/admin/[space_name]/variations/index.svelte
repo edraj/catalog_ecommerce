@@ -53,7 +53,48 @@
   let selectedOption = $state(null);
   let editFormData = $state<OptionFormData | undefined>(undefined);
 
-  // Helper functions now imported from utility modules
+  // Search and pagination state
+  let searchQueries = $state<Record<string, string>>({});
+  let expandedVariations = $state<Record<string, boolean>>({});
+  const INITIAL_DISPLAY_COUNT = 10;
+
+  // Helper functions
+  function getFilteredOptions(variation: any) {
+    const options = getVariationOptions(variation);
+    const searchQuery = searchQueries[variation.shortname]?.toLowerCase() || "";
+
+    if (!searchQuery) return options;
+
+    return options.filter((option: any) => {
+      const nameEn = option.name?.en?.toLowerCase() || "";
+      const nameAr = option.name?.ar?.toLowerCase() || "";
+      const value = option.value?.toLowerCase() || "";
+      return (
+        nameEn.includes(searchQuery) ||
+        nameAr.includes(searchQuery) ||
+        value.includes(searchQuery)
+      );
+    });
+  }
+
+  function getDisplayedOptions(variation: any) {
+    const filtered = getFilteredOptions(variation);
+    const isExpanded = expandedVariations[variation.shortname];
+
+    if (isExpanded || filtered.length <= INITIAL_DISPLAY_COUNT) {
+      return filtered;
+    }
+
+    return filtered.slice(0, INITIAL_DISPLAY_COUNT);
+  }
+
+  function toggleExpanded(shortname: string) {
+    expandedVariations[shortname] = !expandedVariations[shortname];
+  }
+
+  function updateSearch(shortname: string, value: string) {
+    searchQueries[shortname] = value;
+  }
 
   onMount(async () => {
     await loadVariations();
@@ -334,50 +375,101 @@
                 <p>No options available. Click "Add Option" to create one.</p>
               </div>
             {:else}
-              <div class="options-list">
-                {#each getVariationOptions(variation) as option}
-                  <div class="option-item">
-                    <div class="option-content">
-                      {#if variation.shortname === "colors" && option.value}
-                        <span
-                          class="color-preview"
-                          style="background-color: {option.value}"
-                          title={option.value}
-                        ></span>
-                      {/if}
-                      <div class="option-details">
-                        <span class="option-name"
-                          >{getOptionName(option, $locale)}</span
-                        >
+              <!-- Search Bar -->
+              {#if getVariationOptions(variation).length > 5}
+                <div class="search-container">
+                  <input
+                    type="text"
+                    placeholder={$_("common.search") || "Search options..."}
+                    value={searchQueries[variation.shortname] || ""}
+                    oninput={(e) =>
+                      updateSearch(
+                        variation.shortname,
+                        (e.target as HTMLInputElement).value
+                      )}
+                    class="search-input"
+                  />
+                  <span class="search-icon">🔍</span>
+                </div>
+              {/if}
+
+              <!-- Options List -->
+              {#if getFilteredOptions(variation).length === 0}
+                <div class="no-results">
+                  <p>No options found matching your search.</p>
+                </div>
+              {:else}
+                <div class="options-list">
+                  {#each getDisplayedOptions(variation) as option}
+                    <div class="option-item">
+                      <div class="option-content">
                         {#if variation.shortname === "colors" && option.value}
-                          <span class="option-value">{option.value}</span>
+                          <span
+                            class="color-preview"
+                            style="background-color: {option.value}"
+                            title={option.value}
+                          ></span>
                         {/if}
+                        <div class="option-details">
+                          <span class="option-name"
+                            >{getOptionName(option, $locale)}</span
+                          >
+                          {#if variation.shortname === "colors" && option.value}
+                            <span class="option-value">{option.value}</span>
+                          {/if}
+                        </div>
+                      </div>
+                      <div class="option-actions">
+                        <IconButton
+                          onclick={() => openEditOptionModal(variation, option)}
+                          title="Edit"
+                        >
+                          <EditOutline size="xs" />
+                        </IconButton>
+                        <IconButton
+                          variant="delete"
+                          onclick={() =>
+                            openDeleteOptionModal(variation, option)}
+                          title="Delete"
+                        >
+                          <TrashBinOutline size="xs" />
+                        </IconButton>
                       </div>
                     </div>
-                    <div class="option-actions">
-                      <IconButton
-                        onclick={() => openEditOptionModal(variation, option)}
-                        title="Edit"
+                  {/each}
+                </div>
+
+                <!-- Show More/Less Button -->
+                {#if getFilteredOptions(variation).length > INITIAL_DISPLAY_COUNT}
+                  <button
+                    class="show-more-btn"
+                    onclick={() => toggleExpanded(variation.shortname)}
+                  >
+                    {#if expandedVariations[variation.shortname]}
+                      <span>Show Less</span>
+                      <span class="arrow">▲</span>
+                    {:else}
+                      <span
+                        >Show More ({getFilteredOptions(variation).length -
+                          INITIAL_DISPLAY_COUNT} more)</span
                       >
-                        <EditOutline size="xs" />
-                      </IconButton>
-                      <IconButton
-                        variant="delete"
-                        onclick={() => openDeleteOptionModal(variation, option)}
-                        title="Delete"
-                      >
-                        <TrashBinOutline size="xs" />
-                      </IconButton>
-                    </div>
-                  </div>
-                {/each}
-              </div>
+                      <span class="arrow">▼</span>
+                    {/if}
+                  </button>
+                {/if}
+              {/if}
             {/if}
           </div>
 
           <div class="variation-footer">
             <span class="options-count">
-              {getVariationOptions(variation).length} option(s)
+              {#if searchQueries[variation.shortname]}
+                {getFilteredOptions(variation).length} of {getVariationOptions(
+                  variation
+                ).length} option(s)
+              {:else}
+                {getVariationOptions(variation).length} option(s)
+              {/if}
             </span>
           </div>
         </div>
