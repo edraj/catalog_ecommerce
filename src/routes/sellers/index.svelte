@@ -59,6 +59,8 @@
   let categories = $state([]);
   let products = $state([]);
   let variations = $state({ colors: [], storages: [] });
+  let allVariations = $state([]);
+  let productsMap = $state(new Map());
   let warranties = $state([]);
   let commissionCategories = $state([]);
   let selectedCategory = $state("");
@@ -177,6 +179,12 @@
 
       if (response?.records) {
         items = response.records;
+
+        // Load variations and products for available folder
+        if (folderShortname === "available") {
+          await Promise.all([loadAllVariations(), loadAllProducts()]);
+        }
+
         applyFilters();
       }
     } catch (error) {
@@ -213,6 +221,67 @@
     } catch (error) {
       console.error("Error loading categories:", error);
     }
+  }
+
+  async function loadAllVariations() {
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "variations",
+        "managed",
+        100,
+        0,
+        true
+      );
+      if (response?.records) {
+        allVariations = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading variations:", error);
+    }
+  }
+
+  async function loadAllProducts() {
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "products",
+        "managed",
+        100,
+        0,
+        true
+      );
+      if (response?.records) {
+        productsMap = new Map(response.records.map((p) => [p.shortname, p]));
+      }
+    } catch (error) {
+      console.error("Error loading products:", error);
+    }
+  }
+
+  function resolveOptionKey(
+    optionKey: string,
+    variationShortname: string
+  ): string {
+    const variation = allVariations.find(
+      (v) => v.shortname === variationShortname
+    );
+    if (!variation) return optionKey;
+
+    const body = variation.attributes?.payload?.body;
+    const options = body?.options || [];
+    const option = options.find((opt: any) => opt.key === optionKey);
+
+    if (option?.name) {
+      return option.name[$locale] || option.name.en || optionKey;
+    }
+    return optionKey;
+  }
+
+  function getProductName(productShortname: string): string {
+    const product = productsMap.get(productShortname);
+    if (!product) return productShortname;
+    return getLocalizedDisplayName(product, $locale);
   }
 
   function applyFilters() {
@@ -475,7 +544,11 @@
       );
 
       const availabilityData = {
-        displayname: getLocalizedDisplayName(selectedProductData, $locale),
+        displayname: {
+          en: getLocalizedDisplayName(selectedProductData, $locale),
+          ar: selectedProductData.attributes?.displayname?.ar || "",
+          ku: selectedProductData.attributes?.displayname?.ku || "",
+        },
         body: {
           sku: "",
           variants: variants,
@@ -491,14 +564,16 @@
         },
         tags: [`product:${selectedProduct}`],
         is_active: true,
+        workflow_shortname: "availability",
+        state: "open",
       };
 
       await createEntity(
         availabilityData,
         "e_commerce",
         `/available/${$user.shortname}`,
-        ResourceType.content,
-        "",
+        ResourceType.ticket,
+        "availability",
         ""
       );
 
@@ -1478,9 +1553,41 @@
               <div class="item-card-body">
                 <div class="item-title-row">
                   <h3 class="item-title" class:rtl={$isRTL}>
-                    {getLocalizedDisplayName(item, $locale)}
+                    {#if item.resource_type === "ticket" && item.attributes?.payload?.body?.product_shortname}
+                      {getProductName(
+                        item.attributes.payload.body.product_shortname
+                      )}
+                    {:else}
+                      {getLocalizedDisplayName(item, $locale)}
+                    {/if}
                   </h3>
-                  {#if getItemCategory(item)}
+                  {#if item.resource_type === "ticket" && item.attributes?.state}
+                    {@const stateColors = {
+                      open: {
+                        bg: "#fef3c7",
+                        text: "#92400e",
+                        border: "#fde68a",
+                      },
+                      approved: {
+                        bg: "#d1fae5",
+                        text: "#065f46",
+                        border: "#a7f3d0",
+                      },
+                      rejected: {
+                        bg: "#fee2e2",
+                        text: "#991b1b",
+                        border: "#fecaca",
+                      },
+                    }}
+                    {@const stateColor =
+                      stateColors[item.attributes.state] || stateColors.open}
+                    <span
+                      class="item-category-badge"
+                      style="background: {stateColor.bg}; color: {stateColor.text}; border-color: {stateColor.border};"
+                    >
+                      <span class="category-text">{item.attributes.state}</span>
+                    </span>
+                  {:else if getItemCategory(item)}
                     {@const category = getItemCategory(item)}
                     <span
                       class="item-category-badge"
@@ -1492,7 +1599,59 @@
                   {/if}
                 </div>
                 <p class="item-shortname">{item.shortname}</p>
-                {#if getContentPreview(item)}
+
+                {#if item.resource_type === "ticket" && item.attributes?.payload?.body}
+                  {@const body = item.attributes.payload.body}
+                  {@const variants = body.variants || []}
+                  <div class="availability-details">
+                    <p class="availability-meta">
+                      <strong>{variants.length}</strong>
+                      variant{variants.length !== 1 ? "s" : ""}
+                    </p>
+                    {#if variants.length > 0}
+                      <div class="variant-preview">
+                        {#each variants.slice(0, 3) as variant}
+                          {@const optionNames =
+                            variant.options
+                              ?.map((opt: any) =>
+                                resolveOptionKey(
+                                  opt.key,
+                                  opt.variation_shortname
+                                )
+                              )
+                              .join(" + ") || ""}
+                          <div class="variant-item">
+                            <span class="variant-name">{optionNames}</span>
+                            <span class="variant-price"
+                              >${variant.retail_price}</span
+                            >
+                            <span class="variant-stock">Qty: {variant.qty}</span
+                            >
+                          </div>
+                        {/each}
+                        {#if variants.length > 3}
+                          <p class="more-variants">
+                            +{variants.length - 3} more
+                          </p>
+                        {/if}
+                      </div>
+                    {/if}
+                    {#if body.has_fast_delivery || body.has_free_shipping}
+                      <div class="shipping-badges">
+                        {#if body.has_fast_delivery}
+                          <span class="shipping-badge fast"
+                            >⚡ Fast Delivery</span
+                          >
+                        {/if}
+                        {#if body.has_free_shipping}
+                          <span class="shipping-badge free"
+                            >🚚 Free Shipping</span
+                          >
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+                {:else if getContentPreview(item)}
                   <p class="item-preview" class:rtl={$isRTL}>
                     {getContentPreview(item)}
                   </p>
