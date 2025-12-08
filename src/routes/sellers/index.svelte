@@ -602,11 +602,9 @@
       );
 
       const availabilityData = {
-        displayname: {
-          en: getLocalizedDisplayName(selectedProductData, $locale),
-          ar: selectedProductData.attributes?.displayname?.ar || "",
-          ku: selectedProductData.attributes?.displayname?.ku || "",
-        },
+        displayname_en: getLocalizedDisplayName(selectedProductData, $locale),
+        displayname_ar: selectedProductData.attributes?.displayname?.ar || "",
+        displayname_ku: selectedProductData.attributes?.displayname?.ku || "",
         body: {
           sku: "",
           variants: variants,
@@ -623,7 +621,7 @@
         tags: [`product:${selectedProduct}`],
         is_active: true,
         workflow_shortname: "availability",
-        state: "open",
+        state: "approved",
       };
 
       await createEntity(
@@ -698,11 +696,10 @@
     try {
       isLoading = true;
       const couponData = {
-        displayname: {
-          en: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
-          ar: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
-          ku: null,
-        },
+        displayname_en: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+        displayname_ar: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+        displayname_ku: null,
+
         body: {
           code: couponForm.code.toUpperCase(),
           type: couponForm.type,
@@ -735,7 +732,7 @@
       await createEntity(
         couponData,
         "e_commerce",
-        `/coupons/${$user.shortname}`,
+        `/sellers_coupons/${$user.shortname}`,
         ResourceType.content,
         "",
         ""
@@ -1095,11 +1092,9 @@
     try {
       isLoading = true;
       const discountData = {
-        displayname: {
-          en: null,
-          ar: null,
-          ku: null,
-        },
+        displayname_en: null,
+        displayname_ar: null,
+        displayname_ku: null,
         body: {
           type: discountForm.type,
           type_shortname: discountForm.typeShortname,
@@ -1199,16 +1194,12 @@
     try {
       isLoading = true;
       const warrantyData = {
-        displayname: {
-          en: warrantyForm.displaynameEn,
-          ar: warrantyForm.displaynameAr || null,
-          ku: warrantyForm.displaynameKu || null,
-        },
-        description: {
-          en: warrantyForm.descriptionEn,
-          ar: warrantyForm.descriptionAr || null,
-          ku: warrantyForm.descriptionKu || null,
-        },
+        displayname_en: warrantyForm.displaynameEn,
+        displayname_ar: warrantyForm.displaynameAr || null,
+        displayname_ku: warrantyForm.displaynameKu || null,
+        description_en: warrantyForm.descriptionEn,
+        description_ar: warrantyForm.descriptionAr || null,
+        description_ku: warrantyForm.descriptionKu || null,
         body: {
           is_global: warrantyForm.isGlobal,
           brand_shortname: warrantyForm.isGlobal
@@ -1378,11 +1369,9 @@
           return;
         }
         updateData = {
-          displayname: {
-            en: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
-            ar: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
-            ku: null,
-          },
+          displayname_en: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+          displayname_ar: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+          displayname_ku: null,
           body: {
             code: couponForm.code.toUpperCase(),
             type: couponForm.type,

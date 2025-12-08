@@ -50,6 +50,7 @@
       roles.subscribe((value) => {
         userRoles = value;
       })();
+      console.log(userRoles);
 
       if (userRoles.includes("seller")) {
         $goto("/sellers");
