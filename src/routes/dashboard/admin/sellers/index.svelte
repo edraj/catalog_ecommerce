@@ -12,7 +12,7 @@
     PlusOutline,
     UserAddSolid,
   } from "flowbite-svelte-icons";
-  import { createSeller, createFolder } from "@/lib/dmart_services";
+  import { createSeller } from "@/lib/dmart_services";
   import { validateSellerForm } from "@/lib/utils/validationUtils";
 
   $goto;
@@ -84,8 +84,6 @@
       const createdSellerShortname = await createSeller(sellerData);
 
       if (createdSellerShortname) {
-        await createSellerFolders(createdSellerShortname);
-
         showSuccess = true;
         successMessage =
           $_("SellerCreatedSuccessfully") ||
@@ -123,67 +121,6 @@
       }, 5000);
     } finally {
       isSubmitting = false;
-    }
-  }
-
-  async function createSellerFolders(sellerShortname: string) {
-    const spaceName = "e_commerce";
-    const folderConfigs = [
-      {
-        subpath: "available",
-        shortname: sellerShortname,
-        displayname: {
-          en: `${sellerShortname} Available Products`,
-          ar: `منتجات ${sellerShortname} المتاحة`,
-        },
-      },
-      {
-        subpath: "discounts",
-        shortname: sellerShortname,
-        displayname: {
-          en: `${sellerShortname} Discounts`,
-          ar: `خصومات ${sellerShortname}`,
-        },
-      },
-      {
-        subpath: "orders",
-        shortname: sellerShortname,
-        displayname: {
-          en: `${sellerShortname} Orders`,
-          ar: `طلبات ${sellerShortname}`,
-        },
-      },
-      {
-        subpath: "sellers_coupons",
-        shortname: sellerShortname,
-        displayname: {
-          en: `${sellerShortname} Coupons`,
-          ar: `كوبونات ${sellerShortname}`,
-        },
-      },
-      {
-        subpath: "warranties",
-        shortname: sellerShortname,
-        displayname: {
-          en: `${sellerShortname} Warranties`,
-          ar: `ضمانات ${sellerShortname}`,
-        },
-      },
-    ];
-
-    try {
-      for (const config of folderConfigs) {
-        const folderData = {
-          shortname: config.shortname,
-          displayname: config.displayname,
-          description: {},
-          folderContent: {},
-        };
-
-        await createFolder(spaceName, config.subpath, folderData, false);
-      }
-    } catch (error) {
-      console.error("Error creating seller folders:", error);
     }
   }
 
@@ -309,7 +246,7 @@
               bind:value={formData.email}
               placeholder={$_("EmailPlaceholder") || "seller@example.com"}
               class="form-input"
-              class:error={errors..email}
+              class:error={errors.email}
               disabled={isSubmitting}
               required
             />
