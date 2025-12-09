@@ -251,7 +251,6 @@ export async function createEntity(
             },
             is_active: data.is_active || true,
             workflow_shortname: workflow_shortname,
-            state: data.state || "pending",
             relationships: [],
             tags: data.tags || [],
             payload: {

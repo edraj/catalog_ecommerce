@@ -36,11 +36,15 @@
   async function loadItem() {
     isLoading = true;
     try {
+      const resourceType =
+        $params.resource_type === "ticket"
+          ? ResourceType.ticket
+          : ResourceType.content;
       const response = await getEntity(
         $params.shortname,
-        "Ecommerce",
+        "e_commerce",
         $params.subpath,
-        ResourceType.content,
+        resourceType,
         "managed",
         true,
         true
@@ -65,7 +69,7 @@
 
   function editItem() {
     $goto("/sellers/[shortname]/[resource_type]/edit", {
-      space_name: "Ecommerce",
+      space_name: "e_commerce",
       subpath: $params.subpath,
       shortname: $params.shortname,
       resource_type: $params.resource_type,
@@ -84,7 +88,7 @@
     try {
       await deleteEntity(
         $params.shortname,
-        "Ecommerce",
+        "e_commerce",
         $params.subpath,
         $params.resource_type
       );
@@ -99,7 +103,7 @@
   }
 
   function getLocalizedDisplayName(item) {
-    const displayname = item?.displayname;
+    const displayname = item?.attributes?.displayname || item?.displayname;
 
     if (!displayname) {
       return item?.shortname || $_("seller_dashboard.untitled");
@@ -118,7 +122,7 @@
   }
 
   function getContent(item) {
-    const payload = item?.payload;
+    const payload = item?.attributes?.payload || item?.payload;
     if (!payload || !payload.body) return null;
 
     return payload.body.content || payload.body;
@@ -127,10 +131,14 @@
   function getItemType(content) {
     if (!content) return "unknown";
 
-    if (content.product_id || content.category_id) {
+    if (content.product_shortname || content.variants) {
+      return "availability";
+    } else if (content.product_id || content.category_id) {
       return "product";
-    } else if (content.type && content.amount !== undefined) {
+    } else if (content.code || (content.type && content.discount_type)) {
       return "coupon";
+    } else if (content.type && content.type_shortname && content.validity) {
+      return "discount";
     } else if (content.country || content.city) {
       return "branch";
     } else if (content.product_ids || content.price !== undefined) {
@@ -233,6 +241,140 @@
               {/if}
             </div>
           </div>
+        {:else if getItemType(getContent(item)) === "availability"}
+          {@const content = getContent(item)}
+          <div class="info-section">
+            <h2 class="section-title">
+              {$_("seller_dashboard.availability_details") ||
+                "Product Availability Details"}
+            </h2>
+
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("seller_dashboard.product_shortname") ||
+                    "Product"}:</span
+                >
+                <span class="info-value"
+                  >{content.product_shortname || "N/A"}</span
+                >
+              </div>
+
+              {#if content.warranty_shortname}
+                <div class="info-item">
+                  <span class="info-label"
+                    >{$_("seller_dashboard.warranty") || "Warranty"}:</span
+                  >
+                  <span class="info-value">{content.warranty_shortname}</span>
+                </div>
+              {/if}
+
+              {#if content.commission_category}
+                <div class="info-item">
+                  <span class="info-label"
+                    >{$_("seller_dashboard.commission_category") ||
+                      "Commission Category"}:</span
+                  >
+                  <span class="info-value">{content.commission_category}</span>
+                </div>
+              {/if}
+
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("seller_dashboard.fast_delivery") ||
+                    "Fast Delivery"}:</span
+                >
+                <span
+                  class="info-value badge"
+                  class:active={content.has_fast_delivery}
+                >
+                  {content.has_fast_delivery ? "Yes" : "No"}
+                </span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("seller_dashboard.free_shipping") ||
+                    "Free Shipping"}:</span
+                >
+                <span
+                  class="info-value badge"
+                  class:active={content.has_free_shipping}
+                >
+                  {content.has_free_shipping ? "Yes" : "No"}
+                </span>
+              </div>
+
+              {#if content.est_shipping_days}
+                <div class="info-item">
+                  <span class="info-label"
+                    >{$_("seller_dashboard.shipping_days") ||
+                      "Estimated Shipping"}:</span
+                  >
+                  <span class="info-value">
+                    {content.est_shipping_days.from}-{content.est_shipping_days
+                      .to} days
+                  </span>
+                </div>
+              {/if}
+            </div>
+          </div>
+
+          {#if content.variants && content.variants.length > 0}
+            <div class="info-section">
+              <h2 class="section-title">
+                {$_("seller_dashboard.variants") || "Variants"} ({content
+                  .variants.length})
+              </h2>
+
+              <div class="variants-list">
+                {#each content.variants as variant, index}
+                  <div class="variant-card">
+                    <div class="variant-header">
+                      <h3 class="variant-title">Variant {index + 1}</h3>
+                      <span class="variant-price">${variant.retail_price}</span>
+                    </div>
+
+                    <div class="variant-details">
+                      <div class="variant-detail-item">
+                        <span class="detail-label">SKU:</span>
+                        <span class="detail-value">{variant.sku || "N/A"}</span>
+                      </div>
+
+                      <div class="variant-detail-item">
+                        <span class="detail-label">Quantity:</span>
+                        <span class="detail-value">{variant.qty}</span>
+                      </div>
+
+                      {#if variant.discount && variant.discount.value > 0}
+                        <div class="variant-detail-item">
+                          <span class="detail-label">Discount:</span>
+                          <span class="detail-value discount">
+                            {variant.discount.type === "percentage"
+                              ? `${variant.discount.value}%`
+                              : `$${variant.discount.value}`}
+                          </span>
+                        </div>
+                      {/if}
+
+                      {#if variant.options && variant.options.length > 0}
+                        <div class="variant-detail-item full-width">
+                          <span class="detail-label">Options:</span>
+                          <div class="options-list">
+                            {#each variant.options as option}
+                              <span class="option-badge">
+                                {option.variation_shortname}: {option.key}
+                              </span>
+                            {/each}
+                          </div>
+                        </div>
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
         {:else if getItemType(getContent(item)) === "coupon"}
           {@const content = getContent(item)}
           <div class="info-section">
@@ -243,43 +385,187 @@
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label"
-                  >{$_("seller_dashboard.type") || "Type"}:</span
+                  >{$_("seller_dashboard.coupon_code") || "Coupon Code"}:</span
                 >
-                <span
-                  class="info-value badge"
-                  class:value-type={content.type === "value"}
-                  class:percentage-type={content.type === "percentage"}
+                <span class="info-value badge code-badge"
+                  >{content.code || "N/A"}</span
                 >
-                  {content.type === "value" ? "Fixed Value" : "Percentage"}
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("seller_dashboard.coupon_type") || "Coupon Type"}:</span
+                >
+                <span class="info-value badge">
+                  {content.type === "individual" ? "Individual" : "Bulk"}
                 </span>
               </div>
 
               <div class="info-item">
                 <span class="info-label"
-                  >{$_("seller_dashboard.amount") || "Amount"}:</span
+                  >{$_("seller_dashboard.discount_type") ||
+                    "Discount Type"}:</span
+                >
+                <span
+                  class="info-value badge"
+                  class:percentage-type={content.discount_type === "percentage"}
+                  class:value-type={content.discount_type === "fixed"}
+                >
+                  {content.discount_type === "percentage"
+                    ? "Percentage"
+                    : "Fixed Amount"}
+                </span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("seller_dashboard.discount_value") ||
+                    "Discount Value"}:</span
                 >
                 <span class="info-value highlight"
-                  >{content.type === "percentage"
-                    ? `${content.amount}%`
-                    : `$${content.amount}`}</span
+                  >{content.discount_type === "percentage"
+                    ? `${content.discount_value}%`
+                    : `$${content.discount_value}`}</span
                 >
               </div>
 
               <div class="info-item">
                 <span class="info-label"
-                  >{$_("seller_dashboard.min_value") || "Minimum Value"}:</span
-                >
-                <span class="info-value">${content.min_value || "0.00"}</span>
-              </div>
-
-              <div class="info-item">
-                <span class="info-label"
-                  >{$_("seller_dashboard.max_value") || "Maximum Value"}:</span
+                  >{$_("seller_dashboard.minimum_spend") ||
+                    "Minimum Spend"}:</span
                 >
                 <span class="info-value"
-                  >${content.max_value || "No limit"}</span
+                  >${content.minimum_spend || "0.00"}</span
                 >
               </div>
+
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("seller_dashboard.maximum_amount") ||
+                    "Maximum Amount"}:</span
+                >
+                <span class="info-value">
+                  {content.maximum_amount
+                    ? `$${content.maximum_amount}`
+                    : "No limit"}
+                </span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("seller_dashboard.maximum_uses") ||
+                    "Maximum Uses"}:</span
+                >
+                <span class="info-value">
+                  {content.maximum_uses || "Unlimited"}
+                </span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("seller_dashboard.maximum_per_user") ||
+                    "Max Per User"}:</span
+                >
+                <span class="info-value">{content.maximum_per_user || "1"}</span
+                >
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("seller_dashboard.usage_count") || "Usage Count"}:</span
+                >
+                <span class="info-value">{content.usage_count || "0"}</span>
+              </div>
+
+              {#if content.validity}
+                <div class="info-item">
+                  <span class="info-label"
+                    >{$_("seller_dashboard.valid_from") || "Valid From"}:</span
+                  >
+                  <span class="info-value"
+                    >{content.validity.from || "N/A"}</span
+                  >
+                </div>
+
+                <div class="info-item">
+                  <span class="info-label"
+                    >{$_("seller_dashboard.valid_to") || "Valid To"}:</span
+                  >
+                  <span class="info-value">{content.validity.to || "N/A"}</span>
+                </div>
+              {/if}
+
+              {#if content.applies_to?.brand_shortnames && content.applies_to.brand_shortnames.length > 0}
+                <div class="info-item full-width">
+                  <span class="info-label"
+                    >{$_("seller_dashboard.applies_to_brands") ||
+                      "Applies To Brands"}:</span
+                  >
+                  <div class="brand-list">
+                    {#each content.applies_to.brand_shortnames as brandShortname}
+                      <span class="brand-tag">{brandShortname}</span>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            </div>
+          </div>
+        {:else if getItemType(getContent(item)) === "discount"}
+          {@const content = getContent(item)}
+          <div class="info-section">
+            <h2 class="section-title">
+              {$_("seller_dashboard.discount_details") || "Discount Details"}
+            </h2>
+
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("seller_dashboard.discount_type") ||
+                    "Discount Type"}:</span
+                >
+                <span class="info-value badge">
+                  {content.type === "brand"
+                    ? "Brand"
+                    : content.type === "category"
+                      ? "Category"
+                      : content.type}
+                </span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("seller_dashboard.type_shortname") ||
+                    "Type Shortname"}:</span
+                >
+                <span class="info-value">{content.type_shortname || "N/A"}</span
+                >
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("seller_dashboard.discount_value") ||
+                    "Discount Value"}:</span
+                >
+                <span class="info-value highlight">{content.value}%</span>
+              </div>
+
+              {#if content.validity}
+                <div class="info-item">
+                  <span class="info-label"
+                    >{$_("seller_dashboard.valid_from") || "Valid From"}:</span
+                  >
+                  <span class="info-value"
+                    >{content.validity.from || "N/A"}</span
+                  >
+                </div>
+
+                <div class="info-item">
+                  <span class="info-label"
+                    >{$_("seller_dashboard.valid_to") || "Valid To"}:</span
+                  >
+                  <span class="info-value">{content.validity.to || "N/A"}</span>
+                </div>
+              {/if}
             </div>
           </div>
         {:else if getItemType(getContent(item)) === "branch"}
@@ -954,6 +1240,118 @@
     }
 
     .info-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Variants List Styles */
+  .variants-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .variant-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    transition: all 0.2s;
+  }
+
+  .variant-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+  }
+
+  .variant-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .variant-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+  }
+
+  .variant-price {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #3b82f6;
+  }
+
+  .variant-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .variant-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .variant-detail-item.full-width {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .detail-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+  }
+
+  .detail-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1f2937;
+    text-align: right;
+  }
+
+  .detail-value.discount {
+    color: #dc2626;
+    background: #fee2e2;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+  }
+
+  .options-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .option-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .info-value.badge.active {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .variants-list {
       grid-template-columns: 1fr;
     }
   }
