@@ -42,6 +42,25 @@
     price: "",
   });
 
+  let discountForm = $state({
+    type: "",
+    typeShortname: "",
+    value: "",
+    validFrom: "",
+    validTo: "",
+  });
+
+  let availabilityForm = $state({
+    hasFastDelivery: false,
+    hasFreeShipping: false,
+    estShippingFrom: 1,
+    estShippingTo: 5,
+    warrantyShortname: "",
+    commissionCategory: "",
+  });
+
+  let variants = $state([]);
+
   const isRTL = derived(
     locale,
     ($locale) => $locale === "ar" || $locale === "ku"
@@ -54,11 +73,15 @@
   async function loadItem() {
     isLoading = true;
     try {
+      const resourceType =
+        $params.resource_type === "ticket"
+          ? ResourceType.ticket
+          : ResourceType.content;
       const response = await getEntity(
         $params.shortname,
-        "Ecommerce",
+        "e_commerce",
         $params.subpath,
-        ResourceType.content,
+        resourceType,
         "managed"
       );
 
@@ -82,7 +105,17 @@
 
     const itemType = getItemType(content);
 
-    if (itemType === "product") {
+    if (itemType === "availability") {
+      availabilityForm = {
+        hasFastDelivery: content.has_fast_delivery || false,
+        hasFreeShipping: content.has_free_shipping || false,
+        estShippingFrom: content.est_shipping_days?.from || 1,
+        estShippingTo: content.est_shipping_days?.to || 5,
+        warrantyShortname: content.warranty_shortname || "",
+        commissionCategory: content.commission_category || "",
+      };
+      variants = content.variants || [];
+    } else if (itemType === "product") {
       productForm = {
         price: content.price?.toString() || "",
         stock: content.stock?.toString() || "",
@@ -90,10 +123,17 @@
       };
     } else if (itemType === "coupon") {
       couponForm = {
-        type: content.type || "value",
-        minValue: content.min_value?.toString() || "",
-        maxValue: content.max_value?.toString() || "",
-        amount: content.amount?.toString() || "",
+        code: content.code || "",
+        type: content.type || "individual",
+        discountType: content.discount_type || "percentage",
+        discountValue: content.discount_value?.toString() || "",
+        minimumSpend: content.minimum_spend?.toString() || "",
+        maximumAmount: content.maximum_amount?.toString() || "",
+        maximumUses: content.maximum_uses?.toString() || "",
+        maximumPerUser: content.maximum_per_user?.toString() || "1",
+        validFrom: content.validity?.from || "",
+        validTo: content.validity?.to || "",
+        brandShortnames: content.applies_to?.brand_shortnames || [],
       };
     } else if (itemType === "branch") {
       branchForm = {
@@ -107,12 +147,20 @@
       bundleForm = {
         price: content.price?.toString() || "",
       };
+    } else if (itemType === "discount") {
+      discountForm = {
+        type: content.type || "",
+        typeShortname: content.type_shortname || "",
+        value: content.value?.toString() || "",
+        validFrom: content.validity?.from || "",
+        validTo: content.validity?.to || "",
+      };
     }
   }
 
   function goBack() {
     $goto("/sellers/[shortname]/[resource_type]", {
-      space_name: "Ecommerce",
+      space_name: "e_commerce",
       subpath: $params.subpath,
       shortname: $params.shortname,
       resource_type: $params.resource_type,
@@ -126,7 +174,21 @@
     const itemType = getItemType(content);
     let updatedContent = { ...content };
 
-    if (itemType === "product") {
+    if (itemType === "availability") {
+      // For availability items, update the shipping and warranty info
+      updatedContent = {
+        ...updatedContent,
+        has_fast_delivery: availabilityForm.hasFastDelivery,
+        has_free_shipping: availabilityForm.hasFreeShipping,
+        est_shipping_days: {
+          from: availabilityForm.estShippingFrom || 1,
+          to: availabilityForm.estShippingTo || 5,
+        },
+        warranty_shortname: availabilityForm.warrantyShortname,
+        commission_category: availabilityForm.commissionCategory,
+        variants: variants, // Include the variants array
+      };
+    } else if (itemType === "product") {
       if (!productForm.price || !productForm.stock) {
         errorToastMessage("Please fill in all required fields");
         return;
@@ -139,17 +201,41 @@
         sku: productForm.sku,
       };
     } else if (itemType === "coupon") {
-      if (!couponForm.amount || !couponForm.minValue) {
+      if (
+        !couponForm.code ||
+        !couponForm.discountValue ||
+        !couponForm.validFrom ||
+        !couponForm.validTo
+      ) {
         errorToastMessage("Please fill in all required fields");
         return;
       }
 
       updatedContent = {
         ...updatedContent,
+        code: couponForm.code.toUpperCase(),
         type: couponForm.type,
-        amount: parseFloat(couponForm.amount),
-        min_value: parseFloat(couponForm.minValue),
-        max_value: couponForm.maxValue ? parseFloat(couponForm.maxValue) : null,
+        discount_type: couponForm.discountType,
+        discount_value: parseFloat(couponForm.discountValue),
+        minimum_spend: couponForm.minimumSpend
+          ? parseFloat(couponForm.minimumSpend)
+          : 0,
+        maximum_amount: couponForm.maximumAmount
+          ? parseFloat(couponForm.maximumAmount)
+          : null,
+        maximum_uses: couponForm.maximumUses
+          ? parseInt(couponForm.maximumUses)
+          : null,
+        maximum_per_user: parseInt(couponForm.maximumPerUser) || 1,
+        usage_count: content.usage_count || 0,
+        validity: {
+          from: couponForm.validFrom,
+          to: couponForm.validTo,
+        },
+        applies_to: {
+          brand_shortnames: couponForm.brandShortnames,
+        },
+        seller_shortname: content.seller_shortname,
       };
     } else if (itemType === "branch") {
       if (
@@ -181,15 +267,41 @@
         ...updatedContent,
         price: parseFloat(bundleForm.price),
       };
+    } else if (itemType === "discount") {
+      if (
+        !discountForm.type ||
+        !discountForm.typeShortname ||
+        !discountForm.value ||
+        !discountForm.validFrom ||
+        !discountForm.validTo
+      ) {
+        errorToastMessage("Please fill in all required fields");
+        return;
+      }
+
+      updatedContent = {
+        ...updatedContent,
+        type: discountForm.type,
+        type_shortname: discountForm.typeShortname,
+        value: parseInt(discountForm.value),
+        validity: {
+          from: discountForm.validFrom,
+          to: discountForm.validTo,
+        },
+      };
     }
 
     isSaving = true;
     try {
+      const resourceType =
+        $params.resource_type === "ticket"
+          ? ResourceType.ticket
+          : ResourceType.content;
       await replaceEntity(
         item.shortname,
-        "Ecommerce",
+        "e_commerce",
         $params.subpath,
-        ResourceType.content,
+        resourceType,
         {
           content: updatedContent,
         },
@@ -208,7 +320,7 @@
   }
 
   function getLocalizedDisplayName(item) {
-    const displayname = item?.displayname;
+    const displayname = item?.attributes?.displayname || item?.displayname;
 
     if (!displayname) {
       return item?.shortname || $_("seller_dashboard.untitled");
@@ -227,7 +339,7 @@
   }
 
   function getContent(item) {
-    const payload = item?.payload;
+    const payload = item?.attributes?.payload || item?.payload;
     if (!payload || !payload.body) return null;
 
     return payload.body.content || payload.body;
@@ -236,10 +348,14 @@
   function getItemType(content) {
     if (!content) return "unknown";
 
-    if (content.product_id || content.category_id) {
+    if (content.product_shortname || content.variants) {
+      return "availability";
+    } else if (content.product_id || content.category_id) {
       return "product";
-    } else if (content.type && content.amount !== undefined) {
+    } else if (content.code || (content.type && content.discount_type)) {
       return "coupon";
+    } else if (content.type && content.type_shortname && content.validity) {
+      return "discount";
     } else if (content.country || content.city) {
       return "branch";
     } else if (content.product_ids || content.price !== undefined) {
@@ -292,7 +408,148 @@
       </div>
 
       <div class="content-body">
-        {#if getItemType(getContent(item)) === "product"}
+        {#if getItemType(getContent(item)) === "availability"}
+          <form class="edit-form" onsubmit={(e) => e.preventDefault()}>
+            <div class="form-section">
+              <h2 class="section-title">
+                {$_("seller_dashboard.shipping_options") || "Shipping Options"}
+              </h2>
+
+              <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    bind:checked={availabilityForm.hasFastDelivery}
+                    class="form-checkbox"
+                  />
+                  <span
+                    >{$_("seller_dashboard.fast_delivery") ||
+                      "Fast Delivery"}</span
+                  >
+                </label>
+              </div>
+
+              <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    bind:checked={availabilityForm.hasFreeShipping}
+                    class="form-checkbox"
+                  />
+                  <span
+                    >{$_("seller_dashboard.free_shipping") ||
+                      "Free Shipping"}</span
+                  >
+                </label>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" class:rtl={$isRTL}>
+                    <span
+                      >{$_("seller_dashboard.est_shipping_from") ||
+                        "Shipping From (days)"}</span
+                    >
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    bind:value={availabilityForm.estShippingFrom}
+                    class="form-input"
+                    class:rtl={$isRTL}
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" class:rtl={$isRTL}>
+                    <span
+                      >{$_("seller_dashboard.est_shipping_to") ||
+                        "Shipping To (days)"}</span
+                    >
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    bind:value={availabilityForm.estShippingTo}
+                    class="form-input"
+                    class:rtl={$isRTL}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h2 class="section-title">
+                {$_("seller_dashboard.additional_info") ||
+                  "Additional Information"}
+              </h2>
+
+              <div class="form-group">
+                <label class="form-label" class:rtl={$isRTL}>
+                  <span
+                    >{$_("seller_dashboard.warranty_shortname") ||
+                      "Warranty Shortname"}</span
+                  >
+                </label>
+                <input
+                  type="text"
+                  bind:value={availabilityForm.warrantyShortname}
+                  placeholder={$_("seller_dashboard.enter_warranty") ||
+                    "Enter warranty shortname"}
+                  class="form-input"
+                  class:rtl={$isRTL}
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" class:rtl={$isRTL}>
+                  <span
+                    >{$_("seller_dashboard.commission_category") ||
+                      "Commission Category"}</span
+                  >
+                </label>
+                <input
+                  type="text"
+                  bind:value={availabilityForm.commissionCategory}
+                  placeholder={$_("seller_dashboard.enter_commission") ||
+                    "Enter commission category"}
+                  class="form-input"
+                  class:rtl={$isRTL}
+                />
+              </div>
+            </div>
+
+            {#if variants && variants.length > 0}
+              <div class="form-section">
+                <h2 class="section-title">
+                  {$_("seller_dashboard.variants") || "Variants"} ({variants.length})
+                </h2>
+                <p class="section-note">
+                  {$_("seller_dashboard.variants_readonly_note") ||
+                    "Variant details are read-only. To modify variants, please create a new availability entry."}
+                </p>
+                <div class="variants-preview">
+                  {#each variants as variant, index}
+                    <div class="variant-preview-card">
+                      <div class="variant-preview-header">
+                        <span class="variant-number">Variant {index + 1}</span>
+                        <span class="variant-price"
+                          >${variant.retail_price}</span
+                        >
+                      </div>
+                      <div class="variant-preview-details">
+                        <span class="variant-detail"
+                          >SKU: {variant.sku || "N/A"}</span
+                        >
+                        <span class="variant-detail">Qty: {variant.qty}</span>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+          </form>
+        {:else if getItemType(getContent(item)) === "product"}
           <form class="edit-form" onsubmit={(e) => e.preventDefault()}>
             <div class="form-group">
               <label class="form-label" class:rtl={$isRTL}>
@@ -345,6 +602,23 @@
             <div class="form-group">
               <label class="form-label" class:rtl={$isRTL}>
                 <span
+                  >{$_("seller_dashboard.coupon_code") || "Coupon Code"} *</span
+                >
+              </label>
+              <input
+                type="text"
+                bind:value={couponForm.code}
+                placeholder={$_("seller_dashboard.enter_coupon_code") ||
+                  "Enter coupon code"}
+                class="form-input"
+                class:rtl={$isRTL}
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" class:rtl={$isRTL}>
+                <span
                   >{$_("seller_dashboard.coupon_type") || "Coupon Type"} *</span
                 >
               </label>
@@ -352,26 +626,50 @@
                 bind:value={couponForm.type}
                 class="form-select"
                 class:rtl={$isRTL}
+                required
               >
-                <option value="value"
-                  >{$_("seller_dashboard.fixed_value") || "Fixed Value"}</option
+                <option value="individual"
+                  >{$_("seller_dashboard.individual") || "Individual"}</option
                 >
-                <option value="percentage"
-                  >{$_("seller_dashboard.percentage") || "Percentage"}</option
+                <option value="bulk"
+                  >{$_("seller_dashboard.bulk") || "Bulk"}</option
                 >
               </select>
             </div>
 
             <div class="form-group">
               <label class="form-label" class:rtl={$isRTL}>
-                <span>{$_("seller_dashboard.amount") || "Amount"} *</span>
+                <span
+                  >{$_("seller_dashboard.discount_type") || "Discount Type"} *</span
+                >
+              </label>
+              <select
+                bind:value={couponForm.discountType}
+                class="form-select"
+                class:rtl={$isRTL}
+                required
+              >
+                <option value="percentage"
+                  >{$_("seller_dashboard.percentage") || "Percentage"}</option
+                >
+                <option value="fixed"
+                  >{$_("seller_dashboard.fixed") || "Fixed Amount"}</option
+                >
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" class:rtl={$isRTL}>
+                <span
+                  >{$_("seller_dashboard.discount_value") || "Discount Value"} *</span
+                >
               </label>
               <input
                 type="number"
                 step="0.01"
                 min="0"
-                bind:value={couponForm.amount}
-                placeholder={couponForm.type === "percentage"
+                bind:value={couponForm.discountValue}
+                placeholder={couponForm.discountType === "percentage"
                   ? "e.g., 20 for 20%"
                   : "e.g., 10 for $10"}
                 class="form-input"
@@ -383,16 +681,71 @@
             <div class="form-group">
               <label class="form-label" class:rtl={$isRTL}>
                 <span
-                  >{$_("seller_dashboard.min_value") || "Minimum Value"} *</span
+                  >{$_("seller_dashboard.minimum_spend") ||
+                    "Minimum Spend"}</span
                 >
               </label>
               <input
                 type="number"
                 step="0.01"
                 min="0"
-                bind:value={couponForm.minValue}
-                placeholder={$_("seller_dashboard.enter_min_value") ||
-                  "Enter minimum value"}
+                bind:value={couponForm.minimumSpend}
+                placeholder={$_("seller_dashboard.enter_minimum_spend") ||
+                  "Enter minimum spend"}
+                class="form-input"
+                class:rtl={$isRTL}
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" class:rtl={$isRTL}>
+                <span
+                  >{$_("seller_dashboard.maximum_amount") ||
+                    "Maximum Discount Amount"}</span
+                >
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                bind:value={couponForm.maximumAmount}
+                placeholder={$_("seller_dashboard.enter_maximum_amount") ||
+                  "Enter maximum discount (optional)"}
+                class="form-input"
+                class:rtl={$isRTL}
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" class:rtl={$isRTL}>
+                <span
+                  >{$_("seller_dashboard.maximum_uses") ||
+                    "Maximum Total Uses"}</span
+                >
+              </label>
+              <input
+                type="number"
+                min="1"
+                bind:value={couponForm.maximumUses}
+                placeholder={$_("seller_dashboard.enter_maximum_uses") ||
+                  "Enter max uses (optional)"}
+                class="form-input"
+                class:rtl={$isRTL}
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" class:rtl={$isRTL}>
+                <span
+                  >{$_("seller_dashboard.maximum_per_user") ||
+                    "Maximum Per User"} *</span
+                >
+              </label>
+              <input
+                type="number"
+                min="1"
+                bind:value={couponForm.maximumPerUser}
+                placeholder="1"
                 class="form-input"
                 class:rtl={$isRTL}
                 required
@@ -402,20 +755,46 @@
             <div class="form-group">
               <label class="form-label" class:rtl={$isRTL}>
                 <span
-                  >{$_("seller_dashboard.max_value") || "Maximum Value"}</span
+                  >{$_("seller_dashboard.valid_from") || "Valid From"} *</span
                 >
               </label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
-                bind:value={couponForm.maxValue}
-                placeholder={$_("seller_dashboard.enter_max_value") ||
-                  "Enter maximum value (optional)"}
+                type="date"
+                bind:value={couponForm.validFrom}
                 class="form-input"
                 class:rtl={$isRTL}
+                required
               />
             </div>
+
+            <div class="form-group">
+              <label class="form-label" class:rtl={$isRTL}>
+                <span>{$_("seller_dashboard.valid_to") || "Valid To"} *</span>
+              </label>
+              <input
+                type="date"
+                bind:value={couponForm.validTo}
+                class="form-input"
+                class:rtl={$isRTL}
+                required
+              />
+            </div>
+
+            {#if couponForm.brandShortnames && couponForm.brandShortnames.length > 0}
+              <div class="form-group">
+                <label class="form-label" class:rtl={$isRTL}>
+                  <span
+                    >{$_("seller_dashboard.applies_to_brands") ||
+                      "Applies To Brands"}</span
+                  >
+                </label>
+                <div class="brand-tags">
+                  {#each couponForm.brandShortnames as brand}
+                    <span class="brand-tag">{brand}</span>
+                  {/each}
+                </div>
+              </div>
+            {/if}
           </form>
         {:else if getItemType(getContent(item)) === "branch"}
           <form class="edit-form" onsubmit={(e) => e.preventDefault()}>
@@ -493,6 +872,92 @@
                 rows="3"
                 required
               ></textarea>
+            </div>
+          </form>
+        {:else if getItemType(getContent(item)) === "discount"}
+          <form class="edit-form" onsubmit={(e) => e.preventDefault()}>
+            <div class="form-group">
+              <label class="form-label" class:rtl={$isRTL}>
+                <span
+                  >{$_("seller_dashboard.discount_type") || "Discount Type"} *</span
+                >
+              </label>
+              <select
+                bind:value={discountForm.type}
+                class="form-select"
+                class:rtl={$isRTL}
+                required
+              >
+                <option value=""
+                  >{$_("seller_dashboard.select_type") || "Select Type"}</option
+                >
+                <option value="brand">Brand</option>
+                <option value="category">Category</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" class:rtl={$isRTL}>
+                <span
+                  >{$_("seller_dashboard.type_shortname") || "Type Shortname"} *</span
+                >
+              </label>
+              <input
+                type="text"
+                bind:value={discountForm.typeShortname}
+                placeholder={$_("seller_dashboard.enter_type_shortname") ||
+                  "Enter brand or category shortname"}
+                class="form-input"
+                class:rtl={$isRTL}
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" class:rtl={$isRTL}>
+                <span
+                  >{$_("seller_dashboard.discount_value") || "Discount Value"} (%)*</span
+                >
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                bind:value={discountForm.value}
+                placeholder={$_("seller_dashboard.enter_discount_value") ||
+                  "Enter discount percentage"}
+                class="form-input"
+                class:rtl={$isRTL}
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" class:rtl={$isRTL}>
+                <span
+                  >{$_("seller_dashboard.valid_from") || "Valid From"} *</span
+                >
+              </label>
+              <input
+                type="date"
+                bind:value={discountForm.validFrom}
+                class="form-input"
+                class:rtl={$isRTL}
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" class:rtl={$isRTL}>
+                <span>{$_("seller_dashboard.valid_to") || "Valid To"} *</span>
+              </label>
+              <input
+                type="date"
+                bind:value={discountForm.validTo}
+                class="form-input"
+                class:rtl={$isRTL}
+                required
+              />
             </div>
           </form>
         {:else if getItemType(getContent(item)) === "bundle"}
@@ -859,6 +1324,113 @@
 
     .content-body {
       padding: 1.5rem;
+    }
+  }
+
+  /* Availability Form Styles */
+  .form-section {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 1.25rem 0;
+  }
+
+  .section-note {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 1rem 0;
+    padding: 0.75rem;
+    background: #f9fafb;
+    border-left: 3px solid #3b82f6;
+    border-radius: 0.25rem;
+  }
+
+  .checkbox-group {
+    margin-bottom: 1rem;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .form-checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+    accent-color: #3b82f6;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .variants-preview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .variant-preview-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+
+  .variant-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .variant-number {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .variant-price {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #3b82f6;
+  }
+
+  .variant-preview-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .variant-detail {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  @media (max-width: 768px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .variants-preview {
+      grid-template-columns: 1fr;
     }
   }
 </style>

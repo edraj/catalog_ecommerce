@@ -621,7 +621,6 @@
         tags: [`product:${selectedProduct}`],
         is_active: true,
         workflow_shortname: "availability",
-        state: "approved",
       };
 
       await createEntity(
@@ -978,7 +977,7 @@
     itemToEdit = item;
     const payload = item.attributes?.payload;
     const body = payload?.body;
-    const content = body?.content || {};
+    const content = body?.content || body;
 
     if (item.subpath.includes("/available")) {
       editItem(item);
@@ -1003,6 +1002,14 @@
       await loadBrands();
       showEditModal = true;
     } else if (item.subpath.includes("/discounts")) {
+      discountForm = {
+        type: content.type || "",
+        typeShortname: content.type_shortname || "",
+        value: content.value?.toString() || "",
+        validFrom: content.validity?.from || "",
+        validTo: content.validity?.to || "",
+      };
+      await Promise.all([loadBrands(), loadDiscountCategories()]);
       showEditModal = true;
     } else if (item.subpath.includes("/warranties")) {
       showEditModal = true;
@@ -1025,9 +1032,17 @@
       validTo: "",
       brandShortnames: [],
     };
+    discountForm = {
+      type: "",
+      typeShortname: "",
+      value: "",
+      validFrom: "",
+      validTo: "",
+    };
     branchForm = { name: "", country: "", state: "", city: "", address: "" };
     bundleForm = { selectedProducts: [], price: "" };
     brands = [];
+    discountCategories = [];
   }
 
   async function openDiscountModal() {
@@ -1401,8 +1416,32 @@
           is_active: true,
         };
       } else if (subpath.includes("/discounts")) {
-        errorToastMessage("Discount updates coming soon");
-        return;
+        if (
+          !discountForm.type ||
+          !discountForm.typeShortname ||
+          !discountForm.value ||
+          !discountForm.validFrom ||
+          !discountForm.validTo
+        ) {
+          errorToastMessage("Please fill in all required fields");
+          return;
+        }
+        updateData = {
+          displayname_en: null,
+          displayname_ar: null,
+          displayname_ku: null,
+          body: {
+            type: discountForm.type,
+            type_shortname: discountForm.typeShortname,
+            value: parseInt(discountForm.value),
+            validity: {
+              from: discountForm.validFrom,
+              to: discountForm.validTo,
+            },
+          },
+          tags: itemToEdit.attributes?.tags || [],
+          is_active: true,
+        };
       } else if (subpath.includes("/warranties")) {
         errorToastMessage("Warranty updates coming soon");
         return;
