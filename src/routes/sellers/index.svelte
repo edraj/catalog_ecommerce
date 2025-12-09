@@ -1855,213 +1855,227 @@
           </p>
         </div>
 
-        <div class="items-grid">
-          {#each filteredItems as item (item.shortname)}
-            {@const IconComponent = getResourceTypeIcon(item.resource_type)}
-            <div class="item-card">
-              <div class="item-card-header">
-                <div class="item-type-badge">
-                  <IconComponent class="type-icon" />
-                  <span>{getResourceTypeLabel(item.resource_type, $_)}</span>
-                </div>
-                <div class="item-actions">
-                  <button
-                    class="action-button view"
-                    onclick={() => viewItem(item)}
-                    title={$_("seller_dashboard.view")}
+        <div class="items-table-container">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th class="th-type">{$_("seller_dashboard.type") || "Type"}</th>
+                <th class="th-name">{$_("seller_dashboard.name") || "Name"}</th>
+                <th class="th-shortname"
+                  >{$_("seller_dashboard.shortname") || "Shortname"}</th
+                >
+                <th class="th-details"
+                  >{$_("seller_dashboard.details") || "Details"}</th
+                >
+                <th class="th-updated"
+                  >{$_("seller_dashboard.updated") || "Updated"}</th
+                >
+                <th class="th-actions"
+                  >{$_("seller_dashboard.actions") || "Actions"}</th
+                >
+              </tr>
+            </thead>
+            <tbody>
+              {#each filteredItems as item (item.shortname)}
+                {@const IconComponent = getResourceTypeIcon(item.resource_type)}
+                <tr class="item-row">
+                  <td
+                    class="td-type"
+                    data-label={$_("seller_dashboard.type") || "Type"}
                   >
-                    <svg
-                      class="action-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    class="action-button edit"
-                    onclick={() => openEditModal(item)}
-                    title={$_("seller_dashboard.edit")}
+                    <div class="type-cell">
+                      <IconComponent class="type-icon-small" />
+                      <span class="type-label"
+                        >{getResourceTypeLabel(item.resource_type, $_)}</span
+                      >
+                    </div>
+                  </td>
+                  <td
+                    class="td-name"
+                    data-label={$_("seller_dashboard.name") || "Name"}
                   >
-                    <svg
-                      class="action-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    class="action-button delete"
-                    onclick={() => openDeleteModal(item)}
-                    title={$_("seller_dashboard.delete")}
+                    <div class="name-cell">
+                      <span class="item-name" class:rtl={$isRTL}>
+                        {#if item.resource_type === "ticket" && item.attributes?.payload?.body?.product_shortname}
+                          {getProductName(
+                            item.attributes.payload.body.product_shortname
+                          )}
+                        {:else}
+                          {getLocalizedDisplayName(item, $locale)}
+                        {/if}
+                      </span>
+                      {#if item.resource_type === "ticket" && item.attributes?.state}
+                        {@const stateColors = {
+                          open: {
+                            bg: "#fef3c7",
+                            text: "#92400e",
+                            border: "#fde68a",
+                          },
+                          approved: {
+                            bg: "#d1fae5",
+                            text: "#065f46",
+                            border: "#a7f3d0",
+                          },
+                          rejected: {
+                            bg: "#fee2e2",
+                            text: "#991b1b",
+                            border: "#fecaca",
+                          },
+                        }}
+                        {@const stateColor =
+                          stateColors[item.attributes.state] ||
+                          stateColors.open}
+                        <span
+                          class="status-badge"
+                          style="background: {stateColor.bg}; color: {stateColor.text}; border-color: {stateColor.border};"
+                        >
+                          {item.attributes.state}
+                        </span>
+                      {:else if getItemCategory(item)}
+                        {@const category = getItemCategory(item)}
+                        <span
+                          class="status-badge"
+                          style="background: {category.color}15; color: {category.color}; border-color: {category.color}30;"
+                        >
+                          {category.icon}
+                          {category.type}
+                        </span>
+                      {/if}
+                    </div>
+                  </td>
+                  <td
+                    class="td-shortname"
+                    data-label={$_("seller_dashboard.shortname") || "Shortname"}
                   >
-                    <svg
-                      class="action-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div class="item-card-body">
-                <div class="item-title-row">
-                  <h3 class="item-title" class:rtl={$isRTL}>
-                    {#if item.resource_type === "ticket" && item.attributes?.payload?.body?.product_shortname}
-                      {getProductName(
-                        item.attributes.payload.body.product_shortname
-                      )}
-                    {:else}
-                      {getLocalizedDisplayName(item, $locale)}
-                    {/if}
-                  </h3>
-                  {#if item.resource_type === "ticket" && item.attributes?.state}
-                    {@const stateColors = {
-                      open: {
-                        bg: "#fef3c7",
-                        text: "#92400e",
-                        border: "#fde68a",
-                      },
-                      approved: {
-                        bg: "#d1fae5",
-                        text: "#065f46",
-                        border: "#a7f3d0",
-                      },
-                      rejected: {
-                        bg: "#fee2e2",
-                        text: "#991b1b",
-                        border: "#fecaca",
-                      },
-                    }}
-                    {@const stateColor =
-                      stateColors[item.attributes.state] || stateColors.open}
-                    <span
-                      class="item-category-badge"
-                      style="background: {stateColor.bg}; color: {stateColor.text}; border-color: {stateColor.border};"
-                    >
-                      <span class="category-text">{item.attributes.state}</span>
-                    </span>
-                  {:else if getItemCategory(item)}
-                    {@const category = getItemCategory(item)}
-                    <span
-                      class="item-category-badge"
-                      style="background: {category.color}15; color: {category.color}; border-color: {category.color}30;"
-                    >
-                      <span class="category-icon">{category.icon}</span>
-                      <span class="category-text">{category.type}</span>
-                    </span>
-                  {/if}
-                </div>
-                <p class="item-shortname">{item.shortname}</p>
-
-                {#if item.resource_type === "ticket" && item.attributes?.payload?.body}
-                  {@const body = item.attributes.payload.body}
-                  {@const variants = body.variants || []}
-                  <div class="availability-details">
-                    <p class="availability-meta">
-                      <strong>{variants.length}</strong>
-                      variant{variants.length !== 1 ? "s" : ""}
-                    </p>
-                    {#if variants.length > 0}
-                      <div class="variant-preview">
-                        {#each variants.slice(0, 3) as variant}
-                          {@const optionNames =
-                            variant.options
-                              ?.map((opt: any) =>
-                                resolveOptionKey(
-                                  opt.key,
-                                  opt.variation_shortname
-                                )
-                              )
-                              .join(" + ") || ""}
-                          <div class="variant-item">
-                            <span class="variant-name">{optionNames}</span>
-                            <span class="variant-price"
-                              >${variant.retail_price}</span
-                            >
-                            <span class="variant-stock">Qty: {variant.qty}</span
-                            >
+                    <code class="shortname-code">{item.shortname}</code>
+                  </td>
+                  <td
+                    class="td-details"
+                    data-label={$_("seller_dashboard.details") || "Details"}
+                  >
+                    {#if item.resource_type === "ticket" && item.attributes?.payload?.body}
+                      {@const body = item.attributes.payload.body}
+                      {@const variants = body.variants || []}
+                      <div class="details-cell">
+                        <div class="detail-item">
+                          <strong>{variants.length}</strong>
+                          variant{variants.length !== 1 ? "s" : ""}
+                        </div>
+                        {#if variants.length > 0}
+                          <div class="variants-inline">
+                            {#each variants.slice(0, 2) as variant}
+                              <span class="variant-price-mini"
+                                >${variant.retail_price}</span
+                              >
+                            {/each}
+                            {#if variants.length > 2}
+                              <span class="more-mini"
+                                >+{variants.length - 2}</span
+                              >
+                            {/if}
                           </div>
-                        {/each}
-                        {#if variants.length > 3}
-                          <p class="more-variants">
-                            +{variants.length - 3} more
-                          </p>
+                        {/if}
+                        {#if body.has_fast_delivery || body.has_free_shipping}
+                          <div class="shipping-inline">
+                            {#if body.has_fast_delivery}
+                              <span class="badge-mini fast">⚡</span>
+                            {/if}
+                            {#if body.has_free_shipping}
+                              <span class="badge-mini free">🚚</span>
+                            {/if}
+                          </div>
                         {/if}
                       </div>
-                    {/if}
-                    {#if body.has_fast_delivery || body.has_free_shipping}
-                      <div class="shipping-badges">
-                        {#if body.has_fast_delivery}
-                          <span class="shipping-badge fast"
-                            >⚡ Fast Delivery</span
-                          >
-                        {/if}
-                        {#if body.has_free_shipping}
-                          <span class="shipping-badge free"
-                            >🚚 Free Shipping</span
-                          >
-                        {/if}
+                    {:else if getContentPreview(item)}
+                      <div class="preview-text" class:rtl={$isRTL}>
+                        {getContentPreview(item)}
                       </div>
+                    {:else}
+                      <span class="no-details">—</span>
                     {/if}
-                  </div>
-                {:else if getContentPreview(item)}
-                  <p class="item-preview" class:rtl={$isRTL}>
-                    {getContentPreview(item)}
-                  </p>
-                {/if}
-              </div>
-
-              <div class="item-card-footer">
-                <div class="item-meta">
-                  <svg
-                    class="meta-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
+                  </td>
+                  <td
+                    class="td-updated"
+                    data-label={$_("seller_dashboard.updated") || "Updated"}
                   >
-                    <circle cx="12" cy="12" r="10" stroke-width="2" />
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 6v6l4 2"
-                    />
-                  </svg>
-                  <span class="meta-text"
-                    >{formatDate(item.attributes.updated_at)}</span
+                    <time class="updated-time"
+                      >{formatDate(item.attributes.updated_at)}</time
+                    >
+                  </td>
+                  <td
+                    class="td-actions"
+                    data-label={$_("seller_dashboard.actions") || "Actions"}
                   >
-                </div>
-              </div>
-            </div>
-          {/each}
+                    <div class="actions-cell">
+                      <button
+                        class="table-action-btn view"
+                        onclick={() => viewItem(item)}
+                        title={$_("seller_dashboard.view")}
+                      >
+                        <svg
+                          class="action-icon"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        class="table-action-btn edit"
+                        onclick={() => openEditModal(item)}
+                        title={$_("seller_dashboard.edit")}
+                      >
+                        <svg
+                          class="action-icon"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        class="table-action-btn delete"
+                        onclick={() => openDeleteModal(item)}
+                        title={$_("seller_dashboard.delete")}
+                      >
+                        <svg
+                          class="action-icon"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 7l-.867 12.142A2 12 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
         </div>
       {/if}
     {/if}
