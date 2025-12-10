@@ -1140,7 +1140,7 @@ export async function getSpaces(
 
 export async function getSpaceContents(
   spaceName: string,
-  subpath = "/",
+  subpath: string = "/",
   scope: string,
   limit = 100,
   offset = 0,

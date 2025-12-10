@@ -11,6 +11,7 @@
 
   let ws = $state(null);
   let isMenuOpen = $state(false);
+  let isAdminExpanded = $state(false);
   let isRTL = $locale === "ar" || $locale === "ku";
 
   onMount(() => {
@@ -93,6 +94,11 @@
 
   function closeMenu() {
     isMenuOpen = false;
+    isAdminExpanded = false;
+  }
+
+  function toggleAdminMenu() {
+    isAdminExpanded = !isAdminExpanded;
   }
 
   function handleMenuItemClick(href: string) {
@@ -189,15 +195,15 @@
               >
                 <div class="dropdown-content">
                   {#if $roles.includes("super_admin")}
+                    <!-- Admin Collapsible Section -->
                     <div class="menu-section">
-                      <div class="menu-section-title">{$_("admin")}</div>
                       <button
-                        aria-label={`Admin Dashboard`}
-                        onclick={() => handleMenuItemClick("/dashboard/admin")}
-                        class="menu-item"
+                        onclick={toggleAdminMenu}
+                        class="menu-section-header"
+                        aria-expanded={isAdminExpanded}
                       >
                         <svg
-                          class="menu-icon"
+                          class="section-icon"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -206,171 +212,233 @@
                             stroke-linecap="round"
                             stroke-linejoin="round"
                             stroke-width="2"
-                            d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z"
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                           />
                         </svg>
-                        <span>{$_("dashboard")}</span>
+                        <span class="section-title">{$_("admin")}</span>
+                        <svg
+                          class="chevron {isAdminExpanded
+                            ? 'chevron-expanded'
+                            : ''}"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
                       </button>
-                      <button
-                        aria-label={`Contact Messages`}
-                        onclick={() =>
-                          handleMenuItemClick(
-                            "/dashboard/admin/contact-messages"
-                          )}
-                        class="menu-item"
-                      >
-                        <svg
-                          class="menu-icon"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                          />
-                        </svg>
-                        <span>{$_("contact_messages")}</span>
-                      </button>
-                      <button
-                        aria-label={`Reports`}
-                        onclick={() =>
-                          handleMenuItemClick("/dashboard/reports")}
-                        class="menu-item"
-                      >
-                        <svg
-                          class="menu-icon"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 12h6m-6 4h6M9 8h1m3.5-6H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L14.5 2z"
-                          />
-                        </svg>
 
-                        <span>{$_("reports")}</span>
-                      </button>
-                      <button
-                        aria-label={`Manage Permissions`}
-                        onclick={() =>
-                          handleMenuItemClick("/dashboard/permissions")}
-                        class="menu-item"
+                      <div
+                        class="admin-submenu {isAdminExpanded
+                          ? 'admin-submenu-expanded'
+                          : ''}"
                       >
-                        <svg
-                          class="menu-icon"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                        <button
+                          aria-label={`Admin Dashboard`}
+                          onclick={() =>
+                            handleMenuItemClick("/dashboard/admin")}
+                          class="menu-item submenu-item"
                         >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                          />
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 12l2 2 4-4"
-                          />
-                        </svg>
-                        <span>{$_("permission")}</span>
-                      </button>
-                      <button
-                        aria-label={`Manage Roles`}
-                        onclick={() => handleMenuItemClick("/dashboard/roles")}
-                        class="menu-item"
-                      >
-                        <svg
-                          class="menu-icon"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z"
+                            />
+                          </svg>
+                          <span>{$_("dashboard")}</span>
+                        </button>
+                        <button
+                          aria-label={`Contact Messages`}
+                          onclick={() =>
+                            handleMenuItemClick(
+                              "/dashboard/admin/contact-messages"
+                            )}
+                          class="menu-item submenu-item"
                         >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M5.121 17.804A9 9 0 1112 21v-1a7 7 0 100-14v1m0 4a3 3 0 013 3 3 3 0 01-3 3 3 3 0 01-3-3 3 3 0 013-3z"
-                          />
-                        </svg>
-
-                        <span>{$_("roles")}</span>
-                      </button>
-                      <button
-                        aria-label={`Manage Users`}
-                        onclick={() =>
-                          handleMenuItemClick("/dashboard/admin/users")}
-                        class="menu-item"
-                      >
-                        <svg
-                          class="menu-icon"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                            />
+                          </svg>
+                          <span>{$_("contact_messages")}</span>
+                        </button>
+                        <button
+                          aria-label={`Reports`}
+                          onclick={() =>
+                            handleMenuItemClick("/dashboard/reports")}
+                          class="menu-item submenu-item"
                         >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M15 17h5v-1a4 4 0 00-4-4h-1M9 17H4v-1a4 4 0 014-4h1m3-4a3 3 0 11-6 0 3 3 0 016 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-
-                        <span>{$_("Users")}</span>
-                      </button>
-                      <button
-                        aria-label={`Manage Configurations`}
-                        onclick={() =>
-                          handleMenuItemClick("/dashboard/admin/configs")}
-                        class="menu-item"
-                      >
-                        <svg
-                          class="menu-icon"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                          <svg
+                            class="menu-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M9 12h6m-6 4h6M9 8h1m3.5-6H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L14.5 2z"
+                            />
+                          </svg>
+                          <span>{$_("reports")}</span>
+                        </button>
+                        <button
+                          aria-label={`Manage Permissions`}
+                          onclick={() =>
+                            handleMenuItemClick("/dashboard/permissions")}
+                          class="menu-item submenu-item"
                         >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M11.983 13.983a2 2 0 100-4 2 2 0 000 4zM19.4 15a1.65 1.65 0 01.33 1.82l-.58 1a1.65 1.65 0 01-1.51.88h-1.12a6.66 6.66 0 01-1.3.76l-.17 1.12a1.65 1.65 0 01-.88 1.51l-1 .58a1.65 1.65 0 01-1.82-.33l-.8-.8a6.66 6.66 0 01-.76-1.3H7.4a1.65 1.65 0 01-1.51-.88l-.58-1a1.65 1.65 0 01.33-1.82l.8-.8a6.66 6.66 0 010-1.52l-.8-.8a1.65 1.65 0 01-.33-1.82l.58-1a1.65 1.65 0 011.51-.88h1.12c.23-.46.49-.89.76-1.3l-.17-1.12a1.65 1.65 0 01.88-1.51l1-.58a1.65 1.65 0 011.82.33l.8.8c.51-.13 1.03-.24 1.52-.24s1.01.11 1.52.24l.8-.8a1.65 1.65 0 011.82-.33l1 .58a1.65 1.65 0 01.88 1.51l-.17 1.12c.46.23.89.49 1.3.76h1.12a1.65 1.65 0 011.51.88l.58 1a1.65 1.65 0 01-.33 1.82l-.8.8c.13.51.24 1.03.24 1.52s-.11 1.01-.24 1.52l.8.8z"
-                          />
-                        </svg>
-
-                        <span>{$_("DefaultRole")}</span>
-                      </button>
-                      <button
-                        aria-label={`Manage Templates`}
-                        onclick={() =>
-                          handleMenuItemClick("/dashboard/templates")}
-                        class="menu-item"
-                      >
-                        <svg
-                          class="menu-icon"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                            />
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M9 12l2 2 4-4"
+                            />
+                          </svg>
+                          <span>{$_("permission")}</span>
+                        </button>
+                        <button
+                          aria-label={`Manage Roles`}
+                          onclick={() =>
+                            handleMenuItemClick("/dashboard/roles")}
+                          class="menu-item submenu-item"
                         >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8l6 6v4a2 2 0 01-2 2h-2M8 16v2a2 2 0 002 2h6a2 2 0 002-2v-2H8z"
-                          />
-                        </svg>
-
-                        <span>{$_("templates")}</span>
-                      </button>
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M5.121 17.804A9 9 0 1112 21v-1a7 7 0 100-14v1m0 4a3 3 0 013 3 3 3 0 01-3 3 3 3 0 01-3-3 3 3 0 013-3z"
+                            />
+                          </svg>
+                          <span>{$_("roles")}</span>
+                        </button>
+                        <button
+                          aria-label={`Manage Users`}
+                          onclick={() =>
+                            handleMenuItemClick("/dashboard/admin/users")}
+                          class="menu-item submenu-item"
+                        >
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M15 17h5v-1a4 4 0 00-4-4h-1M9 17H4v-1a4 4 0 014-4h1m3-4a3 3 0 11-6 0 3 3 0 016 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                          <span>{$_("Users")}</span>
+                        </button>
+                        <button
+                          aria-label={`Check Variation Requests`}
+                          onclick={() =>
+                            handleMenuItemClick(
+                              "/dashboard/admin/variation_requests"
+                            )}
+                          class="menu-item submenu-item"
+                        >
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 20h9M12 4h9M5 4h.01M5 20h.01M3 8h18M3 16h18M9 12h6"
+                            />
+                          </svg>
+                          <span>{$_("variation_requests")}</span>
+                        </button>
+                        <button
+                          aria-label={`Manage Configurations`}
+                          onclick={() =>
+                            handleMenuItemClick("/dashboard/admin/configs")}
+                          class="menu-item submenu-item"
+                        >
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M11.983 13.983a2 2 0 100-4 2 2 0 000 4zM19.4 15a1.65 1.65 0 01.33 1.82l-.58 1a1.65 1.65 0 01-1.51.88h-1.12a6.66 6.66 0 01-1.3.76l-.17 1.12a1.65 1.65 0 01-.88 1.51l-1 .58a1.65 1.65 0 01-1.82-.33l-.8-.8a6.66 6.66 0 01-.76-1.3H7.4a1.65 1.65 0 01-1.51-.88l-.58-1a1.65 1.65 0 01.33-1.82l.8-.8a6.66 6.66 0 010-1.52l-.8-.8a1.65 1.65 0 01-.33-1.82l.58-1a1.65 1.65 0 011.51-.88h1.12c.23-.46.49-.89.76-1.3l-.17-1.12a1.65 1.65 0 01.88-1.51l1-.58a1.65 1.65 0 011.82.33l.8.8c.51-.13 1.03-.24 1.52-.24s1.01.11 1.52.24l.8-.8a1.65 1.65 0 011.82-.33l1 .58a1.65 1.65 0 01.88 1.51l-.17 1.12c.46.23.89.49 1.3.76h1.12a1.65 1.65 0 011.51.88l.58 1a1.65 1.65 0 01-.33 1.82l-.8.8c.13.51.24 1.03.24 1.52s-.11 1.01-.24 1.52l.8.8z"
+                            />
+                          </svg>
+                          <span>{$_("DefaultRole")}</span>
+                        </button>
+                        <button
+                          aria-label={`Manage Templates`}
+                          onclick={() =>
+                            handleMenuItemClick("/dashboard/templates")}
+                          class="menu-item submenu-item"
+                        >
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8l6 6v4a2 2 0 01-2 2h-2M8 16v2a2 2 0 002 2h6a2 2 0 002-2v-2H8z"
+                            />
+                          </svg>
+                          <span>{$_("templates")}</span>
+                        </button>
+                      </div>
                     </div>
                     <div class="menu-divider"></div>
                   {/if}
@@ -709,6 +777,9 @@
     top: calc(100% + 0.5rem);
     z-index: 50;
     min-width: 16rem;
+    max-width: 20rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
     background: white;
     border: 1px solid rgba(229, 231, 235, 0.8);
     border-radius: 1rem;
@@ -717,6 +788,25 @@
       0 10px 10px -5px rgba(0, 0, 0, 0.04);
     backdrop-filter: blur(16px);
     animation: dropdown-enter 0.2s ease-out;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+
+  .dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .dropdown-menu::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dropdown-menu::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+  }
+
+  .dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.7);
   }
 
   @keyframes dropdown-enter {
@@ -750,6 +840,80 @@
     letter-spacing: 0.05em;
     padding: 0.5rem 0.75rem 0.25rem;
     margin-bottom: 0.25rem;
+  }
+
+  .menu-section-header {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem;
+    border: none;
+    background: linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.08),
+      rgba(37, 99, 235, 0.05)
+    );
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    color: #1e40af;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .menu-section-header:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.12),
+      rgba(37, 99, 235, 0.08)
+    );
+    transform: translateX(2px);
+  }
+
+  .section-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    flex: 1;
+    font-size: 0.875rem;
+  }
+
+  .chevron {
+    width: 1.125rem;
+    height: 1.125rem;
+    transition: transform 0.2s ease;
+  }
+
+  .chevron-expanded {
+    transform: rotate(180deg);
+  }
+
+  .admin-submenu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    padding-left: 0.5rem;
+  }
+
+  .admin-submenu-expanded {
+    max-height: 600px;
+  }
+
+  .submenu-item {
+    font-size: 0.8125rem;
+    padding: 0.625rem 0.75rem;
+    margin-bottom: 0.125rem;
+  }
+
+  .submenu-item .menu-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    opacity: 0.8;
   }
 
   .menu-item {

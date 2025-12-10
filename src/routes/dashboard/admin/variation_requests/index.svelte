@@ -32,6 +32,7 @@
   let showReviewModal = $state(false);
   let selectedRequest = $state(null);
   let statusFilter = $state("all");
+  let typeFilter = $state("all");
   let searchTerm = $state("");
   let filteredRequests = $state([]);
 
@@ -47,22 +48,34 @@
   async function loadRequests() {
     isLoading = true;
     try {
-      const response = await getSpaceContents(
-        "Ecommerce",
-        "sellers/variation_request",
+      // Load product requests
+      const productResponse = await getSpaceContents(
+        "e_commerce",
+        "/variation_request/products_requests",
         "managed",
         100,
         0,
         true
       );
 
-      if (response?.records) {
-        requests = response.records;
-        applyFilters();
-      }
+      // Load category requests
+      const categoryResponse = await getSpaceContents(
+        "e_commerce",
+        "/variation_request/categories_requests",
+        "managed",
+        100,
+        0,
+        true
+      );
+
+      // Combine both responses
+      const productRecords = productResponse?.records || [];
+      const categoryRecords = categoryResponse?.records || [];
+      requests = [...productRecords, ...categoryRecords];
+      applyFilters();
     } catch (error) {
-      console.error("Error loading variation requests:", error);
-      errorToastMessage("Failed to load variation requests");
+      console.error("Error loading requests:", error);
+      errorToastMessage("Failed to load requests");
     } finally {
       isLoading = false;
     }
@@ -73,30 +86,37 @@
 
     if (statusFilter !== "all") {
       result = result.filter((request) => {
-        const content =
-          request.attributes?.payload?.body?.content ||
-          request.attributes?.payload?.body;
+        const content = request.attributes?.payload?.body;
         return content?.status === statusFilter;
+      });
+    }
+
+    if (typeFilter !== "all") {
+      result = result.filter((request) => {
+        const content = request.attributes?.payload?.body;
+        return content?.request_type === typeFilter;
       });
     }
 
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
       result = result.filter((request) => {
-        const content =
-          request.attributes?.payload?.body?.content ||
-          request.attributes?.payload?.body;
+        const content = request.attributes?.payload?.body;
         const displayname =
-          request.attributes?.displayname?.toLowerCase() || "";
-        const productId = content?.product_id?.toLowerCase() || "";
-        const sellerId = content?.seller_id?.toLowerCase() || "";
+          request.attributes?.displayname?.en?.toLowerCase() || "";
+        const sellerName = content?.seller_shortname?.toLowerCase() || "";
         const justification = content?.justification?.toLowerCase() || "";
+        const productName =
+          content?.product_details?.name?.en?.toLowerCase() || "";
+        const categoryName =
+          content?.category_details?.name?.en?.toLowerCase() || "";
 
         return (
           displayname.includes(searchLower) ||
-          productId.includes(searchLower) ||
-          sellerId.includes(searchLower) ||
-          justification.includes(searchLower)
+          sellerName.includes(searchLower) ||
+          justification.includes(searchLower) ||
+          productName.includes(searchLower) ||
+          categoryName.includes(searchLower)
         );
       });
     }
@@ -106,9 +126,7 @@
 
   function openReviewModal(request: any) {
     selectedRequest = request;
-    const content =
-      request.attributes?.payload?.body?.content ||
-      request.attributes?.payload?.body;
+    const content = request.attributes?.payload?.body;
     reviewForm = {
       status: content?.status === "pending" ? "approved" : content?.status,
       admin_notes: content?.admin_notes || "",
@@ -130,25 +148,22 @@
 
     try {
       isLoading = true;
-      const content =
-        selectedRequest.attributes?.payload?.body?.content ||
-        selectedRequest.attributes?.payload?.body;
+      const content = selectedRequest.attributes?.payload?.body;
+
+      const updatedContent = {
+        ...content,
+        status: reviewForm.status,
+        admin_notes: reviewForm.admin_notes,
+        reviewed_by: "admin",
+        reviewed_at: Date.now(),
+      };
 
       const updateData = {
         displayname: selectedRequest.attributes?.displayname,
-        body: {
-          content: {
-            ...content,
-            status: reviewForm.status,
-            admin_notes: reviewForm.admin_notes,
-            reviewed_by: "dmart",
-            reviewed_at: Date.now(),
-          },
-          content_type: "json",
-        },
+        body: updatedContent,
         tags: [
-          `product:${content.product_id}`,
-          `seller:${content.seller_id}`,
+          `seller:${content.seller_shortname}`,
+          `type:${content.request_type}_request`,
           `status:${reviewForm.status}`,
         ],
         is_active: true,
@@ -156,7 +171,7 @@
 
       await updateEntity(
         selectedRequest.shortname,
-        "Ecommerce",
+        "e_commerce",
         selectedRequest.subpath,
         selectedRequest.resource_type,
         updateData,
@@ -200,10 +215,11 @@
   }
 
   function getRequestContent(request: any) {
-    return (
-      request.attributes?.payload?.body?.content ||
-      request.attributes?.payload?.body
-    );
+    return request.attributes?.payload?.body;
+  }
+
+  function getTypeBadgeClass(type: string) {
+    return type === "product" ? "type-product" : "type-category";
   }
 
   function getStatusBadgeClass(status: string) {
@@ -236,11 +252,12 @@
       </div>
       <div class="header-text">
         <h1 class="page-title">
-          {$_("admin_dashboard.variation_requests") || "Variation Requests"}
+          {$_("admin_dashboard.product_category_requests") ||
+            "Product & Category Requests"}
         </h1>
         <p class="page-subtitle">
-          {$_("admin_dashboard.variation_requests_subtitle") ||
-            "Review and manage seller variation requests"}
+          {$_("admin_dashboard.product_category_requests_subtitle") ||
+            "Review and manage seller product and category requests"}
         </p>
       </div>
     </div>
@@ -284,6 +301,33 @@
           stroke-linejoin="round"
           stroke-width="2"
           d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+        />
+      </svg>
+      <select bind:value={typeFilter} class="filter-select" class:rtl={$isRTL}>
+        <option value="all"
+          >{$_("admin_dashboard.all_types") || "All Types"}</option
+        >
+        <option value="product"
+          >{$_("admin_dashboard.product") || "Product"}</option
+        >
+        <option value="category"
+          >{$_("admin_dashboard.category") || "Category"}</option
+        >
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <svg
+        class="filter-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
         />
       </svg>
       <select
@@ -334,7 +378,7 @@
       </h3>
       <p class="empty-description">
         {$_("admin_dashboard.no_requests_description") ||
-          "There are no variation requests matching your filters"}
+          "There are no requests matching your filters"}
       </p>
     </div>
   {:else}
@@ -344,12 +388,44 @@
         <div class="request-card">
           <div class="card-header">
             <div class="card-title-section">
+              <div class="title-badges">
+                <span
+                  class="type-badge {getTypeBadgeClass(content?.request_type)}"
+                >
+                  {#if content?.request_type === "product"}
+                    <svg
+                      class="badge-icon"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                    </svg>
+                  {:else}
+                    <svg
+                      class="badge-icon"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"
+                      />
+                    </svg>
+                  {/if}
+                  {content?.request_type || "unknown"}
+                </span>
+                <span
+                  class="status-badge {getStatusBadgeClass(content?.status)}"
+                >
+                  {content?.status || "pending"}
+                </span>
+              </div>
               <h3 class="card-title">
-                {request.attributes?.displayname.en || request.shortname}
+                {#if content?.request_type === "product"}
+                  {content?.product_details?.name?.en || request.shortname}
+                {:else}
+                  {content?.category_details?.name?.en || request.shortname}
+                {/if}
               </h3>
-              <span class="status-badge {getStatusBadgeClass(content?.status)}">
-                {content?.status || "pending"}
-              </span>
             </div>
             <div class="card-meta">
               <span class="meta-item">
@@ -374,29 +450,73 @@
 
           <div class="card-body">
             <div class="info-row">
-              <span class="info-label">Product:</span>
-              <span class="info-value">{content?.product_id || "N/A"}</span>
-            </div>
-            <div class="info-row">
               <span class="info-label">Seller:</span>
-              <span class="info-value">{content?.seller_id || "N/A"}</span>
+              <span class="info-value"
+                >{content?.seller_shortname || "N/A"}</span
+              >
             </div>
 
-            {#if content?.requested_variations && content.requested_variations.length > 0}
-              <div class="variations-section">
-                <span class="variations-label">Requested Variations:</span>
-                <div class="variations-list">
-                  {#each content.requested_variations as variation}
-                    <div class="variation-item">
-                      <span class="variation-attr"
-                        >{variation.attribute_name}:</span
-                      >
-                      <span class="variation-value"
-                        >{variation.attribute_value}</span
-                      >
+            {#if content?.request_type === "product"}
+              <div class="product-details">
+                <h4 class="details-title">Product Details</h4>
+                {#if content?.product_details?.category_shortname}
+                  <div class="info-row">
+                    <span class="info-label">Category:</span>
+                    <span class="info-value"
+                      >{content.product_details.category_shortname}</span
+                    >
+                  </div>
+                {/if}
+                {#if content?.product_details?.brand_shortname}
+                  <div class="info-row">
+                    <span class="info-label">Brand:</span>
+                    <span class="info-value"
+                      >{content.product_details.brand_shortname}</span
+                    >
+                  </div>
+                {/if}
+                {#if content?.product_details?.description?.en}
+                  <div class="info-row">
+                    <span class="info-label">Description:</span>
+                    <span class="info-value"
+                      >{content.product_details.description.en}</span
+                    >
+                  </div>
+                {/if}
+
+                {#if content?.product_details?.specifications && content.product_details.specifications.length > 0}
+                  <div class="variations-section">
+                    <span class="variations-label">Specifications:</span>
+                    <div class="variations-list">
+                      {#each content.product_details.specifications as spec}
+                        <div class="variation-item">
+                          <span class="variation-attr">{spec.key}:</span>
+                          <span class="variation-value">{spec.value}</span>
+                        </div>
+                      {/each}
                     </div>
-                  {/each}
-                </div>
+                  </div>
+                {/if}
+              </div>
+            {:else if content?.request_type === "category"}
+              <div class="category-details">
+                <h4 class="details-title">Category Details</h4>
+                {#if content?.category_details?.description?.en}
+                  <div class="info-row">
+                    <span class="info-label">Description:</span>
+                    <span class="info-value"
+                      >{content.category_details.description.en}</span
+                    >
+                  </div>
+                {/if}
+                {#if content?.category_details?.parent_category}
+                  <div class="info-row">
+                    <span class="info-label">Parent Category:</span>
+                    <span class="info-value"
+                      >{content.category_details.parent_category}</span
+                    >
+                  </div>
+                {/if}
               </div>
             {/if}
 
@@ -444,7 +564,7 @@
     <div class="modal-container">
       <div class="modal-header">
         <h2 class="modal-title">
-          {$_("admin_dashboard.review_request") || "Review Variation Request"}
+          {$_("admin_dashboard.review_request") || "Review Request"}
         </h2>
         <button
           class="modal-close"
@@ -470,26 +590,130 @@
       <div class="modal-body">
         <div class="review-info">
           <div class="info-block">
-            <span class="block-label">Product ID:</span>
-            <span class="block-value">{content?.product_id || "N/A"}</span>
+            <span class="block-label">Request Type:</span>
+            <span
+              class="block-value type-badge {getTypeBadgeClass(
+                content?.request_type
+              )}"
+            >
+              {content?.request_type || "N/A"}
+            </span>
           </div>
           <div class="info-block">
-            <span class="block-label">Seller ID:</span>
-            <span class="block-value">{content?.seller_id || "N/A"}</span>
+            <span class="block-label">Seller:</span>
+            <span class="block-value">{content?.seller_shortname || "N/A"}</span
+            >
           </div>
 
-          {#if content?.requested_variations && content.requested_variations.length > 0}
+          {#if content?.request_type === "product"}
             <div class="info-block full-width">
-              <span class="block-label">Requested Variations:</span>
-              <div class="variations-grid">
-                {#each content.requested_variations as variation}
-                  <div class="variation-card">
-                    <span class="var-name">{variation.attribute_name}</span>
-                    <span class="var-arrow">→</span>
-                    <span class="var-val">{variation.attribute_value}</span>
+              <span class="block-label">Product Information:</span>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Name (EN):</span>
+                  <span class="detail-value"
+                    >{content?.product_details?.name?.en || "N/A"}</span
+                  >
+                </div>
+                {#if content?.product_details?.name?.ar}
+                  <div class="detail-item">
+                    <span class="detail-label">Name (AR):</span>
+                    <span class="detail-value rtl"
+                      >{content.product_details.name.ar}</span
+                    >
                   </div>
-                {/each}
+                {/if}
+                {#if content?.product_details?.name?.ku}
+                  <div class="detail-item">
+                    <span class="detail-label">Name (KU):</span>
+                    <span class="detail-value"
+                      >{content.product_details.name.ku}</span
+                    >
+                  </div>
+                {/if}
+                <div class="detail-item">
+                  <span class="detail-label">Category:</span>
+                  <span class="detail-value"
+                    >{content?.product_details?.category_shortname ||
+                      "N/A"}</span
+                  >
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Brand:</span>
+                  <span class="detail-value"
+                    >{content?.product_details?.brand_shortname || "N/A"}</span
+                  >
+                </div>
               </div>
+
+              {#if content?.product_details?.description?.en}
+                <div class="description-block">
+                  <span class="detail-label">Description (EN):</span>
+                  <p class="detail-text">
+                    {content.product_details.description.en}
+                  </p>
+                </div>
+              {/if}
+
+              {#if content?.product_details?.specifications && content.product_details.specifications.length > 0}
+                <div class="specs-block">
+                  <span class="detail-label">Specifications:</span>
+                  <div class="specs-grid">
+                    {#each content.product_details.specifications as spec}
+                      <div class="spec-card">
+                        <span class="spec-name">{spec.key}</span>
+                        <span class="spec-arrow">→</span>
+                        <span class="spec-val">{spec.value}</span>
+                      </div>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            </div>
+          {:else if content?.request_type === "category"}
+            <div class="info-block full-width">
+              <span class="block-label">Category Information:</span>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Name (EN):</span>
+                  <span class="detail-value"
+                    >{content?.category_details?.name?.en || "N/A"}</span
+                  >
+                </div>
+                {#if content?.category_details?.name?.ar}
+                  <div class="detail-item">
+                    <span class="detail-label">Name (AR):</span>
+                    <span class="detail-value rtl"
+                      >{content.category_details.name.ar}</span
+                    >
+                  </div>
+                {/if}
+                {#if content?.category_details?.name?.ku}
+                  <div class="detail-item">
+                    <span class="detail-label">Name (KU):</span>
+                    <span class="detail-value"
+                      >{content.category_details.name.ku}</span
+                    >
+                  </div>
+                {/if}
+                {#if content?.category_details?.parent_category}
+                  <div class="detail-item">
+                    <span class="detail-label">Parent Category:</span>
+                    <span class="detail-value"
+                      >{content.category_details.parent_category}</span
+                    >
+                  </div>
+                {/if}
+              </div>
+
+              {#if content?.category_details?.description?.en}
+                <div class="description-block">
+                  <span class="detail-label">Description (EN):</span>
+                  <p class="detail-text">
+                    {content.category_details.description.en}
+                  </p>
+                </div>
+              {/if}
             </div>
           {/if}
 
@@ -502,6 +726,7 @@
         </div>
 
         <div class="form-group">
+          <!-- svelte-ignore a11y_label_has_associated_control -->
           <label class="form-label" class:rtl={$isRTL}>
             <span>{$_("admin_dashboard.decision") || "Decision"}</span>
           </label>
@@ -534,6 +759,7 @@
         </div>
 
         <div class="form-group">
+          <!-- svelte-ignore a11y_label_has_associated_control -->
           <label class="form-label" class:rtl={$isRTL}>
             <span>{$_("admin_dashboard.admin_notes") || "Admin Notes"}</span>
           </label>

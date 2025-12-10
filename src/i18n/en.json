@@ -1415,7 +1415,7 @@
     "add_attribute": "Add Another Attribute",
     "justification": "Justification",
     "justification_placeholder": "Explain why this variation is needed...",
-    "submit_request": "Submit Request",
+    "submit_request": "Submit",
     "bundle_products_note": "Note: Bundle products cannot be changed after creation. To modify the products, please create a new bundle.",
     "available_products": "Available Products",
     "discounts": "Discounts",
@@ -1460,7 +1460,26 @@
     "enter_minimum_spend": "Enter minimum spend",
     "enter_maximum_amount": "Enter maximum discount amount",
     "enter_maximum_uses": "Enter maximum total uses",
-    "usage_count": "Usage Count"
+    "usage_count": "Usage Count",
+    "request_product_category": "Request Product/Category",
+    "request_product": "Request Product",
+    "request_product_desc": "Request a new product to be added to the catalog",
+    "request_category": "Request Category",
+    "request_category_desc": "Request a new category to organize products",
+    "enter_product_name": "Enter product name...",
+    "enter_category_name": "Enter category name...",
+    "specifications": "Specifications",
+    "add_specification": "Add Specification",
+    "spec_key": "Specification key (e.g., Color, Size)",
+    "spec_value": "Specification value",
+    "why_request": "Why do you need this product?",
+    "why_request_category": "Why do you need this category?",
+    "category_justification_placeholder": "Explain why this category should be added...",
+    "parent_category": "Parent Category",
+    "no_parent": "No parent (Top level category)",
+    "enter_description": "Enter description",
+    "category_details": "Category Details",
+    "optional": "Optional"
   },
   "admin_dashboard": {
     "title": "Admin Dashboard",
@@ -1597,7 +1616,13 @@
     "reject": "Reject",
     "admin_notes": "Admin Notes",
     "admin_notes_placeholder": "Add notes about your decision...",
-    "submit": "Submit Review"
+    "submit": "Submit Review",
+    "product_category_requests": "Product & Category Requests",
+    "product_category_requests_subtitle": "Review and manage seller product and category requests",
+    "all_types": "All Types",
+    "product": "Product",
+    "category": "Category",
+    "delete": "Delete"
   },
 
   "admin_space": {
@@ -2561,5 +2586,6 @@
   "reports.notification.understood": "I Understand",
   "reports.notification.unknown": "Unknown",
   "reports.notification.reporter.title": "Thank You for Your Report",
-  "reports.notification.reporter.message": "Thank you for helping us maintain a clean and safe community! We have reviewed your report and taken appropriate action. Together, we can keep our community a positive place for everyone."
+  "reports.notification.reporter.message": "Thank you for helping us maintain a clean and safe community! We have reviewed your report and taken appropriate action. Together, we can keep our community a positive place for everyone.",
+  "variation_requests": "Variation Requests"
 }

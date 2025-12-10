@@ -46,6 +46,7 @@
   import DiscountModal from "@/components/sellers/DiscountModal.svelte";
   import WarrantyModal from "@/components/sellers/WarrantyModal.svelte";
   import EditModal from "@/components/sellers/EditModal.svelte";
+  import ProductCategoryRequestModal from "@/components/sellers/ProductCategoryRequestModal.svelte";
 
   $goto;
   let folders = $state([]);
@@ -169,6 +170,31 @@
   let isLoadingVariationCategories = $state(false);
   let variationProducts = $state([]);
   let isLoadingVariationProducts = $state(false);
+
+  let showProductCategoryRequestModal = $state(false);
+  let requestType = $state("product");
+  let productRequestForm = $state({
+    name_en: "",
+    name_ar: "",
+    name_ku: "",
+    description_en: "",
+    description_ar: "",
+    description_ku: "",
+    category_shortname: "",
+    brand_shortname: "",
+    specifications: [{ key: "", value: "" }],
+    justification: "",
+  });
+  let categoryRequestForm = $state({
+    name_en: "",
+    name_ar: "",
+    name_ku: "",
+    description_en: "",
+    description_ar: "",
+    description_ku: "",
+    parent_category: "",
+    justification: "",
+  });
 
   const isRTL = derived(
     locale,
@@ -1362,6 +1388,213 @@
     }
   }
 
+  function openProductCategoryRequestModal() {
+    showProductCategoryRequestModal = true;
+    requestType = "product";
+    productRequestForm = {
+      name_en: "",
+      name_ar: "",
+      name_ku: "",
+      description_en: "",
+      description_ar: "",
+      description_ku: "",
+      category_shortname: "",
+      brand_shortname: "",
+      specifications: [{ key: "", value: "" }],
+      justification: "",
+    };
+    categoryRequestForm = {
+      name_en: "",
+      name_ar: "",
+      name_ku: "",
+      description_en: "",
+      description_ar: "",
+      description_ku: "",
+      parent_category: "",
+      justification: "",
+    };
+    loadCategories();
+    loadBrands();
+  }
+
+  function closeProductCategoryRequestModal() {
+    showProductCategoryRequestModal = false;
+    productRequestForm = {
+      name_en: "",
+      name_ar: "",
+      name_ku: "",
+      description_en: "",
+      description_ar: "",
+      description_ku: "",
+      category_shortname: "",
+      brand_shortname: "",
+      specifications: [{ key: "", value: "" }],
+      justification: "",
+    };
+    categoryRequestForm = {
+      name_en: "",
+      name_ar: "",
+      name_ku: "",
+      description_en: "",
+      description_ar: "",
+      description_ku: "",
+      parent_category: "",
+      justification: "",
+    };
+  }
+
+  function addProductSpecification() {
+    productRequestForm.specifications = [
+      ...productRequestForm.specifications,
+      { key: "", value: "" },
+    ];
+  }
+
+  function removeProductSpecification(index: number) {
+    if (productRequestForm.specifications.length > 1) {
+      productRequestForm.specifications =
+        productRequestForm.specifications.filter((_, i) => i !== index);
+    }
+  }
+
+  async function submitProductCategoryRequest() {
+    if (requestType === "product") {
+      if (
+        !productRequestForm.name_en ||
+        !productRequestForm.description_en ||
+        !productRequestForm.category_shortname ||
+        !productRequestForm.brand_shortname ||
+        !productRequestForm.justification
+      ) {
+        errorToastMessage("Please fill in all required fields");
+        return;
+      }
+
+      try {
+        isLoading = true;
+        const requestData = {
+          displayname_en: `Product Request - ${productRequestForm.name_en}`,
+          displayname_ar: productRequestForm.name_ar
+            ? `طلب منتج - ${productRequestForm.name_ar}`
+            : null,
+          displayname_ku: productRequestForm.name_ku
+            ? `داواکاری بەرهەم - ${productRequestForm.name_ku}`
+            : null,
+          body: {
+            request_type: "product",
+            seller_shortname: $user.shortname,
+            product_details: {
+              name: {
+                en: productRequestForm.name_en,
+                ar: productRequestForm.name_ar || null,
+                ku: productRequestForm.name_ku || null,
+              },
+              description: {
+                en: productRequestForm.description_en,
+                ar: productRequestForm.description_ar || null,
+                ku: productRequestForm.description_ku || null,
+              },
+              category_shortname: productRequestForm.category_shortname,
+              brand_shortname: productRequestForm.brand_shortname,
+              specifications: productRequestForm.specifications.filter(
+                (spec) => spec.key && spec.value
+              ),
+            },
+            justification: productRequestForm.justification,
+            status: "pending",
+          },
+          tags: [
+            `seller:${$user.shortname}`,
+            "type:product_request",
+            "status:pending",
+          ],
+          is_active: true,
+        };
+
+        await createEntity(
+          requestData,
+          "e_commerce",
+          "/variation_request/products_requests",
+          ResourceType.content,
+          "",
+          ""
+        );
+
+        successToastMessage("Product request submitted successfully!");
+        closeProductCategoryRequestModal();
+      } catch (error) {
+        console.error("Error submitting product request:", error);
+        errorToastMessage("Failed to submit product request");
+      } finally {
+        isLoading = false;
+      }
+    } else if (requestType === "category") {
+      if (
+        !categoryRequestForm.name_en ||
+        !categoryRequestForm.description_en ||
+        !categoryRequestForm.justification
+      ) {
+        errorToastMessage("Please fill in all required fields");
+        return;
+      }
+
+      try {
+        isLoading = true;
+        const requestData = {
+          displayname_en: `Category Request - ${categoryRequestForm.name_en}`,
+          displayname_ar: categoryRequestForm.name_ar
+            ? `طلب فئة - ${categoryRequestForm.name_ar}`
+            : null,
+          displayname_ku: categoryRequestForm.name_ku
+            ? `داواکاری پۆل - ${categoryRequestForm.name_ku}`
+            : null,
+          body: {
+            request_type: "category",
+            seller_shortname: $user.shortname,
+            category_details: {
+              name: {
+                en: categoryRequestForm.name_en,
+                ar: categoryRequestForm.name_ar || null,
+                ku: categoryRequestForm.name_ku || null,
+              },
+              description: {
+                en: categoryRequestForm.description_en,
+                ar: categoryRequestForm.description_ar || null,
+                ku: categoryRequestForm.description_ku || null,
+              },
+              parent_category: categoryRequestForm.parent_category || null,
+            },
+            justification: categoryRequestForm.justification,
+            status: "pending",
+          },
+          tags: [
+            `seller:${$user.shortname}`,
+            "type:category_request",
+            "status:pending",
+          ],
+          is_active: true,
+        };
+
+        await createEntity(
+          requestData,
+          "e_commerce",
+          "/variation_request/categories_requests",
+          ResourceType.content,
+          "",
+          ""
+        );
+
+        successToastMessage("Category request submitted successfully!");
+        closeProductCategoryRequestModal();
+      } catch (error) {
+        console.error("Error submitting category request:", error);
+        errorToastMessage("Failed to submit category request");
+      } finally {
+        isLoading = false;
+      }
+    }
+  }
+
   async function submitEdit() {
     if (!itemToEdit) return;
 
@@ -1571,6 +1804,28 @@
         </div>
         {#if selectedFolder}
           <div class="header-actions">
+            <button
+              class="create-button tertiary-button"
+              onclick={openProductCategoryRequestModal}
+            >
+              <svg
+                class="button-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                />
+              </svg>
+              <span>
+                {$_("seller_dashboard.request_product_category") ||
+                  "Request Product/Category"}
+              </span>
+            </button>
             <button
               class="create-button secondary-button"
               onclick={openVariationRequestModal}
@@ -2215,4 +2470,22 @@
   {isLoading}
   onClose={closeDeleteModal}
   onConfirm={confirmDelete}
+/>
+
+<!-- Product/Category Request Modal -->
+<ProductCategoryRequestModal
+  bind:show={showProductCategoryRequestModal}
+  isRTL={$isRTL}
+  bind:requestType
+  {categories}
+  {brands}
+  {isLoadingCategories}
+  {isLoadingBrands}
+  bind:productRequestForm
+  bind:categoryRequestForm
+  onClose={closeProductCategoryRequestModal}
+  onSubmit={submitProductCategoryRequest}
+  onAddSpecification={addProductSpecification}
+  onRemoveSpecification={removeProductSpecification}
+  getLocalizedDisplayName={getItemDisplayName}
 />

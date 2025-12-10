@@ -45,6 +45,7 @@
       } else {
         await signin(trimmedIdentifier, password);
       }
+      console.log(roles.subscribe);
 
       let userRoles: string[] = [];
       roles.subscribe((value) => {
@@ -53,9 +54,9 @@
       console.log(userRoles);
 
       if (userRoles.includes("seller")) {
-        $goto("/sellers");
+        $goto("/dashbaord");
       } else {
-        $goto("/entries");
+        $goto("/sellers");
       }
     } catch (error) {
       isError = true;
