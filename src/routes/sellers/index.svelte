@@ -47,6 +47,10 @@
   import WarrantyModal from "@/components/sellers/WarrantyModal.svelte";
   import EditModal from "@/components/sellers/EditModal.svelte";
   import ProductCategoryRequestModal from "@/components/sellers/ProductCategoryRequestModal.svelte";
+  import ShippingManagement from "@/components/sellers/ShippingManagement.svelte";
+  import CategoryShippingModal from "@/components/sellers/CategoryShippingModal.svelte";
+  import StateShippingModal from "@/components/sellers/StateShippingModal.svelte";
+  import "@/components/sellers/ShippingManagement.css";
 
   $goto;
   let folders = $state([]);
@@ -196,6 +200,43 @@
     justification: "",
   });
 
+  let isShippingView = $state(false);
+  let baseShipping = $state(null);
+  let categoryShippings = $state([]);
+  let stateShippings = $state([]);
+  let states = $state([]);
+  let isLoadingStates = $state(false);
+  let shippingForm = $state({
+    cost: "",
+    time: "",
+  });
+  let categoryShippingForm = $state({
+    category_shortname: "",
+    standard: { cost: "", estimated_days: "", min_days: "" },
+    fast: {
+      cost: "",
+      estimated_days: "",
+      active: false,
+      validFrom: "",
+      validTo: "",
+    },
+    free: { estimated_days: "", active: false, validFrom: "", validTo: "" },
+  });
+  let stateShippingForm = $state({
+    state_shortname: "",
+    standard: { cost: "", estimated_days: "", min_days: "" },
+    fast: {
+      cost: "",
+      estimated_days: "",
+      active: false,
+      validFrom: "",
+      validTo: "",
+    },
+    free: { estimated_days: "", active: false, validFrom: "", validTo: "" },
+  });
+  let showCategoryShippingModal = $state(false);
+  let showStateShippingModal = $state(false);
+
   const isRTL = derived(
     locale,
     ($locale) => $locale === "ar" || $locale === "ku"
@@ -248,6 +289,15 @@
           await Promise.all([loadAllVariations(), loadAllProducts()]);
         }
 
+        // Handle shipping folder specially
+        if (folderShortname === "shipping_and_service") {
+          isShippingView = true;
+          await loadShippingData();
+          return;
+        }
+
+        isShippingView = false;
+
         applyFilters();
       }
     } catch (error) {
@@ -265,6 +315,7 @@
     selectedFolder = null;
     items = [];
     filteredItems = [];
+    isShippingView = false;
   }
 
   async function loadFilterCategories() {
@@ -417,6 +468,9 @@
       openDiscountModal();
     } else if (selectedFolder === "warranties") {
       openWarrantyModal();
+    } else if (selectedFolder === "shipping_and_service") {
+      // Shipping is handled in the view
+      return;
     } else {
       $goto("/sellers/create");
     }
@@ -1595,6 +1649,334 @@
     }
   }
 
+  // Shipping Management Functions
+
+  async function loadShippingData() {
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        `/shipping_and_service/${$user.shortname}`,
+        "managed",
+        100,
+        0,
+        true
+      );
+
+      if (response?.records) {
+        const baseRecord = response.records.find(
+          (r) => r.resource_type === "content"
+        );
+
+        if (baseRecord) {
+          baseShipping = baseRecord;
+          const body = baseRecord.attributes?.payload?.body;
+          if (body) {
+            shippingForm.cost = body.cost?.toString() || "";
+            shippingForm.time = body.time?.toString() || "";
+          }
+        }
+
+        const catResponse = await getSpaceContents(
+          "e_commerce",
+          `/shipping_and_service/${$user.shortname}/categories`,
+          "managed",
+          100,
+          0,
+          true
+        );
+
+        if (catResponse?.records) {
+          categoryShippings = catResponse.records;
+        }
+
+        const stateResponse = await getSpaceContents(
+          "e_commerce",
+          `/shipping_and_service/${$user.shortname}/states`,
+          "managed",
+          100,
+          0,
+          true
+        );
+        if (stateResponse?.records) {
+          stateShippings = stateResponse.records;
+        }
+      }
+
+      // Load categories for dropdown
+      await loadCategories();
+
+      // Load states (you'll need to implement this based on your data structure)
+      await loadStates();
+    } catch (error) {
+      console.error("Error loading shipping data:", error);
+    }
+  }
+
+  async function loadStates() {
+    isLoadingStates = true;
+    try {
+      // Load states/regions from your system
+      // This is a placeholder - adjust based on your actual data structure
+      const response = await getSpaceContents(
+        "e_commerce",
+        "states",
+        "managed",
+        100,
+        0,
+        true
+      );
+      if (response?.records) {
+        states = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading states:", error);
+    } finally {
+      isLoadingStates = false;
+    }
+  }
+
+  async function submitBaseShipping() {
+    if (!shippingForm.cost || !shippingForm.time) {
+      errorToastMessage("Please fill in all required fields");
+      return;
+    }
+
+    try {
+      isLoading = true;
+      const shippingData = {
+        displayname_en: "Base",
+        displayname_ar: null,
+        displayname_ku: null,
+        body: {
+          cost: parseFloat(shippingForm.cost),
+          time: parseInt(shippingForm.time),
+        },
+        tags: [],
+        is_active: true,
+      };
+
+      if (baseShipping) {
+        // Update existing
+        const { updateEntity } = await import("@/lib/dmart_services");
+        await updateEntity(
+          "base",
+          "e_commerce",
+          `/shipping_and_service/${$user.shortname}`,
+          ResourceType.content,
+          shippingData,
+          "",
+          ""
+        );
+      } else {
+        // Create new
+        await createEntity(
+          shippingData,
+          "e_commerce",
+          `/shipping_and_service/${$user.shortname}`,
+          ResourceType.content,
+          "",
+          ""
+        );
+      }
+
+      successToastMessage(
+        $_("seller_dashboard.shipping_configured_successfully")
+      );
+      await loadShippingData();
+    } catch (error) {
+      console.error("Error saving base shipping:", error);
+      errorToastMessage($_("seller_dashboard.failed_to_configure_shipping"));
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function openCategoryShippingModal() {
+    showCategoryShippingModal = true;
+    categoryShippingForm = {
+      category_shortname: "",
+      standard: { cost: "", estimated_days: "", min_days: "" },
+      fast: {
+        cost: "",
+        estimated_days: "",
+        active: false,
+        validFrom: "",
+        validTo: "",
+      },
+      free: { estimated_days: "", active: false, validFrom: "", validTo: "" },
+    };
+  }
+
+  function closeCategoryShippingModal() {
+    showCategoryShippingModal = false;
+  }
+
+  async function submitCategoryShipping() {
+    if (!categoryShippingForm.category_shortname) {
+      errorToastMessage("Please select a category");
+      return;
+    }
+
+    try {
+      isLoading = true;
+      const category = categories.find(
+        (c) => c.shortname === categoryShippingForm.category_shortname
+      );
+      const categoryName = getItemDisplayName(category);
+
+      const shippingData = {
+        displayname_en: `${categoryName} shipping`,
+        displayname_ar: null,
+        displayname_ku: null,
+        body: {
+          category_shortname: categoryShippingForm.category_shortname,
+          standard: {
+            cost: parseFloat(categoryShippingForm.standard.cost) || 0,
+            estimated_days:
+              parseInt(categoryShippingForm.standard.estimated_days) || 0,
+            min_days: parseInt(categoryShippingForm.standard.min_days) || 0,
+          },
+          fast: {
+            cost: parseFloat(categoryShippingForm.fast.cost) || 0,
+            estimated_days:
+              parseInt(categoryShippingForm.fast.estimated_days) || 0,
+            active: categoryShippingForm.fast.active,
+            validy: categoryShippingForm.fast.active
+              ? {
+                  from: categoryShippingForm.fast.validFrom,
+                  to: categoryShippingForm.fast.validTo,
+                }
+              : null,
+          },
+          free: {
+            estimated_days:
+              parseInt(categoryShippingForm.free.estimated_days) || 0,
+            active: categoryShippingForm.free.active,
+            validy: categoryShippingForm.free.active
+              ? {
+                  from: categoryShippingForm.free.validFrom,
+                  to: categoryShippingForm.free.validTo,
+                }
+              : null,
+          },
+        },
+        tags: [],
+        is_active: true,
+      };
+
+      await createEntity(
+        shippingData,
+        "e_commerce",
+        `/shipping_and_service/${$user.shortname}/categories`,
+        ResourceType.content,
+        "",
+        ""
+      );
+
+      successToastMessage("Category shipping added successfully!");
+      closeCategoryShippingModal();
+      await loadShippingData();
+    } catch (error) {
+      console.error("Error adding category shipping:", error);
+      errorToastMessage("Failed to add category shipping");
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function openStateShippingModal() {
+    showStateShippingModal = true;
+    stateShippingForm = {
+      state_shortname: "",
+      standard: { cost: "", estimated_days: "", min_days: "" },
+      fast: {
+        cost: "",
+        estimated_days: "",
+        active: false,
+        validFrom: "",
+        validTo: "",
+      },
+      free: { estimated_days: "", active: false, validFrom: "", validTo: "" },
+    };
+  }
+
+  function closeStateShippingModal() {
+    showStateShippingModal = false;
+  }
+
+  async function submitStateShipping() {
+    if (!stateShippingForm.state_shortname) {
+      errorToastMessage("Please select a state/region");
+      return;
+    }
+
+    try {
+      isLoading = true;
+      const state = states.find(
+        (s) => s.shortname === stateShippingForm.state_shortname
+      );
+      const stateName = getItemDisplayName(state);
+
+      const shippingData = {
+        displayname_en: stateName,
+        displayname_ar: null,
+        displayname_ku: null,
+        body: {
+          state_shortname: stateShippingForm.state_shortname,
+          standard: {
+            cost: parseFloat(stateShippingForm.standard.cost) || 0,
+            estimated_days:
+              parseInt(stateShippingForm.standard.estimated_days) || 0,
+            min_days: parseInt(stateShippingForm.standard.min_days) || 0,
+          },
+          fast: {
+            cost: parseFloat(stateShippingForm.fast.cost) || 0,
+            estimated_days:
+              parseInt(stateShippingForm.fast.estimated_days) || 0,
+            active: stateShippingForm.fast.active,
+            validy: stateShippingForm.fast.active
+              ? {
+                  from: stateShippingForm.fast.validFrom,
+                  to: stateShippingForm.fast.validTo,
+                }
+              : null,
+          },
+          free: {
+            estimated_days:
+              parseInt(stateShippingForm.free.estimated_days) || 0,
+            active: stateShippingForm.free.active,
+            validy: stateShippingForm.free.active
+              ? {
+                  from: stateShippingForm.free.validFrom,
+                  to: stateShippingForm.free.validTo,
+                }
+              : null,
+          },
+        },
+        tags: [],
+        is_active: true,
+      };
+
+      await createEntity(
+        shippingData,
+        "e_commerce",
+        `/shipping_and_service/${$user.shortname}/states`,
+        ResourceType.content,
+        "",
+        ""
+      );
+
+      successToastMessage("State shipping added successfully!");
+      closeStateShippingModal();
+      await loadShippingData();
+    } catch (error) {
+      console.error("Error adding state shipping:", error);
+      errorToastMessage("Failed to add state shipping");
+    } finally {
+      isLoading = false;
+    }
+  }
+
   async function submitEdit() {
     if (!itemToEdit) return;
 
@@ -1804,50 +2186,52 @@
         </div>
         {#if selectedFolder}
           <div class="header-actions">
-            <button
-              class="create-button tertiary-button"
-              onclick={openProductCategoryRequestModal}
-            >
-              <svg
-                class="button-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
+            {#if selectedFolder === "available"}
+              <button
+                class="create-button tertiary-button"
+                onclick={openProductCategoryRequestModal}
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                />
-              </svg>
-              <span>
-                {$_("seller_dashboard.request_product_category") ||
-                  "Request Product/Category"}
-              </span>
-            </button>
-            <button
-              class="create-button secondary-button"
-              onclick={openVariationRequestModal}
-            >
-              <svg
-                class="button-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
+                <svg
+                  class="button-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                  />
+                </svg>
+                <span>
+                  {$_("seller_dashboard.request_product_category") ||
+                    "Request Product/Category"}
+                </span>
+              </button>
+              <button
+                class="create-button secondary-button"
+                onclick={openVariationRequestModal}
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              <span>
-                {$_("seller_dashboard.request_variation") ||
-                  "Request Variation"}
-              </span>
-            </button>
+                <svg
+                  class="button-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                <span>
+                  {$_("seller_dashboard.request_variation") ||
+                    "Request Variation"}
+                </span>
+              </button>
+            {/if}
             <button class="create-button" onclick={createItem}>
               <svg
                 class="button-icon"
@@ -2037,6 +2421,18 @@
             {$_("seller_dashboard.loading") || "Loading items..."}
           </p>
         </div>
+      {:else if isShippingView}
+        <!-- Shipping Management View -->
+        <ShippingManagement
+          bind:baseShipping
+          bind:categoryShippings
+          bind:stateShippings
+          bind:categories
+          bind:isLoading
+          onOpenCategoryModal={openCategoryShippingModal}
+          onOpenStateModal={openStateShippingModal}
+          {getItemDisplayName}
+        />
       {:else if filteredItems.length === 0}
         <div class="empty-state">
           <svg
@@ -2488,4 +2884,24 @@
   onAddSpecification={addProductSpecification}
   onRemoveSpecification={removeProductSpecification}
   getLocalizedDisplayName={getItemDisplayName}
+/>
+
+<!-- Category Shipping Modal -->
+<CategoryShippingModal
+  bind:show={showCategoryShippingModal}
+  {categories}
+  bind:form={categoryShippingForm}
+  {isLoading}
+  onClose={closeCategoryShippingModal}
+  onSubmit={submitCategoryShipping}
+  {getItemDisplayName}
+/>
+
+<!-- State Shipping Modal -->
+<StateShippingModal
+  bind:show={showStateShippingModal}
+  bind:form={stateShippingForm}
+  {isLoading}
+  onClose={closeStateShippingModal}
+  onSubmit={submitStateShipping}
 />

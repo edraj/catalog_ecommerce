@@ -45,13 +45,11 @@
       } else {
         await signin(trimmedIdentifier, password);
       }
-      console.log(roles.subscribe);
 
       let userRoles: string[] = [];
       roles.subscribe((value) => {
         userRoles = value;
       })();
-      console.log(userRoles);
 
       if (userRoles.includes("seller")) {
         $goto("/dashbaord");

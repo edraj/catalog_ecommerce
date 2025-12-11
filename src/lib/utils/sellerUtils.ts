@@ -337,5 +337,19 @@ export function createSellerFolders(
         },
       },
     },
+    {
+      shortname: "shipping_and_service",
+      subpath: `/shipping_and_service/${sellerShortname}`,
+      resource_type: "folder",
+      attributes: {
+        displayname: {
+          en:
+            translations("seller_dashboard.shipping_and_service") ||
+            "Shipping & Service",
+          ar: "الشحن والخدمة",
+          ku: "گەیاندن و خزمەتگوزاری",
+        },
+      },
+    },
   ];
 }
