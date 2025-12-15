@@ -52,6 +52,7 @@
   );
 
   let categories = $state([]);
+  let specifications = $state([]);
   let isLoading = $state(true);
   let showCreateModal = $state(false);
   let showEditModal = $state(false);
@@ -62,7 +63,7 @@
   let editFormData = $state<CategoryFormData | undefined>(undefined);
 
   onMount(async () => {
-    await loadCategories();
+    await Promise.all([loadCategories(), loadSpecifications()]);
   });
 
   async function loadCategories() {
@@ -88,6 +89,26 @@
     }
   }
 
+  async function loadSpecifications() {
+    try {
+      const response = await getSpaceContents(
+        "e_commerce",
+        "specifications",
+        "managed",
+        100,
+        0,
+        true
+      );
+
+      if (response?.records) {
+        specifications = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading specifications:", error);
+      errorToastMessage("Failed to load specifications");
+    }
+  }
+
   function openCreateModal() {
     showCreateModal = true;
   }
@@ -102,7 +123,8 @@
     editFormData = {
       displayname: getLocalizedDisplayName(category, $locale),
       description: content?.description || "",
-      parent_category_id: content?.parent_category_id || "",
+      parent_category_id: content?.parent_category_shortname || "",
+      specification_shortnames: content?.specification_shortnames || [],
     };
     showEditModal = true;
   }
@@ -134,11 +156,10 @@
         displayname: formData.displayname,
         description: formData.description,
         body: {
-          content: {
-            name: formData.displayname,
-            description: formData.description,
-            parent_category_id: formData.parent_category_id || null,
-          },
+          name: formData.displayname,
+          description: formData.description,
+          parent_category_shortname: formData.parent_category_id || null,
+          specification_shortnames: formData.specification_shortnames || [],
           content_type: "json",
         },
         tags: [],
@@ -178,7 +199,8 @@
         content: {
           name: formData.displayname,
           description: formData.description,
-          parent_category_id: formData.parent_category_id || null,
+          parent_category_shortname: formData.parent_category_id || null,
+          specification_shortnames: formData.specification_shortnames || [],
         },
         content_type: "json",
         tags: selectedCategory.attributes?.tags || [],
@@ -359,7 +381,7 @@
               </div>
             </div>
             <div class="list-col col-description">
-              {category.attributes?.payload.body.content.description ||
+              {category.attributes?.payload.body.description ||
                 "No description"}
             </div>
             <div class="list-col col-date">
@@ -433,6 +455,7 @@
   onClose={closeCreateModal}
   onSubmit={handleCreateCategory}
   {parentCategories}
+  {specifications}
 />
 
 <EditCategoryModal
@@ -440,6 +463,7 @@
   onClose={closeEditModal}
   onSubmit={handleUpdateCategory}
   {parentCategories}
+  {specifications}
   category={selectedCategory}
   initialData={editFormData}
 />

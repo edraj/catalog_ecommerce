@@ -62,6 +62,13 @@
     tags: [],
   });
 
+  // Variation search and display state
+  let colorSearchTerm = $state("");
+  let storageSearchTerm = $state("");
+  let showAllColors = $state(false);
+  let showAllStorages = $state(false);
+  const INITIAL_VARIATION_DISPLAY = 6;
+
   onMount(async () => {
     await Promise.all([
       loadCategories(),
@@ -194,6 +201,11 @@
       category_specifications: [],
       tags: [],
     };
+    // Reset variation search and display
+    colorSearchTerm = "";
+    storageSearchTerm = "";
+    showAllColors = false;
+    showAllStorages = false;
     showCreateModal = true;
   }
 
@@ -206,6 +218,16 @@
     const content = product.attributes?.payload?.body;
     const displayname = product.attributes?.displayname || {};
     const description = product.attributes?.description || {};
+
+    // Normalize category_specifications to use values array
+    const categorySpecs = content?.category_specifications || [];
+    const normalizedSpecs = categorySpecs.map((spec: any) => {
+      // Handle both old format (value: string) and new format (values: string[])
+      if (spec.value && !spec.values) {
+        return { ...spec, values: [spec.value] };
+      }
+      return spec;
+    });
 
     productForm = {
       displayname_en: displayname.en || "",
@@ -222,7 +244,7 @@
       main_category: content?.main_category_shortname || "",
       variation_options: content?.variation_options || [],
       product_specifications: content?.product_specifications || [],
-      category_specifications: content?.category_specifications || [],
+      category_specifications: normalizedSpecs,
       tags: product.attributes?.tags || [],
     };
     showEditModal = true;
@@ -519,6 +541,193 @@
       return categories.includes(selectedCategoryFilter);
     });
   });
+
+  // Filtered variations with search
+  const filteredColors = $derived.by(() => {
+    if (!colorSearchTerm) return variations.colors;
+    const term = colorSearchTerm.toLowerCase();
+    return variations.colors.filter(
+      (c) =>
+        c.name?.en?.toLowerCase().includes(term) ||
+        c.name?.ar?.toLowerCase().includes(term) ||
+        c.key?.toLowerCase().includes(term)
+    );
+  });
+
+  const filteredStorages = $derived.by(() => {
+    if (!storageSearchTerm) return variations.storages;
+    const term = storageSearchTerm.toLowerCase();
+    return variations.storages.filter(
+      (s) =>
+        s.name?.en?.toLowerCase().includes(term) ||
+        s.name?.ar?.toLowerCase().includes(term) ||
+        s.key?.toLowerCase().includes(term)
+    );
+  });
+
+  const displayedColors = $derived.by(() => {
+    if (showAllColors || filteredColors.length <= INITIAL_VARIATION_DISPLAY) {
+      return filteredColors;
+    }
+    return filteredColors.slice(0, INITIAL_VARIATION_DISPLAY);
+  });
+
+  const displayedStorages = $derived.by(() => {
+    if (
+      showAllStorages ||
+      filteredStorages.length <= INITIAL_VARIATION_DISPLAY
+    ) {
+      return filteredStorages;
+    }
+    return filteredStorages.slice(0, INITIAL_VARIATION_DISPLAY);
+  });
+
+  // Get available specifications based on selected categories
+  const availableSpecifications = $derived.by(() => {
+    if (productForm.categories.length === 0) return [];
+
+    // Get all specification shortnames from selected categories
+    const specShortnames = new Set<string>();
+    productForm.categories.forEach((categoryShortname) => {
+      const category = categories.find(
+        (c) => c.shortname === categoryShortname
+      );
+      if (category) {
+        const content = category.attributes?.payload?.body;
+        const specs = content?.specification_shortnames || [];
+        console.log(`Category ${categoryShortname} specs:`, specs);
+        specs.forEach((spec: string) => specShortnames.add(spec));
+      }
+    });
+
+    console.log(
+      "All spec shortnames from categories:",
+      Array.from(specShortnames)
+    );
+    console.log(
+      "All available specifications:",
+      specifications.map((s) => s.shortname)
+    );
+
+    // Filter specifications to only include those in selected categories
+    const filtered = specifications.filter((spec) =>
+      specShortnames.has(spec.shortname)
+    );
+    console.log("Filtered specifications:", filtered);
+    return filtered;
+  });
+
+  function getSpecificationOptions(spec: any): any[] {
+    const content = spec?.attributes?.payload?.body?.content;
+    return content?.options || [];
+  }
+
+  function getSpecificationDisplayName(spec: any): string {
+    const displayname = spec?.attributes?.displayname;
+    if (displayname) {
+      return (
+        displayname.en || displayname.ar || displayname.ku || spec.shortname
+      );
+    }
+    return spec?.shortname || "";
+  }
+
+  function getOptionDisplayName(option: any): string {
+    if (!option?.name) return option?.key || "";
+    if (typeof option.name === "string") return option.name;
+    return option.name.en || option.name.ar || option.name.ku || option.key;
+  }
+
+  function toggleProductSpecification(specShortname: string) {
+    const index = productForm.product_specifications.findIndex(
+      (ps) => ps.specification_shortname === specShortname
+    );
+
+    if (index > -1) {
+      // Remove from product_specifications
+      productForm.product_specifications =
+        productForm.product_specifications.filter(
+          (ps) => ps.specification_shortname !== specShortname
+        );
+      // Also remove from category_specifications
+      productForm.category_specifications =
+        productForm.category_specifications.filter(
+          (cs) => cs.specification_shortname !== specShortname
+        );
+    } else {
+      // Add to product_specifications
+      productForm.product_specifications = [
+        ...productForm.product_specifications,
+        { specification_shortname: specShortname },
+      ];
+    }
+  }
+
+  function isSpecificationSelected(specShortname: string): boolean {
+    return productForm.product_specifications.some(
+      (ps) => ps.specification_shortname === specShortname
+    );
+  }
+
+  function updateCategorySpecification(
+    specShortname: string,
+    values: string[]
+  ) {
+    const index = productForm.category_specifications.findIndex(
+      (cs) => cs.specification_shortname === specShortname
+    );
+
+    if (values.length === 0) {
+      // Remove if no values selected
+      if (index > -1) {
+        productForm.category_specifications =
+          productForm.category_specifications.filter(
+            (cs) => cs.specification_shortname !== specShortname
+          );
+      }
+    } else if (index > -1) {
+      productForm.category_specifications[index].values = values;
+      productForm.category_specifications = [
+        ...productForm.category_specifications,
+      ];
+    } else {
+      productForm.category_specifications = [
+        ...productForm.category_specifications,
+        { specification_shortname: specShortname, values },
+      ];
+    }
+  }
+
+  function getCategorySpecificationValues(specShortname: string): string[] {
+    const spec = productForm.category_specifications.find(
+      (cs) => cs.specification_shortname === specShortname
+    );
+    // Handle both old format (value: string) and new format (values: string[])
+    if (spec?.values) return spec.values;
+    if (spec?.value) return [spec.value];
+    return [];
+  }
+
+  function isSpecificationValueSelected(
+    specShortname: string,
+    valueKey: string
+  ): boolean {
+    const values = getCategorySpecificationValues(specShortname);
+    return values.includes(valueKey);
+  }
+
+  function toggleSpecificationValue(specShortname: string, valueKey: string) {
+    const currentValues = getCategorySpecificationValues(specShortname);
+    let newValues: string[];
+
+    if (currentValues.includes(valueKey)) {
+      newValues = currentValues.filter((v) => v !== valueKey);
+    } else {
+      newValues = [...currentValues, valueKey];
+    }
+
+    updateCategorySpecification(specShortname, newValues);
+  }
 </script>
 
 <div class="products-page" class:rtl={$isRTL}>
@@ -850,9 +1059,19 @@
 
           {#if variations.colors.length > 0}
             <div class="variation-group">
-              <h4 class="variation-title">Colors</h4>
+              <div class="variation-header">
+                <h4 class="variation-title">Colors</h4>
+                {#if variations.colors.length > INITIAL_VARIATION_DISPLAY}
+                  <input
+                    type="text"
+                    bind:value={colorSearchTerm}
+                    placeholder="Search colors..."
+                    class="variation-search"
+                  />
+                {/if}
+              </div>
               <div class="variation-options">
-                {#each variations.colors as color}
+                {#each displayedColors as color}
                   <button
                     type="button"
                     class="variation-option color"
@@ -870,14 +1089,38 @@
                   </button>
                 {/each}
               </div>
+              {#if filteredColors.length > INITIAL_VARIATION_DISPLAY}
+                <button
+                  type="button"
+                  class="show-more-btn"
+                  onclick={() => (showAllColors = !showAllColors)}
+                >
+                  {showAllColors
+                    ? `Show Less`
+                    : `Show ${filteredColors.length - INITIAL_VARIATION_DISPLAY} More`}
+                </button>
+              {/if}
+              {#if colorSearchTerm && filteredColors.length === 0}
+                <p class="no-results">No colors found</p>
+              {/if}
             </div>
           {/if}
 
           {#if variations.storages.length > 0}
             <div class="variation-group">
-              <h4 class="variation-title">Storage</h4>
+              <div class="variation-header">
+                <h4 class="variation-title">Storage</h4>
+                {#if variations.storages.length > INITIAL_VARIATION_DISPLAY}
+                  <input
+                    type="text"
+                    bind:value={storageSearchTerm}
+                    placeholder="Search storage..."
+                    class="variation-search"
+                  />
+                {/if}
+              </div>
               <div class="variation-options">
-                {#each variations.storages as storage}
+                {#each displayedStorages as storage}
                   <button
                     type="button"
                     class="variation-option"
@@ -892,6 +1135,90 @@
                   </button>
                 {/each}
               </div>
+              {#if filteredStorages.length > INITIAL_VARIATION_DISPLAY}
+                <button
+                  type="button"
+                  class="show-more-btn"
+                  onclick={() => (showAllStorages = !showAllStorages)}
+                >
+                  {showAllStorages
+                    ? `Show Less`
+                    : `Show ${filteredStorages.length - INITIAL_VARIATION_DISPLAY} More`}
+                </button>
+              {/if}
+              {#if storageSearchTerm && filteredStorages.length === 0}
+                <p class="no-results">No storage options found</p>
+              {/if}
+            </div>
+          {/if}
+        </div>
+
+        <!-- Specifications -->
+        <div class="form-section">
+          <h3 class="section-title">
+            {$_("admin_dashboard.specifications") || "Specifications"}
+            (Optional)
+          </h3>
+          <p class="section-description">
+            {$_("admin_dashboard.specifications_description") ||
+              "Select specifications and their values based on the selected categories"}
+          </p>
+
+          {#if productForm.categories.length === 0}
+            <div class="info-message">
+              <p>
+                ℹ️ Please select at least one category to see available
+                specifications
+              </p>
+            </div>
+          {:else if availableSpecifications.length === 0}
+            <div class="info-message">
+              <p>ℹ️ No specifications available for the selected categories</p>
+            </div>
+          {:else}
+            <div class="specifications-selection">
+              {#each availableSpecifications as spec}
+                <div class="specification-item">
+                  <div class="spec-header">
+                    <label class="spec-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={isSpecificationSelected(spec.shortname)}
+                        onchange={() =>
+                          toggleProductSpecification(spec.shortname)}
+                      />
+                      <span class="spec-name"
+                        >{getSpecificationDisplayName(spec)}</span
+                      >
+                    </label>
+                  </div>
+
+                  {#if isSpecificationSelected(spec.shortname)}
+                    <div class="spec-values">
+                      <div class="spec-values-header">Select Values:</div>
+                      <div class="spec-values-grid">
+                        {#each getSpecificationOptions(spec) as option}
+                          <label class="spec-value-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={isSpecificationValueSelected(
+                                spec.shortname,
+                                option.key
+                              )}
+                              onchange={() =>
+                                toggleSpecificationValue(
+                                  spec.shortname,
+                                  option.key
+                                )}
+                            />
+                            <span>{getOptionDisplayName(option)}</span>
+                          </label>
+                        {/each}
+                      </div>
+                    </div>
+                  {/if}
+                </div>
+              {/each}
             </div>
           {/if}
         </div>

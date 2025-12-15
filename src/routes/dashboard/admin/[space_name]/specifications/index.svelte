@@ -59,7 +59,7 @@
     try {
       const response = await getSpaceContents(
         "e_commerce",
-        "product_specifications",
+        "specifications",
         "managed",
         100,
         0,
@@ -150,7 +150,7 @@
       await createEntity(
         specificationData,
         "e_commerce",
-        "/product_specifications",
+        "/specifications",
         ResourceType.content,
         "",
         ""

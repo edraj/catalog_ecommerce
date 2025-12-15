@@ -8,6 +8,7 @@
     onClose: () => void;
     onSubmit: (data: CategoryFormData) => void;
     parentCategories: any[];
+    specifications: any[];
     category: any;
     initialData?: CategoryFormData;
   }
@@ -17,6 +18,7 @@
     onClose,
     onSubmit,
     parentCategories = [],
+    specifications = [],
     category,
     initialData,
   }: Props = $props();
@@ -25,6 +27,7 @@
     displayname: "",
     description: "",
     parent_category_id: "",
+    specification_shortnames: [],
   });
 
   // Update form when initialData changes
@@ -46,6 +49,28 @@
   const availableParentCategories = $derived(
     parentCategories.filter((p) => p.shortname !== category?.shortname)
   );
+
+  function toggleSpecification(shortname: string) {
+    if (formData.specification_shortnames.includes(shortname)) {
+      formData.specification_shortnames =
+        formData.specification_shortnames.filter((s) => s !== shortname);
+    } else {
+      formData.specification_shortnames = [
+        ...formData.specification_shortnames,
+        shortname,
+      ];
+    }
+  }
+
+  function getSpecificationDisplayName(spec: any): string {
+    const displayname = spec?.attributes?.displayname;
+    if (displayname) {
+      return (
+        displayname.en || displayname.ar || displayname.ku || spec.shortname
+      );
+    }
+    return spec?.shortname || "";
+  }
 </script>
 
 <Modal
@@ -107,6 +132,39 @@
         rows="4"
       ></textarea>
     </div>
+
+    <div class="form-group">
+      <div class="form-label">
+        {$_("admin_dashboard.specifications") || "Specifications"}
+        ({$_("common.optional") || "Optional"})
+      </div>
+      <div class="specifications-list">
+        {#if specifications.length === 0}
+          <p class="empty-message">
+            {$_("admin_dashboard.no_specifications_available") ||
+              "No specifications available"}
+          </p>
+        {:else}
+          {#each specifications as spec}
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                checked={formData.specification_shortnames.includes(
+                  spec.shortname
+                )}
+                onchange={() => toggleSpecification(spec.shortname)}
+              />
+              <span>{getSpecificationDisplayName(spec)}</span>
+              <span class="spec-shortname">({spec.shortname})</span>
+            </label>
+          {/each}
+        {/if}
+      </div>
+      <p class="form-hint">
+        {$_("admin_dashboard.specifications_hint") ||
+          "Select specifications that apply to products in this category"}
+      </p>
+    </div>
   {/snippet}
 
   {#snippet footer()}
@@ -129,6 +187,14 @@
   }
 
   label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.9rem;
+  }
+
+  .form-label {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
@@ -175,5 +241,46 @@
   .form-textarea {
     resize: vertical;
     line-height: 1.5;
+  }
+
+  .specifications-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    background-color: #f9fafb;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    margin-bottom: 0.25rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+  }
+
+  .checkbox-label:hover {
+    background-color: #e5e7eb;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    margin-right: 0.5rem;
+    cursor: pointer;
+  }
+
+  .spec-shortname {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    color: #6b7280;
+  }
+
+  .empty-message {
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+    margin: 0;
   }
 </style>
