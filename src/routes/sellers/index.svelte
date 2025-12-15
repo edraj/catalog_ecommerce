@@ -15,7 +15,12 @@
   } from "flowbite-svelte-icons";
   import { user } from "@/stores/user";
   import { ResourceType } from "@edraj/tsdmart";
-  import { getSpaceContents, createEntity } from "@/lib/dmart_services";
+  import {
+    getSpaceContents,
+    createEntity,
+    updateEntity,
+  } from "@/lib/dmart_services";
+
   import {
     getLocalizedDisplayName,
     getContentPreview,
@@ -48,8 +53,6 @@
   import EditModal from "@/components/sellers/EditModal.svelte";
   import ProductCategoryRequestModal from "@/components/sellers/ProductCategoryRequestModal.svelte";
   import ShippingManagement from "@/components/sellers/ShippingManagement.svelte";
-  import CategoryShippingModal from "@/components/sellers/CategoryShippingModal.svelte";
-  import StateShippingModal from "@/components/sellers/StateShippingModal.svelte";
   import "@/components/sellers/ShippingManagement.css";
 
   $goto;
@@ -201,41 +204,22 @@
   });
 
   let isShippingView = $state(false);
-  let baseShipping = $state(null);
-  let categoryShippings = $state([]);
-  let stateShippings = $state([]);
-  let states = $state([]);
-  let isLoadingStates = $state(false);
-  let shippingForm = $state({
-    cost: "",
-    time: "",
+  let shippingConfig = $state(null);
+  let shippingItemForm = $state({
+    states: [],
+    settings: [
+      {
+        min: "",
+        max: "",
+        cost: "",
+        minimum_retail: "",
+        note: "",
+        is_active: true,
+      },
+    ],
   });
-  let categoryShippingForm = $state({
-    category_shortname: "",
-    standard: { cost: "", estimated_days: "", min_days: "" },
-    fast: {
-      cost: "",
-      estimated_days: "",
-      active: false,
-      validFrom: "",
-      validTo: "",
-    },
-    free: { estimated_days: "", active: false, validFrom: "", validTo: "" },
-  });
-  let stateShippingForm = $state({
-    state_shortname: "",
-    standard: { cost: "", estimated_days: "", min_days: "" },
-    fast: {
-      cost: "",
-      estimated_days: "",
-      active: false,
-      validFrom: "",
-      validTo: "",
-    },
-    free: { estimated_days: "", active: false, validFrom: "", validTo: "" },
-  });
-  let showCategoryShippingModal = $state(false);
-  let showStateShippingModal = $state(false);
+  let showShippingItemModal = $state(false);
+  let editingShippingItemIndex = $state(null);
 
   const isRTL = derived(
     locale,
@@ -274,7 +258,7 @@
       const sellerShortname = $user.shortname;
       const response = await getSpaceContents(
         "e_commerce",
-        `${folderShortname}/${sellerShortname}`,
+        `/${folderShortname}/${sellerShortname}`,
         "managed",
         100,
         0,
@@ -1662,115 +1646,57 @@
         true
       );
 
-      if (response?.records) {
-        const baseRecord = response.records.find(
-          (r) => r.resource_type === "content"
-        );
-
-        if (baseRecord) {
-          baseShipping = baseRecord;
-          const body = baseRecord.attributes?.payload?.body;
-          if (body) {
-            shippingForm.cost = body.cost?.toString() || "";
-            shippingForm.time = body.time?.toString() || "";
-          }
-        }
-
-        const catResponse = await getSpaceContents(
-          "e_commerce",
-          `/shipping_and_service/${$user.shortname}/categories`,
-          "managed",
-          100,
-          0,
-          true
-        );
-
-        if (catResponse?.records) {
-          categoryShippings = catResponse.records;
-        }
-
-        const stateResponse = await getSpaceContents(
-          "e_commerce",
-          `/shipping_and_service/${$user.shortname}/states`,
-          "managed",
-          100,
-          0,
-          true
-        );
-        if (stateResponse?.records) {
-          stateShippings = stateResponse.records;
-        }
+      if (response?.records && response.records.length > 0) {
+        // Get the first (and only) config record
+        shippingConfig = response.records[0];
+      } else {
+        // Initialize empty config structure for new config
+        shippingConfig = {
+          attributes: {
+            payload: {
+              body: {
+                items: [],
+              },
+            },
+          },
+        };
       }
-
-      // Load categories for dropdown
-      await loadCategories();
-
-      // Load states (you'll need to implement this based on your data structure)
-      await loadStates();
     } catch (error) {
       console.error("Error loading shipping data:", error);
     }
   }
 
-  async function loadStates() {
-    isLoadingStates = true;
-    try {
-      // Load states/regions from your system
-      // This is a placeholder - adjust based on your actual data structure
-      const response = await getSpaceContents(
-        "e_commerce",
-        "states",
-        "managed",
-        100,
-        0,
-        true
-      );
-      if (response?.records) {
-        states = response.records;
-      }
-    } catch (error) {
-      console.error("Error loading states:", error);
-    } finally {
-      isLoadingStates = false;
-    }
-  }
-
-  async function submitBaseShipping() {
-    if (!shippingForm.cost || !shippingForm.time) {
-      errorToastMessage("Please fill in all required fields");
-      return;
-    }
-
+  async function saveShippingConfig() {
     try {
       isLoading = true;
-      const shippingData = {
-        displayname_en: "Base",
+
+      const configData = {
+        displayname_en: "Configuration",
         displayname_ar: null,
         displayname_ku: null,
-        body: {
-          cost: parseFloat(shippingForm.cost),
-          time: parseInt(shippingForm.time),
-        },
+        content: shippingConfig.attributes.payload.body,
         tags: [],
         is_active: true,
       };
+      console.log("shippingConfig : ", shippingConfig.attributes.payload.body);
 
-      if (baseShipping) {
+      console.log(configData);
+
+      if (shippingConfig?.uuid) {
         // Update existing
-        const { updateEntity } = await import("@/lib/dmart_services");
         await updateEntity(
-          "base",
+          shippingConfig.shortname,
           "e_commerce",
           `/shipping_and_service/${$user.shortname}`,
           ResourceType.content,
-          shippingData,
+          configData,
           "",
           ""
         );
       } else {
         // Create new
         await createEntity(
-          shippingData,
+          configData,
           "e_commerce",
           `/shipping_and_service/${$user.shortname}`,
           ResourceType.content,
@@ -1784,194 +1710,144 @@
       );
       await loadShippingData();
     } catch (error) {
-      console.error("Error saving base shipping:", error);
+      console.error("Error saving shipping config:", error);
       errorToastMessage($_("seller_dashboard.failed_to_configure_shipping"));
     } finally {
       isLoading = false;
     }
   }
 
-  function openCategoryShippingModal() {
-    showCategoryShippingModal = true;
-    categoryShippingForm = {
-      category_shortname: "",
-      standard: { cost: "", estimated_days: "", min_days: "" },
-      fast: {
+  function addShippingSetting() {
+    shippingItemForm.settings = [
+      ...shippingItemForm.settings,
+      {
+        min: "",
+        max: "",
         cost: "",
-        estimated_days: "",
-        active: false,
-        validFrom: "",
-        validTo: "",
+        minimum_retail: "",
+        note: "",
+        is_active: true,
       },
-      free: { estimated_days: "", active: false, validFrom: "", validTo: "" },
-    };
+    ];
   }
 
-  function closeCategoryShippingModal() {
-    showCategoryShippingModal = false;
+  function removeShippingSetting(index: number) {
+    if (shippingItemForm.settings.length > 1) {
+      shippingItemForm.settings = shippingItemForm.settings.filter(
+        (_, i) => i !== index
+      );
+    }
   }
 
-  async function submitCategoryShipping() {
-    if (!categoryShippingForm.category_shortname) {
-      errorToastMessage("Please select a category");
+  async function submitShippingItem() {
+    // Validate form
+    if (shippingItemForm.settings.some((s) => !s.min || !s.max || !s.cost)) {
+      errorToastMessage("Please fill in all required fields (min, max, cost)");
       return;
     }
 
     try {
       isLoading = true;
-      const category = categories.find(
-        (c) => c.shortname === categoryShippingForm.category_shortname
-      );
-      const categoryName = getItemDisplayName(category);
 
-      const shippingData = {
-        displayname_en: `${categoryName} shipping`,
-        displayname_ar: null,
-        displayname_ku: null,
-        body: {
-          category_shortname: categoryShippingForm.category_shortname,
-          standard: {
-            cost: parseFloat(categoryShippingForm.standard.cost) || 0,
-            estimated_days:
-              parseInt(categoryShippingForm.standard.estimated_days) || 0,
-            min_days: parseInt(categoryShippingForm.standard.min_days) || 0,
-          },
-          fast: {
-            cost: parseFloat(categoryShippingForm.fast.cost) || 0,
-            estimated_days:
-              parseInt(categoryShippingForm.fast.estimated_days) || 0,
-            active: categoryShippingForm.fast.active,
-            validy: categoryShippingForm.fast.active
-              ? {
-                  from: categoryShippingForm.fast.validFrom,
-                  to: categoryShippingForm.fast.validTo,
-                }
-              : null,
-          },
-          free: {
-            estimated_days:
-              parseInt(categoryShippingForm.free.estimated_days) || 0,
-            active: categoryShippingForm.free.active,
-            validy: categoryShippingForm.free.active
-              ? {
-                  from: categoryShippingForm.free.validFrom,
-                  to: categoryShippingForm.free.validTo,
-                }
-              : null,
-          },
-        },
-        tags: [],
-        is_active: true,
+      const newItem = {
+        ...(shippingItemForm.states.length > 0
+          ? { states: shippingItemForm.states }
+          : {}),
+        settings: shippingItemForm.settings.map((s) => ({
+          min: parseFloat(s.min),
+          max: parseFloat(s.max),
+          cost: parseFloat(s.cost),
+          minimum_retail: s.minimum_retail ? parseFloat(s.minimum_retail) : 0,
+          note: s.note || "TRANSLATION_KEY_ONLY",
+          is_active: s.is_active,
+        })),
       };
 
-      await createEntity(
-        shippingData,
-        "e_commerce",
-        `/shipping_and_service/${$user.shortname}/categories`,
-        ResourceType.content,
-        "",
-        ""
-      );
+      if (editingShippingItemIndex !== null) {
+        // Update existing item
+        shippingConfig.attributes.payload.body.items[editingShippingItemIndex] =
+          newItem;
+      } else {
+        // Add new item
+        if (!shippingConfig.attributes) {
+          shippingConfig.attributes = { payload: { body: { items: [] } } };
+        }
+        if (!shippingConfig.attributes.payload) {
+          shippingConfig.attributes.payload = { body: { items: [] } };
+        }
+        if (!shippingConfig.attributes.payload.body) {
+          shippingConfig.attributes.payload.body = { items: [] };
+        }
+        if (!shippingConfig.attributes.payload.body.items) {
+          shippingConfig.attributes.payload.body.items = [];
+        }
+        shippingConfig.attributes.payload.body.items.push(newItem);
+      }
 
-      successToastMessage("Category shipping added successfully!");
-      closeCategoryShippingModal();
-      await loadShippingData();
+      await saveShippingConfig();
+      closeShippingItemModal();
     } catch (error) {
-      console.error("Error adding category shipping:", error);
-      errorToastMessage("Failed to add category shipping");
+      console.error("Error saving shipping item:", error);
+      errorToastMessage("Failed to save shipping item");
     } finally {
       isLoading = false;
     }
   }
 
-  function openStateShippingModal() {
-    showStateShippingModal = true;
-    stateShippingForm = {
-      state_shortname: "",
-      standard: { cost: "", estimated_days: "", min_days: "" },
-      fast: {
-        cost: "",
-        estimated_days: "",
-        active: false,
-        validFrom: "",
-        validTo: "",
-      },
-      free: { estimated_days: "", active: false, validFrom: "", validTo: "" },
-    };
-  }
+  function openShippingItemModal(itemIndex = null) {
+    editingShippingItemIndex = itemIndex;
+    showShippingItemModal = true;
 
-  function closeStateShippingModal() {
-    showStateShippingModal = false;
-  }
-
-  async function submitStateShipping() {
-    if (!stateShippingForm.state_shortname) {
-      errorToastMessage("Please select a state/region");
-      return;
+    if (itemIndex !== null) {
+      // Edit existing item
+      const item = shippingConfig.attributes.payload.body.items[itemIndex];
+      shippingItemForm = {
+        states: item.states || [],
+        settings: item.settings.map((s) => ({
+          min: s.min?.toString() || "",
+          max: s.max?.toString() || "",
+          cost: s.cost?.toString() || "",
+          minimum_retail: s.minimum_retail?.toString() || "",
+          note: s.note || "",
+          is_active: s.is_active ?? true,
+        })),
+      };
+    } else {
+      // New item
+      shippingItemForm = {
+        states: [],
+        settings: [
+          {
+            min: "",
+            max: "",
+            cost: "",
+            minimum_retail: "",
+            note: "",
+            is_active: true,
+          },
+        ],
+      };
     }
+  }
 
+  function closeShippingItemModal() {
+    showShippingItemModal = false;
+    editingShippingItemIndex = null;
+  }
+
+  async function deleteShippingItem(itemIndex: number) {
     try {
       isLoading = true;
-      const state = states.find(
-        (s) => s.shortname === stateShippingForm.state_shortname
-      );
-      const stateName = getItemDisplayName(state);
+      shippingConfig.attributes.payload.body.items =
+        shippingConfig.attributes.payload.body.items.filter(
+          (_, i) => i !== itemIndex
+        );
 
-      const shippingData = {
-        displayname_en: stateName,
-        displayname_ar: null,
-        displayname_ku: null,
-        body: {
-          state_shortname: stateShippingForm.state_shortname,
-          standard: {
-            cost: parseFloat(stateShippingForm.standard.cost) || 0,
-            estimated_days:
-              parseInt(stateShippingForm.standard.estimated_days) || 0,
-            min_days: parseInt(stateShippingForm.standard.min_days) || 0,
-          },
-          fast: {
-            cost: parseFloat(stateShippingForm.fast.cost) || 0,
-            estimated_days:
-              parseInt(stateShippingForm.fast.estimated_days) || 0,
-            active: stateShippingForm.fast.active,
-            validy: stateShippingForm.fast.active
-              ? {
-                  from: stateShippingForm.fast.validFrom,
-                  to: stateShippingForm.fast.validTo,
-                }
-              : null,
-          },
-          free: {
-            estimated_days:
-              parseInt(stateShippingForm.free.estimated_days) || 0,
-            active: stateShippingForm.free.active,
-            validy: stateShippingForm.free.active
-              ? {
-                  from: stateShippingForm.free.validFrom,
-                  to: stateShippingForm.free.validTo,
-                }
-              : null,
-          },
-        },
-        tags: [],
-        is_active: true,
-      };
-
-      await createEntity(
-        shippingData,
-        "e_commerce",
-        `/shipping_and_service/${$user.shortname}/states`,
-        ResourceType.content,
-        "",
-        ""
-      );
-
-      successToastMessage("State shipping added successfully!");
-      closeStateShippingModal();
-      await loadShippingData();
+      await saveShippingConfig();
+      successToastMessage("Shipping item deleted successfully!");
     } catch (error) {
-      console.error("Error adding state shipping:", error);
-      errorToastMessage("Failed to add state shipping");
+      console.error("Error deleting shipping item:", error);
+      errorToastMessage("Failed to delete shipping item");
     } finally {
       isLoading = false;
     }
@@ -2424,14 +2300,10 @@
       {:else if isShippingView}
         <!-- Shipping Management View -->
         <ShippingManagement
-          bind:baseShipping
-          bind:categoryShippings
-          bind:stateShippings
-          bind:categories
+          bind:shippingConfig
           bind:isLoading
-          onOpenCategoryModal={openCategoryShippingModal}
-          onOpenStateModal={openStateShippingModal}
-          {getItemDisplayName}
+          onOpenItemModal={openShippingItemModal}
+          onDeleteItem={deleteShippingItem}
         />
       {:else if filteredItems.length === 0}
         <div class="empty-state">
@@ -2886,22 +2758,605 @@
   getLocalizedDisplayName={getItemDisplayName}
 />
 
-<!-- Category Shipping Modal -->
-<CategoryShippingModal
-  bind:show={showCategoryShippingModal}
-  {categories}
-  bind:form={categoryShippingForm}
-  {isLoading}
-  onClose={closeCategoryShippingModal}
-  onSubmit={submitCategoryShipping}
-  {getItemDisplayName}
-/>
+<!-- Shipping Item Modal -->
+{#if showShippingItemModal}
+  <div
+    class="modal-overlay"
+    onclick={closeShippingItemModal}
+    role="button"
+    tabindex="0"
+    onkeydown={(e) => e.key === "Escape" && closeShippingItemModal()}
+  >
+    <div
+      class="modal-content"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+      role="dialog"
+      tabindex="-1"
+    >
+      <div class="modal-header">
+        <h2>
+          {editingShippingItemIndex !== null
+            ? $_("seller_dashboard.edit_shipping_item")
+            : $_("seller_dashboard.add_shipping_item")}
+        </h2>
+        <button class="close-button" onclick={closeShippingItemModal}
+          >&times;</button
+        >
+      </div>
+      <div class="modal-body">
+        <!-- States Selection -->
+        <div class="form-group">
+          <span class="form-label"
+            >{$_("seller_dashboard.states_selection_label")}</span
+          >
+          <div class="states-grid">
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="baghdad"
+                checked={shippingItemForm.states.includes("baghdad")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "baghdad",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "baghdad"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "بغداد"
+                  : $locale === "ku"
+                    ? "بەغدا"
+                    : "Baghdad"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="basra"
+                checked={shippingItemForm.states.includes("basra")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "basra",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "basra"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "البصرة"
+                  : $locale === "ku"
+                    ? "بەسرە"
+                    : "Basra"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="nineveh"
+                checked={shippingItemForm.states.includes("nineveh")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "nineveh",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "nineveh"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "نينوى"
+                  : $locale === "ku"
+                    ? "نەینەوا"
+                    : "Nineveh"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="erbil"
+                checked={shippingItemForm.states.includes("erbil")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "erbil",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "erbil"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "أربيل"
+                  : $locale === "ku"
+                    ? "هەولێر"
+                    : "Erbil"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="sulaymaniyah"
+                checked={shippingItemForm.states.includes("sulaymaniyah")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "sulaymaniyah",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "sulaymaniyah"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "السليمانية"
+                  : $locale === "ku"
+                    ? "سلێمانی"
+                    : "Sulaymaniyah"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="dohuk"
+                checked={shippingItemForm.states.includes("dohuk")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "dohuk",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "dohuk"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "دهوك"
+                  : $locale === "ku"
+                    ? "دهۆک"
+                    : "Dohuk"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="anbar"
+                checked={shippingItemForm.states.includes("anbar")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "anbar",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "anbar"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "الأنبار"
+                  : $locale === "ku"
+                    ? "ئەنبار"
+                    : "Anbar"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="diyala"
+                checked={shippingItemForm.states.includes("diyala")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "diyala",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "diyala"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "ديالى"
+                  : $locale === "ku"
+                    ? "دیالە"
+                    : "Diyala"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="salahuddin"
+                checked={shippingItemForm.states.includes("salahuddin")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "salahuddin",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "salahuddin"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "صلاح الدين"
+                  : $locale === "ku"
+                    ? "سەلاحەدین"
+                    : "Salah al-Din"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="kirkuk"
+                checked={shippingItemForm.states.includes("kirkuk")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "kirkuk",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "kirkuk"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "كركوك"
+                  : $locale === "ku"
+                    ? "کەرکووک"
+                    : "Kirkuk"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="najaf"
+                checked={shippingItemForm.states.includes("najaf")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "najaf",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "najaf"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "النجف"
+                  : $locale === "ku"
+                    ? "نەجەف"
+                    : "Najaf"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="karbala"
+                checked={shippingItemForm.states.includes("karbala")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "karbala",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "karbala"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "كربلاء"
+                  : $locale === "ku"
+                    ? "کەربەلا"
+                    : "Karbala"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="babil"
+                checked={shippingItemForm.states.includes("babil")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "babil",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "babil"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "بابل"
+                  : $locale === "ku"
+                    ? "بابل"
+                    : "Babil"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="wasit"
+                checked={shippingItemForm.states.includes("wasit")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "wasit",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "wasit"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "واسط"
+                  : $locale === "ku"
+                    ? "واست"
+                    : "Wasit"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="maysan"
+                checked={shippingItemForm.states.includes("maysan")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "maysan",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "maysan"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "ميسان"
+                  : $locale === "ku"
+                    ? "مەیسان"
+                    : "Maysan"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="dhi_qar"
+                checked={shippingItemForm.states.includes("dhi_qar")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "dhi_qar",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "dhi_qar"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "ذي قار"
+                  : $locale === "ku"
+                    ? "زیقار"
+                    : "Dhi Qar"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="muthanna"
+                checked={shippingItemForm.states.includes("muthanna")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "muthanna",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "muthanna"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "المثنى"
+                  : $locale === "ku"
+                    ? "موسەنا"
+                    : "Al-Muthanna"}</span
+              >
+            </label>
+            <label class="state-checkbox">
+              <input
+                type="checkbox"
+                value="qadisiyyah"
+                checked={shippingItemForm.states.includes("qadisiyyah")}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.checked) {
+                    shippingItemForm.states = [
+                      ...shippingItemForm.states,
+                      "qadisiyyah",
+                    ];
+                  } else {
+                    shippingItemForm.states = shippingItemForm.states.filter(
+                      (s) => s !== "qadisiyyah"
+                    );
+                  }
+                }}
+              />
+              <span
+                >{$locale === "ar"
+                  ? "القادسية"
+                  : $locale === "ku"
+                    ? "قادسیە"
+                    : "Al-Qadisiyyah"}</span
+              >
+            </label>
+          </div>
+        </div>
 
-<!-- State Shipping Modal -->
-<StateShippingModal
-  bind:show={showStateShippingModal}
-  bind:form={stateShippingForm}
-  {isLoading}
-  onClose={closeStateShippingModal}
-  onSubmit={submitStateShipping}
-/>
+        <!-- Settings -->
+        <div class="form-group">
+          <span class="form-label"
+            >{$_("seller_dashboard.delivery_based_settings")}</span
+          >
+          {#each shippingItemForm.settings as setting, index}
+            <div class="setting-item-form">
+              <div class="setting-row-form">
+                <input
+                  type="number"
+                  step="1"
+                  bind:value={setting.min}
+                  placeholder={$_("seller_dashboard.min_days")}
+                  class="form-input"
+                />
+                <input
+                  type="number"
+                  step="1"
+                  bind:value={setting.max}
+                  placeholder={$_("seller_dashboard.max_days")}
+                  class="form-input"
+                />
+                <input
+                  type="number"
+                  bind:value={setting.cost}
+                  placeholder={$_("seller_dashboard.cost")}
+                  class="form-input"
+                />
+              </div>
+              <div class="setting-row-form">
+                <input
+                  type="number"
+                  bind:value={setting.minimum_retail}
+                  placeholder={$_("seller_dashboard.minimum_retail_price")}
+                  class="form-input"
+                />
+                <input
+                  type="text"
+                  bind:value={setting.note}
+                  placeholder={$_("seller_dashboard.note_translation_key")}
+                  class="form-input"
+                />
+                <label class="checkbox-label">
+                  <input type="checkbox" bind:checked={setting.is_active} />
+                  {$_("seller_dashboard.active")}
+                </label>
+                {#if shippingItemForm.settings.length > 1}
+                  <button
+                    type="button"
+                    class="btn-remove"
+                    onclick={() => removeShippingSetting(index)}
+                  >
+                    {$_("seller_dashboard.remove")}
+                  </button>
+                {/if}
+              </div>
+            </div>
+          {/each}
+          <button type="button" class="btn-add" onclick={addShippingSetting}>
+            + {$_("seller_dashboard.add_setting_range")}
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick={closeShippingItemModal}
+          >{$_("seller_dashboard.cancel")}</button
+        >
+        <button
+          class="btn-primary"
+          onclick={submitShippingItem}
+          disabled={isLoading}
+        >
+          {isLoading
+            ? $_("seller_dashboard.saving")
+            : $_("seller_dashboard.save")}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
