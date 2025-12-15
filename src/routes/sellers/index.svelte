@@ -1678,9 +1678,6 @@
         tags: [],
         is_active: true,
       };
-      console.log("shippingConfig : ", shippingConfig.attributes.payload.body);
-
-      console.log(configData);
 
       if (shippingConfig?.uuid) {
         // Update existing

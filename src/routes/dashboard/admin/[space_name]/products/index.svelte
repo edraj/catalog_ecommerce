@@ -582,11 +582,9 @@
     return filteredStorages.slice(0, INITIAL_VARIATION_DISPLAY);
   });
 
-  // Get available specifications based on selected categories
   const availableSpecifications = $derived.by(() => {
     if (productForm.categories.length === 0) return [];
 
-    // Get all specification shortnames from selected categories
     const specShortnames = new Set<string>();
     productForm.categories.forEach((categoryShortname) => {
       const category = categories.find(
@@ -595,25 +593,13 @@
       if (category) {
         const content = category.attributes?.payload?.body;
         const specs = content?.specification_shortnames || [];
-        console.log(`Category ${categoryShortname} specs:`, specs);
         specs.forEach((spec: string) => specShortnames.add(spec));
       }
     });
 
-    console.log(
-      "All spec shortnames from categories:",
-      Array.from(specShortnames)
-    );
-    console.log(
-      "All available specifications:",
-      specifications.map((s) => s.shortname)
-    );
-
-    // Filter specifications to only include those in selected categories
     const filtered = specifications.filter((spec) =>
       specShortnames.has(spec.shortname)
     );
-    console.log("Filtered specifications:", filtered);
     return filtered;
   });
 
