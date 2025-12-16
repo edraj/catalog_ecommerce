@@ -2910,3 +2910,264 @@ export async function fetchWorkflows(space_name: string) {
     console.error("Failed to fetch workflows");
   }
 }
+
+// Collection Management Functions
+export async function createCollection(
+  spaceName: string,
+  data: any
+): Promise<string | null> {
+  const payloadBody: any = {
+    type: data.collection_type,
+  };
+
+  if (data.collection_type === "banner") {
+    payloadBody.url = data.banner_url;
+  } else if (data.collection_type === "product_cards") {
+    payloadBody.products = data.products;
+    payloadBody.product_card_type = data.product_card_type;
+  }
+
+  if (data.image_url) {
+    payloadBody.image_url = data.image_url;
+  }
+  if (data.background_color) {
+    payloadBody.background_color = data.background_color;
+  }
+
+  const actionRequest: ActionRequest = {
+    space_name: spaceName,
+    request_type: RequestType.create,
+    records: [
+      {
+        resource_type: ResourceType.content,
+        subpath: "/settings/collections",
+        shortname: data.shortname,
+        attributes: {
+          displayname: data.title,
+          description: data.description,
+          is_active: data.is_active,
+          payload: {
+            body: payloadBody,
+            content_type: "json",
+          },
+        },
+      },
+    ],
+  };
+
+  const response: ActionResponse = await Dmart.request(actionRequest);
+  return response.status === "success" && response.records.length > 0
+    ? response.records[0].shortname
+    : null;
+}
+
+export async function updateCollection(
+  spaceName: string,
+  data: any
+): Promise<string | null> {
+  const payloadBody: any = {
+    type: data.collection_type,
+  };
+
+  if (data.collection_type === "banner") {
+    payloadBody.url = data.banner_url;
+  } else if (data.collection_type === "product_cards") {
+    payloadBody.products = data.products;
+    payloadBody.product_card_type = data.product_card_type;
+  }
+
+  if (data.image_url) {
+    payloadBody.image_url = data.image_url;
+  }
+  if (data.background_color) {
+    payloadBody.background_color = data.background_color;
+  }
+
+  const actionRequest: ActionRequest = {
+    space_name: spaceName,
+    request_type: RequestType.update,
+    records: [
+      {
+        resource_type: ResourceType.content,
+        subpath: "/settings/collections",
+        shortname: data.shortname,
+        attributes: {
+          displayname: data.title,
+          description: data.description,
+          is_active: data.is_active,
+          payload: {
+            body: payloadBody,
+            content_type: "json",
+          },
+        },
+      },
+    ],
+  };
+
+  const response: ActionResponse = await Dmart.request(actionRequest);
+  return response.status === "success" && response.records.length > 0
+    ? response.records[0].shortname
+    : null;
+}
+
+// Region Management Functions
+export async function createRegion(
+  spaceName: string,
+  data: any
+): Promise<string | null> {
+  const payloadBody: any = {
+    region_type: data.region_type,
+  };
+
+  if (data.region_type === "collections") {
+    payloadBody.collections = data.collections;
+  } else if (data.region_type === "single_collection") {
+    payloadBody.collection_shortname = data.single_collection_shortname;
+  }
+
+  const actionRequest: ActionRequest = {
+    space_name: spaceName,
+    request_type: RequestType.create,
+    records: [
+      {
+        resource_type: ResourceType.content,
+        subpath: "/settings/regions",
+        shortname: data.shortname,
+        attributes: {
+          is_active: data.is_active,
+          payload: {
+            body: payloadBody,
+            content_type: "json",
+          },
+        },
+      },
+    ],
+  };
+
+  const response: ActionResponse = await Dmart.request(actionRequest);
+  return response.status === "success" && response.records.length > 0
+    ? response.records[0].shortname
+    : null;
+}
+
+export async function updateRegion(
+  spaceName: string,
+  data: any
+): Promise<string | null> {
+  const payloadBody: any = {
+    region_type: data.region_type,
+  };
+
+  if (data.region_type === "collections") {
+    payloadBody.collections = data.collections;
+  } else if (data.region_type === "single_collection") {
+    payloadBody.collection_shortname = data.single_collection_shortname;
+  }
+
+  const actionRequest: ActionRequest = {
+    space_name: spaceName,
+    request_type: RequestType.update,
+    records: [
+      {
+        resource_type: ResourceType.content,
+        subpath: "/settings/regions",
+        shortname: data.shortname,
+        attributes: {
+          is_active: data.is_active,
+          payload: {
+            body: payloadBody,
+            content_type: "json",
+          },
+        },
+      },
+    ],
+  };
+
+  const response: ActionResponse = await Dmart.request(actionRequest);
+  return response.status === "success" && response.records.length > 0
+    ? response.records[0].shortname
+    : null;
+}
+
+// Payment Method Management Functions
+export async function createPaymentMethod(
+  spaceName: string,
+  data: any
+): Promise<string | null> {
+  const nestedPayload = {
+    shortname: data.shortname,
+    displayname: data.displayname,
+    description: data.description || {},
+    is_active: data.is_active ?? true,
+    payload: {
+      body: {
+        order: data.order || 0,
+      },
+      content_type: "json",
+    },
+  };
+
+  const actionRequest: ActionRequest = {
+    space_name: spaceName,
+    request_type: RequestType.create,
+    records: [
+      {
+        resource_type: ResourceType.content,
+        subpath: "/settings/payment_methods",
+        shortname: data.shortname,
+        attributes: {
+          payload: {
+            body: nestedPayload,
+            content_type: "json",
+          },
+        },
+      },
+    ],
+  };
+
+  const response: ActionResponse = await Dmart.request(actionRequest);
+  return response.status === "success" && response.records.length > 0
+    ? response.records[0].shortname
+    : null;
+}
+
+export async function updatePaymentMethod(
+  spaceName: string,
+  data: any
+): Promise<string | null> {
+  const nestedPayload = {
+    shortname: data.shortname,
+    displayname: data.displayname,
+    description: data.description || {},
+    is_active: data.is_active ?? true,
+    payload: {
+      body: {
+        order: data.order || 0,
+      },
+      content_type: "json",
+    },
+  };
+
+  const actionRequest: ActionRequest = {
+    space_name: spaceName,
+    request_type: RequestType.update,
+    records: [
+      {
+        resource_type: ResourceType.content,
+        subpath: "/settings/payment_methods",
+        shortname: data.shortname,
+        attributes: {
+          payload: {
+            body: nestedPayload,
+            content_type: "json",
+          },
+        },
+      },
+    ],
+  };
+
+  const response: ActionResponse = await Dmart.request(actionRequest);
+  return response.status === "success" && response.records.length > 0
+    ? response.records[0].shortname
+    : null;
+}
