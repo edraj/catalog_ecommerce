@@ -21,6 +21,7 @@
     TrashBinOutline,
     CheckOutline,
   } from "flowbite-svelte-icons";
+  import {website} from "@/config";
 
   $goto;
 
@@ -82,7 +83,7 @@
     isLoadingCategories = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "categories",
         "managed",
         100,
@@ -107,7 +108,7 @@
     isLoadingVariations = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "variations",
         "managed",
         100,
@@ -140,7 +141,7 @@
     isLoadingSpecifications = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "specifications",
         "managed",
         100,
@@ -163,7 +164,7 @@
     isLoading = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "products",
         "managed",
         100,
@@ -311,7 +312,7 @@
 
       await createEntity(
         productData,
-        "e_commerce",
+        website.main_space,
         "/products",
         ResourceType.content,
         "",
@@ -378,7 +379,7 @@
 
       await updateEntity(
         selectedProduct.shortname,
-        "e_commerce",
+        website.main_space,
         selectedProduct.subpath,
         selectedProduct.resource_type,
         productData,
@@ -401,7 +402,7 @@
     try {
       await deleteEntity(
         selectedProduct.shortname,
-        "e_commerce",
+        website.main_space,
         selectedProduct.subpath,
         selectedProduct.resource_type
       );

@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { _ } from "@/i18n";
   import { getSpaceContents } from "@/lib/dmart_services";
+  import {website} from "@/config";
 
   let {
     formData = $bindable(),
@@ -32,7 +33,7 @@
   async function loadCollections() {
     try {
       const response: any = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "/settings/collections",
         "managed",
         100,

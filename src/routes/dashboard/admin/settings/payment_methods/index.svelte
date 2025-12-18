@@ -13,6 +13,7 @@
     updatePaymentMethod,
     deleteEntity,
   } from "@/lib/dmart_services";
+  import {website} from "@/config";
 
   let paymentMethods = $state([]);
   let isLoading = $state(true);
@@ -34,7 +35,7 @@
     isLoading = true;
     try {
       const response: any = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "/settings/payment_methods",
         "managed",
         100,
@@ -105,8 +106,8 @@
     isSaving = true;
     try {
       const result = isEditing
-        ? await updatePaymentMethod("e_commerce", formData)
-        : await createPaymentMethod("e_commerce", formData);
+        ? await updatePaymentMethod(website.main_space, formData)
+        : await createPaymentMethod(website.main_space, formData);
 
       if (result) {
         successToastMessage(
@@ -144,7 +145,7 @@
     try {
       await deleteEntity(
         paymentMethodToDelete.shortname,
-        "e_commerce",
+        website.main_space,
         "/settings/payment_methods",
         ResourceType.content
       );

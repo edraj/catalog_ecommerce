@@ -43,6 +43,7 @@
     DeleteCategoryModal,
   } from "@/components/modals";
   import type { CategoryFormData } from "@/components/modals/CreateCategoryModal.svelte";
+  import {website} from "@/config";
 
   $goto;
 
@@ -70,7 +71,7 @@
     isLoading = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "categories",
         "managed",
         100,
@@ -92,7 +93,7 @@
   async function loadSpecifications() {
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "specifications",
         "managed",
         100,
@@ -168,7 +169,7 @@
 
       await createEntity(
         categoryData,
-        "e_commerce",
+        website.main_space,
         "/categories",
         ResourceType.content,
         "",
@@ -209,7 +210,7 @@
 
       await updateEntity(
         selectedCategory.shortname,
-        "e_commerce",
+        website.main_space,
         selectedCategory.subpath,
         selectedCategory.resource_type,
         categoryData,
@@ -232,7 +233,7 @@
     try {
       await deleteEntity(
         selectedCategory.shortname,
-        "e_commerce",
+        website.main_space,
         selectedCategory.subpath,
         selectedCategory.resource_type
       );

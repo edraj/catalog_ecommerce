@@ -19,6 +19,7 @@
     CloseCircleOutline,
     EyeOutline,
   } from "flowbite-svelte-icons";
+  import {website} from "@/config";
 
   $goto;
 
@@ -50,7 +51,7 @@
     try {
       // Load product requests
       const productResponse = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "/variation_request/products_requests",
         "managed",
         100,
@@ -60,7 +61,7 @@
 
       // Load category requests
       const categoryResponse = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "/variation_request/categories_requests",
         "managed",
         100,
@@ -171,7 +172,7 @@
 
       await updateEntity(
         selectedRequest.shortname,
-        "e_commerce",
+        website.main_space,
         selectedRequest.subpath,
         selectedRequest.resource_type,
         updateData,

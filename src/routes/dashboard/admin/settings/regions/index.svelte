@@ -14,6 +14,7 @@
     deleteEntity,
   } from "@/lib/dmart_services";
   import "./regions.css";
+  import {website} from "@/config";
 
   let regions = $state([]);
   let isLoading = $state(true);
@@ -35,7 +36,7 @@
     isLoading = true;
     try {
       const response: any = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "/settings/regions",
         "managed",
         100,
@@ -99,8 +100,8 @@
     isSaving = true;
     try {
       const result = isEditing
-        ? await updateRegion("e_commerce", formData)
-        : await createRegion("e_commerce", formData);
+        ? await updateRegion(website.main_space, formData)
+        : await createRegion(website.main_space, formData);
 
       if (result) {
         successToastMessage(
@@ -136,7 +137,7 @@
     try {
       await deleteEntity(
         regionToDelete.shortname,
-        "e_commerce",
+        website.main_space,
         "/settings/regions",
         ResourceType.content
       );

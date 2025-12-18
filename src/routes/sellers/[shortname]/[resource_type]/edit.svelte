@@ -11,6 +11,7 @@
   import { ArrowLeftOutline, CheckCircleSolid } from "flowbite-svelte-icons";
   import { getEntity, replaceEntity, updateEntity } from "@/lib/dmart_services";
   import { ResourceType } from "@edraj/tsdmart";
+  import {website} from "@/config";
 
   $goto;
   let item = $state(null);
@@ -79,7 +80,7 @@
           : ResourceType.content;
       const response = await getEntity(
         $params.shortname,
-        "e_commerce",
+        website.main_space,
         $params.subpath,
         resourceType,
         "managed"
@@ -160,7 +161,7 @@
 
   function goBack() {
     $goto("/sellers/[shortname]/[resource_type]", {
-      space_name: "e_commerce",
+      space_name: website.main_space,
       subpath: $params.subpath,
       shortname: $params.shortname,
       resource_type: $params.resource_type,
@@ -299,7 +300,7 @@
           : ResourceType.content;
       await replaceEntity(
         item.shortname,
-        "e_commerce",
+        website.main_space,
         $params.subpath,
         resourceType,
         {

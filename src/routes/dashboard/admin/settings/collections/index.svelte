@@ -13,6 +13,7 @@
     updateCollection,
     deleteEntity,
   } from "@/lib/dmart_services";
+  import {website} from "@/config";
 
   let collections = $state([]);
   let isLoading = $state(true);
@@ -35,7 +36,7 @@
     isLoading = true;
     try {
       const response: any = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "/settings/collections",
         "managed",
         100,
@@ -113,8 +114,8 @@
     isSaving = true;
     try {
       const result = isEditing
-        ? await updateCollection("e_commerce", formData)
-        : await createCollection("e_commerce", formData);
+        ? await updateCollection(website.main_space, formData)
+        : await createCollection(website.main_space, formData);
 
       if (result) {
         successToastMessage(
@@ -150,7 +151,7 @@
     try {
       await deleteEntity(
         collectionToDelete.shortname,
-        "e_commerce",
+        website.main_space,
         "/settings/collections",
         ResourceType.content
       );

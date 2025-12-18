@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { Dmart, QueryType } from "@edraj/tsdmart";
   import { _ } from "@/i18n";
+  import {website} from "@/config";
 
   let {
     formData = $bindable(),
@@ -47,7 +48,7 @@
   async function loadProducts() {
     try {
       const response: any = await Dmart.query({
-        space_name: "e_commerce",
+        space_name: website.main_space,
         subpath: "/products",
         type: QueryType.search,
         search: "",

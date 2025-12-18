@@ -18,6 +18,7 @@
   } from "flowbite-svelte-icons";
   import { getEntity, deleteEntity } from "@/lib/dmart_services";
   import { ResourceType } from "@edraj/tsdmart";
+  import {website} from "@/config";
 
   $goto;
   let item = $state(null);
@@ -42,7 +43,7 @@
           : ResourceType.content;
       const response = await getEntity(
         $params.shortname,
-        "e_commerce",
+        website.main_space,
         $params.subpath,
         resourceType,
         "managed",
@@ -69,7 +70,7 @@
 
   function editItem() {
     $goto("/sellers/[shortname]/[resource_type]/edit", {
-      space_name: "e_commerce",
+      space_name: website.main_space,
       subpath: $params.subpath,
       shortname: $params.shortname,
       resource_type: $params.resource_type,
@@ -88,7 +89,7 @@
     try {
       await deleteEntity(
         $params.shortname,
-        "e_commerce",
+        website.main_space,
         $params.subpath,
         $params.resource_type
       );

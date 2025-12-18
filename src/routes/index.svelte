@@ -1,5 +1,5 @@
 <script>
-    import Catalogs from "./catalogs/index.svelte";
+    import Sellers from "./sellers/index.svelte";
 </script>
 
-<Catalogs />
+<Sellers />

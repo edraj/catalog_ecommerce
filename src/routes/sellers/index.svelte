@@ -54,6 +54,7 @@
   import ProductCategoryRequestModal from "@/components/sellers/ProductCategoryRequestModal.svelte";
   import ShippingManagement from "@/components/sellers/ShippingManagement.svelte";
   import "@/components/sellers/ShippingManagement.css";
+  import {website} from "@/config";
 
   $goto;
   let folders = $state([]);
@@ -257,7 +258,7 @@
     try {
       const sellerShortname = $user.shortname;
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         `/${folderShortname}/${sellerShortname}`,
         "managed",
         100,
@@ -305,7 +306,7 @@
   async function loadFilterCategories() {
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "categories",
         "managed",
         100,
@@ -324,7 +325,7 @@
   async function loadAllVariations() {
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "variations",
         "managed",
         100,
@@ -343,7 +344,7 @@
     isLoadingBrands = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "brands",
         "managed",
         1000,
@@ -363,7 +364,7 @@
   async function loadAllProducts() {
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "products",
         "managed",
         100,
@@ -464,7 +465,7 @@
     isLoadingCategories = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "categories",
         "managed",
         100,
@@ -492,7 +493,7 @@
     selectedVariants = [];
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "products",
         "managed",
         100,
@@ -528,7 +529,7 @@
 
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "variations",
         "managed",
         100,
@@ -689,7 +690,7 @@
 
       await createEntity(
         availabilityData,
-        "e_commerce",
+        website.main_space,
         `/available/${$user.shortname}`,
         ResourceType.ticket,
         "availability",
@@ -794,7 +795,7 @@
 
       await createEntity(
         couponData,
-        "e_commerce",
+        website.main_space,
         `/sellers_coupons/${$user.shortname}`,
         ResourceType.content,
         "",
@@ -924,7 +925,7 @@
     isLoadingSellerProducts = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         `/available/${$user.shortname}`,
         "managed",
         1000,
@@ -1138,7 +1139,7 @@
     isLoadingDiscountCategories = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "categories",
         "managed",
         100,
@@ -1189,7 +1190,7 @@
 
       await createEntity(
         discountData,
-        "e_commerce",
+        website.main_space,
         `/discounts/${$user.shortname}`,
         ResourceType.content,
         "",
@@ -1241,7 +1242,7 @@
     isLoadingWarrantyCategories = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "categories",
         "managed",
         100,
@@ -1291,7 +1292,7 @@
 
       await createEntity(
         warrantyData,
-        "e_commerce",
+        website.main_space,
         `/warranties/${$user.shortname}`,
         ResourceType.content,
         "",
@@ -1350,7 +1351,7 @@
     variationRequestForm.product = "";
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "products",
         "managed",
         100,
@@ -1409,7 +1410,7 @@
 
       await createEntity(
         requestData,
-        "e_commerce",
+        website.main_space,
         "/variation_requests",
         ResourceType.content,
         "",
@@ -1551,7 +1552,7 @@
 
         await createEntity(
           requestData,
-          "e_commerce",
+          website.main_space,
           "/variation_request/products_requests",
           ResourceType.content,
           "",
@@ -1615,7 +1616,7 @@
 
         await createEntity(
           requestData,
-          "e_commerce",
+          website.main_space,
           "/variation_request/categories_requests",
           ResourceType.content,
           "",
@@ -1638,7 +1639,7 @@
   async function loadShippingData() {
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         `/shipping_and_service/${$user.shortname}`,
         "managed",
         100,
@@ -1683,7 +1684,7 @@
         // Update existing
         await updateEntity(
           shippingConfig.shortname,
-          "e_commerce",
+          website.main_space,
           `/shipping_and_service/${$user.shortname}`,
           ResourceType.content,
           configData,
@@ -1694,7 +1695,7 @@
         // Create new
         await createEntity(
           configData,
-          "e_commerce",
+          website.main_space,
           `/shipping_and_service/${$user.shortname}`,
           ResourceType.content,
           "",

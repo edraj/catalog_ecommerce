@@ -22,6 +22,7 @@
     SearchOutline,
   } from "flowbite-svelte-icons";
   import { getLocalizedDisplayName, formatDate } from "@/lib/utils/adminUtils";
+  import {website} from "@/config";
 
   $goto;
 
@@ -68,7 +69,7 @@
     isLoading = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "brands",
         "managed",
         1000,
@@ -194,7 +195,7 @@
 
       await createEntity(
         brandData,
-        "e_commerce",
+        website.main_space,
         "/brands",
         ResourceType.content,
         "",
@@ -239,7 +240,7 @@
 
       await updateEntity(
         selectedBrand.shortname,
-        "e_commerce",
+        website.main_space,
         selectedBrand.subpath,
         selectedBrand.resource_type,
         brandData,
@@ -262,7 +263,7 @@
     try {
       await deleteEntity(
         selectedBrand.shortname,
-        "e_commerce",
+        website.main_space,
         selectedBrand.subpath,
         selectedBrand.resource_type
       );

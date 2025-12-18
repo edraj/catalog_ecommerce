@@ -34,6 +34,7 @@
     DeleteSpecificationModal,
   } from "@/components/modals";
   import type { SpecificationFormData } from "@/components/modals/CreateSpecificationModal.svelte";
+  import {website} from "@/config";
 
   $goto;
 
@@ -58,7 +59,7 @@
     isLoading = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "specifications",
         "managed",
         100,
@@ -149,7 +150,7 @@
 
       await createEntity(
         specificationData,
-        "e_commerce",
+        website.main_space,
         "/specifications",
         ResourceType.content,
         "",
@@ -196,7 +197,7 @@
 
       await updateEntity(
         selectedSpecification.shortname,
-        "e_commerce",
+        website.main_space,
         selectedSpecification.subpath,
         selectedSpecification.resource_type,
         specificationData,
@@ -219,7 +220,7 @@
     try {
       await deleteEntity(
         selectedSpecification.shortname,
-        "e_commerce",
+        website.main_space,
         selectedSpecification.subpath,
         selectedSpecification.resource_type
       );

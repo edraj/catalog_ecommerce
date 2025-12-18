@@ -36,6 +36,7 @@
     DeleteOptionModal,
   } from "@/components/modals";
   import type { OptionFormData } from "@/components/modals/AddOptionModal.svelte";
+  import {website} from "@/config";
 
   $goto;
 
@@ -104,7 +105,7 @@
     isLoading = true;
     try {
       const response = await getSpaceContents(
-        "e_commerce",
+        website.main_space,
         "variations",
         "managed",
         100,
@@ -204,7 +205,7 @@
 
       await updateEntity(
         selectedVariation.shortname,
-        "e_commerce",
+        website.main_space,
         selectedVariation.subpath,
         selectedVariation.resource_type,
         JSON.stringify(variationData),
@@ -268,7 +269,7 @@
 
       await updateEntity(
         selectedVariation.shortname,
-        "e_commerce",
+        website.main_space,
         selectedVariation.subpath,
         selectedVariation.resource_type,
         JSON.stringify(variationData),
@@ -307,7 +308,7 @@
 
       await updateEntity(
         selectedVariation.shortname,
-        "e_commerce",
+        website.main_space,
         selectedVariation.subpath,
         selectedVariation.resource_type,
         JSON.stringify(variationData),
