@@ -399,7 +399,9 @@
                         <button
                           aria-label={`Manage Regions`}
                           onclick={() =>
-                            handleMenuItemClick("/dashboard/admin/regions")}
+                            handleMenuItemClick(
+                              "/dashboard/admin/settings/regions"
+                            )}
                           class="menu-item submenu-item"
                         >
                           <svg
@@ -420,7 +422,9 @@
                         <button
                           aria-label={`Manage Collections`}
                           onclick={() =>
-                            handleMenuItemClick("/dashboard/admin/collections")}
+                            handleMenuItemClick(
+                              "/dashboard/admin/settings/collections"
+                            )}
                           class="menu-item submenu-item"
                         >
                           <svg

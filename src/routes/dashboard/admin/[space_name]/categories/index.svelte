@@ -43,7 +43,7 @@
     DeleteCategoryModal,
   } from "@/components/modals";
   import type { CategoryFormData } from "@/components/modals/CreateCategoryModal.svelte";
-  import {website} from "@/config";
+  import { website } from "@/config";
 
   $goto;
 
@@ -154,8 +154,8 @@
 
     try {
       const categoryData = {
-        displayname: formData.displayname,
-        description: formData.description,
+        displayname_en: formData.displayname,
+        description_en: formData.description,
         body: {
           name: formData.displayname,
           description: formData.description,

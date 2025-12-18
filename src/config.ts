@@ -10,5 +10,5 @@ export const website = {
   // websocket: "wss://0.0.0.0:8484/ws",
   backend: "https://api.dmart.cc",
   websocket: "wss://api.dmart.cc/ws",
-  main_space: 'zainmart'
+  main_space: "zainmart",
 };

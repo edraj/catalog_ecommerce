@@ -273,14 +273,13 @@ export async function createEntity(
           subpath: subpath,
           attributes: {
             displayname: {
-              en: data.displayname || "",
-              ar: "",
-              ku: "",
+              en: data.displayname_en || "",
+              ar: data.displayname_ar || "",
             },
             description: {
-              en: data.description || "",
-              ar: "",
-              ku: "",
+              en: data.description_en || "",
+              ar: data.description_ar || "",
+              ku: data.description_ku || "",
             },
             is_active: data.is_active,
             relationships: [],
@@ -386,7 +385,15 @@ export async function updateEntity(
 
   const attributes: any = {
     is_active: data.is_active,
-    displayname: data.displayname,
+    displayname: {
+      en: data.displayname_en || "",
+      ar: data.displayname_ar || "",
+    },
+    description: {
+      en: data.description_en || "",
+      ar: data.description_ar || "",
+      ku: data.description_ku || "",
+    },
     relationships: [],
     tags: data.tags,
     payload: {

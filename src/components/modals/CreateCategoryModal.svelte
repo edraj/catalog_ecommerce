@@ -38,7 +38,12 @@
   }
 
   function getLocalizedDisplayName(item: any): string {
-    return item?.displayname || item?.shortname || "";
+    return (
+      item?.displayname ||
+      item?.attributes?.displayname?.en ||
+      item?.shortname ||
+      ""
+    );
   }
 
   // Reset form when modal closes
