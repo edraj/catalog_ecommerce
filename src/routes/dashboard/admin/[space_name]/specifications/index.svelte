@@ -34,7 +34,7 @@
     DeleteSpecificationModal,
   } from "@/components/modals";
   import type { SpecificationFormData } from "@/components/modals/CreateSpecificationModal.svelte";
-  import {website} from "@/config";
+  import { website } from "@/config";
 
   $goto;
 
@@ -88,19 +88,51 @@
 
   function openEditModal(specification) {
     selectedSpecification = specification;
-    const content = getEntityContent(specification);
+    const content = specification.attributes?.payload?.body || {};
     const displayname = specification.attributes?.displayname || {};
+
+    // Normalize options to the format we use in forms
+    let options = content?.options || [];
+
+    // Convert options to consistent format with name object
+    const normalizedOptions = options.map((opt) => {
+      if (opt.name) {
+        // Already in correct format
+        return {
+          key: opt.key || Math.random().toString(36).substring(2, 15),
+          name: {
+            en: opt.name.en || "",
+            ar: opt.name.ar || "",
+            ku: opt.name.ku || "",
+          },
+        };
+      } else if (opt.en || opt.ar) {
+        // Old format with direct locale keys
+        return {
+          key: opt.key || Math.random().toString(36).substring(2, 15),
+          name: {
+            en: opt.en || "",
+            ar: opt.ar || "",
+            ku: opt.ku || "",
+          },
+        };
+      }
+      return opt;
+    });
 
     editFormData = {
       displayname: displayname.en || "",
       displayname_ar: displayname.ar || "",
       displayname_ku: displayname.ku || "",
-      options: content?.options || [
-        {
-          key: Math.random().toString(36).substring(2, 15),
-          name: { en: "", ar: "", ku: "" },
-        },
-      ],
+      options:
+        normalizedOptions.length > 0
+          ? normalizedOptions
+          : [
+              {
+                key: Math.random().toString(36).substring(2, 15),
+                name: { en: "", ar: "", ku: "" },
+              },
+            ],
     };
     showEditModal = true;
   }
@@ -139,9 +171,7 @@
         displayname_ku: formData.displayname_ku || "",
 
         body: {
-          content: {
-            options: validOptions,
-          },
+          options: validOptions,
           content_type: "json",
         },
         tags: [],
@@ -236,14 +266,25 @@
 
   // Helper function to get options from specification
   function getSpecificationOptions(specification: any): any[] {
-    const content = getEntityContent(specification);
+    const content = specification.attributes?.payload?.body || {};
     return content?.options || [];
   }
 
   function getOptionName(option: any, locale: string): string {
-    if (!option?.name) return "";
-    if (typeof option.name === "string") return option.name;
-    return option.name[locale] || option.name.en || option.name.ar || "";
+    // Handle new format with name object
+    if (option?.name) {
+      if (typeof option.name === "string") return option.name;
+      return (
+        option.name[locale] ||
+        option.name.en ||
+        option.name.ar ||
+        option.name.ku ||
+        ""
+      );
+    }
+    // Handle old format with direct locale keys
+    if (option?.[locale]) return option[locale];
+    return option?.en || option?.ar || option?.ku || "";
   }
 </script>
 
@@ -311,15 +352,21 @@
             <h4 class="options-title">
               {$_("common.options") || "Options"}:
             </h4>
-            <div class="options-list">
-              {#each getSpecificationOptions(specification) as option}
-                <div class="option-item">
-                  <span class="option-value"
-                    >{getOptionName(option, $locale)}</span
-                  >
-                </div>
-              {/each}
-            </div>
+            {#if getSpecificationOptions(specification).length > 0}
+              <div class="options-list">
+                {#each getSpecificationOptions(specification) as option}
+                  <div class="option-item">
+                    <span class="option-value"
+                      >{getOptionName(option, $locale)}</span
+                    >
+                  </div>
+                {/each}
+              </div>
+            {:else}
+              <p class="no-options">
+                {$_("common.no_options") || "No options defined"}
+              </p>
+            {/if}
           </div>
           <div class="specification-meta">
             <span class="meta-item">Shortname: {specification.shortname}</span>

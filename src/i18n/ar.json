@@ -960,6 +960,7 @@
     "no_description": "لا يوجد وصف متاح"
   },
   "common": {
+    "no_options": "لا توجد خيارات متاحة",
     "options": "الخيارات",
     "add_option": "إضافة خيار",
     "search": "بحث",
@@ -1183,6 +1184,8 @@
   "create_space": "إنشاء مساحة",
   "Users": "المستخدمون",
   "seller_dashboard": {
+    "enter_details": "أدخل تفاصيل العنصر الخاص بك أدناه",
+    "remove": "إزالة",
     "title": "لوحة البائع",
     "subtitle": "اختر مجلدًا لإدارة عناصرك",
     "folder_subtitle": "إدارة العناصر في هذا المجلد",

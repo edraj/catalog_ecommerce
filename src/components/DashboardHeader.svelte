@@ -374,6 +374,27 @@
                           <span>{$_("Users")}</span>
                         </button>
                         <button
+                          aria-label={`Manage Sellers`}
+                          onclick={() =>
+                            handleMenuItemClick("/dashboard/admin/sellers")}
+                          class="menu-item submenu-item"
+                        >
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                            />
+                          </svg>
+                          <span>{$_("sellers")}</span>
+                        </button>
+                        <button
                           aria-label={`Check Variation Requests`}
                           onclick={() =>
                             handleMenuItemClick(
@@ -441,6 +462,29 @@
                             />
                           </svg>
                           <span>{$_("collections")}</span>
+                        </button>
+                        <button
+                          aria-label={`Payment Methods`}
+                          onclick={() =>
+                            handleMenuItemClick(
+                              "/dashboard/admin/settings/payment_methods"
+                            )}
+                          class="menu-item submenu-item"
+                        >
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                            />
+                          </svg>
+                          <span>{$_("payment_methods")}</span>
                         </button>
                         <button
                           aria-label={`Manage Configurations`}

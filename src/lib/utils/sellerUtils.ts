@@ -127,13 +127,13 @@ export function getItemCategory(item: any): {
   const content = body.content || body;
 
   if (
-    item.subpath.includes("/available") &&
+    item.subpath.includes("/available_products") &&
     content.product_id &&
     content.category_id
   ) {
     return { type: "product", icon: "🛍️", color: "#667eea" };
   } else if (
-    item.subpath.includes("/sellers_coupons") &&
+    item.subpath.includes("/coupons") &&
     content.type &&
     content.amount !== undefined
   ) {
@@ -281,8 +281,8 @@ export function createSellerFolders(
 ): any[] {
   return [
     {
-      shortname: "available",
-      subpath: `/available/${sellerShortname}`,
+      shortname: "available_products",
+      subpath: `/available_products/${sellerShortname}`,
       resource_type: "folder",
       attributes: {
         displayname: {
@@ -316,8 +316,8 @@ export function createSellerFolders(
       },
     },
     {
-      shortname: "sellers_coupons",
-      subpath: `/sellers_coupons/${sellerShortname}`,
+      shortname: "coupons",
+      subpath: `/coupons/${sellerShortname}`,
       resource_type: "folder",
       attributes: {
         displayname: {
@@ -338,8 +338,8 @@ export function createSellerFolders(
       },
     },
     {
-      shortname: "shipping_and_service",
-      subpath: `/shipping_and_service/${sellerShortname}`,
+      shortname: "shipping",
+      subpath: `/shipping/${sellerShortname}`,
       resource_type: "folder",
       attributes: {
         displayname: {

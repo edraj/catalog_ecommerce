@@ -790,7 +790,9 @@
     "unnamed_space": "Unnamed Space",
     "no_description": "No description available"
   },
+  "payment_methods": "Payment Methods",
   "common": {
+    "no_options": "No options available",
     "options": "Options",
     "add_option": "Add Option",
     "search": "Search",
@@ -1266,6 +1268,8 @@
   "fix_validation_errors": "Please fix validation errors before saving",
   "Users": "Users",
   "seller_dashboard": {
+    "enter_details": "Enter Details",
+    "remove": "Remove",
     "title": "Seller Dashboard",
     "subtitle": "Select a folder to manage your items",
     "folder_subtitle": "Manage items in this folder",

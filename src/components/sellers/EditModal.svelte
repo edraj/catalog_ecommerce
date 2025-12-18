@@ -95,7 +95,7 @@
       </div>
 
       <div class="modal-body">
-        {#if itemToEdit.subpath.includes("/coupons") || itemToEdit.subpath.includes("/sellers_coupons")}
+        {#if itemToEdit.subpath.includes("/coupons") || itemToEdit.subpath.includes("/coupons")}
           <!-- Coupon Edit Form - Same structure as Create -->
           <div class="form-group">
             <label class="form-label" class:rtl={isRTL}>

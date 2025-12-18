@@ -71,7 +71,7 @@
         shortname: formData.shortname,
         email: trimmedEmail,
         password: formData.password,
-        role: "seller",
+        role: "zm_seller",
         gender: formData.gender,
         ...(formData.age && { age: Number(formData.age) }),
         ...(formData.address && { address: formData.address.trim() }),

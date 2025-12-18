@@ -54,7 +54,7 @@
   import ProductCategoryRequestModal from "@/components/sellers/ProductCategoryRequestModal.svelte";
   import ShippingManagement from "@/components/sellers/ShippingManagement.svelte";
   import "@/components/sellers/ShippingManagement.css";
-  import {website} from "@/config";
+  import { website } from "@/config";
 
   $goto;
   let folders = $state([]);
@@ -270,12 +270,12 @@
         items = response.records;
 
         // Load variations and products for available folder
-        if (folderShortname === "available") {
+        if (folderShortname === "available_products") {
           await Promise.all([loadAllVariations(), loadAllProducts()]);
         }
 
         // Handle shipping folder specially
-        if (folderShortname === "shipping_and_service") {
+        if (folderShortname === "shipping") {
           isShippingView = true;
           await loadShippingData();
           return;
@@ -444,16 +444,16 @@
   }
 
   function createItem() {
-    if (selectedFolder === "available") {
+    if (selectedFolder === "available_products") {
       showAddItemModal = true;
       loadProducts();
-    } else if (selectedFolder === "sellers_coupons") {
+    } else if (selectedFolder === "coupons") {
       openCouponModal();
     } else if (selectedFolder === "discounts") {
       openDiscountModal();
     } else if (selectedFolder === "warranties") {
       openWarrantyModal();
-    } else if (selectedFolder === "shipping_and_service") {
+    } else if (selectedFolder === "shipping") {
       // Shipping is handled in the view
       return;
     } else {
@@ -691,7 +691,7 @@
       await createEntity(
         availabilityData,
         website.main_space,
-        `/available/${$user.shortname}`,
+        `/available_products/${$user.shortname}`,
         ResourceType.ticket,
         "availability",
         ""
@@ -701,7 +701,7 @@
         `Product availability with ${variants.length} variant(s) added successfully!`
       );
       closeModal();
-      await loadFolderContents("available");
+      await loadFolderContents("available_products");
     } catch (error) {
       console.error("Error creating product availability:", error);
       errorToastMessage("Failed to create product availability");
@@ -760,8 +760,8 @@
     try {
       isLoading = true;
       const couponData = {
-        displayname_en: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
-        displayname_ar: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+        displayname_en: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "IQD" + couponForm.discountValue}`,
+        displayname_ar: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "IQD" + couponForm.discountValue}`,
         displayname_ku: null,
 
         body: {
@@ -796,7 +796,7 @@
       await createEntity(
         couponData,
         website.main_space,
-        `/sellers_coupons/${$user.shortname}`,
+        `/coupons/${$user.shortname}`,
         ResourceType.content,
         "",
         ""
@@ -804,7 +804,7 @@
 
       successToastMessage("Coupon created successfully!");
       closeCouponModal();
-      await loadFolderContents("sellers_coupons");
+      await loadFolderContents("coupons");
     } catch (error) {
       console.error("Error creating coupon:", error);
       errorToastMessage("Failed to create coupon");
@@ -926,7 +926,7 @@
     try {
       const response = await getSpaceContents(
         website.main_space,
-        `/available/${$user.shortname}`,
+        `/available_products/${$user.shortname}`,
         "managed",
         1000,
         0,
@@ -1049,7 +1049,7 @@
       return;
     } else if (
       item.subpath.includes("/coupons") ||
-      item.subpath.includes("/sellers_coupons")
+      item.subpath.includes("/coupons")
     ) {
       couponForm = {
         code: content.code || "",
@@ -1640,7 +1640,7 @@
     try {
       const response = await getSpaceContents(
         website.main_space,
-        `/shipping_and_service/${$user.shortname}`,
+        `/shipping/${$user.shortname}`,
         "managed",
         100,
         0,
@@ -1685,7 +1685,7 @@
         await updateEntity(
           shippingConfig.shortname,
           website.main_space,
-          `/shipping_and_service/${$user.shortname}`,
+          `/shipping/${$user.shortname}`,
           ResourceType.content,
           configData,
           "",
@@ -1696,7 +1696,7 @@
         await createEntity(
           configData,
           website.main_space,
-          `/shipping_and_service/${$user.shortname}`,
+          `/shipping/${$user.shortname}`,
           ResourceType.content,
           "",
           ""
@@ -1859,10 +1859,7 @@
       let updateData;
       let subpath = itemToEdit.subpath;
 
-      if (
-        subpath.includes("/coupons") ||
-        subpath.includes("/sellers_coupons")
-      ) {
+      if (subpath.includes("/coupons") || subpath.includes("/coupons")) {
         if (
           !couponForm.code ||
           !couponForm.discountValue ||
@@ -1873,8 +1870,8 @@
           return;
         }
         updateData = {
-          displayname_en: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
-          displayname_ar: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "$" + couponForm.discountValue}`,
+          displayname_en: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "IQD" + couponForm.discountValue}`,
+          displayname_ar: `${couponForm.code} - ${couponForm.discountType === "percentage" ? couponForm.discountValue + "%" : "IQD" + couponForm.discountValue}`,
           displayname_ku: null,
           body: {
             code: couponForm.code.toUpperCase(),
@@ -1983,7 +1980,7 @@
 
       await deleteEntity(
         itemToDelete.shortname,
-        itemToDelete.space_name,
+        website.main_space,
         itemToDelete.subpath,
         itemToDelete.resource_type
       );
@@ -2060,7 +2057,7 @@
         </div>
         {#if selectedFolder}
           <div class="header-actions">
-            {#if selectedFolder === "available"}
+            {#if selectedFolder === "available_products"}
               <button
                 class="create-button tertiary-button"
                 onclick={openProductCategoryRequestModal}

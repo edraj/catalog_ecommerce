@@ -240,7 +240,7 @@
                             {$_("seller_dashboard.stock") || "Stock"}
                           </th>
                           <th class:rtl={isRTL}>
-                            {$_("seller_dashboard.price") || "Price"} ($)
+                            {$_("seller_dashboard.price") || "Price"} (IQD)
                           </th>
                         </tr>
                       </thead>
