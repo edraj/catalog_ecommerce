@@ -1,15 +1,15 @@
 <script>
-    import "./global.css";
-    import DashboardHeader from "@/components/DashboardHeader.svelte";
-    import {signout} from "@/stores/user";
-    import {onMount} from "svelte";
-    import {getProfile} from "@/lib/dmart_services";
-    import {goto} from "@roxi/routify";
-    import {Dmart} from "@edraj/tsdmart";
-    import {website} from "@/config";
-    import axios from "axios";
+  import "./global.css";
+  import DashboardHeader from "@/components/DashboardHeader.svelte";
+  import { signout } from "@/stores/user";
+  import { onMount } from "svelte";
+  import { getProfile } from "@/lib/dmart_services";
+  import { goto } from "@roxi/routify";
+  import { Dmart } from "@edraj/tsdmart";
+  import { website } from "@/config";
+  import axios from "axios";
 
-    $goto;
+  $goto;
 
   const publicRoutes = [
     "/register",
@@ -54,7 +54,7 @@
   );
 
   Dmart.setAxiosInstance(dmartAxios);
-
+  Dmart.setToken(localStorage.getItem("authToken") || "");
   onMount(async () => {
     const currentPath = window.location.pathname;
 
