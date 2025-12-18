@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import "./global.css";
   import DashboardHeader from "@/components/DashboardHeader.svelte";
   import { signout } from "@/stores/user";
@@ -7,7 +7,7 @@
   import { goto } from "@roxi/routify";
   import { Dmart } from "@edraj/tsdmart";
   import { website } from "@/config";
-  import axios from "axios";
+  import axios, {type AxiosInstance} from "axios";
 
   $goto;
 
@@ -31,7 +31,7 @@
     });
   }
 
-  const dmartAxios = axios.create({
+  const dmartAxios: AxiosInstance = axios.create({
     baseURL: website.backend,
     withCredentials: true,
     timeout: 30000,
@@ -55,6 +55,7 @@
 
   Dmart.setAxiosInstance(dmartAxios);
   Dmart.setToken(localStorage.getItem("authToken") || "");
+
   onMount(async () => {
     const currentPath = window.location.pathname;
 

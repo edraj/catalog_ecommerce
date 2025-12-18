@@ -56,13 +56,15 @@
       const shortname = removeFileExtension(attachment.shortname);
       currentPreview = {
         ...attachment,
-        url: Dmart.get_attachment_url(
-          ResourceType[attachment.resource_type as keyof typeof ResourceType],
-          space_name,
-          subpath,
-          parent_shortname,
-          shortname,
-          getFileExtension(filename),
+        url: Dmart.getAttachmentUrl(
+          {
+            resource_type: ResourceType[attachment.resource_type as keyof typeof ResourceType],
+            space_name,
+            subpath,
+            parent_shortname,
+            shortname,
+            ext: getFileExtension(filename),
+          },
           "public"
         ),
         type,
@@ -79,13 +81,15 @@
 
   function downloadFile(attachment: Attachment) {
     const filename = attachment.attributes?.payload?.body;
-    const url = Dmart.get_attachment_url(
-      ResourceType[attachment.resource_type as keyof typeof ResourceType],
-      space_name,
-      subpath,
-      parent_shortname,
-      attachment.shortname,
-      getFileExtension(filename),
+    const url = Dmart.getAttachmentUrl(
+      {
+        resource_type: ResourceType[attachment.resource_type as keyof typeof ResourceType],
+        space_name,
+        subpath,
+        parent_shortname,
+        shortname: attachment.shortname,
+        ext: getFileExtension(filename),
+      },
       "public"
     );
 
@@ -111,7 +115,7 @@
       request_type: RequestType.delete,
       records: [
         {
-          resource_type: attachment.resource_type,
+          resource_type: ResourceType[attachment.resource_type as keyof typeof ResourceType],
           shortname: attachment.shortname,
           subpath: `${attachment.subpath}/${parent_shortname}`,
           attributes: {},
@@ -131,13 +135,15 @@
 
   function getAttachmentUrl(attachment: Attachment) {
     const filename = attachment.attributes?.payload?.body;
-    return Dmart.get_attachment_url(
-      ResourceType[attachment.resource_type as keyof typeof ResourceType],
-      space_name,
-      subpath,
-      parent_shortname,
-      attachment.shortname,
-      getFileExtension(filename),
+    return Dmart.getAttachmentUrl(
+      {
+        resource_type: ResourceType[attachment.resource_type as keyof typeof ResourceType],
+        space_name,
+        subpath,
+        parent_shortname,
+        shortname: attachment.shortname,
+        ext: getFileExtension(filename),
+      },
       "public"
     );
   }

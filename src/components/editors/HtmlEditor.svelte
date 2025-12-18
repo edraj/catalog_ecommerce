@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {Dmart} from "@edraj/tsdmart";
+  import {Dmart, ResourceType} from "@edraj/tsdmart";
     import {onMount} from "svelte";
     import {getFileExtension} from "../../lib/fileUtils";
 
@@ -288,14 +288,16 @@
     const filename = attachment?.attributes?.payload?.body;
 
     if (editor && attachment) {
-      const url = Dmart.get_attachment_url(
-        attachment.resource_type,
-        space_name,
-        subpath,
-        parent_shortname,
-        attachment.shortname,
-        getFileExtension(filename),
-        "public"
+      const url = Dmart.getAttachmentUrl(
+          {
+            resource_type: ResourceType[attachment.resource_type as keyof typeof ResourceType],
+            space_name,
+            subpath,
+            parent_shortname,
+            shortname: attachment.shortname,
+            ext: getFileExtension(filename),
+          },
+          "public"
       );
 
       const fileExtension = getFileExtension(filename)?.toLowerCase();

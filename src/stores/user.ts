@@ -130,7 +130,7 @@ export async function loginBy(email: string, password: string) {
 export async function requestOtp(email: string): Promise<string> {
   const request: SendOTPRequest = { email: email };
   try {
-    const response = await Dmart.otp_request(request);
+    const response = await Dmart.otpRequest(request);
     if (response.status === "success") {
       return response.records[0].attributes.request_id;
     } else {
@@ -152,7 +152,7 @@ export async function checkExisting(
   value: string
 ): Promise<boolean> {
   try {
-    const response = await Dmart.check_existing(prop, value);
+    const response = await Dmart.checkExisting(prop, value);
     return (response as any).attributes.unique;
   } catch (error: any) {
     if (error.response?.data?.error?.message) {
@@ -196,7 +196,7 @@ export async function register(
   };
 
   try {
-    const response = await Dmart.create_user(request);
+    const response = await Dmart.createUser(request);
 
     if (response.status === "success") {
       await loginBy(email, password);
@@ -245,18 +245,18 @@ export async function contactUs(
   subject: string
 ) {
   try {
-    const response = await Dmart.submit(
-      "applications",
-      "contact",
-      "contacts",
-      {
-        full_name: name,
-        email: email,
-        message: message,
-        subject: subject,
-      },
-      ResourceType.content
-    );
+    const response = await Dmart.submit({
+        spaceName: "applications",
+        schemaShortname: "contact",
+        subpath: "contacts",
+        record: {
+          full_name: name,
+          email: email,
+          message: message,
+          subject: subject,
+        },
+        resourceType: ResourceType.content
+    });
     if (response.status === "success") {
       return `
         <Toast>
