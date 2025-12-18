@@ -1841,7 +1841,6 @@
         shippingConfig.attributes.payload.body.items.filter(
           (_, i) => i !== itemIndex
         );
-      console.log(shippingConfig);
 
       await saveShippingConfig();
       successToastMessage("Shipping item deleted successfully!");
