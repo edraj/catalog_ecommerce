@@ -1670,7 +1670,6 @@
   async function saveShippingConfig() {
     try {
       isLoading = true;
-      console.log(shippingConfig);
 
       const configData = {
         displayname_en: "Configuration",
@@ -1837,10 +1836,12 @@
   async function deleteShippingItem(itemIndex: number) {
     try {
       isLoading = true;
+
       shippingConfig.attributes.payload.body.items =
         shippingConfig.attributes.payload.body.items.filter(
           (_, i) => i !== itemIndex
         );
+      console.log(shippingConfig);
 
       await saveShippingConfig();
       successToastMessage("Shipping item deleted successfully!");

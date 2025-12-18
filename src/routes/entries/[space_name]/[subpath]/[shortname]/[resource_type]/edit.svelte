@@ -160,7 +160,7 @@
         ku: $locale === "ku" ? title : entity.displayname?.ku || "",
       },
       content_type: entity?.payload?.content_type || "html",
-      content: contentToSave,
+      body: contentToSave,
       tags: tags,
       is_active: isPublish,
     };

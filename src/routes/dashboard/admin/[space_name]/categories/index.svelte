@@ -197,7 +197,7 @@
       const categoryData = {
         displayname: formData.displayname,
         description: formData.description,
-        content: {
+        body: {
           name: formData.displayname,
           description: formData.description,
           parent_category_shortname: formData.parent_category_id || null,

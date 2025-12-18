@@ -21,7 +21,7 @@
     TrashBinOutline,
     CheckOutline,
   } from "flowbite-svelte-icons";
-  import {website} from "@/config";
+  import { website } from "@/config";
 
   $goto;
 
@@ -359,7 +359,7 @@
           en: productForm.description_en,
           ar: productForm.description_ar,
         },
-        content: {
+        body: {
           unit: productForm.unit,
           is_digital: productForm.is_digital,
           meta_title: productForm.meta_title,

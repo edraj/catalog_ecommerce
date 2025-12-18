@@ -10,10 +10,10 @@ import {
   ResourceType,
   SortyType,
 } from "@edraj/tsdmart";
-import {user} from "@/stores/user";
-import {get} from "svelte/store";
-import type {Translation} from "@edraj/tsdmart/dmart.model";
-import {getFileType} from "./helpers";
+import { user } from "@/stores/user";
+import { get } from "svelte/store";
+import type { Translation } from "@edraj/tsdmart/dmart.model";
+import { getFileType } from "./helpers";
 
 /**
  * Retrieves the current user's profile information
@@ -60,12 +60,12 @@ export async function getAvatar(shortname: string) {
   }
 
   return Dmart.getAttachmentUrl({
-        resource_type: ResourceType.media,
-        space_name: "personal",
-        subpath: `people/${shortname}/protected/`,
-        parent_shortname: "avatar",
-        shortname: results.records[0].attributes.payload.body,
-        ext: null
+    resource_type: ResourceType.media,
+    space_name: "personal",
+    subpath: `people/${shortname}/protected/`,
+    parent_shortname: "avatar",
+    shortname: results.records[0].attributes.payload.body,
+    ext: null,
   });
 }
 
@@ -76,15 +76,13 @@ export async function getAvatar(shortname: string) {
  * @returns True if avatar was successfully set, false otherwise
  */
 export async function setAvatar(shortname: string, attachment: File) {
-  const response = await Dmart.uploadWithPayload(
-      {
-        space_name: "personal",
-        subpath: `people/${shortname}/protected/avatar`,
-        shortname: "avatar",
-        resource_type: ResourceType.media,
-        payload_file: attachment,
-}
-  );
+  const response = await Dmart.uploadWithPayload({
+    space_name: "personal",
+    subpath: `people/${shortname}/protected/avatar`,
+    shortname: "avatar",
+    resource_type: ResourceType.media,
+    payload_file: attachment,
+  });
 
   return response.status == "success" && response.records.length > 0;
 }
@@ -205,16 +203,16 @@ export async function getEntity(
 
   try {
     return await Dmart.retrieveEntry(
-        {
-          resource_type: resourceType,
-          space_name: spaceName,
-          subpath: cleanSubpath,
-          shortname: shortname,
-          retrieve_json_payload,
-          retrieve_attachments,
-          validate_schema: true,
-        },
-        scope
+      {
+        resource_type: resourceType,
+        space_name: spaceName,
+        subpath: cleanSubpath,
+        shortname: shortname,
+        retrieve_json_payload,
+        retrieve_attachments,
+        validate_schema: true,
+      },
+      scope
     );
   } catch (error) {
     console.error(`Error retrieving item ${shortname}:`, error);
@@ -400,7 +398,7 @@ export async function updateEntity(
     tags: data.tags,
     payload: {
       content_type: contentType,
-      body: data.content,
+      body: data.body,
     },
   };
 
@@ -808,11 +806,11 @@ export async function attachAttachmentsToEntity(
 ) {
   const { contentType, resourceType } = getFileType(attachment);
   const response = await Dmart.uploadWithPayload({
-      space_name: spaceName,
-      subpath: `${subpath}/${shortname}`,
-      shortname: "auto",
-      resource_type: resourceType,
-      payload_file: attachment,
+    space_name: spaceName,
+    subpath: `${subpath}/${shortname}`,
+    shortname: "auto",
+    resource_type: resourceType,
+    payload_file: attachment,
   });
   return response.status == "success" && response.records.length > 0;
 }
@@ -2809,10 +2807,10 @@ export async function updateReportStatus(
     }
 
     const progressResponse = await Dmart.progressTicket({
-        space_name: "Report",
-        subpath: "reports",
-        shortname: reportShortname,
-        action: workflowAction
+      space_name: "Report",
+      subpath: "reports",
+      shortname: reportShortname,
+      action: workflowAction,
     });
 
     return progressResponse.status === "success";

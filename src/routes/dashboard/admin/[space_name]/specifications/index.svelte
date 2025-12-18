@@ -217,7 +217,7 @@
           ar: formData.displayname_ar || "",
           ku: formData.displayname_ku || "",
         },
-        content: {
+        body: {
           options: validOptions,
         },
         content_type: "json",
