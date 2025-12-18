@@ -1670,12 +1670,13 @@
   async function saveShippingConfig() {
     try {
       isLoading = true;
+      console.log(shippingConfig);
 
       const configData = {
         displayname_en: "Configuration",
         displayname_ar: null,
         displayname_ku: null,
-        content: shippingConfig.attributes.payload.body,
+        body: shippingConfig.attributes.payload.body,
         tags: [],
         is_active: true,
       };
