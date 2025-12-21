@@ -1,17 +1,17 @@
 <script>
-    import {goto} from "@roxi/routify";
-    import {_, locale} from "@/i18n";
-    import {
-        ArrowLeftOutline,
-        CheckCircleSolid,
-        EnvelopeSolid,
-        MailBoxOutline,
-        MessagesSolid,
-        UserSolid,
-    } from "flowbite-svelte-icons";
-    import {contactUs} from "@/stores/user";
+  import { goto } from "@roxi/routify";
+  import { _, locale } from "@/i18n";
+  import {
+    ArrowLeftOutline,
+    CheckCircleSolid,
+    EnvelopeSolid,
+    MailBoxOutline,
+    MessagesSolid,
+    UserSolid,
+  } from "flowbite-svelte-icons";
+  import { contactUs } from "@/stores/user";
 
-    const isRTL = $locale === "ar" || $locale === "ku";
+  const isRTL = $locale === "ar" || $locale === "ku";
 
   let name = "";
   let email = "";
@@ -404,7 +404,6 @@
 
   .form-textarea {
     resize: vertical;
-    min-height: 120px;
   }
 
   .character-count {

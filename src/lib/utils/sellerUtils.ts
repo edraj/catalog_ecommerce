@@ -284,6 +284,7 @@ export function createSellerFolders(
       shortname: "available_products",
       subpath: `/available_products/${sellerShortname}`,
       resource_type: "folder",
+      icon: "ShoppingBagSolid",
       attributes: {
         displayname: {
           en:
@@ -297,6 +298,7 @@ export function createSellerFolders(
       shortname: "discounts",
       subpath: `/discounts/${sellerShortname}`,
       resource_type: "folder",
+      icon: "BadgeCheckSolid",
       attributes: {
         displayname: {
           en: translations("seller_dashboard.discounts") || "Discounts",
@@ -308,6 +310,7 @@ export function createSellerFolders(
       shortname: "orders",
       subpath: `/orders/${sellerShortname}`,
       resource_type: "folder",
+      icon: "ClipboardListSolid",
       attributes: {
         displayname: {
           en: translations("seller_dashboard.orders") || "Orders",
@@ -319,6 +322,7 @@ export function createSellerFolders(
       shortname: "coupons",
       subpath: `/coupons/${sellerShortname}`,
       resource_type: "folder",
+      icon: "TicketSolid",
       attributes: {
         displayname: {
           en: translations("seller_dashboard.coupons") || "Coupons",
@@ -330,6 +334,7 @@ export function createSellerFolders(
       shortname: "warranties",
       subpath: `/warranties/${sellerShortname}`,
       resource_type: "folder",
+      icon: "ShieldCheckSolid",
       attributes: {
         displayname: {
           en: translations("seller_dashboard.warranties") || "Warranties",
@@ -341,6 +346,7 @@ export function createSellerFolders(
       shortname: "shipping",
       subpath: `/shipping/${sellerShortname}`,
       resource_type: "folder",
+      icon: "TruckSolid",
       attributes: {
         displayname: {
           en:

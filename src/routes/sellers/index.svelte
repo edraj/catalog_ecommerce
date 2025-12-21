@@ -12,6 +12,12 @@
     FolderOutline,
     TagOutline,
     LayersSolid,
+    ShoppingBagSolid,
+    TicketSolid,
+    BadgeCheckSolid,
+    ShieldCheckSolid,
+    TruckSolid,
+    ClipboardListSolid,
   } from "flowbite-svelte-icons";
   import { user } from "@/stores/user";
   import { ResourceType } from "@edraj/tsdmart";
@@ -2128,7 +2134,7 @@
                 {:else if selectedFolder === "bundles"}
                   {$_("seller_dashboard.add_bundle") || "Add Bundle"}
                 {:else}
-                  {$_("seller_dashboard.create_item") || "Create Item"}
+                  {$_("seller_dashboard.create_item") || "Create Entry"}
                 {/if}
               </span>
             </button>
@@ -2172,34 +2178,7 @@
       {:else}
         <div class="folders-grid">
           {#each folders as folder (folder.shortname)}
-            <button
-              class="folder-card"
-              onclick={() => loadFolderContents(folder.shortname)}
-            >
-              <div class="folder-card-icon">
-                <svg
-                  class="folder-icon"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path
-                    d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"
-                  />
-                </svg>
-              </div>
-              <div class="folder-card-body">
-                <h3 class="folder-title" class:rtl={$isRTL}>
-                  {getLocalizedDisplayName(folder, $locale) || folder.shortname}
-                </h3>
-                <p class="folder-shortname">{folder.shortname}</p>
-                {#if folder.attributes?.description?.[$locale] || folder.attributes?.description?.en}
-                  <p class="folder-description" class:rtl={$isRTL}>
-                    {folder.attributes.description[$locale] ||
-                      folder.attributes.description.en}
-                  </p>
-                {/if}
-              </div>
-            </button>
+            <FolderCard {folder} onSelect={loadFolderContents} />
           {/each}
         </div>
       {/if}

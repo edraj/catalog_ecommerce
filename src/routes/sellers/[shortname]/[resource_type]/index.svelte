@@ -18,7 +18,7 @@
   } from "flowbite-svelte-icons";
   import { getEntity, deleteEntity } from "@/lib/dmart_services";
   import { ResourceType } from "@edraj/tsdmart";
-  import {website} from "@/config";
+  import { website } from "@/config";
 
   $goto;
   let item = $state(null);
@@ -1092,7 +1092,6 @@
     background: white;
     border-radius: 1rem;
     max-width: 500px;
-    width: 90%;
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);

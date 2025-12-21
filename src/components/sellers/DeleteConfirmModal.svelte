@@ -117,7 +117,6 @@
     background: white;
     border-radius: 24px;
     box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
-    width: 90%;
     max-width: 1200px;
     max-height: 90vh;
     overflow: hidden;

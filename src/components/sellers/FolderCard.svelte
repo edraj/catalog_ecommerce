@@ -1,5 +1,13 @@
 <script lang="ts">
-  import { FolderOutline } from "flowbite-svelte-icons";
+  import {
+    FolderOutline,
+    ShoppingBagSolid,
+    TicketSolid,
+    BadgeCheckSolid,
+    ShieldCheckSolid,
+    TruckSolid,
+    ClipboardListSolid,
+  } from "flowbite-svelte-icons";
   import { _ } from "@/i18n";
 
   interface Props {
@@ -24,34 +32,26 @@
       "Untitled"
     );
   }
+
+  function getIconComponent() {
+    const iconMap: Record<string, any> = {
+      ShoppingBagSolid,
+      TicketSolid,
+      BadgeCheckSolid,
+      ShieldCheckSolid,
+      TruckSolid,
+      ClipboardListSolid,
+    };
+    return iconMap[folder.icon] || FolderOutline;
+  }
 </script>
 
 <button class="folder-card" onclick={() => onSelect(folder.shortname)}>
   <div class="folder-card-icon">
-    <FolderOutline class="folder-icon" />
+    <svelte:component this={getIconComponent()} class="folder-icon" />
   </div>
   <div class="folder-card-body">
     <h3 class="folder-title">{getLocalizedDisplayName(folder)}</h3>
-    <span class="folder-shortname">{folder.shortname}</span>
-  </div>
-  <div class="folder-card-footer">
-    <div class="folder-meta">
-      <svg
-        class="meta-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-        />
-      </svg>
-      <span class="meta-text">
-        {$_("seller_dashboard.folder") || "Folder"}
-      </span>
-    </div>
   </div>
 </button>
 
@@ -126,18 +126,7 @@
     font-size: 1.4rem;
     font-weight: 700;
     color: #1a202c;
-    margin: 0 0 0.5rem 0;
-  }
-
-  .folder-shortname {
-    font-size: 0.85rem;
-    color: #a0aec0;
-    font-family: "SF Mono", "Monaco", "Courier New", monospace;
-    margin: 0 0 0.75rem 0;
-    padding: 0.25rem 0.75rem;
-    background: #f7fafc;
-    border-radius: 6px;
-    display: inline-block;
+    margin: 0;
   }
 
   .folder-card-footer {
