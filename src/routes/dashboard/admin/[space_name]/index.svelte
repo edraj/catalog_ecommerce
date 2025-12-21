@@ -881,67 +881,83 @@
                 </div>
 
                 <div class="space-y-2">
+                  <div
+                    class="flex items-center justify-between text-xs text-gray-500 mt-1"
+                  >
+                    {#if item.attributes?.owner_shortname}
+                      <div
+                        class="flex items-center gap-1.5"
+                        class:flex-row-reverse={$isRTL}
+                      >
+                        <div
+                          class="w-5 h-5 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-sm"
+                        >
+                          <span class="text-xs font-semibold text-white">
+                            {item.attributes.owner_shortname
+                              .charAt(0)
+                              .toUpperCase()}
+                          </span>
+                        </div>
+                        <span class="font-medium"
+                          >{item.attributes.owner_shortname}</span
+                        >
+                      </div>
+                    {/if}
+
+                    {#if item.attributes?.updated_at}
+                      <div
+                        class="flex items-center gap-1 text-sm"
+                        class:flex-row-reverse={$isRTL}
+                      >
+                        <svg
+                          class="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          ></path>
+                        </svg>
+                        <span>{formatDate(item.attributes.updated_at)}</span>
+                      </div>
+                    {/if}
+                  </div>
+
                   {#if getLocalizedDescription(item, $locale) !== "No description available"}
                     <p
-                      class="text-xs text-gray-600 line-clamp-2"
+                      class="text-xs text-gray-600 line-clamp-2 leading-relaxed"
                       class:text-right={$isRTL}
                     >
                       {getLocalizedDescription(item, $locale)}
                     </p>
                   {/if}
 
-                  <div
-                    class="flex items-center justify-between text-xs text-gray-500"
-                  >
-                    <div
-                      class="flex items-center space-x-2"
-                      class:space-x-reverse={$isRTL}
-                    >
-                      <span
-                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {item
-                          .attributes?.is_active
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'}"
-                      >
-                        {item.attributes?.is_active
-                          ? $_("status.active")
-                          : $_("status.inactive")}
-                      </span>
-                    </div>
-
-                    {#if item.attributes?.created_at}
-                      <span class:text-right={$isRTL}>
-                        {formatDate(item.attributes.created_at)}
-                      </span>
-                    {/if}
-                  </div>
-
-                  {#if item.attributes?.owner_shortname}
-                    <div
-                      class="flex items-center space-x-2 text-xs text-gray-500"
-                      class:space-x-reverse={$isRTL}
-                      class:flex-row-reverse={$isRTL}
-                    >
-                      <div
-                        class="w-4 h-4 bg-gray-200 rounded-full flex items-center justify-center"
-                      >
-                        <span class="text-xs font-medium text-gray-600">
-                          {item.attributes.owner_shortname
-                            .charAt(0)
-                            .toUpperCase()}
-                        </span>
-                      </div>
-                      <span>{item.attributes.owner_shortname}</span>
-                    </div>
-                  {/if}
-
                   {#if item.subpath && item.subpath !== "/"}
-                    <p
-                      class="text-xs text-blue-600 mt-1 truncate"
-                      class:text-right={$isRTL}
-                    >
-                      {item.subpath}
-                    </p>
+                    <div class="flex items-center gap-1 mt-1">
+                      <svg
+                        class="w-3 h-3 text-blue-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                        ></path>
+                      </svg>
+                      <p
+                        class="text-xs text-blue-600 truncate"
+                        class:text-right={$isRTL}
+                      >
+                        {item.subpath}
+                      </p>
+                    </div>
                   {/if}
                 </div>
               </div>

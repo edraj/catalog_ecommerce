@@ -51,8 +51,8 @@
         userRoles = value;
       })();
 
-      if (userRoles.includes("seller")) {
-        $goto("/dashbaord");
+      if (userRoles.includes("super_admin")) {
+        $goto("/dashboard/admin");
       } else {
         $goto("/sellers");
       }

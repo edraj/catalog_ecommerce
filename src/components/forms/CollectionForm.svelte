@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { Dmart, QueryType } from "@edraj/tsdmart";
   import { _ } from "@/i18n";
-  import {website} from "@/config";
+  import { website } from "@/config";
 
   let {
     formData = $bindable(),
@@ -158,144 +158,6 @@
 </script>
 
 <form bind:this={form} class="collection-form">
-  <div class="card">
-    <h2 class="card-title">{$_("collection.basicInfo")}</h2>
-
-    <div class="form-group">
-      <label class="form-label" for="shortname">
-        <span class="required">*</span>
-        {$_("collection.shortname")}
-      </label>
-      <input
-        id="shortname"
-        type="text"
-        class="form-input"
-        bind:value={formData.shortname}
-        pattern="^[a-zA-Z0-9_]&#123;1,64&#125;$"
-        required
-        placeholder={$_("collection.shortnamePlaceholder")}
-      />
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="title_en">
-        <span class="required">*</span>
-        {$_("collection.titleEn")}
-      </label>
-      <input
-        id="title_en"
-        type="text"
-        class="form-input"
-        bind:value={formData.title.en}
-        required
-        placeholder={$_("collection.titlePlaceholder")}
-      />
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="title_ar">
-          {$_("collection.titleAr")}
-        </label>
-        <input
-          id="title_ar"
-          type="text"
-          class="form-input"
-          bind:value={formData.title.ar}
-          placeholder={$_("collection.titlePlaceholder")}
-        />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="title_ku">
-          {$_("collection.titleKu")}
-        </label>
-        <input
-          id="title_ku"
-          type="text"
-          class="form-input"
-          bind:value={formData.title.ku}
-          placeholder={$_("collection.titlePlaceholder")}
-        />
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="description_en">
-        {$_("collection.descriptionEn")}
-      </label>
-      <textarea
-        id="description_en"
-        class="form-textarea"
-        bind:value={formData.description.en}
-        rows="3"
-        placeholder={$_("collection.descriptionPlaceholder")}
-      ></textarea>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="description_ar">
-          {$_("collection.descriptionAr")}
-        </label>
-        <textarea
-          id="description_ar"
-          class="form-textarea"
-          bind:value={formData.description.ar}
-          rows="3"
-          placeholder={$_("collection.descriptionPlaceholder")}
-        ></textarea>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="description_ku">
-          {$_("collection.descriptionKu")}
-        </label>
-        <textarea
-          id="description_ku"
-          class="form-textarea"
-          bind:value={formData.description.ku}
-          rows="3"
-          placeholder={$_("collection.descriptionPlaceholder")}
-        ></textarea>
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="image_url">
-          {$_("collection.imageUrl")}
-        </label>
-        <input
-          id="image_url"
-          type="url"
-          class="form-input"
-          bind:value={formData.image_url}
-          placeholder="https://example.com/image.jpg"
-        />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="background_color">
-          {$_("collection.backgroundColor")}
-        </label>
-        <input
-          id="background_color"
-          type="color"
-          class="form-input-color"
-          bind:value={formData.background_color}
-        />
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">
-        <input type="checkbox" bind:checked={formData.is_active} />
-        {$_("common.isActive")}
-      </label>
-    </div>
-  </div>
-
   <div class="card">
     <h2 class="card-title">{$_("collection.typeConfig")}</h2>
 
@@ -453,6 +315,143 @@
         {/if}
       </div>
     {/if}
+  </div>
+  <div class="card">
+    <h2 class="card-title">{$_("collection.basicInfo")}</h2>
+
+    <div class="form-group">
+      <label class="form-label" for="shortname">
+        <span class="required">*</span>
+        {$_("collection.shortname")}
+      </label>
+      <input
+        id="shortname"
+        type="text"
+        class="form-input"
+        bind:value={formData.shortname}
+        pattern="^[a-zA-Z0-9_]&#123;1,64&#125;$"
+        required
+        placeholder={$_("collection.shortnamePlaceholder")}
+      />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="title_en">
+        <span class="required">*</span>
+        {$_("collection.titleEn")}
+      </label>
+      <input
+        id="title_en"
+        type="text"
+        class="form-input"
+        bind:value={formData.title.en}
+        required
+        placeholder={$_("collection.titlePlaceholder")}
+      />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="title_ar">
+          {$_("collection.titleAr")}
+        </label>
+        <input
+          id="title_ar"
+          type="text"
+          class="form-input"
+          bind:value={formData.title.ar}
+          placeholder={$_("collection.titlePlaceholder")}
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="title_ku">
+          {$_("collection.titleKu")}
+        </label>
+        <input
+          id="title_ku"
+          type="text"
+          class="form-input"
+          bind:value={formData.title.ku}
+          placeholder={$_("collection.titlePlaceholder")}
+        />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="description_en">
+        {$_("collection.descriptionEn")}
+      </label>
+      <textarea
+        id="description_en"
+        class="form-textarea"
+        bind:value={formData.description.en}
+        rows="3"
+        placeholder={$_("collection.descriptionPlaceholder")}
+      ></textarea>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="description_ar">
+          {$_("collection.descriptionAr")}
+        </label>
+        <textarea
+          id="description_ar"
+          class="form-textarea"
+          bind:value={formData.description.ar}
+          rows="3"
+          placeholder={$_("collection.descriptionPlaceholder")}
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="description_ku">
+          {$_("collection.descriptionKu")}
+        </label>
+        <textarea
+          id="description_ku"
+          class="form-textarea"
+          bind:value={formData.description.ku}
+          rows="3"
+          placeholder={$_("collection.descriptionPlaceholder")}
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="image_url">
+          {$_("collection.imageUrl")}
+        </label>
+        <input
+          id="image_url"
+          type="url"
+          class="form-input"
+          bind:value={formData.image_url}
+          placeholder="https://example.com/image.jpg"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="background_color">
+          {$_("collection.backgroundColor")}
+        </label>
+        <input
+          id="background_color"
+          type="color"
+          class="form-input-color"
+          bind:value={formData.background_color}
+        />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">
+        <input type="checkbox" bind:checked={formData.is_active} />
+        {$_("common.isActive")}
+      </label>
+    </div>
   </div>
 </form>
 

@@ -5,6 +5,7 @@
     filterUserByRole,
     getSpaceContents,
     updateUserRoles,
+    updateEntity,
   } from "@/lib/dmart_services";
   import {
     errorToastMessage,
@@ -13,6 +14,7 @@
   import { _, locale } from "@/i18n";
   import { formatNumber } from "@/lib/helpers";
   import { derived } from "svelte/store";
+  import { ResourceType } from "@edraj/tsdmart";
 
   const isRTL = derived(
     locale,
@@ -31,6 +33,13 @@
   let selectedRoleFilter = $state("");
   let roleSearchTerm = $state("");
   let filteredRoles = $state([]);
+
+  let showConfirmModal = $state(false);
+  let confirmAction = $state(null);
+  let confirmUser = $state(null);
+  let confirmMessage = $state("");
+  let confirmTitle = $state("");
+  let isConfirmDanger = $state(false);
 
   let currentPage = $state(1);
   let itemsPerPage = $state(20);
@@ -198,6 +207,87 @@
     return role ? role.displayname : roleShortname;
   }
 
+  function openConfirmModal(user) {
+    const newStatus = !user.is_active;
+    confirmUser = user;
+    confirmAction = newStatus ? "activate" : "deactivate";
+    isConfirmDanger = !newStatus;
+
+    if (newStatus) {
+      confirmTitle = $_("confirm_activate_user_title") || "Activate User";
+      confirmMessage =
+        $_("confirm_activate_user") ||
+        `Are you sure you want to activate ${user.displayname}? This will restore their access to the system.`;
+    } else {
+      confirmTitle = $_("confirm_deactivate_user_title") || "Deactivate User";
+      confirmMessage =
+        $_("confirm_deactivate_user") ||
+        `Are you sure you want to deactivate ${user.displayname}? They will lose access to the system.`;
+    }
+
+    showConfirmModal = true;
+  }
+
+  function closeConfirmModal() {
+    showConfirmModal = false;
+    confirmAction = null;
+    confirmUser = null;
+    confirmMessage = "";
+    confirmTitle = "";
+    isConfirmDanger = false;
+  }
+
+  async function confirmToggleActivation() {
+    if (!confirmUser) return;
+
+    // Store reference before closing modal (which resets confirmUser to null)
+    const userToUpdate = confirmUser;
+    const newStatus = !userToUpdate.is_active;
+    closeConfirmModal();
+
+    try {
+      const updateData = {
+        is_active: newStatus,
+      };
+
+      const result = await updateEntity(
+        userToUpdate.shortname,
+        "management",
+        "users",
+        ResourceType.user,
+        updateData,
+        "",
+        ""
+      );
+
+      if (result) {
+        const userIndex = users.findIndex(
+          (u) => u.shortname === userToUpdate.shortname
+        );
+        if (userIndex > -1) {
+          users[userIndex].is_active = newStatus;
+          updateFilteredUsers();
+        }
+
+        const statusText = newStatus
+          ? $_("activated") || "activated"
+          : $_("deactivated") || "deactivated";
+        successToastMessage(
+          `${userToUpdate.displayname} has been ${statusText}`
+        );
+      } else {
+        errorToastMessage(
+          $_("failed_to_update_user_status") || "Failed to update user status"
+        );
+      }
+    } catch (error) {
+      console.error("Error toggling user activation:", error);
+      errorToastMessage(
+        $_("failed_to_update_user_status") || "Failed to update user status"
+      );
+    }
+  }
+
   function goToPage(page: number) {
     if (page >= 1 && page <= totalPages) {
       currentPage = page;
@@ -240,7 +330,38 @@
     <h1 class="page-title">{$_("user_management")}</h1>
     <p class="page-subtitle">{$_("manage_users_and_roles")}</p>
   </div>
-
+  <div class="stats-card">
+    <h3 class="card-title">{$_("statistics")}</h3>
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-number">
+          {formatNumber(totalUsers, $locale)}
+        </div>
+        <div class="stat-label">{$_("total_users")}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">
+          {formatNumber(users.filter((u) => u.is_active).length, $locale)}
+        </div>
+        <div class="stat-label">{$_("active_users")}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">
+          {formatNumber(availableRoles.length, $locale)}
+        </div>
+        <div class="stat-label">{$_("available_roles")}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">
+          {formatNumber(
+            users.filter((u) => u.roles.length === 0).length,
+            $locale
+          )}
+        </div>
+        <div class="stat-label">{$_("users_without_roles")}</div>
+      </div>
+    </div>
+  </div>
   <div class="card">
     <div class="card-header">
       <h2 class="card-title">{$_("users_overview")}</h2>
@@ -337,16 +458,75 @@
             </div>
 
             <div class="cell actions-cell">
-              <button
-                class="btn btn-small btn-primary"
-                aria-label={$_("manage_roles")}
-                onkeydown={(e) => {
-                  if (e.key === "Enter") openRoleModal(user);
-                }}
-                onclick={() => openRoleModal(user)}
-              >
-                {$_("manage_roles")}
-              </button>
+              <div class="actions-buttons">
+                <button
+                  class="btn btn-small btn-primary"
+                  aria-label={$_("manage_roles")}
+                  title={$_("manage_roles")}
+                  onkeydown={(e) => {
+                    if (e.key === "Enter") openRoleModal(user);
+                  }}
+                  onclick={() => openRoleModal(user)}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </button>
+                <button
+                  class="btn btn-small"
+                  class:btn-success={!user.is_active}
+                  class:btn-danger={user.is_active}
+                  aria-label={user.is_active
+                    ? $_("deactivate")
+                    : $_("activate")}
+                  title={user.is_active ? $_("deactivate") : $_("activate")}
+                  onclick={() => openConfirmModal(user)}
+                >
+                  {#if user.is_active}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M18 6 6 18"></path>
+                      <path d="m6 6 12 12"></path>
+                    </svg>
+                  {:else}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  {/if}
+                </button>
+              </div>
             </div>
           </div>
         {/each}
@@ -426,39 +606,6 @@
         </div>
       {/if}
     {/if}
-  </div>
-
-  <div class="stats-card">
-    <h3 class="card-title">{$_("statistics")}</h3>
-    <div class="stats-grid">
-      <div class="stat-item">
-        <div class="stat-number">
-          {formatNumber(totalUsers, $locale)}
-        </div>
-        <div class="stat-label">{$_("total_users")}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">
-          {formatNumber(users.filter((u) => u.is_active).length, $locale)}
-        </div>
-        <div class="stat-label">{$_("active_users")}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">
-          {formatNumber(availableRoles.length, $locale)}
-        </div>
-        <div class="stat-label">{$_("available_roles")}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">
-          {formatNumber(
-            users.filter((u) => u.roles.length === 0).length,
-            $locale
-          )}
-        </div>
-        <div class="stat-label">{$_("users_without_roles")}</div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -574,6 +721,125 @@
   </div>
 {/if}
 
+{#if showConfirmModal && confirmUser}
+  <div
+    class="modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="confirm-modal-title"
+    tabindex="-1"
+    onkeydown={(e) => {
+      if (e.key === "Escape") closeConfirmModal();
+    }}
+    onclick={closeConfirmModal}
+  >
+    <div
+      class="modal modal-confirm"
+      role="dialog"
+      tabindex="-1"
+      onkeydown={(e) => e.stopPropagation()}
+      onclick={(e) => e.stopPropagation()}
+    >
+      <div class="modal-header-confirm" class:danger={isConfirmDanger}>
+        <div class="confirm-icon">
+          {#if isConfirmDanger}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          {:else}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          {/if}
+        </div>
+        <h3 id="confirm-modal-title" class="confirm-title">
+          {confirmTitle}
+        </h3>
+      </div>
+
+      <div class="modal-body-confirm">
+        <p class="confirm-message">{confirmMessage}</p>
+        <div class="confirm-user-info">
+          <div class="user-detail-label">{$_("user") || "User"}:</div>
+          <div class="user-detail-value">
+            <strong>{confirmUser.displayname}</strong>
+            <span class="user-email">({confirmUser.email})</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer-confirm">
+        <button class="btn btn-secondary" onclick={closeConfirmModal}>
+          {$_("cancel") || "Cancel"}
+        </button>
+        <button
+          class="btn"
+          class:btn-danger={isConfirmDanger}
+          class:btn-success={!isConfirmDanger}
+          onclick={confirmToggleActivation}
+        >
+          {#if isConfirmDanger}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 6 6 18"></path>
+              <path d="m6 6 12 12"></path>
+            </svg>
+            {$_("deactivate") || "Deactivate"}
+          {:else}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            {$_("activate") || "Activate"}
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   .rtl {
     direction: rtl;
@@ -635,7 +901,7 @@
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     border: 1px solid #e5e7eb;
     padding: 24px;
-    margin-bottom: 24px;
+    margin-top: 24px;
   }
 
   .card-header {
@@ -725,7 +991,7 @@
 
   .table-header {
     display: grid;
-    grid-template-columns: 2fr 2fr 2fr 1fr 1fr;
+    grid-template-columns: 2fr 2fr 2fr 1fr 1.5fr;
     background: #f9fafb;
     font-weight: 600;
     color: #374151;
@@ -734,7 +1000,7 @@
 
   .table-row {
     display: grid;
-    grid-template-columns: 2fr 2fr 2fr 1fr 1fr;
+    grid-template-columns: 2fr 2fr 2fr 1fr 1.5fr;
     background: white;
     transition: background-color 0.2s ease;
   }
@@ -832,6 +1098,8 @@
   .btn-primary {
     background: #3b82f6;
     color: white;
+    width: 100%;
+    height: 100%;
   }
 
   .btn-primary:hover:not(:disabled) {
@@ -847,6 +1115,34 @@
 
   .btn-secondary:hover:not(:disabled) {
     background: #e5e7eb;
+  }
+
+  .btn-success {
+    background: #10b981;
+    color: white;
+    width: 100%;
+    height: 100%;
+  }
+
+  .btn-success:hover:not(:disabled) {
+    background: #059669;
+  }
+
+  .btn-danger {
+    background: #ef4444;
+    color: white;
+    width: 100%;
+    height: 100%;
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: #dc2626;
+  }
+
+  .actions-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
   }
 
   .stats-card {
@@ -1052,6 +1348,105 @@
     gap: 12px;
     padding: 24px;
     border-top: 1px solid #e5e7eb;
+  }
+
+  .modal-confirm {
+    max-width: 500px;
+  }
+
+  .modal-header-confirm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 24px 24px 24px;
+    text-align: center;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .modal-header-confirm.danger {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  }
+
+  .confirm-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    background: white;
+    color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  }
+
+  .modal-header-confirm.danger .confirm-icon {
+    color: #ef4444;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+  }
+
+  .confirm-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+  }
+
+  .modal-body-confirm {
+    padding: 24px;
+  }
+
+  .confirm-message {
+    color: #4b5563;
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0 0 20px 0;
+  }
+
+  .confirm-user-info {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .user-detail-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .user-detail-value {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .user-detail-value strong {
+    color: #111827;
+    font-size: 16px;
+  }
+
+  .user-email {
+    color: #6b7280;
+    font-size: 14px;
+  }
+
+  .modal-footer-confirm {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px 24px;
+    background: #f9fafb;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .modal-footer-confirm .btn {
+    min-width: 120px;
   }
 
   .pagination {

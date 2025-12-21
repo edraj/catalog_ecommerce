@@ -7,8 +7,9 @@
     createEntity,
     updateEntity,
     deleteEntity,
+    attachAttachmentsToEntity,
   } from "@/lib/dmart_services";
-  import { ResourceType, ContentType } from "@edraj/tsdmart";
+  import { ResourceType, ContentType, Dmart } from "@edraj/tsdmart";
   import {
     errorToastMessage,
     successToastMessage,
@@ -69,6 +70,10 @@
   let showAllColors = $state(false);
   let showAllStorages = $state(false);
   const INITIAL_VARIATION_DISPLAY = 6;
+
+  let selectedImages = $state<File[]>([]);
+  let imagePreviews = $state<string[]>([]);
+  let isUploadingImages = $state(false);
 
   onMount(async () => {
     await Promise.all([
@@ -207,11 +212,16 @@
     storageSearchTerm = "";
     showAllColors = false;
     showAllStorages = false;
+    selectedImages = [];
+    imagePreviews = [];
     showCreateModal = true;
   }
 
   function closeCreateModal() {
     showCreateModal = false;
+    imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    selectedImages = [];
+    imagePreviews = [];
   }
 
   function openEditModal(product) {
@@ -248,12 +258,17 @@
       category_specifications: normalizedSpecs,
       tags: product.attributes?.tags || [],
     };
+    selectedImages = [];
+    imagePreviews = [];
     showEditModal = true;
   }
 
   function closeEditModal() {
     showEditModal = false;
     selectedProduct = null;
+    imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    selectedImages = [];
+    imagePreviews = [];
   }
 
   function openDeleteModal(product) {
@@ -310,7 +325,7 @@
         is_active: true,
       };
 
-      await createEntity(
+      const createdShortname = await createEntity(
         productData,
         website.main_space,
         "/products",
@@ -319,12 +334,19 @@
         ""
       );
 
+      if (createdShortname && selectedImages.length > 0) {
+        isUploadingImages = true;
+        await uploadProductImages(createdShortname);
+        isUploadingImages = false;
+      }
+
       successToastMessage("Product created successfully!");
       closeCreateModal();
       await loadProducts();
     } catch (error) {
       console.error("Error creating product:", error);
       errorToastMessage("Failed to create product");
+      isUploadingImages = false;
     }
   }
 
@@ -387,12 +409,19 @@
         ""
       );
 
+      if (selectedImages.length > 0) {
+        isUploadingImages = true;
+        await uploadProductImages(selectedProduct.shortname);
+        isUploadingImages = false;
+      }
+
       successToastMessage("Product updated successfully!");
       closeEditModal();
       await loadProducts();
     } catch (error) {
       console.error("Error updating product:", error);
       errorToastMessage("Failed to update product");
+      isUploadingImages = false;
     }
   }
 
@@ -715,6 +744,110 @@
 
     updateCategorySpecification(specShortname, newValues);
   }
+
+  function handleImageSelect(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const files = Array.from(input.files);
+
+      const validFiles = files.filter((file) => {
+        const isImage = file.type.startsWith("image/");
+        if (!isImage) {
+          errorToastMessage(`${file.name} is not a valid image file`);
+        }
+        return isImage;
+      });
+
+      if (validFiles.length > 0) {
+        selectedImages = [...selectedImages, ...validFiles];
+
+        validFiles.forEach((file) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            if (e.target?.result) {
+              imagePreviews = [...imagePreviews, e.target.result as string];
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+    }
+  }
+
+  function removeImage(index: number) {
+    selectedImages = selectedImages.filter((_, i) => i !== index);
+    if (imagePreviews[index]) {
+      URL.revokeObjectURL(imagePreviews[index]);
+    }
+    imagePreviews = imagePreviews.filter((_, i) => i !== index);
+  }
+
+  async function uploadProductImages(productShortname: string) {
+    const uploadPromises = selectedImages.map(async (file, index) => {
+      try {
+        const result = await attachAttachmentsToEntity(
+          productShortname,
+          website.main_space,
+          "/products",
+          file
+        );
+        return { success: result, file: file.name };
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error);
+        return { success: false, file: file.name, error };
+      }
+    });
+
+    try {
+      const results = await Promise.all(uploadPromises);
+      const successCount = results.filter((r) => r.success).length;
+      const failedCount = results.length - successCount;
+
+      if (successCount > 0) {
+        successToastMessage(`${successCount} image(s) uploaded successfully`);
+      }
+      if (failedCount > 0) {
+        const failedFiles = results
+          .filter((r) => !r.success)
+          .map((r) => r.file)
+          .join(", ");
+        errorToastMessage(
+          `${failedCount} image(s) failed to upload: ${failedFiles}`
+        );
+      }
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      errorToastMessage("Failed to upload images");
+    }
+  }
+
+  function getProductThumbnail(product: any): string | null {
+    const media = product.attachments?.media;
+    if (!media || media.length === 0) return null;
+
+    const thumbnail = media.find((m: any) => m.shortname === "thumbnail");
+    const imageToUse = thumbnail || media[0];
+
+    if (!imageToUse) return null;
+
+    try {
+      return Dmart.getAttachmentUrl({
+        resource_type: ResourceType.media,
+        space_name: website.main_space,
+        subpath: product.subpath + "/",
+        parent_shortname: product.shortname,
+        shortname: imageToUse.attributes.payload.body,
+        ext: null,
+      });
+    } catch (error) {
+      console.error("Error getting thumbnail URL:", error);
+      return null;
+    }
+  }
+
+  function getProductImages(product: any): any[] {
+    return product.attachments?.media || [];
+  }
 </script>
 
 <div class="products-page" class:rtl={$isRTL}>
@@ -779,6 +912,25 @@
     <div class="products-grid">
       {#each filteredProducts as product}
         <div class="product-card">
+          {#if getProductThumbnail(product)}
+            <div class="product-image">
+              <img
+                src={getProductThumbnail(product)}
+                alt={getLocalizedDisplayName(product)}
+                loading="lazy"
+              />
+              {#if getProductImages(product).length > 1}
+                <span class="image-count">
+                  {getProductImages(product).length} images
+                </span>
+              {/if}
+            </div>
+          {:else}
+            <div class="product-image-placeholder">
+              <span>📷</span>
+              <p>No Image</p>
+            </div>
+          {/if}
           <div class="product-header">
             <div class="product-info">
               <h3 class="product-name">{getLocalizedDisplayName(product)}</h3>
@@ -1247,6 +1399,74 @@
             />
           </div>
         </div>
+
+        <!-- Product Images -->
+        <div class="form-section">
+          <h3 class="section-title">Product Images</h3>
+          <p class="section-description">
+            Upload product images. First image will be used as thumbnail.
+          </p>
+
+          <div class="form-group">
+            <label for="product-images" class="file-upload-label">
+              <input
+                id="product-images"
+                type="file"
+                accept="image/*"
+                multiple
+                onchange={handleImageSelect}
+                class="file-input"
+              />
+              <span class="file-upload-button"> 📷 Choose Images </span>
+            </label>
+          </div>
+
+          {#if imagePreviews.length > 0}
+            <div class="image-previews">
+              {#each imagePreviews as preview, index}
+                <div class="image-preview-item">
+                  <img src={preview} alt="Preview {index + 1}" />
+                  <button
+                    type="button"
+                    class="remove-image-btn"
+                    onclick={() => removeImage(index)}
+                    title="Remove image"
+                  >
+                    ×
+                  </button>
+                  {#if index === 0}
+                    <span class="thumbnail-badge">Thumbnail</span>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
+
+          {#if showEditModal && selectedProduct}
+            <div class="existing-images">
+              <h4>Existing Images</h4>
+              <div class="image-previews">
+                {#each getProductImages(selectedProduct) as image}
+                  <div class="image-preview-item existing">
+                    <img
+                      src={Dmart.getAttachmentUrl({
+                        resource_type: ResourceType.media,
+                        space_name: website.main_space,
+                        subpath: selectedProduct.subpath + "/",
+                        parent_shortname: selectedProduct.shortname,
+                        shortname: image.attributes.payload.body,
+                        ext: null,
+                      })}
+                      alt={image.shortname}
+                      loading="lazy"
+                    />
+                    <span class="image-name">{image.shortname}</span>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+        </div>
       </div>
 
       <div class="modal-footer">
@@ -1259,10 +1479,15 @@
         <button
           class="btn-primary"
           onclick={showCreateModal ? handleCreateProduct : handleUpdateProduct}
+          disabled={isUploadingImages}
         >
-          {showCreateModal
-            ? $_("common.create") || "Create"
-            : $_("common.update") || "Update"}
+          {#if isUploadingImages}
+            Uploading images...
+          {:else}
+            {showCreateModal
+              ? $_("common.create") || "Create"
+              : $_("common.update") || "Update"}
+          {/if}
         </button>
       </div>
     </div>

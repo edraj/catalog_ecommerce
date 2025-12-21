@@ -282,28 +282,7 @@
                           </svg>
                           <span>{$_("contact_messages")}</span>
                         </button>
-                        <button
-                          aria-label={`Reports`}
-                          onclick={() =>
-                            handleMenuItemClick("/dashboard/reports")}
-                          class="menu-item submenu-item"
-                        >
-                          <svg
-                            class="menu-icon"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M9 12h6m-6 4h6M9 8h1m3.5-6H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L14.5 2z"
-                            />
-                          </svg>
-                          <span>{$_("reports")}</span>
-                        </button>
+
                         <button
                           aria-label={`Manage Permissions`}
                           onclick={() =>
@@ -507,27 +486,6 @@
                           </svg>
                           <span>{$_("DefaultRole")}</span>
                         </button>
-                        <button
-                          aria-label={`Manage Templates`}
-                          onclick={() =>
-                            handleMenuItemClick("/dashboard/templates")}
-                          class="menu-item submenu-item"
-                        >
-                          <svg
-                            class="menu-icon"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8l6 6v4a2 2 0 01-2 2h-2M8 16v2a2 2 0 002 2h6a2 2 0 002-2v-2H8z"
-                            />
-                          </svg>
-                          <span>{$_("templates")}</span>
-                        </button>
                       </div>
                     </div>
                     <div class="menu-divider"></div>
@@ -575,102 +533,6 @@
                       </svg>
 
                       <span>{$_("chat")}</span>
-                    </button>
-                    <button
-                      aria-label={`Polls`}
-                      onclick={() => handleMenuItemClick("/polls")}
-                      class="menu-item"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        width="24"
-                        height="24"
-                        role="img"
-                        aria-labelledby="voteTitle voteDesc"
-                        class="menu-icon"
-                      >
-                        <title id="voteTitle">Vote</title>
-                        <desc id="voteDesc"
-                          >Ballot box with a checked ballot</desc
-                        >
-
-                        <rect
-                          x="3"
-                          y="7"
-                          width="18"
-                          height="14"
-                          rx="2"
-                          ry="2"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.6"
-                        />
-                        <rect
-                          x="7"
-                          y="3"
-                          width="10"
-                          height="3"
-                          rx="0.8"
-                          ry="0.8"
-                          fill="currentColor"
-                        />
-                        <rect
-                          x="6.2"
-                          y="1.8"
-                          width="11.6"
-                          height="6.8"
-                          rx="0.8"
-                          ry="0.8"
-                          transform="rotate(12 12 5.2)"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.4"
-                        />
-                        <path
-                          d="M9.5 11.5l2 2.2 4-4.5"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="1.6"
-                        />
-                      </svg>
-
-                      <span>{$_("polls")}</span>
-                    </button>
-                    <button
-                      aria-label={`Surveys`}
-                      onclick={() => handleMenuItemClick("/surveys")}
-                      class="menu-item"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        width="24"
-                        height="24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.6"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        class="menu-icon"
-                      >
-                        <rect
-                          x="4"
-                          y="3"
-                          width="16"
-                          height="18"
-                          rx="2"
-                          ry="2"
-                        />
-                        <line x1="8" y1="8" x2="16" y2="8" />
-                        <line x1="8" y1="12" x2="16" y2="12" />
-                        <line x1="8" y1="16" x2="13" y2="16" />
-                        <polyline points="6 16 7.5 17.5 10 15" />
-                      </svg>
-
-                      <span>{$_("surveys")}</span>
                     </button>
 
                     <button

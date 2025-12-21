@@ -804,14 +804,27 @@ export async function attachAttachmentsToEntity(
   subpath: string,
   attachment: File
 ) {
-  const { contentType, resourceType } = getFileType(attachment);
-  const response = await Dmart.uploadWithPayload({
-    space_name: spaceName,
-    subpath: `${subpath}/${shortname}`,
-    shortname: "auto",
-    resource_type: resourceType,
-    payload_file: attachment,
-  });
+  const fileTypeInfo = getFileType(attachment);
+  if (!fileTypeInfo) {
+    throw new Error(`Unsupported file type: ${attachment.type}`);
+  }
+  const { contentType, resourceType } = fileTypeInfo;
+  const response = await Dmart.uploadWithPayload(
+    {
+      space_name: spaceName,
+      subpath: `${subpath}/${shortname}`,
+      shortname: "auto",
+      resource_type: resourceType,
+      payload_file: attachment,
+      attributes: {
+        payload: {
+          content_type: contentType,
+          body: {},
+        },
+      },
+    },
+    "managed"
+  );
   return response.status == "success" && response.records.length > 0;
 }
 

@@ -2696,5 +2696,16 @@
   "brands.update": "تحديث العلامة التجارية",
   "brands.delete_brand": "حذف العلامة التجارية",
   "brands.delete_confirmation": "هل أنت متأكد أنك تريد حذف هذه العلامة التجارية؟",
-  "brands.delete_warning": "لا يمكن التراجع عن هذا الإجراء."
+  "brands.delete_warning": "لا يمكن التراجع عن هذا الإجراء.",
+  "deactivate": "تعطيل",
+  "activate": "تفعيل",
+  "confirm_deactivate_user": "هل أنت متأكد أنك تريد تعطيل هذا المستخدم؟",
+  "confirm_activate_user": "هل أنت متأكد أنك تريد تفعيل هذا المستخدم؟",
+  "confirm_deactivate_user_title": "تأكيد التعطيل",
+  "confirm_activate_user_title": "تأكيد التفعيل",
+  "failed_to_update_user_status": "فشل في تحديث حالة المستخدم",
+  "user_status_updated": "تم تحديث حالة المستخدم بنجاح",
+  "sellers": "البائعون",
+  "SellerCreatedSuccessfully": "تم إنشاء البائع بنجاح",
+  "SellerUpdatedSuccessfully": "تم تحديث البائع بنجاح"
 }
