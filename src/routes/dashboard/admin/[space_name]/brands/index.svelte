@@ -22,7 +22,7 @@
     SearchOutline,
   } from "flowbite-svelte-icons";
   import { getLocalizedDisplayName, formatDate } from "@/lib/utils/adminUtils";
-  import {website} from "@/config";
+  import { website } from "@/config";
 
   $goto;
 
@@ -290,7 +290,7 @@
         <div class="header-icon-wrapper">
           <svg class="header-icon" viewBox="0 0 24 24" fill="currentColor">
             <path
-              d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 2.18l8 4V17c0 4.52-3.15 8.75-8 9.83-4.85-1.08-8-5.31-8-9.83V8.18l8-4z"
+              d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"
             />
           </svg>
         </div>
