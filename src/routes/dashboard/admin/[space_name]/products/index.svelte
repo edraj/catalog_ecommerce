@@ -1021,27 +1021,37 @@
       <div class="modal-body">
         <!-- Basic Information -->
         <div class="form-section">
-          <h3 class="section-title">Basic Information</h3>
+          <h3 class="section-title">
+            {$_("admin_dashboard.basic_information") || "Basic Information"}
+          </h3>
 
           <div class="form-row">
             <div class="form-group">
-              <label for="displayname-en">Display Name (English) *</label>
+              <label for="displayname-en"
+                >{$_("admin_dashboard.display_name_en") ||
+                  "Display Name (English) *"}</label
+              >
               <input
                 id="displayname-en"
                 type="text"
                 bind:value={productForm.displayname_en}
-                placeholder="Enter product name in English"
+                placeholder={$_("admin_dashboard.enter_product_name_en") ||
+                  "Enter product name in English"}
                 class="form-input"
               />
             </div>
 
             <div class="form-group">
-              <label for="displayname-ar">Display Name (Arabic) *</label>
+              <label for="displayname-ar"
+                >{$_("admin_dashboard.display_name_ar") ||
+                  "Display Name (Arabic) *"}</label
+              >
               <input
                 id="displayname-ar"
                 type="text"
                 bind:value={productForm.displayname_ar}
-                placeholder="أدخل اسم المنتج بالعربية"
+                placeholder={$_("admin_dashboard.enter_product_name_ar") ||
+                  "أدخل اسم المنتج بالعربية"}
                 class="form-input"
                 dir="rtl"
               />
@@ -1050,22 +1060,30 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="description-en">Description (English)</label>
+              <label for="description-en"
+                >{$_("admin_dashboard.description_en") ||
+                  "Description (English)"}</label
+              >
               <textarea
                 id="description-en"
                 bind:value={productForm.description_en}
-                placeholder="Enter product description in English"
+                placeholder={$_("admin_dashboard.enter_description_en") ||
+                  "Enter product description in English"}
                 class="form-textarea"
                 rows="3"
               ></textarea>
             </div>
 
             <div class="form-group">
-              <label for="description-ar">Description (Arabic)</label>
+              <label for="description-ar"
+                >{$_("admin_dashboard.description_ar") ||
+                  "Description (Arabic)"}</label
+              >
               <textarea
                 id="description-ar"
                 bind:value={productForm.description_ar}
-                placeholder="أدخل وصف المنتج بالعربية"
+                placeholder={$_("admin_dashboard.enter_description_ar") ||
+                  "أدخل وصف المنتج بالعربية"}
                 class="form-textarea"
                 rows="3"
                 dir="rtl"
@@ -1075,22 +1093,35 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="unit">Unit *</label>
+              <label for="unit">{$_("admin_dashboard.unit") || "Unit *"}</label>
               <select
                 id="unit"
                 bind:value={productForm.unit}
                 class="form-input"
               >
-                <option value="PC">PC (Piece)</option>
-                <option value="KG">KG (Kilogram)</option>
-                <option value="M">M (Meter)</option>
-                <option value="L">L (Liter)</option>
-                <option value="BOX">BOX</option>
+                <option value="PC"
+                  >{$_("admin_dashboard.unit_pc") || "PC (Piece)"}</option
+                >
+                <option value="KG"
+                  >{$_("admin_dashboard.unit_kg") || "KG (Kilogram)"}</option
+                >
+                <option value="M"
+                  >{$_("admin_dashboard.unit_m") || "M (Meter)"}</option
+                >
+                <option value="L"
+                  >{$_("admin_dashboard.unit_l") || "L (Liter)"}</option
+                >
+                <option value="BOX"
+                  >{$_("admin_dashboard.unit_box") || "BOX"}</option
+                >
               </select>
             </div>
 
             <div class="form-group">
-              <label for="low-stock">Low Stock Quantity</label>
+              <label for="low-stock"
+                >{$_("admin_dashboard.low_stock_quantity") ||
+                  "Low Stock Quantity"}</label
+              >
               <input
                 id="low-stock"
                 type="number"
@@ -1104,23 +1135,35 @@
           <div class="form-group">
             <label class="checkbox-label">
               <input type="checkbox" bind:checked={productForm.is_digital} />
-              <span>Digital Product</span>
+              <span
+                >{$_("admin_dashboard.digital_product") ||
+                  "Digital Product"}</span
+              >
             </label>
           </div>
         </div>
 
         <!-- Categories -->
         <div class="form-section">
-          <h3 class="section-title">Categories *</h3>
+          <h3 class="section-title">
+            {$_("admin_dashboard.categories") || "Categories *"}
+          </h3>
           <p class="section-description">
-            Select one or more categories. Mark one as main category.
+            {$_("admin_dashboard.categories_description") ||
+              "Select one or more categories. Mark one as main category."}
           </p>
 
           {#if isLoadingCategories}
-            <div class="loading-message">Loading categories...</div>
+            <div class="loading-message">
+              {$_("admin_dashboard.loading_categories") ||
+                "Loading categories..."}
+            </div>
           {:else if categories.length === 0}
             <div class="warning-message">
-              <p>⚠️ No categories found. Please create categories first.</p>
+              <p>
+                {$_("admin_dashboard.no_categories_warning") ||
+                  "⚠️ No categories found. Please create categories first."}
+              </p>
             </div>
           {:else}
             <div class="categories-selection">
@@ -1144,12 +1187,14 @@
                       class:is-main={productForm.main_category ===
                         category.shortname}
                       onclick={() => setMainCategory(category.shortname)}
-                      title="Set as main category"
+                      title={$_("admin_dashboard.set_as_main_category") ||
+                        "Set as main category"}
                     >
                       {#if productForm.main_category === category.shortname}
-                        <CheckOutline size="xs" /> Main
+                        <CheckOutline size="xs" />
+                        {$_("admin_dashboard.main") || "Main"}
                       {:else}
-                        Set as Main
+                        {$_("admin_dashboard.set_as_main") || "Set as Main"}
                       {/if}
                     </button>
                   {/if}
@@ -1176,12 +1221,14 @@
                         class:is-main={productForm.main_category ===
                           subCategory.shortname}
                         onclick={() => setMainCategory(subCategory.shortname)}
-                        title="Set as main category"
+                        title={$_("admin_dashboard.set_as_main_category") ||
+                          "Set as main category"}
                       >
                         {#if productForm.main_category === subCategory.shortname}
-                          <CheckOutline size="xs" /> Main
+                          <CheckOutline size="xs" />
+                          {$_("admin_dashboard.main") || "Main"}
                         {:else}
-                          Set as Main
+                          {$_("admin_dashboard.set_as_main") || "Set as Main"}
                         {/if}
                       </button>
                     {/if}
@@ -1194,17 +1241,23 @@
 
         <!-- Variations -->
         <div class="form-section">
-          <h3 class="section-title">Variations (Optional)</h3>
+          <h3 class="section-title">
+            {$_("admin_dashboard.variations_optional") ||
+              "Variations (Optional)"}
+          </h3>
 
           {#if variations.colors.length > 0}
             <div class="variation-group">
               <div class="variation-header">
-                <h4 class="variation-title">Colors</h4>
+                <h4 class="variation-title">
+                  {$_("admin_dashboard.colors") || "Colors"}
+                </h4>
                 {#if variations.colors.length > INITIAL_VARIATION_DISPLAY}
                   <input
                     type="text"
                     bind:value={colorSearchTerm}
-                    placeholder="Search colors..."
+                    placeholder={$_("admin_dashboard.search_colors") ||
+                      "Search colors..."}
                     class="variation-search"
                   />
                 {/if}
@@ -1235,12 +1288,14 @@
                   onclick={() => (showAllColors = !showAllColors)}
                 >
                   {showAllColors
-                    ? `Show Less`
-                    : `Show ${filteredColors.length - INITIAL_VARIATION_DISPLAY} More`}
+                    ? $_("admin_dashboard.show_less") || "Show Less"
+                    : `${$_("admin_dashboard.show_more") || "Show More"} (${filteredColors.length - INITIAL_VARIATION_DISPLAY})`}
                 </button>
               {/if}
               {#if colorSearchTerm && filteredColors.length === 0}
-                <p class="no-results">No colors found</p>
+                <p class="no-results">
+                  {$_("admin_dashboard.no_colors_found") || "No colors found"}
+                </p>
               {/if}
             </div>
           {/if}
@@ -1248,12 +1303,15 @@
           {#if variations.storages.length > 0}
             <div class="variation-group">
               <div class="variation-header">
-                <h4 class="variation-title">Storage</h4>
+                <h4 class="variation-title">
+                  {$_("admin_dashboard.storage") || "Storage"}
+                </h4>
                 {#if variations.storages.length > INITIAL_VARIATION_DISPLAY}
                   <input
                     type="text"
                     bind:value={storageSearchTerm}
-                    placeholder="Search storage..."
+                    placeholder={$_("admin_dashboard.search_storage") ||
+                      "Search storage..."}
                     class="variation-search"
                   />
                 {/if}
@@ -1281,12 +1339,15 @@
                   onclick={() => (showAllStorages = !showAllStorages)}
                 >
                   {showAllStorages
-                    ? `Show Less`
-                    : `Show ${filteredStorages.length - INITIAL_VARIATION_DISPLAY} More`}
+                    ? $_("admin_dashboard.show_less") || "Show Less"
+                    : `${$_("admin_dashboard.show_more") || "Show More"} (${filteredStorages.length - INITIAL_VARIATION_DISPLAY})`}
                 </button>
               {/if}
               {#if storageSearchTerm && filteredStorages.length === 0}
-                <p class="no-results">No storage options found</p>
+                <p class="no-results">
+                  {$_("admin_dashboard.no_storage_found") ||
+                    "No storage options found"}
+                </p>
               {/if}
             </div>
           {/if}
@@ -1295,24 +1356,27 @@
         <!-- Specifications -->
         <div class="form-section">
           <h3 class="section-title">
-            {$_("admin_dashboard.specifications") || "Specifications"}
-            (Optional)
+            {$_("admin_dashboard.specifications_optional") ||
+              "Specifications (Optional)"}
           </h3>
           <p class="section-description">
-            {$_("admin_dashboard.specifications_description") ||
+            {$_("admin_dashboard.specifications_select_description") ||
               "Select specifications and their values based on the selected categories"}
           </p>
 
           {#if productForm.categories.length === 0}
             <div class="info-message">
               <p>
-                ℹ️ Please select at least one category to see available
-                specifications
+                {$_("admin_dashboard.select_category_first") ||
+                  "ℹ️ Please select at least one category to see available specifications"}
               </p>
             </div>
           {:else if availableSpecifications.length === 0}
             <div class="info-message">
-              <p>ℹ️ No specifications available for the selected categories</p>
+              <p>
+                {$_("admin_dashboard.no_specifications_available") ||
+                  "ℹ️ No specifications available for the selected categories"}
+              </p>
             </div>
           {:else}
             <div class="specifications-selection">
@@ -1334,7 +1398,10 @@
 
                   {#if isSpecificationSelected(spec.shortname)}
                     <div class="spec-values">
-                      <div class="spec-values-header">Select Values:</div>
+                      <div class="spec-values-header">
+                        {$_("admin_dashboard.select_values") ||
+                          "Select Values:"}
+                      </div>
                       <div class="spec-values-grid">
                         {#each getSpecificationOptions(spec) as option}
                           <label class="spec-value-checkbox">
@@ -1364,37 +1431,52 @@
 
         <!-- SEO Meta -->
         <div class="form-section">
-          <h3 class="section-title">SEO & Meta Information</h3>
+          <h3 class="section-title">
+            {$_("admin_dashboard.seo_meta_information") ||
+              "SEO & Meta Information"}
+          </h3>
 
           <div class="form-group">
-            <label for="meta-title">Meta Title</label>
+            <label for="meta-title"
+              >{$_("admin_dashboard.meta_title") || "Meta Title"}</label
+            >
             <input
               id="meta-title"
               type="text"
               bind:value={productForm.meta_title}
-              placeholder="SEO meta title"
+              placeholder={$_("admin_dashboard.seo_meta_title_placeholder") ||
+                "SEO meta title"}
               class="form-input"
             />
           </div>
 
           <div class="form-group">
-            <label for="meta-description">Meta Description</label>
+            <label for="meta-description"
+              >{$_("admin_dashboard.meta_description") ||
+                "Meta Description"}</label
+            >
             <textarea
               id="meta-description"
               bind:value={productForm.meta_description}
-              placeholder="SEO meta description"
+              placeholder={$_(
+                "admin_dashboard.seo_meta_description_placeholder"
+              ) || "SEO meta description"}
               class="form-textarea"
               rows="2"
             ></textarea>
           </div>
 
           <div class="form-group">
-            <label for="brand">Brand Shortname</label>
+            <label for="brand"
+              >{$_("admin_dashboard.brand_shortname") ||
+                "Brand Shortname"}</label
+            >
             <input
               id="brand"
               type="text"
               bind:value={productForm.brand_shortname}
-              placeholder="Brand identifier"
+              placeholder={$_("admin_dashboard.brand_identifier") ||
+                "Brand identifier"}
               class="form-input"
             />
           </div>
@@ -1402,9 +1484,12 @@
 
         <!-- Product Images -->
         <div class="form-section">
-          <h3 class="section-title">Product Images</h3>
+          <h3 class="section-title">
+            {$_("admin_dashboard.product_images") || "Product Images"}
+          </h3>
           <p class="section-description">
-            Upload product images. First image will be used as thumbnail.
+            {$_("admin_dashboard.product_images_description") ||
+              "Upload product images. First image will be used as thumbnail."}
           </p>
 
           <div class="form-group">
@@ -1417,7 +1502,10 @@
                 onchange={handleImageSelect}
                 class="file-input"
               />
-              <span class="file-upload-button"> 📷 Choose Images </span>
+              <span class="file-upload-button"
+                >{$_("admin_dashboard.choose_images") ||
+                  "📷 Choose Images"}</span
+              >
             </label>
           </div>
 
@@ -1430,12 +1518,14 @@
                     type="button"
                     class="remove-image-btn"
                     onclick={() => removeImage(index)}
-                    title="Remove image"
+                    title={$_("admin_dashboard.remove_image") || "Remove image"}
                   >
                     ×
                   </button>
                   {#if index === 0}
-                    <span class="thumbnail-badge">Thumbnail</span>
+                    <span class="thumbnail-badge"
+                      >{$_("admin_dashboard.thumbnail") || "Thumbnail"}</span
+                    >
                   {/if}
                 </div>
               {/each}
@@ -1444,7 +1534,9 @@
 
           {#if showEditModal && selectedProduct}
             <div class="existing-images">
-              <h4>Existing Images</h4>
+              <h4>
+                {$_("admin_dashboard.existing_images") || "Existing Images"}
+              </h4>
               <div class="image-previews">
                 {#each getProductImages(selectedProduct) as image}
                   <div class="image-preview-item existing">
@@ -1482,7 +1574,7 @@
           disabled={isUploadingImages}
         >
           {#if isUploadingImages}
-            Uploading images...
+            {$_("admin_dashboard.uploading_images") || "Uploading images..."}
           {:else}
             {showCreateModal
               ? $_("common.create") || "Create"
@@ -1506,11 +1598,17 @@
       <div class="modal-body">
         <div class="delete-warning">
           <div class="warning-icon">⚠️</div>
-          <p>Are you sure you want to delete this product?</p>
+          <p>
+            {$_("admin_dashboard.delete_product_confirmation") ||
+              "Are you sure you want to delete this product?"}
+          </p>
           <p class="product-name-highlight">
             {selectedProduct ? getLocalizedDisplayName(selectedProduct) : ""}
           </p>
-          <p class="warning-text">This action cannot be undone.</p>
+          <p class="warning-text">
+            {$_("admin_dashboard.action_cannot_be_undone") ||
+              "This action cannot be undone."}
+          </p>
         </div>
       </div>
 

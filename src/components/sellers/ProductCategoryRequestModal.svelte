@@ -639,7 +639,6 @@
     align-items: center;
     padding: 1.5rem 2rem;
     border-bottom: 1px solid #e2e8f0;
-    background: #281f51;
   }
 
   .modal-title {
@@ -647,9 +646,7 @@
     font-weight: 700;
     color: #1a202c;
     margin: 0;
-    background: #281f51;
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
@@ -813,7 +810,6 @@
 
   .request-type-card.active {
     border-color: #667eea;
-    background: #281f51;
     box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
   }
 

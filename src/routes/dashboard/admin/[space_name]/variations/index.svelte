@@ -36,7 +36,7 @@
     DeleteOptionModal,
   } from "@/components/modals";
   import type { OptionFormData } from "@/components/modals/AddOptionModal.svelte";
-  import {website} from "@/config";
+  import { website } from "@/config";
 
   $goto;
 
@@ -366,14 +366,17 @@
               onclick={() => openAddOptionModal(variation)}
             >
               <PlusOutline size="sm" />
-              <span>Add Option</span>
+              <span>{$_("admin_dashboard.add_option") || "Add Option"}</span>
             </Button>
           </div>
 
           <div class="variation-body">
             {#if getVariationOptions(variation).length === 0}
               <div class="no-options">
-                <p>No options available. Click "Add Option" to create one.</p>
+                <p>
+                  {$_("admin_dashboard.no_options_available") ||
+                    'No options available. Click "Add Option" to create one.'}
+                </p>
               </div>
             {:else}
               <!-- Search Bar -->
@@ -381,7 +384,8 @@
                 <div class="search-container">
                   <input
                     type="text"
-                    placeholder={$_("common.search") || "Search options..."}
+                    placeholder={$_("admin_dashboard.search_options") ||
+                      "Search options..."}
                     value={searchQueries[variation.shortname] || ""}
                     oninput={(e) =>
                       updateSearch(
@@ -397,7 +401,10 @@
               <!-- Options List -->
               {#if getFilteredOptions(variation).length === 0}
                 <div class="no-results">
-                  <p>No options found matching your search.</p>
+                  <p>
+                    {$_("admin_dashboard.no_options_found") ||
+                      "No options found matching your search."}
+                  </p>
                 </div>
               {:else}
                 <div class="options-list">
@@ -423,7 +430,7 @@
                       <div class="option-actions">
                         <IconButton
                           onclick={() => openEditOptionModal(variation, option)}
-                          title="Edit"
+                          title={$_("Edit") || "Edit"}
                         >
                           <EditOutline size="xs" />
                         </IconButton>
@@ -431,7 +438,7 @@
                           variant="delete"
                           onclick={() =>
                             openDeleteOptionModal(variation, option)}
-                          title="Delete"
+                          title={$_("common.delete") || "Delete"}
                         >
                           <TrashBinOutline size="xs" />
                         </IconButton>
@@ -447,12 +454,16 @@
                     onclick={() => toggleExpanded(variation.shortname)}
                   >
                     {#if expandedVariations[variation.shortname]}
-                      <span>Show Less</span>
+                      <span
+                        >{$_("admin_dashboard.show_less") || "Show Less"}</span
+                      >
                       <span class="arrow">▲</span>
                     {:else}
                       <span
-                        >Show More ({getFilteredOptions(variation).length -
-                          INITIAL_DISPLAY_COUNT} more)</span
+                        >{$_("admin_dashboard.show_more") || "Show More"} ({getFilteredOptions(
+                          variation
+                        ).length - INITIAL_DISPLAY_COUNT}
+                        {$_("common.more") || "more"})</span
                       >
                       <span class="arrow">▼</span>
                     {/if}
@@ -465,11 +476,13 @@
           <div class="variation-footer">
             <span class="options-count">
               {#if searchQueries[variation.shortname]}
-                {getFilteredOptions(variation).length} of {getVariationOptions(
-                  variation
-                ).length} option(s)
+                {getFilteredOptions(variation).length}
+                {$_("of") || "of"}
+                {getVariationOptions(variation).length}
+                {$_("admin_dashboard.options_count") || "option(s)"}
               {:else}
-                {getVariationOptions(variation).length} option(s)
+                {getVariationOptions(variation).length}
+                {$_("admin_dashboard.options_count") || "option(s)"}
               {/if}
             </span>
           </div>
