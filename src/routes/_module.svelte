@@ -1,13 +1,13 @@
 <script lang="ts">
   import "./global.css";
   import DashboardHeader from "@/components/DashboardHeader.svelte";
-  import { signout } from "@/stores/user";
+  import { signout, roles } from "@/stores/user";
   import { onMount } from "svelte";
   import { getProfile } from "@/lib/dmart_services";
   import { goto } from "@roxi/routify";
   import { Dmart } from "@edraj/tsdmart";
   import { website } from "@/config";
-  import axios, {type AxiosInstance} from "axios";
+  import axios, { type AxiosInstance } from "axios";
 
   $goto;
 
@@ -77,6 +77,24 @@
         await signout();
         $goto("/login");
       } else {
+        let userRoles = p?.roles || p?.attributes?.roles;
+        console.log("Profile response:", p);
+        console.log("Roles from profile:", userRoles);
+
+        if (userRoles && Array.isArray(userRoles)) {
+          console.log("Setting roles from profile:", userRoles);
+          roles.set(userRoles);
+          if (typeof localStorage !== "undefined") {
+            localStorage.setItem("roles", JSON.stringify(userRoles));
+          }
+        } else if (typeof localStorage !== "undefined") {
+          const storedRoles = JSON.parse(localStorage.getItem("roles") || "[]");
+          console.log("Setting roles from localStorage:", storedRoles);
+          if (storedRoles.length > 0) {
+            roles.set(storedRoles);
+          }
+        }
+
         if (currentPath === "/" || currentPath === "/login") {
           $goto("/dashboard");
         }

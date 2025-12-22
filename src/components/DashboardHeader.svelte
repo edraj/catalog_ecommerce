@@ -14,6 +14,11 @@
   let isAdminExpanded = $state(false);
   let isRTL = $locale === "ar" || $locale === "ku";
 
+  // Log roles for debugging
+  $effect(() => {
+    console.log("DashboardHeader - Current roles:", $roles);
+  });
+
   onMount(() => {
     if ($user.signedin) {
       if (isWSOpen(ws)) {

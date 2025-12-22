@@ -78,7 +78,10 @@ export async function signin(username: string, password: string) {
     };
     user.set(_user);
 
-    const userRoles = (account as any).roles || [];
+    // Check multiple possible locations for roles
+    const userRoles = (account as any).roles || account.attributes?.roles || [];
+    console.log("Login response account:", account);
+    console.log("Extracted roles:", userRoles);
     roles.set(userRoles);
 
     if (typeof localStorage !== "undefined") {
@@ -112,7 +115,10 @@ export async function loginBy(email: string, password: string) {
     };
     user.set(_user);
 
-    const userRoles = (account as any).roles || [];
+    // Check multiple possible locations for roles
+    const userRoles = (account as any).roles || account.attributes?.roles || [];
+    console.log("Login response account:", account);
+    console.log("Extracted roles:", userRoles);
     roles.set(userRoles);
 
     if (typeof localStorage !== "undefined") {
@@ -246,16 +252,16 @@ export async function contactUs(
 ) {
   try {
     const response = await Dmart.submit({
-        spaceName: "applications",
-        schemaShortname: "contact",
-        subpath: "contacts",
-        record: {
-          full_name: name,
-          email: email,
-          message: message,
-          subject: subject,
-        },
-        resourceType: ResourceType.content
+      spaceName: "applications",
+      schemaShortname: "contact",
+      subpath: "contacts",
+      record: {
+        full_name: name,
+        email: email,
+        message: message,
+        subject: subject,
+      },
+      resourceType: ResourceType.content,
     });
     if (response.status === "success") {
       return `
