@@ -25,6 +25,7 @@
     getSpaceContents,
     createEntity,
     updateEntity,
+    deleteEntity,
   } from "@/lib/dmart_services";
 
   import {
@@ -61,6 +62,7 @@
   import ShippingManagement from "@/components/sellers/ShippingManagement.svelte";
   import "@/components/sellers/ShippingManagement.css";
   import { website } from "@/config";
+  import { tags } from "flowbite-svelte";
 
   $goto;
   let folders = $state([]);
@@ -162,6 +164,7 @@
     type: "",
     typeShortname: "",
     value: "",
+    discountType: "percentage",
     validFrom: "",
     validTo: "",
   });
@@ -273,7 +276,38 @@
       );
 
       if (response?.records) {
-        items = response.records;
+        // Handle discounts folder specially - extract items from config
+        if (folderShortname === "discounts") {
+          const configEntry = response.records.find(
+            (r) => r.shortname === "config"
+          );
+          if (configEntry?.attributes?.payload?.body?.items) {
+            // Convert config items to individual item objects for UI
+            items = configEntry.attributes.payload.body.items.map((item) => ({
+              shortname: item.key,
+              subpath: `/${folderShortname}/${sellerShortname}`,
+              resource_type: "content",
+              space_name: website.main_space,
+              attributes: {
+                payload: {
+                  body: item,
+                },
+                tags: [],
+                displayname: {
+                  en: `${item.type || "general"} - ${item.discount_type === "percentage" ? item.discount_value + "%" : "IQD" + item.discount_value}`,
+                  ar: null,
+                  ku: null,
+                },
+              },
+              _isDiscountItem: true,
+              _configEntry: configEntry,
+            }));
+          } else {
+            items = [];
+          }
+        } else {
+          items = response.records;
+        }
 
         // Load variations and products for available folder
         if (folderShortname === "available_products") {
@@ -1076,7 +1110,8 @@
       discountForm = {
         type: content.type || "",
         typeShortname: content.type_shortname || "",
-        value: content.value?.toString() || "",
+        value: content.discount_value?.toString() || "",
+        discountType: content.discount_type || "percentage",
         validFrom: content.validity?.from || "",
         validTo: content.validity?.to || "",
       };
@@ -1107,6 +1142,7 @@
       type: "",
       typeShortname: "",
       value: "",
+      discountType: "percentage",
       validFrom: "",
       validTo: "",
     };
@@ -1122,6 +1158,7 @@
       type: "",
       typeShortname: "",
       value: "",
+      discountType: "percentage",
       validFrom: "",
       validTo: "",
     };
@@ -1134,6 +1171,7 @@
       type: "",
       typeShortname: "",
       value: "",
+      discountType: "percentage",
       validFrom: "",
       validTo: "",
     };
@@ -1165,50 +1203,119 @@
 
   async function submitDiscount() {
     if (
-      !discountForm.type ||
-      !discountForm.typeShortname ||
       !discountForm.value ||
       !discountForm.validFrom ||
       !discountForm.validTo
     ) {
-      errorToastMessage("Please fill in all required fields");
+      errorToastMessage(
+        $_("seller_dashboard.fill_required_fields") ||
+          "Please fill in all required fields"
+      );
+      return;
+    }
+
+    // Validate that either type is null or both type and typeShortname are provided
+    if (discountForm.type && !discountForm.typeShortname) {
+      errorToastMessage(
+        $_("seller_dashboard.select_specific_category_or_brand") ||
+          "Please select a specific category or brand"
+      );
       return;
     }
 
     try {
       isLoading = true;
-      const discountData = {
-        displayname_en: null,
-        displayname_ar: null,
-        displayname_ku: null,
-        body: {
-          type: discountForm.type,
-          type_shortname: discountForm.typeShortname,
-          value: parseInt(discountForm.value),
-          validity: {
-            from: discountForm.validFrom,
-            to: discountForm.validTo,
-          },
+
+      // Generate unique key for the discount item
+      const itemKey = `discount_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const newDiscountItem = {
+        key: itemKey,
+        type: discountForm.type || null,
+        type_shortname: discountForm.typeShortname || null,
+        states: [],
+        validity: {
+          from: discountForm.validFrom,
+          to: discountForm.validTo,
         },
-        tags: [],
-        is_active: true,
+        discount_type: discountForm.discountType,
+        discount_value:
+          discountForm.discountType === "percentage"
+            ? parseInt(discountForm.value)
+            : parseFloat(discountForm.value),
       };
 
-      await createEntity(
-        discountData,
+      // Try to get existing config
+      const response = await getSpaceContents(
         website.main_space,
         `/discounts/${$user.shortname}`,
-        ResourceType.content,
-        "",
-        ""
+        "managed",
+        100,
+        0,
+        true
       );
 
-      successToastMessage("Discount created successfully!");
+      const configEntry = response?.records?.find(
+        (r) => r.shortname === "config"
+      );
+
+      if (configEntry) {
+        // Update existing config
+        const currentItems = configEntry.attributes?.payload?.body?.items || [];
+        const updatedBody = {
+          items: [...currentItems, newDiscountItem],
+          seller_shortname: $user.shortname,
+        };
+
+        await updateEntity(
+          "config",
+          website.main_space,
+          `/discounts/${$user.shortname}`,
+          ResourceType.content,
+          {
+            displayname_en: null,
+            displayname_ar: null,
+            displayname_ku: null,
+            body: updatedBody,
+            tags: [],
+            is_active: true,
+          },
+          "",
+          ""
+        );
+      } else {
+        // Create new config
+        await createEntity(
+          {
+            shortname: "config",
+            displayname_en: "Discounts Configuration",
+            is_active: true,
+            tags: [],
+            body: {
+              items: [newDiscountItem],
+              seller_shortname: $user.shortname,
+            },
+          },
+          website.main_space,
+          `/discounts/${$user.shortname}`,
+          ResourceType.content,
+          "",
+          ""
+        );
+      }
+
+      successToastMessage(
+        $_("seller_dashboard.discount_created_successfully") ||
+          "Discount created successfully!"
+      );
       closeDiscountModal();
       await loadFolderContents("discounts");
     } catch (error) {
       console.error("Error creating discount:", error);
-      errorToastMessage("Failed to create discount");
+      errorToastMessage(
+        $_("seller_dashboard.failed_to_create_discount") ||
+          "Failed to create discount"
+      );
     } finally {
       isLoading = false;
     }
@@ -1910,31 +2017,93 @@
         };
       } else if (subpath.includes("/discounts")) {
         if (
-          !discountForm.type ||
-          !discountForm.typeShortname ||
           !discountForm.value ||
           !discountForm.validFrom ||
           !discountForm.validTo
         ) {
-          errorToastMessage("Please fill in all required fields");
+          errorToastMessage(
+            $_("seller_dashboard.fill_required_fields") ||
+              "Please fill in all required fields"
+          );
           return;
         }
-        updateData = {
-          displayname_en: null,
-          displayname_ar: null,
-          displayname_ku: null,
-          body: {
-            type: discountForm.type,
-            type_shortname: discountForm.typeShortname,
-            value: parseInt(discountForm.value),
-            validity: {
-              from: discountForm.validFrom,
-              to: discountForm.validTo,
-            },
+
+        // Validate that either type is null or both type and typeShortname are provided
+        if (discountForm.type && !discountForm.typeShortname) {
+          errorToastMessage(
+            $_("seller_dashboard.select_specific_category_or_brand") ||
+              "Please select a specific category or brand"
+          );
+          return;
+        }
+
+        // Get the config entry
+        const configEntry = itemToEdit._configEntry;
+        if (!configEntry) {
+          errorToastMessage(
+            $_("seller_dashboard.config_entry_not_found") ||
+              "Config entry not found"
+          );
+          return;
+        }
+
+        // Update the specific item in the items array
+        const currentItems = configEntry.attributes?.payload?.body?.items || [];
+        const itemIndex = currentItems.findIndex(
+          (item) => item.key === itemToEdit.shortname
+        );
+
+        if (itemIndex === -1) {
+          errorToastMessage(
+            $_("seller_dashboard.discount_item_not_found") ||
+              "Discount item not found"
+          );
+          return;
+        }
+
+        currentItems[itemIndex] = {
+          ...currentItems[itemIndex],
+          type: discountForm.type || null,
+          type_shortname: discountForm.typeShortname || null,
+          discount_type: discountForm.discountType,
+          discount_value:
+            discountForm.discountType === "percentage"
+              ? parseInt(discountForm.value)
+              : parseFloat(discountForm.value),
+          validity: {
+            from: discountForm.validFrom,
+            to: discountForm.validTo,
           },
-          tags: itemToEdit.attributes?.tags || [],
-          is_active: true,
         };
+
+        // Update the config entry instead of individual item
+        await updateEntity(
+          "config",
+          website.main_space,
+          itemToEdit.subpath,
+          ResourceType.content,
+          {
+            displayname_en: null,
+            displayname_ar: null,
+            displayname_ku: null,
+            body: {
+              items: currentItems,
+              seller_shortname: $user.shortname,
+            },
+            tags: [],
+            is_active: true,
+          },
+          "",
+          ""
+        );
+
+        successToastMessage(
+          $_("seller_dashboard.discount_updated_successfully") ||
+            "Discount updated successfully!"
+        );
+        closeEditModal();
+        await loadFolderContents(selectedFolder);
+        return;
       } else if (subpath.includes("/warranties")) {
         errorToastMessage("Warranty updates coming soon");
         return;
@@ -1944,8 +2113,6 @@
         errorToastMessage("Unable to update this item type");
         return;
       }
-
-      const { updateEntity } = await import("@/lib/dmart_services");
 
       await updateEntity(
         itemToEdit.shortname,
@@ -1983,14 +2150,51 @@
 
     try {
       isLoading = true;
-      const { deleteEntity } = await import("@/lib/dmart_services");
 
-      await deleteEntity(
-        itemToDelete.shortname,
-        website.main_space,
-        itemToDelete.subpath,
-        itemToDelete.resource_type
-      );
+      // Handle discount items specially
+      if (itemToDelete._isDiscountItem) {
+        const configEntry = itemToDelete._configEntry;
+        if (!configEntry) {
+          errorToastMessage("Config entry not found");
+          return;
+        }
+
+        // Remove the item from the items array
+        const currentItems = configEntry.attributes?.payload?.body?.items || [];
+        const updatedItems = currentItems.filter(
+          (item) => item.key !== itemToDelete.shortname
+        );
+
+        await updateEntity(
+          "config",
+          website.main_space,
+          itemToDelete.subpath,
+          ResourceType.content,
+          {
+            displayname_en: null,
+            displayname_ar: null,
+            displayname_ku: null,
+            body: {
+              items: updatedItems,
+              seller_shortname: $user.shortname,
+            },
+            tags: [],
+            is_active: true,
+          },
+          "",
+          ""
+        );
+      } else {
+        // Regular delete for other items
+        const { deleteEntity } = await import("@/lib/dmart_services");
+
+        await deleteEntity(
+          itemToDelete.shortname,
+          website.main_space,
+          itemToDelete.subpath,
+          itemToDelete.resource_type
+        );
+      }
 
       successToastMessage("Item deleted successfully!");
       closeDeleteModal();
@@ -2346,9 +2550,7 @@
                 <th class="th-details"
                   >{$_("seller_dashboard.details") || "Details"}</th
                 >
-                <th class="th-updated"
-                  >{$_("seller_dashboard.updated") || "Updated"}</th
-                >
+
                 <th class="th-actions"
                   >{$_("seller_dashboard.actions") || "Actions"}</th
                 >
@@ -2473,14 +2675,7 @@
                       <span class="no-details">—</span>
                     {/if}
                   </td>
-                  <td
-                    class="td-updated"
-                    data-label={$_("seller_dashboard.updated") || "Updated"}
-                  >
-                    <time class="updated-time"
-                      >{formatDate(item.attributes.updated_at)}</time
-                    >
-                  </td>
+
                   <td
                     class="td-actions"
                     data-label={$_("seller_dashboard.actions") || "Actions"}
@@ -2675,12 +2870,15 @@
   isRTL={$isRTL}
   {itemToEdit}
   bind:couponForm
+  bind:discountForm
   bind:branchForm
   bind:bundleForm
   {isLoadingSellerProducts}
   {sellerProducts}
   {brands}
+  categories={discountCategories}
   {isLoadingBrands}
+  isLoadingCategories={isLoadingDiscountCategories}
   onClose={closeEditModal}
   onSubmit={submitEdit}
   onToggleProduct={toggleProductSelection}

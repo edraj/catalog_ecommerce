@@ -8,6 +8,7 @@
       type: string;
       typeShortname: string;
       value: string;
+      discountType: string;
       validFrom: string;
       validTo: string;
     };
@@ -67,17 +68,18 @@
         <div class="form-group">
           <label class="form-label" class:rtl={isRTL}>
             <span
-              >{$_("seller_dashboard.discount_type") || "Discount Type"} *</span
+              >{$_("seller_dashboard.discount_applies_to") ||
+                "Discount Applies To"}</span
             >
           </label>
           <select
             bind:value={discountForm.type}
             class="form-select"
             class:rtl={isRTL}
-            required
           >
             <option value=""
-              >{$_("seller_dashboard.select_type") || "Select Type"}</option
+              >{$_("seller_dashboard.general_discount") ||
+                "General Discount (All)"}</option
             >
             <option value="brand"
               >{$_("seller_dashboard.brand") || "Brand"}</option
@@ -105,7 +107,6 @@
                 bind:value={discountForm.typeShortname}
                 class="form-select"
                 class:rtl={isRTL}
-                required
               >
                 <option value=""
                   >{$_("seller_dashboard.choose_brand") ||
@@ -133,7 +134,6 @@
                 bind:value={discountForm.typeShortname}
                 class="form-select"
                 class:rtl={isRTL}
-                required
               >
                 <option value=""
                   >{$_("seller_dashboard.choose_category") ||
@@ -162,7 +162,6 @@
               class:rtl={isRTL}
               placeholder={$_("seller_dashboard.enter_product_shortname") ||
                 "Enter product shortname..."}
-              required
             />
           </div>
         {/if}
@@ -170,19 +169,50 @@
         <div class="form-group">
           <label class="form-label" class:rtl={isRTL}>
             <span
-              >{$_("seller_dashboard.discount_value") || "Discount Value (%)"} *</span
+              >{$_("seller_dashboard.discount_calculation_type") ||
+                "Discount Type"} *</span
+            >
+          </label>
+          <select
+            bind:value={discountForm.discountType}
+            class="form-select"
+            class:rtl={isRTL}
+            required
+          >
+            <option value="percentage"
+              >{$_("seller_dashboard.percentage_discount") ||
+                "Percentage (%)"}</option
+            >
+            <option value="amount"
+              >{$_("seller_dashboard.fixed_amount_discount") ||
+                "Fixed Amount (IQD)"}</option
+            >
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" class:rtl={isRTL}>
+            <span
+              >{discountForm.discountType === "percentage"
+                ? $_("seller_dashboard.discount_value_percentage") ||
+                  "Discount Value (%)"
+                : $_("seller_dashboard.discount_value_amount") ||
+                  "Discount Amount (IQD)"} *</span
             >
           </label>
           <input
             type="number"
-            min="1"
-            max="100"
-            step="1"
+            min={discountForm.discountType === "percentage" ? "1" : "100"}
+            max={discountForm.discountType === "percentage" ? "100" : ""}
+            step={discountForm.discountType === "percentage" ? "1" : "100"}
             bind:value={discountForm.value}
             class="form-input"
             class:rtl={isRTL}
-            placeholder={$_("seller_dashboard.enter_discount_value") ||
-              "Enter discount percentage..."}
+            placeholder={discountForm.discountType === "percentage"
+              ? $_("seller_dashboard.enter_discount_percentage") ||
+                "Enter discount percentage (e.g., 10 for 10%)..."
+              : $_("seller_dashboard.enter_discount_amount") ||
+                "Enter discount amount (e.g., 5000 IQD)..."}
             required
           />
         </div>

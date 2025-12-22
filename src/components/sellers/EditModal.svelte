@@ -18,6 +18,14 @@
       validTo: string;
       brandShortnames: string[];
     };
+    discountForm?: {
+      type: string;
+      typeShortname: string;
+      value: string;
+      discountType: string;
+      validFrom: string;
+      validTo: string;
+    };
     branchForm: {
       name: string;
       country: string;
@@ -30,7 +38,9 @@
       price: string;
     };
     brands?: any[];
+    categories?: any[];
     isLoadingBrands?: boolean;
+    isLoadingCategories?: boolean;
     isLoadingSellerProducts: boolean;
     sellerProducts: any[];
     onClose: () => void;
@@ -44,10 +54,13 @@
     isRTL,
     itemToEdit,
     couponForm = $bindable(),
+    discountForm = $bindable(),
     branchForm = $bindable(),
     bundleForm = $bindable(),
     brands = [],
+    categories = [],
     isLoadingBrands = false,
+    isLoadingCategories = false,
     isLoadingSellerProducts,
     sellerProducts,
     onClose,
@@ -295,6 +308,186 @@
             {:else}
               <p class="info-text">No brands available</p>
             {/if}
+          </div>
+        {:else if itemToEdit.subpath.includes("/discounts")}
+          <!-- Discount Edit Form -->
+          <div class="form-group">
+            <label class="form-label" class:rtl={isRTL}>
+              <span
+                >{$_("seller_dashboard.discount_applies_to") ||
+                  "Discount Applies To"}</span
+              >
+            </label>
+            <select
+              bind:value={discountForm.type}
+              class="form-select"
+              class:rtl={isRTL}
+            >
+              <option value=""
+                >{$_("seller_dashboard.general_discount") ||
+                  "General Discount (All)"}</option
+              >
+              <option value="brand"
+                >{$_("seller_dashboard.brand") || "Brand"}</option
+              >
+              <option value="category"
+                >{$_("seller_dashboard.category") || "Category"}</option
+              >
+              <option value="product"
+                >{$_("seller_dashboard.product") || "Product"}</option
+              >
+            </select>
+          </div>
+
+          {#if discountForm.type === "brand"}
+            <div class="form-group">
+              <label class="form-label" class:rtl={isRTL}>
+                <span
+                  >{$_("seller_dashboard.select_brand") || "Select Brand"}</span
+                >
+              </label>
+              {#if isLoadingBrands}
+                <p class="loading-text">Loading brands...</p>
+              {:else}
+                <select
+                  bind:value={discountForm.typeShortname}
+                  class="form-select"
+                  class:rtl={isRTL}
+                >
+                  <option value=""
+                    >{$_("seller_dashboard.choose_brand") ||
+                      "Choose a brand..."}</option
+                  >
+                  {#each brands as brand (brand.shortname)}
+                    <option value={brand.shortname}>
+                      {getLocalizedDisplayName(brand)}
+                    </option>
+                  {/each}
+                </select>
+              {/if}
+            </div>
+          {:else if discountForm.type === "category"}
+            <div class="form-group">
+              <label class="form-label" class:rtl={isRTL}>
+                <span
+                  >{$_("seller_dashboard.select_category") ||
+                    "Select Category"}</span
+                >
+              </label>
+              {#if isLoadingCategories}
+                <p class="loading-text">Loading categories...</p>
+              {:else}
+                <select
+                  bind:value={discountForm.typeShortname}
+                  class="form-select"
+                  class:rtl={isRTL}
+                >
+                  <option value=""
+                    >{$_("seller_dashboard.choose_category") ||
+                      "Choose a category..."}</option
+                  >
+                  {#each categories as category (category.shortname)}
+                    <option value={category.shortname}>
+                      {getLocalizedDisplayName(category)}
+                    </option>
+                  {/each}
+                </select>
+              {/if}
+            </div>
+          {:else if discountForm.type === "product"}
+            <div class="form-group">
+              <label class="form-label" class:rtl={isRTL}>
+                <span
+                  >{$_("seller_dashboard.product_shortname") ||
+                    "Product Shortname"}</span
+                >
+              </label>
+              <input
+                type="text"
+                bind:value={discountForm.typeShortname}
+                class="form-input"
+                class:rtl={isRTL}
+                placeholder={$_("seller_dashboard.enter_product_shortname") ||
+                  "Enter product shortname..."}
+              />
+            </div>
+          {/if}
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={isRTL}>
+              <span
+                >{$_("seller_dashboard.discount_calculation_type") ||
+                  "Discount Type"} *</span
+              >
+            </label>
+            <select
+              bind:value={discountForm.discountType}
+              class="form-select"
+              class:rtl={isRTL}
+            >
+              <option value="percentage"
+                >{$_("seller_dashboard.percentage_discount") ||
+                  "Percentage (%)"}</option
+              >
+              <option value="amount"
+                >{$_("seller_dashboard.fixed_amount_discount") ||
+                  "Fixed Amount (IQD)"}</option
+              >
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={isRTL}>
+              <span
+                >{discountForm.discountType === "percentage"
+                  ? $_("seller_dashboard.discount_value_percentage") ||
+                    "Discount Value (%)"
+                  : $_("seller_dashboard.discount_value_amount") ||
+                    "Discount Amount (IQD)"} *</span
+              >
+            </label>
+            <input
+              type="number"
+              min={discountForm.discountType === "percentage" ? "1" : "100"}
+              max={discountForm.discountType === "percentage" ? "100" : ""}
+              step={discountForm.discountType === "percentage" ? "1" : "100"}
+              bind:value={discountForm.value}
+              class="form-input"
+              class:rtl={isRTL}
+              placeholder={discountForm.discountType === "percentage"
+                ? $_("seller_dashboard.enter_discount_percentage") ||
+                  "Enter discount percentage (e.g., 10 for 10%)..."
+                : $_("seller_dashboard.enter_discount_amount") ||
+                  "Enter discount amount (e.g., 5000 IQD)..."}
+            />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" class:rtl={isRTL}>
+                <span
+                  >{$_("seller_dashboard.valid_from") || "Valid From"} *</span
+                >
+              </label>
+              <input
+                type="date"
+                bind:value={discountForm.validFrom}
+                class="form-input"
+                class:rtl={isRTL}
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" class:rtl={isRTL}>
+                <span>{$_("seller_dashboard.valid_to") || "Valid To"} *</span>
+              </label>
+              <input
+                type="date"
+                bind:value={discountForm.validTo}
+                class="form-input"
+                class:rtl={isRTL}
+              />
+            </div>
           </div>
         {:else if itemToEdit.subpath.includes("/branch")}
           <!-- Branch Edit Form -->
