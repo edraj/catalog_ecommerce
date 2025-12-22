@@ -1553,6 +1553,7 @@
     "optional": "Optional"
   },
   "admin_dashboard": {
+    "delete_product": "Delete Product",
     "title": "Admin Dashboard",
     "welcome": "Welcome {name}! Manage all spaces and their content with full administrative access.",
     "stats": {
@@ -2848,5 +2849,8 @@
   "user_status_updated": "User status updated successfully",
   "sellers": "Sellers",
   "SellerCreatedSuccessfully": "Seller created successfully",
-  "SellerUpdatedSuccessfully": "Seller updated successfully"
+  "SellerUpdatedSuccessfully": "Seller updated successfully",
+  "CreateNewSeller": "Create New Seller",
+  "AddSellerDescription": "Add a new seller to the platform",
+  "CreateSeller": "Create Seller"
 }

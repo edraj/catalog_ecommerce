@@ -905,6 +905,7 @@
   }
 
   .card-header {
+    background-color: white;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1360,12 +1361,12 @@
     align-items: center;
     padding: 32px 24px 24px 24px;
     text-align: center;
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    background: #281f51;
     border-radius: 12px 12px 0 0;
   }
 
   .modal-header-confirm.danger {
-    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    background: #281f51;
   }
 
   .confirm-icon {

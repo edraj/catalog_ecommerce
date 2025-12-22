@@ -236,7 +236,7 @@
 .option-item {
   display: inline-flex;
   padding: 0.5rem 0.875rem;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  background: #281f51;
   border: 1px solid #bfdbfe;
   border-radius: 0.5rem;
   font-size: 0.875rem;
@@ -244,7 +244,7 @@
 }
 
 .option-item:hover {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  background: #281f51;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 }

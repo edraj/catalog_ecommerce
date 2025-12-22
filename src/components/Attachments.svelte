@@ -1,5 +1,10 @@
 <script lang="ts">
-  import {type ActionRequest, Dmart, RequestType, ResourceType} from "@edraj/tsdmart";
+  import {
+    type ActionRequest,
+    Dmart,
+    RequestType,
+    ResourceType,
+  } from "@edraj/tsdmart";
   import Media from "./Media.svelte";
   import { successToastMessage } from "@/lib/toasts_messages";
   import {
@@ -56,13 +61,17 @@
       const shortname = removeFileExtension(attachment.shortname);
       currentPreview = {
         ...attachment,
-        url: Dmart.getAttachmentUrl({
-              resource_type: ResourceType[attachment.resource_type as keyof typeof ResourceType],
-              space_name,
-              subpath,
-              parent_shortname,
-              shortname,
-              ext: getFileExtension(filename),
+        url: Dmart.getAttachmentUrl(
+          {
+            resource_type:
+              ResourceType[
+                attachment.resource_type as keyof typeof ResourceType
+              ],
+            space_name,
+            subpath,
+            parent_shortname,
+            shortname,
+            ext: getFileExtension(filename),
           },
           "public"
         ),
@@ -82,7 +91,8 @@
     const filename = attachment.attributes?.payload?.body;
     const url = Dmart.getAttachmentUrl(
       {
-        resource_type: ResourceType[attachment.resource_type as keyof typeof ResourceType],
+        resource_type:
+          ResourceType[attachment.resource_type as keyof typeof ResourceType],
         space_name,
         subpath,
         parent_shortname,
@@ -114,7 +124,8 @@
       request_type: RequestType.delete,
       records: [
         {
-          resource_type: ResourceType[attachment.resource_type as keyof typeof ResourceType],
+          resource_type:
+            ResourceType[attachment.resource_type as keyof typeof ResourceType],
           shortname: attachment.shortname,
           subpath: `${attachment.subpath}/${parent_shortname}`,
           attributes: {},
@@ -195,16 +206,24 @@
             {#if attachment && [ResourceType.media, ResourceType.comment].includes(attachment.resource_type)}
               <div class="media-wrapper">
                 <Media
-                  resource_type={ResourceType[attachment.resource_type as keyof typeof ResourceType]}
+                  resource_type={ResourceType[
+                    attachment.resource_type as keyof typeof ResourceType
+                  ]}
                   attributes={attachment.attributes}
                   displayname={attachment.shortname}
-                  url={Dmart.getAttachmentUrl({
-                      resource_type: ResourceType[attachment.resource_type as keyof typeof ResourceType],
+                  url={Dmart.getAttachmentUrl(
+                    {
+                      resource_type:
+                        ResourceType[
+                          attachment.resource_type as keyof typeof ResourceType
+                        ],
                       space_name,
                       subpath,
                       parent_shortname,
                       shortname: attachment.shortname,
-                      ext: getFileExtension(attachment.attributes?.payload?.body),
+                      ext: getFileExtension(
+                        attachment.attributes?.payload?.body
+                      ),
                     },
                     "public"
                   )}
@@ -380,7 +399,7 @@
     align-items: center;
     gap: 1.5rem;
     padding: 2rem;
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background: #281f51;
     border-radius: 16px;
     min-width: 400px;
   }
@@ -411,7 +430,7 @@
   .no-attachments {
     text-align: center;
     padding: 3rem 1rem;
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background: #281f51;
     border-radius: 16px;
     border: 2px dashed #cbd5e1;
   }

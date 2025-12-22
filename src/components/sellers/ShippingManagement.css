@@ -38,7 +38,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  background: #281f51;
   color: white;
   border: none;
   border-radius: 8px;
@@ -49,7 +49,7 @@
 }
 
 .add-button:hover {
-  background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+  background: #281f51;
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
   transform: translateY(-1px);
 }
@@ -70,7 +70,7 @@
 }
 
 .shipping-card {
-  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+  background: #281f51;
   border: 1.5px solid #e5e7eb;
   border-radius: 12px;
   padding: 1.5rem;
@@ -130,7 +130,7 @@
 
 .base-shipping-card {
   max-width: 500px;
-  background: linear-gradient(135deg, #fff 0%, #f9fafb 100%);
+  background: #281f51;
 }
 
 .card-title {
@@ -196,7 +196,7 @@
   display: inline-block;
   margin-top: 0.25rem;
   padding: 0.25rem 0.75rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: #281f51;
   color: white;
   border-radius: 12px;
   font-size: 0.75rem;
@@ -329,7 +329,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 2rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  background: #281f51;
   color: white;
   border-radius: 16px 16px 0 0;
 }
@@ -442,7 +442,7 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  background: #281f51;
   color: white;
   padding: 0.875rem 2rem;
   border: none;
@@ -454,7 +454,7 @@
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+  background: #281f51;
   box-shadow: 0 8px 16px rgba(79, 70, 229, 0.3);
   transform: translateY(-2px);
 }
@@ -485,7 +485,7 @@
 }
 
 .btn-add {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: #281f51;
   color: white;
   padding: 0.75rem 1.5rem;
   border: none;
@@ -498,13 +498,13 @@
 }
 
 .btn-add:hover {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: #281f51;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   transform: translateY(-1px);
 }
 
 .btn-remove {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: #281f51;
   color: white;
   padding: 0.5rem 1rem;
   border: none;
@@ -516,7 +516,7 @@
 }
 
 .btn-remove:hover {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  background: #281f51;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 

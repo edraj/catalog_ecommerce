@@ -905,7 +905,7 @@
 <style>
   .register-container {
     min-height: 100vh;
-    background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+    background: #281f51;
     padding: 2rem 1rem;
     font-family:
       "uthmantn",
@@ -935,7 +935,7 @@
   .icon-wrapper {
     width: 4rem;
     height: 4rem;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    background: #281f51;
     border-radius: 1rem;
     display: flex;
     align-items: center;
@@ -1316,7 +1316,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    background: #281f51;
     color: white;
     font-weight: 600;
     padding: 1rem 2rem;

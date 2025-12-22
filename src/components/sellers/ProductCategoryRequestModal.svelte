@@ -639,7 +639,7 @@
     align-items: center;
     padding: 1.5rem 2rem;
     border-bottom: 1px solid #e2e8f0;
-    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    background: #281f51;
   }
 
   .modal-title {
@@ -647,7 +647,7 @@
     font-weight: 700;
     color: #1a202c;
     margin: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #281f51;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -719,7 +719,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #281f51;
     border: none;
     border-radius: 10px;
     font-weight: 600;
@@ -813,7 +813,7 @@
 
   .request-type-card.active {
     border-color: #667eea;
-    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    background: #281f51;
     box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
   }
 
@@ -828,11 +828,11 @@
   }
 
   .product-icon {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #281f51;
   }
 
   .category-icon {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: #281f51;
   }
 
   .type-icon svg {
@@ -889,7 +889,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #281f51;
     color: white;
     border: none;
     border-radius: 8px;

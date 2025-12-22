@@ -2707,5 +2707,8 @@
   "user_status_updated": "تم تحديث حالة المستخدم بنجاح",
   "sellers": "البائعون",
   "SellerCreatedSuccessfully": "تم إنشاء البائع بنجاح",
-  "SellerUpdatedSuccessfully": "تم تحديث البائع بنجاح"
+  "SellerUpdatedSuccessfully": "تم تحديث البائع بنجاح",
+  "CreateNewSeller": "إنشاء بائع جديد",
+  "AddSellerDescription": "أضف بائعًا جديدًا إلى المنصة",
+  "CreateSeller": "إنشاء بائع"
 }

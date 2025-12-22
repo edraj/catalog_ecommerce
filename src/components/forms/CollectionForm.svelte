@@ -658,7 +658,7 @@
   .skeleton-line {
     width: 100%;
     height: 40px;
-    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background: #281f51;
     background-size: 200% 100%;
     animation: loading 1.5s ease-in-out infinite;
     border-radius: 4px;

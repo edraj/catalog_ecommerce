@@ -144,12 +144,12 @@
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: #281f51;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #2563eb;
+  background: #281f51;
 }
 
 .btn-secondary {
@@ -212,7 +212,7 @@
 .modal-header h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1f2937;
+  color: white;
 }
 
 .modal-close {

@@ -40,7 +40,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: #2563eb;
+  background: #281f51;
   color: white;
   border: none;
   border-radius: 0.5rem;
@@ -57,9 +57,9 @@
 
 .btn-create:hover,
 .btn-create-large:hover {
-  background: #1d4ed8;
+  background: #281f51;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 12px rgba(40, 31, 81, 0.3);
 }
 
 .filters {
@@ -682,12 +682,12 @@ label {
 }
 
 .btn-primary {
-  background: #2563eb;
+  background: #281f51;
   color: white;
 }
 
 .btn-primary:hover {
-  background: #1d4ed8;
+  background: #281f51;
 }
 
 .btn-danger {

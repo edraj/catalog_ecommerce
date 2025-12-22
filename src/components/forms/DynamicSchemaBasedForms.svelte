@@ -379,7 +379,7 @@
     font-weight: 700;
     color: #1e293b;
     margin: 0 0 8px 0;
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    background: #281f51;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -555,7 +555,7 @@
   }
 
   .object-header {
-    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    background: #281f51;
     padding: 16px 20px;
     border-bottom: 1px solid #e5e7eb;
   }
@@ -617,21 +617,21 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    background: #281f51;
     color: #ffffff;
   }
 
   .btn-primary:hover {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: #281f51;
   }
 
   .btn-danger {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: #281f51;
     color: #ffffff;
   }
 
   .btn-danger:hover {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    background: #281f51;
   }
 
   .btn-icon {

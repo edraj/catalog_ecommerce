@@ -116,12 +116,12 @@
 /* Parent category with children - more prominent */
 .list-row.has-children {
   font-weight: 600;
-  background: linear-gradient(to right, #fefefe, #ffffff);
+  background: #281f51;
   border-left: 4px solid #2563eb;
 }
 
 .list-row.has-children:hover {
-  background: linear-gradient(to right, #f0f9ff, #f9fafb);
+  background: #281f51;
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
 }
 

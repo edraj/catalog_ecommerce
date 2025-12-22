@@ -132,9 +132,25 @@
     <div class="flex h-16 items-center justify-between">
       <!-- Logo/Brand -->
       <div class="flex items-center">
-        <a href="/" class="flex items-center space-x-3 group">
+        <button
+          onclick={() => {
+            if ($user.signedin) {
+              if ($roles.includes("super_admin")) {
+                $goto("/dashboard/admin");
+              } else if ($roles.includes("zm_seller")) {
+                $goto("/sellers");
+              } else {
+                $goto("/");
+              }
+            } else {
+              $goto("/");
+            }
+          }}
+          class="flex items-center space-x-3 group cursor-pointer bg-transparent border-none p-0"
+        >
           <div
-            class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105"
+            class="flex h-10 w-10 items-center justify-center rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105"
+            style="background: #281f51;"
           >
             <svg
               class="h-6 w-6 text-white"
@@ -150,7 +166,7 @@
             class="font-bold text-xl text-gray-900 sm:inline-block group-hover:text-blue-600 transition-colors duration-200"
             >{$_("Catalog")}</span
           >
-        </a>
+        </button>
       </div>
 
       <!-- Navigation Items -->
@@ -493,26 +509,6 @@
 
                   <!-- Main Navigation -->
                   <div class="menu-section">
-                    <button
-                      aria-label={`Entries`}
-                      onclick={() => handleMenuItemClick("/entries")}
-                      class="menu-item"
-                    >
-                      <svg
-                        class="menu-icon"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"
-                        />
-                      </svg>
-                      <span>{$_("entries")}</span>
-                    </button>
                     <button
                       aria-label={`Chat & Messaging`}
                       onclick={() => handleMenuItemClick("/messaging")}
@@ -946,7 +942,7 @@
     align-items: center;
     justify-content: center;
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: #281f51;
     color: white;
     font-weight: 600;
     font-size: 0.875rem;
@@ -958,7 +954,7 @@
   }
 
   .login-btn:hover {
-    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    background: #281f51;
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
   }

@@ -88,13 +88,13 @@
 
   /* Variants */
   .btn-primary {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: #281f51;
     color: white;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background: #281f51;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
   }

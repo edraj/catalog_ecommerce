@@ -16,7 +16,7 @@
 }
 
 .variations-table thead {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #281f51;
   color: white;
 }
 
@@ -105,7 +105,7 @@
 .attribute-badge {
   display: inline-block;
   padding: 0.375rem 0.875rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #281f51;
   color: white;
   border-radius: 20px;
   font-size: 0.875rem;
@@ -186,7 +186,7 @@
   font-weight: 400;
 }
 @media (max-width: 768px) {
-    .variations-table-wrapper {
+  .variations-table-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }

@@ -146,7 +146,7 @@
     align-items: center;
     padding: 2rem;
     border-bottom: 1px solid #e2e8f0;
-    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    background: #281f51;
   }
 
   .modal-title {
@@ -154,7 +154,7 @@
     font-weight: 700;
     color: #1a202c;
     margin: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #281f51;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -246,7 +246,7 @@
   }
 
   .modal-button.delete {
-    background: linear-gradient(135deg, #f56565 0%, #c53030 100%);
+    background: #281f51;
     color: white;
     box-shadow: 0 4px 15px rgba(245, 101, 101, 0.4);
   }

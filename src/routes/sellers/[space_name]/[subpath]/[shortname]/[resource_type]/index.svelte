@@ -486,7 +486,7 @@
 
   .view-container {
     min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #281f51;
     padding: 2rem;
   }
 
@@ -611,7 +611,7 @@
   }
 
   .content-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #281f51;
     padding: 2rem;
     color: white;
   }

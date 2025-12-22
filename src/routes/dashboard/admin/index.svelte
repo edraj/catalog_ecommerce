@@ -740,7 +740,7 @@
               </div>
               <button
                 onclick={openCreateModal}
-                class="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors duration-200"
+                class="inline-flex items-center px-4 py-2 bg-[#281f51] text-white text-sm font-medium rounded-lg hover:bg-[#1a1433] transition-colors duration-200"
                 aria-label={$_("admin_dashboard.actions.create_space")}
               >
                 <svg
@@ -1025,7 +1025,8 @@
                         <div class="flex items-center">
                           <div class="flex-shrink-0 h-12 w-12 mx-4">
                             <div
-                              class="h-12 w-12 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-md"
+                              class="h-12 w-12 rounded-lg flex items-center justify-center shadow-md"
+                              style="background: #281f51;"
                             >
                               <span class="text-white font-bold text-lg">
                                 {space.shortname
@@ -1176,7 +1177,7 @@
             </svg>
           </button>
         </div>
-        <p class="text-sm text-gray-600 mt-2">
+        <p class="text-sm text-white mt-2">
           {$_("admin_dashboard.modal.create.description")}
         </p>
       </div>
@@ -1427,14 +1428,14 @@
   .modal-header {
     padding: 1.5rem 1.5rem 1rem 1.5rem;
     border-bottom: 1px solid #f3f4f6;
-    background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
+    background: #281f51;
     border-radius: 16px 16px 0 0;
   }
 
   .modal-title {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #111827;
+    color: white;
     margin: 0;
     display: flex;
     align-items: center;
@@ -1521,7 +1522,7 @@
 
   .error-message {
     padding: 0.75rem 1rem;
-    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    background: #281f51;
     border: 1px solid #fca5a5;
     border-radius: 8px;
     margin-bottom: 1rem;
@@ -1546,7 +1547,7 @@
   }
 
   .delete-warning {
-    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    background: #281f51;
     border: 1px solid #fca5a5;
     border-radius: 12px;
     padding: 1rem;
@@ -1567,7 +1568,7 @@
   .delete-icon {
     width: 3rem;
     height: 3rem;
-    background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
+    background: #281f51;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1664,37 +1665,37 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: #281f51;
     color: white;
     box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.3);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    background: #281f51;
     transform: translateY(-2px);
     box-shadow: 0 6px 20px 0 rgba(139, 92, 246, 0.4);
   }
 
   .btn-edit {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: #281f51;
     color: white;
     box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.3);
   }
 
   .btn-edit:hover:not(:disabled) {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background: #281f51;
     transform: translateY(-2px);
     box-shadow: 0 6px 20px 0 rgba(59, 130, 246, 0.4);
   }
 
   .btn-danger {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: #281f51;
     color: white;
     box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.3);
   }
 
   .btn-danger:hover:not(:disabled) {
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    background: #281f51;
     transform: translateY(-2px);
     box-shadow: 0 6px 20px 0 rgba(239, 68, 68, 0.4);
   }

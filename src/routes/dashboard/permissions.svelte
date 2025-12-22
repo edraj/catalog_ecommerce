@@ -1,22 +1,25 @@
 <script lang="ts">
-    import {run} from "svelte/legacy";
+  import { run } from "svelte/legacy";
 
-    import MetaPermissionForm from "@/components/forms/MetaPermissionForm.svelte";
-    import {errorToastMessage, successToastMessage,} from "@/lib/toasts_messages";
-    import {onMount} from "svelte";
-    import {
-        createPermission,
-        deleteEntity,
-        getEntity,
-        getSpaceContents,
-        getSpaces,
-        updatePermission,
-    } from "@/lib/dmart_services";
-    import {ResourceType} from "@edraj/tsdmart";
-    import {_, locale} from "@/i18n";
-    import {derived} from "svelte/store";
+  import MetaPermissionForm from "@/components/forms/MetaPermissionForm.svelte";
+  import {
+    errorToastMessage,
+    successToastMessage,
+  } from "@/lib/toasts_messages";
+  import { onMount } from "svelte";
+  import {
+    createPermission,
+    deleteEntity,
+    getEntity,
+    getSpaceContents,
+    getSpaces,
+    updatePermission,
+  } from "@/lib/dmart_services";
+  import { ResourceType } from "@edraj/tsdmart";
+  import { _, locale } from "@/i18n";
+  import { derived } from "svelte/store";
 
-    const isRTL = derived(
+  const isRTL = derived(
     locale,
     ($locale) => $locale === "ar" || $locale === "ku"
   );
@@ -555,6 +558,7 @@
   }
 
   .card-header {
+    background-color: white;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -702,12 +706,14 @@
   }
 
   .btn-primary {
-    background: #3b82f6;
+    background: #281f51;
     color: white;
+    width: 100%;
+    height: 100%;
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: #2563eb;
+    background: #281f51;
     transform: translateY(-1px);
   }
 

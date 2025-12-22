@@ -290,7 +290,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    background: #281f51;
     transform: scaleX(0);
     transition: transform 0.4s ease;
   }
@@ -310,7 +310,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1.25rem 1.5rem;
-    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    background: #281f51;
     border-bottom: 1px solid #e2e8f0;
   }
 
@@ -318,7 +318,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #281f51;
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 10px;
@@ -467,7 +467,7 @@
 
   .item-card-footer {
     padding: 1.25rem 1.5rem;
-    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    background: #281f51;
     border-top: 1px solid #e2e8f0;
   }
 

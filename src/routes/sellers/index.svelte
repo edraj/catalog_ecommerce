@@ -2045,8 +2045,10 @@
           <div class="header-text">
             <h1 class="dashboard-title">
               {#if selectedFolder}
-                {selectedFolder.charAt(0).toUpperCase() +
-                  selectedFolder.slice(1)}
+                {selectedFolder
+                  .split("_")
+                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(" ")}
               {:else}
                 {$_("seller_dashboard.title") || "Seller Dashboard"}
               {/if}

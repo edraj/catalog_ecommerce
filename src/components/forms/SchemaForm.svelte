@@ -756,7 +756,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1.5rem;
-    background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
+    background: #281f51;
     border-bottom: 1px solid #f3f4f6;
   }
 

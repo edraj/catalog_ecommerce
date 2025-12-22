@@ -46,7 +46,7 @@
 }
 
 .items-table thead {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #281f51;
   color: white;
   position: sticky;
   top: 0;
@@ -94,7 +94,7 @@
 }
 
 .items-table tbody tr:hover {
-  background: linear-gradient(to right, #f7fafc, #edf2f7);
+  background: #281f51;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
 }
 
@@ -197,7 +197,7 @@
 }
 
 .variant-price-mini {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #281f51;
   color: white;
   padding: 0.25rem 0.6rem;
   border-radius: 8px;

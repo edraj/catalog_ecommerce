@@ -11,7 +11,7 @@
   import { ArrowLeftOutline, CheckCircleSolid } from "flowbite-svelte-icons";
   import { getEntity, replaceEntity, updateEntity } from "@/lib/dmart_services";
   import { ResourceType } from "@edraj/tsdmart";
-  import {website} from "@/config";
+  import { website } from "@/config";
 
   $goto;
   let item = $state(null);
@@ -1145,7 +1145,7 @@
   }
 
   .content-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #281f51;
     padding: 2rem;
     color: white;
   }

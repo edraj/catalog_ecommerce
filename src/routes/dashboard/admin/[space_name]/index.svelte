@@ -465,7 +465,8 @@
         <button
           aria-label={`Create new folder`}
           onclick={handleCreateFolder}
-          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+          class="hover:bg-opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+          style="background-color: #281f51;"
           class:flex-row-reverse={$isRTL}
         >
           <svg
@@ -890,7 +891,8 @@
                         class:flex-row-reverse={$isRTL}
                       >
                         <div
-                          class="w-5 h-5 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-sm"
+                          class="w-5 h-5 rounded-full flex items-center justify-center shadow-sm"
+                          style="background: #281f51;"
                         >
                           <span class="text-xs font-semibold text-white">
                             {item.attributes.owner_shortname
@@ -1237,13 +1239,13 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: #281f51;
     color: white;
     box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.3);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background: #281f51;
     transform: translateY(-2px);
     box-shadow: 0 6px 20px 0 rgba(59, 130, 246, 0.4);
   }

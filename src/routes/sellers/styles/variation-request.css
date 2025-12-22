@@ -6,11 +6,11 @@
 }
 
 .secondary-button {
-  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+  background: #281f51;
 }
 
 .secondary-button:hover {
-  background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+  background: #281f51;
   transform: translateY(-1px);
 }
 
