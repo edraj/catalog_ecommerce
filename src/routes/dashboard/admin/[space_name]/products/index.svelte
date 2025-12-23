@@ -21,6 +21,7 @@
     EditOutline,
     TrashBinOutline,
     CheckOutline,
+    EyeOutline,
   } from "flowbite-svelte-icons";
   import { website } from "@/config";
 
@@ -42,6 +43,7 @@
   let showCreateModal = $state(false);
   let showEditModal = $state(false);
   let showDeleteModal = $state(false);
+  let showDetailsModal = $state(false);
   let selectedProduct = $state(null);
   let selectedCategoryFilter = $state("all");
 
@@ -278,6 +280,16 @@
 
   function closeDeleteModal() {
     showDeleteModal = false;
+    selectedProduct = null;
+  }
+
+  function openDetailsModal(product) {
+    selectedProduct = product;
+    showDetailsModal = true;
+  }
+
+  function closeDetailsModal() {
+    showDetailsModal = false;
     selectedProduct = null;
   }
 
@@ -909,90 +921,107 @@
       </button>
     </div>
   {:else}
-    <div class="products-grid">
-      {#each filteredProducts as product}
-        <div class="product-card">
-          {#if getProductThumbnail(product)}
-            <div class="product-image">
-              <img
-                src={getProductThumbnail(product)}
-                alt={getLocalizedDisplayName(product)}
-                loading="lazy"
-              />
-              {#if getProductImages(product).length > 1}
-                <span class="image-count">
-                  {getProductImages(product).length} images
-                </span>
-              {/if}
-            </div>
-          {:else}
-            <div class="product-image-placeholder">
-              <span>📷</span>
-              <p>No Image</p>
-            </div>
-          {/if}
-          <div class="product-header">
-            <div class="product-info">
-              <h3 class="product-name">{getLocalizedDisplayName(product)}</h3>
-              <span class="product-shortname">{product.shortname}</span>
-            </div>
-            <div class="product-actions">
-              <button
-                class="btn-icon"
-                onclick={() => openEditModal(product)}
-                title="Edit"
-              >
-                <EditOutline size="sm" />
-              </button>
-              <button
-                class="btn-icon delete"
-                onclick={() => openDeleteModal(product)}
-                title="Delete"
-              >
-                <TrashBinOutline size="sm" />
-              </button>
-            </div>
-          </div>
-
-          <div class="product-body">
-            {#if getProductMainCategory(product)}
-              <div class="product-main-category">
-                <span class="label">Main Category:</span>
-                <span class="category-badge main">
-                  {getCategoryName(getProductMainCategory(product))}
-                </span>
-              </div>
-            {/if}
-
-            {#if getProductCategories(product).length > 1}
-              <div class="product-categories">
-                <span class="label">Categories:</span>
-                <div class="category-tags">
-                  {#each getProductCategories(product) as categoryId}
-                    {#if categoryId !== getProductMainCategory(product)}
-                      <span class="category-badge">
-                        {getCategoryName(categoryId)}
-                      </span>
-                    {/if}
-                  {/each}
-                </div>
-              </div>
-            {/if}
-          </div>
-
-          <div class="product-footer">
-            <span class="product-date">
-              {formatDate(product.attributes?.created_at)}
-            </span>
-            <span
-              class="product-status"
-              class:active={product.attributes?.is_active}
+    <div class="products-table-container">
+      <table class="products-table">
+        <thead>
+          <tr>
+            <th class="col-thumbnail">{$_("common.image") || "Image"}</th>
+            <th class="col-name">{$_("common.name") || "Name"}</th>
+            <th class="col-shortname"
+              >{$_("common.shortname") || "Shortname"}</th
             >
-              {product.attributes?.is_active ? "Active" : "Inactive"}
-            </span>
-          </div>
-        </div>
-      {/each}
+            <th class="col-category"
+              >{$_("admin_dashboard.main_category") || "Main Category"}</th
+            >
+            <th class="col-date">{$_("common.created_at") || "Created"}</th>
+            <th class="col-status">{$_("common.status") || "Status"}</th>
+            <th class="col-actions">{$_("common.actions") || "Actions"}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each filteredProducts as product}
+            <tr class="product-row">
+              <td class="col-thumbnail">
+                {#if getProductThumbnail(product)}
+                  <div class="table-thumbnail">
+                    <img
+                      src={getProductThumbnail(product)}
+                      alt={getLocalizedDisplayName(product)}
+                      loading="lazy"
+                    />
+                    {#if getProductImages(product).length > 1}
+                      <span class="thumbnail-badge"
+                        >{getProductImages(product).length}</span
+                      >
+                    {/if}
+                  </div>
+                {:else}
+                  <div class="table-thumbnail-placeholder">
+                    <span>📷</span>
+                  </div>
+                {/if}
+              </td>
+              <td class="col-name">
+                <div class="product-name-cell">
+                  <span class="name-text"
+                    >{getLocalizedDisplayName(product)}</span
+                  >
+                </div>
+              </td>
+              <td class="col-shortname">
+                <span class="shortname-text">{product.shortname}</span>
+              </td>
+              <td class="col-category">
+                {#if getProductMainCategory(product)}
+                  <span class="category-badge main">
+                    {getCategoryName(getProductMainCategory(product))}
+                  </span>
+                {:else}
+                  <span class="text-muted">—</span>
+                {/if}
+              </td>
+              <td class="col-date">
+                <span class="date-text">
+                  {formatDate(product.attributes?.created_at)}
+                </span>
+              </td>
+              <td class="col-status">
+                <span
+                  class="status-badge"
+                  class:active={product.attributes?.is_active}
+                >
+                  {product.attributes?.is_active ? "Active" : "Inactive"}
+                </span>
+              </td>
+              <td class="col-actions">
+                <div class="table-actions">
+                  <button
+                    class="btn-icon view"
+                    onclick={() => openDetailsModal(product)}
+                    title={$_("common.view_details") || "View Details"}
+                  >
+                    <EyeOutline size="sm" />
+                  </button>
+                  <button
+                    class="btn-icon edit"
+                    onclick={() => openEditModal(product)}
+                    title={$_("common.edit") || "Edit"}
+                  >
+                    <EditOutline size="sm" />
+                  </button>
+                  <button
+                    class="btn-icon delete"
+                    onclick={() => openDeleteModal(product)}
+                    title={$_("common.delete") || "Delete"}
+                  >
+                    <TrashBinOutline size="sm" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
     </div>
   {/if}
 </div>
@@ -1581,6 +1610,275 @@
               : $_("common.update") || "Update"}
           {/if}
         </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Details Modal -->
+{#if showDetailsModal && selectedProduct}
+  <div class="modal-overlay" onclick={closeDetailsModal}>
+    <div class="modal-container large" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h2>{$_("admin_dashboard.product_details") || "Product Details"}</h2>
+        <button class="modal-close" onclick={closeDetailsModal}>&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="details-section">
+          <h3 class="details-title">
+            {$_("admin_dashboard.basic_information") || "Basic Information"}
+          </h3>
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label"
+                >{$_("admin_dashboard.display_name_en") ||
+                  "Display Name (EN)"}:</span
+              >
+              <span class="detail-value"
+                >{selectedProduct.attributes?.displayname?.en || "—"}</span
+              >
+            </div>
+            <div class="detail-item">
+              <span class="detail-label"
+                >{$_("admin_dashboard.display_name_ar") ||
+                  "Display Name (AR)"}:</span
+              >
+              <span class="detail-value" dir="rtl"
+                >{selectedProduct.attributes?.displayname?.ar || "—"}</span
+              >
+            </div>
+            <div class="detail-item">
+              <span class="detail-label"
+                >{$_("common.shortname") || "Shortname"}:</span
+              >
+              <span class="detail-value">{selectedProduct.shortname}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label"
+                >{$_("admin_dashboard.unit") || "Unit"}:</span
+              >
+              <span class="detail-value"
+                >{selectedProduct.attributes?.payload?.body?.unit || "—"}</span
+              >
+            </div>
+            <div class="detail-item full-width">
+              <span class="detail-label"
+                >{$_("admin_dashboard.description_en") ||
+                  "Description (EN)"}:</span
+              >
+              <span class="detail-value"
+                >{selectedProduct.attributes?.description?.en || "—"}</span
+              >
+            </div>
+            <div class="detail-item full-width">
+              <span class="detail-label"
+                >{$_("admin_dashboard.description_ar") ||
+                  "Description (AR)"}:</span
+              >
+              <span class="detail-value" dir="rtl"
+                >{selectedProduct.attributes?.description?.ar || "—"}</span
+              >
+            </div>
+          </div>
+        </div>
+
+        {#if getProductImages(selectedProduct).length > 0}
+          <div class="details-section">
+            <h3 class="details-title">
+              {$_("admin_dashboard.product_images") || "Product Images"}
+            </h3>
+            <div class="details-images">
+              {#each getProductImages(selectedProduct) as image}
+                <div class="details-image">
+                  <img
+                    src={Dmart.getAttachmentUrl({
+                      resource_type: ResourceType.media,
+                      space_name: website.main_space,
+                      subpath: selectedProduct.subpath + "/",
+                      parent_shortname: selectedProduct.shortname,
+                      shortname: image.attributes.payload.body,
+                      ext: null,
+                    })}
+                    alt={image.shortname}
+                    loading="lazy"
+                  />
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        {#if getProductCategories(selectedProduct).length > 0}
+          <div class="details-section">
+            <h3 class="details-title">
+              {$_("admin_dashboard.categories") || "Categories"}
+            </h3>
+            <div class="details-categories">
+              {#each getProductCategories(selectedProduct) as categoryId}
+                <span
+                  class="category-badge"
+                  class:main={categoryId ===
+                    getProductMainCategory(selectedProduct)}
+                >
+                  {getCategoryName(categoryId)}
+                  {#if categoryId === getProductMainCategory(selectedProduct)}
+                    <span class="badge-indicator"
+                      >({$_("admin_dashboard.main") || "Main"})</span
+                    >
+                  {/if}
+                </span>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        {#if selectedProduct.attributes?.payload?.body?.variation_options?.length > 0}
+          <div class="details-section">
+            <h3 class="details-title">
+              {$_("admin_dashboard.variations") || "Variations"}
+            </h3>
+            <div class="details-variations">
+              {#each selectedProduct.attributes.payload.body.variation_options as variation}
+                <div class="variation-detail">
+                  <span class="variation-type"
+                    >{variation.variation_shortname}:</span
+                  >
+                  <span class="variation-values"
+                    >{variation.values.join(", ")}</span
+                  >
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        {#if selectedProduct.attributes?.payload?.body?.category_specifications?.length > 0}
+          <div class="details-section">
+            <h3 class="details-title">
+              {$_("admin_dashboard.specifications") || "Specifications"}
+            </h3>
+            <div class="details-specifications">
+              {#each selectedProduct.attributes.payload.body.category_specifications as spec}
+                <div class="spec-detail">
+                  <span class="spec-name">{spec.specification_shortname}:</span>
+                  <span class="spec-values"
+                    >{spec.values
+                      ? spec.values.join(", ")
+                      : spec.value || "—"}</span
+                  >
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        <div class="details-section">
+          <h3 class="details-title">
+            {$_("admin_dashboard.seo_meta_information") || "SEO & Meta"}
+          </h3>
+          <div class="details-grid">
+            <div class="detail-item full-width">
+              <span class="detail-label"
+                >{$_("admin_dashboard.meta_title") || "Meta Title"}:</span
+              >
+              <span class="detail-value"
+                >{selectedProduct.attributes?.payload?.body?.meta_title ||
+                  "—"}</span
+              >
+            </div>
+            <div class="detail-item full-width">
+              <span class="detail-label"
+                >{$_("admin_dashboard.meta_description") ||
+                  "Meta Description"}:</span
+              >
+              <span class="detail-value"
+                >{selectedProduct.attributes?.payload?.body?.meta_description ||
+                  "—"}</span
+              >
+            </div>
+            <div class="detail-item">
+              <span class="detail-label"
+                >{$_("admin_dashboard.brand_shortname") || "Brand"}:</span
+              >
+              <span class="detail-value"
+                >{selectedProduct.attributes?.payload?.body?.brand_shortname ||
+                  "—"}</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="details-section">
+          <h3 class="details-title">{$_("common.metadata") || "Metadata"}</h3>
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label"
+                >{$_("common.created_at") || "Created"}:</span
+              >
+              <span class="detail-value"
+                >{formatDate(selectedProduct.attributes?.created_at)}</span
+              >
+            </div>
+            <div class="detail-item">
+              <span class="detail-label"
+                >{$_("common.updated_at") || "Updated"}:</span
+              >
+              <span class="detail-value"
+                >{formatDate(selectedProduct.attributes?.updated_at)}</span
+              >
+            </div>
+            <div class="detail-item">
+              <span class="detail-label"
+                >{$_("common.status") || "Status"}:</span
+              >
+              <span
+                class="status-badge"
+                class:active={selectedProduct.attributes?.is_active}
+              >
+                {selectedProduct.attributes?.is_active ? "Active" : "Inactive"}
+              </span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label"
+                >{$_("admin_dashboard.low_stock_quantity") ||
+                  "Low Stock"}:</span
+              >
+              <span class="detail-value"
+                >{selectedProduct.attributes?.payload?.body
+                  ?.low_stock_quantity || "—"}</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick={closeDetailsModal}>
+          {$_("common.close") || "Close"}
+        </button>
+        <div style="display: flex; gap: 0.5rem;">
+          <button
+            class="btn-primary"
+            onclick={() => {
+              closeDetailsModal();
+              openEditModal(selectedProduct);
+            }}
+          >
+            <EditOutline size="xs" />
+            {$_("common.edit") || "Edit"}
+          </button>
+          <button
+            class="btn-danger"
+            onclick={() => {
+              closeDetailsModal();
+              openDeleteModal(selectedProduct);
+            }}
+          >
+            <TrashBinOutline size="xs" />
+            {$_("common.delete") || "Delete"}
+          </button>
+        </div>
       </div>
     </div>
   </div>
