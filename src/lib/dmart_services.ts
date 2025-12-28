@@ -809,22 +809,19 @@ export async function attachAttachmentsToEntity(
     throw new Error(`Unsupported file type: ${attachment.type}`);
   }
   const { contentType, resourceType } = fileTypeInfo;
-  const response = await Dmart.uploadWithPayload(
-    {
-      space_name: spaceName,
-      subpath: `${subpath}/${shortname}`,
-      shortname: "auto",
-      resource_type: resourceType,
-      payload_file: attachment,
-      attributes: {
-        payload: {
-          content_type: contentType,
-          body: {},
-        },
+  const response = await Dmart.uploadWithPayload({
+    space_name: spaceName,
+    subpath: `${subpath}/${shortname}`,
+    shortname: "auto",
+    resource_type: resourceType,
+    payload_file: attachment,
+    attributes: {
+      payload: {
+        content_type: contentType,
+        body: {},
       },
     },
-    "managed"
-  );
+  });
   return response.status == "success" && response.records.length > 0;
 }
 
@@ -2930,29 +2927,10 @@ export async function fetchWorkflows(space_name: string) {
   }
 }
 
-// Collection Management Functions
 export async function createCollection(
   spaceName: string,
   data: any
 ): Promise<string | null> {
-  const payloadBody: any = {
-    type: data.collection_type,
-  };
-
-  if (data.collection_type === "banner") {
-    payloadBody.url = data.banner_url;
-  } else if (data.collection_type === "product_cards") {
-    payloadBody.products = data.products;
-    payloadBody.product_card_type = data.product_card_type;
-  }
-
-  if (data.image_url) {
-    payloadBody.image_url = data.image_url;
-  }
-  if (data.background_color) {
-    payloadBody.background_color = data.background_color;
-  }
-
   const actionRequest: ActionRequest = {
     space_name: spaceName,
     request_type: RequestType.create,
@@ -2960,13 +2938,15 @@ export async function createCollection(
       {
         resource_type: ResourceType.content,
         subpath: "/settings/collections",
-        shortname: data.shortname,
+        shortname: data.shortname || "auto",
         attributes: {
-          displayname: data.title,
+          displayname: data.displayname,
           description: data.description,
-          is_active: data.is_active,
+          is_active: data.is_active ?? true,
           payload: {
-            body: payloadBody,
+            body: {
+              items: data.items || [],
+            },
             content_type: "json",
           },
         },
@@ -2984,24 +2964,6 @@ export async function updateCollection(
   spaceName: string,
   data: any
 ): Promise<string | null> {
-  const payloadBody: any = {
-    type: data.collection_type,
-  };
-
-  if (data.collection_type === "banner") {
-    payloadBody.url = data.banner_url;
-  } else if (data.collection_type === "product_cards") {
-    payloadBody.products = data.products;
-    payloadBody.product_card_type = data.product_card_type;
-  }
-
-  if (data.image_url) {
-    payloadBody.image_url = data.image_url;
-  }
-  if (data.background_color) {
-    payloadBody.background_color = data.background_color;
-  }
-
   const actionRequest: ActionRequest = {
     space_name: spaceName,
     request_type: RequestType.update,
@@ -3011,11 +2973,13 @@ export async function updateCollection(
         subpath: "/settings/collections",
         shortname: data.shortname,
         attributes: {
-          displayname: data.title,
+          displayname: data.displayname,
           description: data.description,
-          is_active: data.is_active,
+          is_active: data.is_active ?? true,
           payload: {
-            body: payloadBody,
+            body: {
+              items: data.items || [],
+            },
             content_type: "json",
           },
         },
@@ -3029,7 +2993,6 @@ export async function updateCollection(
     : null;
 }
 
-// Region Management Functions
 export async function createRegion(
   spaceName: string,
   data: any
@@ -3108,7 +3071,6 @@ export async function updateRegion(
     : null;
 }
 
-// Payment Method Management Functions
 export async function createPaymentMethod(
   spaceName: string,
   data: any
@@ -3189,4 +3151,73 @@ export async function updatePaymentMethod(
   return response.status === "success" && response.records.length > 0
     ? response.records[0].shortname
     : null;
+}
+
+export async function getWidgets(spaceName: string): Promise<ApiQueryResponse> {
+  const response = await Dmart.query(
+    {
+      type: QueryType.search,
+      space_name: spaceName,
+      subpath: "/settings/widgets",
+      search: "@resource_type:content",
+      limit: 10,
+      sort_by: "shortname",
+      sort_type: SortyType.ascending,
+      offset: 0,
+      retrieve_json_payload: true,
+      retrieve_attachments: true,
+      exact_subpath: true,
+    },
+    "managed"
+  );
+  return response;
+}
+
+export async function updateWidget(
+  spaceName: string,
+  widgetShortname: string,
+  items: any[]
+): Promise<boolean> {
+  const actionRequest: ActionRequest = {
+    space_name: spaceName,
+    request_type: RequestType.update,
+    records: [
+      {
+        resource_type: ResourceType.content,
+        subpath: "/settings/widgets",
+        shortname: widgetShortname,
+        attributes: {
+          payload: {
+            body: {
+              items: items,
+            },
+            content_type: "json",
+          },
+        },
+      },
+    ],
+  };
+
+  const response: ActionResponse = await Dmart.request(actionRequest);
+  return response.status === "success";
+}
+
+export async function uploadWidgetMedia(
+  spaceName: string,
+  parentWidgetType: string,
+  shortname: string,
+  attachment: File
+): Promise<boolean> {
+  try {
+    const result = await attachAttachmentsToEntity(
+      parentWidgetType,
+      spaceName,
+      "/settings/widgets",
+      attachment
+    );
+    return result;
+  } catch (error) {
+    console.error("Error uploading widget media:", error);
+    return false;
+  }
 }

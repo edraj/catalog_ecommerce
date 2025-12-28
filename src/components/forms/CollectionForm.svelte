@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Dmart, QueryType } from "@edraj/tsdmart";
+  import { Dmart, QueryType, ResourceType } from "@edraj/tsdmart";
   import { _ } from "@/i18n";
   import { website } from "@/config";
+  import { getSpaceContents } from "@/lib/dmart_services";
 
   let {
     formData = $bindable(),
@@ -13,54 +14,111 @@
   } = $props();
 
   let form;
-  let availableProducts = $state([]);
+  let sellers = $state([]);
   let loading = $state(true);
   let searchTerm = $state("");
-  let showProductSearch = $state(false);
+  let showSellerSearch = $state(false);
+  let selectedSeller = $state(null);
+  let showProductSelector = $state(false);
+  let showVariantSelector = $state(false);
+  let currentItemIndex = $state(-1);
+  let availableProducts = $state([]);
+  let loadingProducts = $state(false);
+  let selectedAvailableProduct = $state(null);
 
-  // Initialize form data
   formData = {
     ...formData,
     shortname: formData.shortname || "",
-    title: {
-      en: formData.title?.en || "",
-      ar: formData.title?.ar || "",
-      ku: formData.title?.ku || "",
+    displayname: {
+      en: formData.displayname?.en || "",
+      ar: formData.displayname?.ar || "",
+      ku: formData.displayname?.ku || "",
     },
     description: {
       en: formData.description?.en || "",
       ar: formData.description?.ar || "",
       ku: formData.description?.ku || "",
     },
-    image_url: formData.image_url || "",
-    background_color: formData.background_color || "#ffffff",
-    collection_type: formData.collection_type || "banner",
-    banner_url: formData.banner_url || "",
-    products: formData.products || [],
-    product_card_type: formData.product_card_type || "basic",
+    items: formData.items || [],
     is_active: formData.is_active ?? true,
   };
 
   onMount(async () => {
-    await loadProducts();
+    await loadSellers();
   });
 
-  async function loadProducts() {
+  async function loadSellers() {
     try {
-      const response: any = await Dmart.query({
-        space_name: website.main_space,
-        subpath: "/products",
-        type: QueryType.search,
-        search: "",
-        limit: 200,
-      });
+      const usersResponse: any = await getSpaceContents(
+        "management",
+        "/users",
+        "managed",
+        100,
+        0,
+        false
+      );
+
+      const userMap = new Map();
+      if (usersResponse && usersResponse.records) {
+        usersResponse.records.forEach((user) => {
+          userMap.set(
+            user.shortname,
+            user.attributes?.displayname?.en ||
+              user.attributes?.displayname?.ar ||
+              user.shortname
+          );
+        });
+      }
+
+      const response: any = await getSpaceContents(
+        website.main_space,
+        "/available_products",
+        "managed",
+        100,
+        0,
+        false
+      );
+
+      if (response && response.records) {
+        const sellerSet = new Set();
+        response.records.forEach((record) => {
+          const parts = record.subpath.split("/");
+          if (parts.length >= 2 && parts[0] === "available_products") {
+            sellerSet.add(parts[1]);
+          }
+        });
+        sellers = Array.from(sellerSet).map((shortname) => ({
+          shortname,
+          displayname: userMap.get(shortname) || shortname,
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to load sellers:", error);
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function loadSellerProducts(sellerShortname: string) {
+    loadingProducts = true;
+    try {
+      const response: any = await getSpaceContents(
+        website.main_space,
+        `/available_products/${sellerShortname}`,
+        "managed",
+        100,
+        0,
+        true
+      );
+
       if (response && response.records) {
         availableProducts = response.records;
       }
     } catch (error) {
-      console.error("Failed to load products:", error);
+      console.error("Failed to load seller products:", error);
+      availableProducts = [];
     } finally {
-      loading = false;
+      loadingProducts = false;
     }
   }
 
@@ -71,19 +129,23 @@
       return false;
     }
 
-    // Additional validation
-    if (formData.collection_type === "banner" && !formData.banner_url) {
-      alert($_("validation.bannerUrlRequired"));
+    if (formData.items.length === 0) {
+      alert($_("validation.selectAtLeastOneProduct"));
       return false;
     }
 
-    if (formData.collection_type === "product_cards") {
-      if (formData.products.length === 0) {
-        alert($_("validation.selectAtLeastOneProduct"));
-        return false;
-      }
-      if (formData.products.length > 20) {
-        alert($_("validation.maxProductsExceeded"));
+    if (formData.items.length > 20) {
+      alert($_("validation.maxProductsExceeded"));
+      return false;
+    }
+
+    for (const item of formData.items) {
+      if (
+        !item.product_shortname ||
+        !item.variant_key ||
+        !item.available_product_shortname
+      ) {
+        alert($_("validation.incompleteItem"));
         return false;
       }
     }
@@ -93,229 +155,88 @@
 
   validateFn = validate;
 
-  function addProduct(product: any) {
-    if (formData.products.length >= 20) {
-      alert($_("validation.maxProductsExceeded"));
-      return;
-    }
+  async function startAddingItem(seller: any) {
+    selectedSeller = seller;
+    showSellerSearch = false;
+    searchTerm = "";
 
-    const exists = formData.products.find(
-      (p) => p.product_shortname === product.shortname
-    );
-    if (exists) {
-      alert($_("validation.productAlreadyAdded"));
-      return;
-    }
+    await loadSellerProducts(seller.shortname);
+    showProductSelector = true;
+  }
 
-    formData.products = [
-      ...formData.products,
+  function selectAvailableProduct(availableProduct: any) {
+    selectedAvailableProduct = availableProduct;
+    showProductSelector = false;
+
+    const variants = availableProduct.attributes?.payload?.body?.variants || [];
+    if (variants.length > 0) {
+      showVariantSelector = true;
+    } else {
+      alert($_("validation.noVariantsAvailable"));
+    }
+  }
+
+  function selectVariant(variant: any) {
+    showVariantSelector = false;
+
+    formData.items = [
+      ...formData.items,
       {
-        product_shortname: product.shortname,
-        order: formData.products.length + 1,
-        discount_message: { en: "", ar: "", ku: "" },
-        custom_message: { en: "", ar: "", ku: "" },
+        product_shortname:
+          selectedAvailableProduct.attributes.payload.body.product_shortname,
+        variant_key: variant.key,
+        available_product_shortname: selectedAvailableProduct.shortname,
       },
     ];
-    searchTerm = "";
-    showProductSearch = false;
+
+    selectedSeller = null;
+    selectedAvailableProduct = null;
   }
 
-  function removeProduct(index: number) {
-    formData.products = formData.products.filter((_, i) => i !== index);
-    // Reorder products
-    formData.products = formData.products.map((p, i) => ({
-      ...p,
-      order: i + 1,
-    }));
+  function cancelItemAddition() {
+    showSellerSearch = false;
+    showProductSelector = false;
+    showVariantSelector = false;
+    selectedSeller = null;
+    selectedAvailableProduct = null;
+    currentItemIndex = -1;
   }
 
-  function moveProduct(index: number, direction: "up" | "down") {
+  function removeItem(index: number) {
+    formData.items = formData.items.filter((_, i) => i !== index);
+  }
+
+  function moveItem(index: number, direction: "up" | "down") {
     const newIndex = direction === "up" ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= formData.products.length) return;
+    if (newIndex < 0 || newIndex >= formData.items.length) return;
 
-    const temp = formData.products[index];
-    formData.products[index] = formData.products[newIndex];
-    formData.products[newIndex] = temp;
+    const temp = formData.items[index];
+    formData.items[index] = formData.items[newIndex];
+    formData.items[newIndex] = temp;
 
-    // Update order
-    formData.products = formData.products.map((p, i) => ({
-      ...p,
-      order: i + 1,
-    }));
+    formData.items = [...formData.items];
   }
 
   $effect(() => {
-    if (searchTerm) {
-      showProductSearch = true;
+    if (sellers.length > 0 && !searchTerm) {
+      showSellerSearch = true;
     }
   });
 
-  let filteredProducts = $derived(
-    availableProducts.filter((p) =>
-      p.shortname?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+  let filteredSellers = $derived(
+    searchTerm
+      ? sellers.filter((s) => {
+          const lowerSearch = searchTerm.toLowerCase();
+          return (
+            s.shortname?.toLowerCase().includes(lowerSearch) ||
+            s.displayname?.toLowerCase().includes(lowerSearch)
+          );
+        })
+      : sellers
   );
 </script>
 
 <form bind:this={form} class="collection-form">
-  <div class="card">
-    <h2 class="card-title">{$_("collection.typeConfig")}</h2>
-
-    <div class="form-group">
-      <label class="form-label" for="collection_type">
-        <span class="required">*</span>
-        {$_("collection.type")}
-      </label>
-      <select
-        id="collection_type"
-        class="form-select"
-        bind:value={formData.collection_type}
-        required
-      >
-        <option value="banner">{$_("collection.typeBanner")}</option>
-        <option value="product_cards"
-          >{$_("collection.typeProductCards")}</option
-        >
-      </select>
-    </div>
-
-    {#if formData.collection_type === "banner"}
-      <div class="form-group">
-        <label class="form-label" for="banner_url">
-          <span class="required">*</span>
-          {$_("collection.bannerUrl")}
-        </label>
-        <input
-          id="banner_url"
-          type="url"
-          class="form-input"
-          bind:value={formData.banner_url}
-          required
-          placeholder="https://example.com/banner"
-        />
-      </div>
-    {:else if formData.collection_type === "product_cards"}
-      <div class="form-group">
-        <label class="form-label" for="product_card_type">
-          <span class="required">*</span>
-          {$_("collection.productCardType")}
-        </label>
-        <select
-          id="product_card_type"
-          class="form-select"
-          bind:value={formData.product_card_type}
-          required
-        >
-          <option value="basic">{$_("collection.cardTypeBasic")}</option>
-          <option value="discount">{$_("collection.cardTypeDiscount")}</option>
-          <option value="withMessage"
-            >{$_("collection.cardTypeWithMessage")}</option
-          >
-        </select>
-        <small class="form-hint">
-          {#if formData.product_card_type === "basic"}
-            {$_("collection.cardTypeBasicHint")}
-          {:else if formData.product_card_type === "discount"}
-            {$_("collection.cardTypeDiscountHint")}
-          {:else if formData.product_card_type === "withMessage"}
-            {$_("collection.cardTypeWithMessageHint")}
-          {/if}
-        </small>
-      </div>
-
-      <div class="form-group">
-        <div class="form-label">
-          <span class="required">*</span>
-          {$_("collection.products")} ({formData.products.length}/20)
-        </div>
-
-        {#if loading}
-          <div class="loading-skeleton">
-            <div class="skeleton-line"></div>
-          </div>
-        {:else}
-          <div class="product-search">
-            <input
-              type="text"
-              class="form-input"
-              bind:value={searchTerm}
-              placeholder={$_("collection.searchProducts")}
-              onfocus={() => (showProductSearch = true)}
-            />
-            {#if showProductSearch && searchTerm}
-              <div class="search-results">
-                {#each filteredProducts.slice(0, 10) as product}
-                  <button
-                    type="button"
-                    class="search-result-item"
-                    onclick={() => addProduct(product)}
-                  >
-                    {product.shortname}
-                  </button>
-                {/each}
-              </div>
-            {/if}
-          </div>
-
-          <div class="products-list">
-            {#each formData.products as product, index}
-              <div class="product-item">
-                <div class="product-header">
-                  <span class="product-order">#{product.order}</span>
-                  <span class="product-name">{product.product_shortname}</span>
-                  <div class="product-actions">
-                    <button
-                      type="button"
-                      class="btn-icon"
-                      onclick={() => moveProduct(index, "up")}
-                      disabled={index === 0}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      class="btn-icon"
-                      onclick={() => moveProduct(index, "down")}
-                      disabled={index === formData.products.length - 1}
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      class="btn-icon btn-delete"
-                      onclick={() => removeProduct(index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-
-                {#if formData.product_card_type === "discount"}
-                  <div class="product-details">
-                    <input
-                      type="text"
-                      class="form-input-sm"
-                      bind:value={product.discount_message.en}
-                      placeholder={$_("collection.discountMessageEn")}
-                    />
-                  </div>
-                {:else if formData.product_card_type === "withMessage"}
-                  <div class="product-details">
-                    <input
-                      type="text"
-                      class="form-input-sm"
-                      bind:value={product.custom_message.en}
-                      placeholder={$_("collection.customMessageEn")}
-                    />
-                  </div>
-                {/if}
-              </div>
-            {/each}
-          </div>
-        {/if}
-      </div>
-    {/if}
-  </div>
   <div class="card">
     <h2 class="card-title">{$_("collection.basicInfo")}</h2>
 
@@ -336,15 +257,15 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="title_en">
+      <label class="form-label" for="displayname_en">
         <span class="required">*</span>
         {$_("collection.titleEn")}
       </label>
       <input
-        id="title_en"
+        id="displayname_en"
         type="text"
         class="form-input"
-        bind:value={formData.title.en}
+        bind:value={formData.displayname.en}
         required
         placeholder={$_("collection.titlePlaceholder")}
       />
@@ -352,27 +273,27 @@
 
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label" for="title_ar">
+        <label class="form-label" for="displayname_ar">
           {$_("collection.titleAr")}
         </label>
         <input
-          id="title_ar"
+          id="displayname_ar"
           type="text"
           class="form-input"
-          bind:value={formData.title.ar}
+          bind:value={formData.displayname.ar}
           placeholder={$_("collection.titlePlaceholder")}
         />
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="title_ku">
+        <label class="form-label" for="displayname_ku">
           {$_("collection.titleKu")}
         </label>
         <input
-          id="title_ku"
+          id="displayname_ku"
           type="text"
           class="form-input"
-          bind:value={formData.title.ku}
+          bind:value={formData.displayname.ku}
           placeholder={$_("collection.titlePlaceholder")}
         />
       </div>
@@ -419,33 +340,6 @@
       </div>
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="image_url">
-          {$_("collection.imageUrl")}
-        </label>
-        <input
-          id="image_url"
-          type="url"
-          class="form-input"
-          bind:value={formData.image_url}
-          placeholder="https://example.com/image.jpg"
-        />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="background_color">
-          {$_("collection.backgroundColor")}
-        </label>
-        <input
-          id="background_color"
-          type="color"
-          class="form-input-color"
-          bind:value={formData.background_color}
-        />
-      </div>
-    </div>
-
     <div class="form-group">
       <label class="form-label">
         <input type="checkbox" bind:checked={formData.is_active} />
@@ -453,7 +347,230 @@
       </label>
     </div>
   </div>
+
+  <div class="card">
+    <h2 class="card-title">
+      {$_("collection.items")} ({formData.items.length}/20)
+    </h2>
+
+    {#if loading}
+      <div class="loading-skeleton">
+        <div class="skeleton-line"></div>
+      </div>
+    {:else}
+      <div class="product-search">
+        <input
+          type="text"
+          class="form-input"
+          bind:value={searchTerm}
+          placeholder={$_("collection.searchSellers")}
+          onfocus={() => (showSellerSearch = true)}
+        />
+        {#if showSellerSearch}
+          <div class="search-results">
+            {#each filteredSellers.slice(0, 10) as seller}
+              <button
+                type="button"
+                class="search-result-item"
+                onclick={() => startAddingItem(seller)}
+              >
+                <div class="seller-search-item">
+                  <div class="seller-search-name">
+                    {seller.displayname || seller.shortname}
+                  </div>
+                  {#if seller.displayname && seller.displayname !== seller.shortname}
+                    <div class="seller-search-shortname">
+                      @{seller.shortname}
+                    </div>
+                  {/if}
+                </div>
+              </button>
+            {/each}
+            {#if filteredSellers.length === 0}
+              <div class="empty-search-message">
+                {$_("collection.noSellersAvailable")}
+              </div>
+            {/if}
+          </div>
+        {/if}
+      </div>
+
+      <div class="items-list">
+        {#each formData.items as item, index}
+          <div class="item-card">
+            <div class="item-header">
+              <span class="item-order">#{index + 1}</span>
+              <div class="item-info">
+                <div class="item-name">
+                  {#if item.product_displayname}
+                    {item.product_displayname}
+                  {:else}
+                    {item.product_shortname}
+                  {/if}
+                </div>
+                <div class="item-meta">
+                  <span class="meta-badge"
+                    >Variant: {item.variant_key.substring(0, 8)}...</span
+                  >
+                  <span class="meta-badge"
+                    >Seller: {item.seller_displayname ||
+                      item.seller_shortname ||
+                      item.available_product_shortname}</span
+                  >
+                </div>
+              </div>
+              <div class="item-actions">
+                <button
+                  type="button"
+                  class="btn-icon"
+                  onclick={() => moveItem(index, "up")}
+                  disabled={index === 0}
+                  title="Move up"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon"
+                  onclick={() => moveItem(index, "down")}
+                  disabled={index === formData.items.length - 1}
+                  title="Move down"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon btn-delete"
+                  onclick={() => removeItem(index)}
+                  title="Remove"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
+        {/each}
+
+        {#if formData.items.length === 0}
+          <div class="empty-state">
+            <p>{$_("collection.noItemsYet")}</p>
+          </div>
+        {/if}
+      </div>
+    {/if}
+  </div>
 </form>
+
+<!-- Product Selector Modal -->
+{#if showProductSelector && selectedSeller}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="modal-overlay" onclick={cancelItemAddition}>
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="modal modal-sm" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h2>{$_("collection.selectProduct")}</h2>
+        <button class="modal-close" onclick={cancelItemAddition}>×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-subtitle">
+          {$_("collection.seller")}: {selectedSeller.displayname ||
+            selectedSeller.shortname}
+        </p>
+        {#if loadingProducts}
+          <div class="loading-skeleton">
+            <div class="skeleton-line"></div>
+          </div>
+        {:else if availableProducts.length === 0}
+          <p class="empty-message">{$_("collection.noProductsAvailable")}</p>
+        {:else}
+          <div class="product-list">
+            {#each availableProducts as availableProduct}
+              <button
+                type="button"
+                class="product-item-btn"
+                onclick={() => selectAvailableProduct(availableProduct)}
+              >
+                <div class="product-item-name">
+                  {availableProduct.attributes?.displayname?.en ||
+                    availableProduct.shortname}
+                </div>
+                <div class="product-item-meta">
+                  <span class="meta-badge">
+                    {availableProduct.attributes?.payload?.body?.variants
+                      ?.length || 0} variants
+                  </span>
+                  <span class="meta-badge">
+                    {availableProduct.attributes?.payload?.body
+                      ?.product_shortname}
+                  </span>
+                </div>
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Variant Selector Modal -->
+{#if showVariantSelector && selectedAvailableProduct}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="modal-overlay" onclick={cancelItemAddition}>
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="modal modal-sm" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h2>{$_("collection.selectVariant")}</h2>
+        <button class="modal-close" onclick={cancelItemAddition}>×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-subtitle">
+          {$_("collection.product")}: {selectedAvailableProduct.attributes
+            ?.displayname?.en || selectedAvailableProduct.shortname}
+        </p>
+        <div class="variant-list">
+          {#each selectedAvailableProduct.attributes?.payload?.body?.variants || [] as variant}
+            <button
+              type="button"
+              class="variant-item"
+              onclick={() => selectVariant(variant)}
+            >
+              <div class="variant-header">
+                <span class="variant-key">{variant.key}</span>
+                <span class="variant-price">{variant.retail_price} IQD</span>
+              </div>
+              <div class="variant-details">
+                <span class="variant-detail">Qty: {variant.qty}</span>
+                {#if variant.sku}
+                  <span class="variant-detail">SKU: {variant.sku}</span>
+                {/if}
+                {#if variant.discount?.value > 0}
+                  <span class="variant-detail discount">
+                    Discount: {variant.discount.value}
+                    {variant.discount.type === "percentage" ? "%" : "IQD"}
+                  </span>
+                {/if}
+              </div>
+              {#if variant.options && variant.options.length > 0}
+                <div class="variant-options">
+                  {#each variant.options as option}
+                    <span class="option-badge">
+                      {option.variation_shortname}: {option.key}
+                    </span>
+                  {/each}
+                </div>
+              {/if}
+            </button>
+          {/each}
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .collection-form {
@@ -517,32 +634,9 @@
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 
-  .form-input-color {
-    width: 80px;
-    height: 40px;
-    padding: 0.25rem;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-
-  .form-input-sm {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 0.8rem;
-  }
-
-  .form-hint {
-    display: block;
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-    color: #6b7280;
-  }
-
   .product-search {
     position: relative;
+    margin-bottom: 1rem;
   }
 
   .search-results {
@@ -574,40 +668,80 @@
     background-color: #f3f4f6;
   }
 
-  .products-list {
+  .seller-search-item {
+    width: 100%;
+  }
+
+  .seller-search-name {
+    font-weight: 500;
+    color: #1f2937;
+  }
+
+  .seller-search-shortname {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+  }
+
+  .empty-search-message {
+    padding: 1rem;
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+
+  .items-list {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    margin-top: 1rem;
-    max-height: 400px;
+    max-height: 500px;
     overflow-y: auto;
   }
 
-  .product-item {
-    padding: 0.75rem;
+  .item-card {
+    padding: 1rem;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
     background: #f9fafb;
   }
 
-  .product-header {
+  .item-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.75rem;
   }
 
-  .product-order {
+  .item-order {
     font-weight: 600;
     color: #6b7280;
     min-width: 30px;
   }
 
-  .product-name {
+  .item-info {
     flex: 1;
-    font-weight: 500;
   }
 
-  .product-actions {
+  .item-name {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+  }
+
+  .item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .meta-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: #e5e7eb;
+    border-radius: 4px;
+    color: #374151;
+  }
+
+  .item-actions {
     display: flex;
     gap: 0.25rem;
   }
@@ -644,8 +778,10 @@
     background: #fee2e2;
   }
 
-  .product-details {
-    margin-top: 0.75rem;
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
   }
 
   .loading-skeleton {
@@ -658,7 +794,7 @@
   .skeleton-line {
     width: 100%;
     height: 40px;
-    background: #281f51;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
     background-size: 200% 100%;
     animation: loading 1.5s ease-in-out infinite;
     border-radius: 4px;
@@ -671,5 +807,182 @@
     100% {
       background-position: -200% 0;
     }
+  }
+
+  /* Modal Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal {
+    background: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-sm {
+    max-width: 500px;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6b7280;
+    transition: color 0.2s;
+  }
+
+  .modal-close:hover {
+    color: #1f2937;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .modal-subtitle {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 1rem;
+  }
+
+  .variant-list,
+  .seller-list,
+  .product-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .product-item-btn {
+    width: 100%;
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .product-item-btn:hover {
+    background: #f9fafb;
+    border-color: #3b82f6;
+  }
+
+  .product-item-name {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+  }
+
+  .product-item-meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .variant-item {
+    width: 100%;
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .variant-item:hover {
+    background: #f9fafb;
+    border-color: #3b82f6;
+  }
+
+  .variant-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .variant-key {
+    font-weight: 600;
+    color: #1f2937;
+    word-break: break-all;
+    font-size: 0.875rem;
+  }
+
+  .variant-price {
+    font-weight: 600;
+    color: #059669;
+    font-size: 0.875rem;
+  }
+
+  .variant-details {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+
+  .variant-detail {
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+
+  .variant-detail.discount {
+    color: #dc2626;
+    font-weight: 500;
+  }
+
+  .variant-options {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .option-badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    background: #dbeafe;
+    border-radius: 4px;
+    color: #1e40af;
+  }
+
+  .empty-message {
+    text-align: center;
+    color: #6b7280;
+    padding: 1rem;
   }
 </style>

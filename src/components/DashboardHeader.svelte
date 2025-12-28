@@ -14,11 +14,6 @@
   let isAdminExpanded = $state(false);
   let isRTL = $locale === "ar" || $locale === "ku";
 
-  // Log roles for debugging
-  $effect(() => {
-    console.log("DashboardHeader - Current roles:", $roles);
-  });
-
   onMount(() => {
     if ($user.signedin) {
       if (isWSOpen(ws)) {
@@ -506,6 +501,29 @@
                             />
                           </svg>
                           <span>{$_("DefaultRole")}</span>
+                        </button>
+                        <button
+                          aria-label={`Manage Widgets`}
+                          onclick={() =>
+                            handleMenuItemClick(
+                              "/dashboard/admin/settings/widgets"
+                            )}
+                          class="menu-item submenu-item"
+                        >
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                            />
+                          </svg>
+                          <span>{$_("widgets.title")}</span>
                         </button>
                       </div>
                     </div>

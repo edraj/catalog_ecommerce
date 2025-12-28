@@ -13,7 +13,7 @@
     updateCollection,
     deleteEntity,
   } from "@/lib/dmart_services";
-  import {website} from "@/config";
+  import { website } from "@/config";
 
   let collections = $state([]);
   let isLoading = $state(true);
@@ -26,7 +26,6 @@
   let showDeleteConfirm = $state(false);
   let collectionToDelete = $state(null);
   let isDeleting = $state(false);
-  let filterType = $state("all");
 
   onMount(async () => {
     await loadCollections();
@@ -61,14 +60,9 @@
   function openCreateModal() {
     formData = {
       shortname: "",
-      title: { en: "", ar: "", ku: "" },
+      displayname: { en: "", ar: "", ku: "" },
       description: { en: "", ar: "", ku: "" },
-      image_url: "",
-      background_color: "#ffffff",
-      collection_type: "banner",
-      banner_url: "",
-      products: [],
-      product_card_type: "basic",
+      items: [],
       is_active: true,
     };
     isEditing = false;
@@ -80,18 +74,17 @@
     const payloadBody = collection.attributes?.payload?.body || {};
     formData = {
       shortname: collection.shortname,
-      title: collection.attributes?.displayname || { en: "", ar: "", ku: "" },
+      displayname: collection.attributes?.displayname || {
+        en: "",
+        ar: "",
+        ku: "",
+      },
       description: collection.attributes?.description || {
         en: "",
         ar: "",
         ku: "",
       },
-      image_url: payloadBody.image_url || "",
-      background_color: payloadBody.background_color || "#ffffff",
-      collection_type: payloadBody.type || "banner",
-      banner_url: payloadBody.url || "",
-      products: payloadBody.products || [],
-      product_card_type: payloadBody.product_card_type || "basic",
+      items: payloadBody.items || [],
       is_active: collection.attributes?.is_active ?? true,
     };
     isEditing = true;
@@ -166,13 +159,6 @@
       isDeleting = false;
     }
   }
-
-  let filteredCollections = $derived(
-    collections.filter((col) => {
-      if (filterType === "all") return true;
-      return col.attributes?.payload?.body?.type === filterType;
-    })
-  );
 </script>
 
 <div class="collections-page">
@@ -183,30 +169,6 @@
     </button>
   </div>
 
-  <div class="filter-bar">
-    <button
-      class="filter-btn"
-      class:active={filterType === "all"}
-      onclick={() => (filterType = "all")}
-    >
-      {$_("collections.all")}
-    </button>
-    <button
-      class="filter-btn"
-      class:active={filterType === "banner"}
-      onclick={() => (filterType = "banner")}
-    >
-      {$_("collections.banners")}
-    </button>
-    <button
-      class="filter-btn"
-      class:active={filterType === "product_cards"}
-      onclick={() => (filterType = "product_cards")}
-    >
-      {$_("collections.productCards")}
-    </button>
-  </div>
-
   {#if isLoading}
     <div class="loading">
       <div class="spinner"></div>
@@ -214,7 +176,7 @@
     </div>
   {:else}
     <div class="collections-grid">
-      {#each filteredCollections as collection}
+      {#each collections as collection}
         <div class="collection-card">
           <div class="collection-header">
             <h3 class="collection-name">
@@ -232,17 +194,6 @@
 
           <div class="collection-meta">
             <span class="meta-shortname">{collection.shortname}</span>
-            <span
-              class="meta-type"
-              class:banner={collection.attributes?.payload?.body?.type ===
-                "banner"}
-              class:product={collection.attributes?.payload?.body?.type ===
-                "product_cards"}
-            >
-              {collection.attributes?.payload?.body?.type === "banner"
-                ? $_("collection.typeBanner")
-                : $_("collection.typeProductCards")}
-            </span>
           </div>
 
           {#if collection.attributes?.description?.en}
@@ -252,31 +203,12 @@
           {/if}
 
           <div class="collection-info">
-            {#if collection.attributes?.payload?.body?.type === "product_cards"}
-              <div class="info-item">
-                <span class="info-label"
-                  >{$_("collections.productsCount")}:</span
-                >
-                <span class="info-value"
-                  >{collection.attributes?.payload?.body?.products?.length ||
-                    0}</span
-                >
-              </div>
-              <div class="info-item">
-                <span class="info-label">{$_("collections.cardType")}:</span>
-                <span class="info-value">
-                  {collection.attributes?.payload?.body?.product_card_type ||
-                    "basic"}
-                </span>
-              </div>
-            {:else if collection.attributes?.payload?.body?.type === "banner"}
-              <div class="info-item">
-                <span class="info-label">{$_("collections.bannerUrl")}:</span>
-                <span class="info-value truncate">
-                  {collection.attributes?.payload?.body?.url || "-"}
-                </span>
-              </div>
-            {/if}
+            <div class="info-item">
+              <span class="info-label">{$_("collections.itemsCount")}:</span>
+              <span class="info-value">
+                {collection.attributes?.payload?.body?.items?.length || 0}
+              </span>
+            </div>
           </div>
 
           <div class="collection-actions">
@@ -296,7 +228,7 @@
         </div>
       {/each}
 
-      {#if filteredCollections.length === 0}
+      {#if collections.length === 0}
         <div class="empty-state">
           <p>{$_("collections.noCollections")}</p>
           <button class="btn btn-primary" onclick={openCreateModal}>

@@ -80,8 +80,6 @@ export async function signin(username: string, password: string) {
 
     // Check multiple possible locations for roles
     const userRoles = (account as any).roles || account.attributes?.roles || [];
-    console.log("Login response account:", account);
-    console.log("Extracted roles:", userRoles);
     roles.set(userRoles);
 
     if (typeof localStorage !== "undefined") {
@@ -117,8 +115,6 @@ export async function loginBy(email: string, password: string) {
 
     // Check multiple possible locations for roles
     const userRoles = (account as any).roles || account.attributes?.roles || [];
-    console.log("Login response account:", account);
-    console.log("Extracted roles:", userRoles);
     roles.set(userRoles);
 
     if (typeof localStorage !== "undefined") {

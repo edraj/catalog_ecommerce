@@ -48,24 +48,17 @@
       }
 
       const profile = await getProfile();
-      console.log("Profile after login:", profile);
 
       if (profile?.roles || profile?.attributes?.roles) {
         const userRoles = profile.roles || profile.attributes.roles || [];
         roles.set(userRoles);
         localStorage.setItem("roles", JSON.stringify(userRoles));
-        console.log("Roles set from profile:", userRoles);
       }
 
       const storedRoles = JSON.parse(localStorage.getItem("roles") || "[]");
-      console.log("Roles after login:", storedRoles);
-      console.log("Has super_admin?", storedRoles.includes("super_admin"));
-
       if (storedRoles.includes("super_admin")) {
-        console.log("Redirecting to /dashboard/admin");
         $goto("/dashboard/admin");
       } else {
-        console.log("Redirecting to /sellers");
         $goto("/sellers");
       }
     } catch (error) {

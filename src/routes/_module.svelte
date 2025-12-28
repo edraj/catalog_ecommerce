@@ -73,23 +73,18 @@
         p?.data?.error?.type === "jwtauth";
 
       if (isAuthError) {
-        console.log("Authentication failed, redirecting to login");
         await signout();
         $goto("/login");
       } else {
         let userRoles = p?.roles || p?.attributes?.roles;
-        console.log("Profile response:", p);
-        console.log("Roles from profile:", userRoles);
 
         if (userRoles && Array.isArray(userRoles)) {
-          console.log("Setting roles from profile:", userRoles);
           roles.set(userRoles);
           if (typeof localStorage !== "undefined") {
             localStorage.setItem("roles", JSON.stringify(userRoles));
           }
         } else if (typeof localStorage !== "undefined") {
           const storedRoles = JSON.parse(localStorage.getItem("roles") || "[]");
-          console.log("Setting roles from localStorage:", storedRoles);
           if (storedRoles.length > 0) {
             roles.set(storedRoles);
           }
@@ -103,7 +98,6 @@
       console.error("Authentication check failed:", error);
 
       if (error.response?.status === 401 || error.status === 401) {
-        console.log("401 error - redirecting to login");
         await signout();
         $goto("/login");
       } else {
