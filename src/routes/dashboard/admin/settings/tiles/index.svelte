@@ -1,0 +1,876 @@
+<script lang="ts">
+  import { onMount } from "svelte";
+  import {
+    getSpaceContents,
+    createEntity,
+    updateEntity,
+    deleteEntity,
+    getEntity,
+    attachAttachmentsToEntity,
+  } from "@/lib/dmart_services";
+  import { Dmart, ResourceType } from "@edraj/tsdmart";
+  import {
+    errorToastMessage,
+    successToastMessage,
+  } from "@/lib/toasts_messages";
+  import { website } from "@/config";
+  import "./index.css";
+
+  let tiles: any[] = [];
+  let filteredTiles: any[] = [];
+  let loading = false;
+  let selectedRegion = "all";
+  let selectedShape = "all";
+  let searchQuery = "";
+
+  let createModalOpen = false;
+  let editModalOpen = false;
+  let deleteModalOpen = false;
+  let viewModalOpen = false;
+  let selectedTile: any = null;
+
+  let tileForm = {
+    displayname_en: "",
+    displayname_ar: "",
+    description_en: "",
+    description_ar: "",
+    shape: "banner",
+    region: "hero_region",
+    url: "",
+    backgroundColor: "#ffffff",
+    card_type: "withMessage",
+    collection_shortname: "",
+    is_active: true,
+  };
+
+  let imageFile: File | null = null;
+
+  const regions = [
+    { value: "hero_region", label: "Hero Region" },
+    { value: "mid_region", label: "Mid Region" },
+    { value: "bottom_region", label: "Bottom Region" },
+  ];
+
+  const shapes = [
+    { value: "banner", label: "Banner" },
+    { value: "carousel", label: "Carousel" },
+  ];
+
+  const cardTypes = [
+    { value: "withMessage", label: "With Message" },
+    { value: "full", label: "Full" },
+  ];
+
+  onMount(async () => {
+    await loadTiles();
+  });
+
+  async function loadTiles() {
+    loading = true;
+    try {
+      const response = await getSpaceContents(
+        website.main_space,
+        "settings/tiles",
+        "managed",
+        100,
+        0,
+        false
+      );
+      tiles = response.records || [];
+      applyFilters();
+    } catch (error) {
+      console.error("Error loading tiles:", error);
+      errorToastMessage("Failed to load tiles");
+    } finally {
+      loading = false;
+    }
+  }
+
+  function applyFilters() {
+    let filtered = [...tiles];
+
+    if (selectedRegion !== "all") {
+      filtered = filtered.filter(
+        (tile) => tile.attributes.payload?.body?.region === selectedRegion
+      );
+    }
+
+    if (selectedShape !== "all") {
+      filtered = filtered.filter(
+        (tile) => tile.attributes.payload?.body?.shape === selectedShape
+      );
+    }
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (tile) =>
+          tile.attributes.displayname?.en?.toLowerCase().includes(query) ||
+          tile.attributes.displayname?.ar?.toLowerCase().includes(query) ||
+          tile.attributes.description?.en?.toLowerCase().includes(query)
+      );
+    }
+
+    filteredTiles = filtered;
+  }
+
+  $: {
+    tiles;
+    selectedRegion;
+    selectedShape;
+    searchQuery;
+    applyFilters();
+  }
+
+  function openCreateModal() {
+    resetForm();
+    createModalOpen = true;
+  }
+
+  function openEditModal(tile: any) {
+    selectedTile = tile;
+    const body = tile.attributes.payload?.body || {};
+    tileForm = {
+      displayname_en: tile.attributes.displayname?.en || "",
+      displayname_ar: tile.attributes.displayname?.ar || "",
+      description_en: tile.attributes.description?.en || "",
+      description_ar: tile.attributes.description?.ar || "",
+      shape: body.shape || "banner",
+      region: body.region || "hero_region",
+      url: body.url || "",
+      backgroundColor: body.style?.backgroundColor || "#ffffff",
+      card_type: body.card_type || "withMessage",
+      collection_shortname: body.collection_shortname || "",
+      is_active: tile.attributes.is_active !== false,
+    };
+    editModalOpen = true;
+  }
+
+  async function openViewModal(tile: any) {
+    loading = true;
+    try {
+      const fullTile = await getEntity(
+        tile.shortname,
+        website.main_space,
+        "settings/tiles",
+        ResourceType.content,
+        "managed",
+        true,
+        true
+      );
+      selectedTile = fullTile;
+      viewModalOpen = true;
+    } catch (error) {
+      console.error("Error loading tile details:", error);
+      errorToastMessage("Failed to load tile details");
+    } finally {
+      loading = false;
+    }
+  }
+
+  function openDeleteModal(tile: any) {
+    selectedTile = tile;
+    deleteModalOpen = true;
+  }
+
+  function resetForm() {
+    tileForm = {
+      displayname_en: "",
+      displayname_ar: "",
+      description_en: "",
+      description_ar: "",
+      shape: "banner",
+      region: "hero_region",
+      url: "",
+      backgroundColor: "#ffffff",
+      card_type: "withMessage",
+      collection_shortname: "",
+      is_active: true,
+    };
+    imageFile = null;
+    selectedTile = null;
+  }
+
+  async function handleCreate() {
+    if (!tileForm.displayname_en.trim()) {
+      errorToastMessage("Display name (EN) is required");
+      return;
+    }
+
+    if (tileForm.shape === "banner" && !tileForm.url.trim()) {
+      errorToastMessage("URL is required for banners");
+      return;
+    }
+
+    if (
+      tileForm.shape === "carousel" &&
+      !tileForm.collection_shortname.trim()
+    ) {
+      errorToastMessage("Collection shortname is required for carousels");
+      return;
+    }
+
+    loading = true;
+    try {
+      const body: any = {
+        shape: tileForm.shape,
+        region: tileForm.region,
+        style: {
+          backgroundColor: tileForm.backgroundColor,
+        },
+      };
+
+      if (tileForm.shape === "banner") {
+        body.url = tileForm.url;
+      } else {
+        body.card_type = tileForm.card_type;
+        body.collection_shortname = tileForm.collection_shortname;
+      }
+
+      const shortname = await createEntity(
+        {
+          displayname_en: tileForm.displayname_en,
+          displayname_ar: tileForm.displayname_ar,
+          description_en: tileForm.description_en,
+          description_ar: tileForm.description_ar,
+          body: body,
+          is_active: tileForm.is_active,
+        },
+        website.main_space,
+        "settings/tiles",
+        ResourceType.content,
+        "",
+        "",
+        "json"
+      );
+
+      if (shortname && imageFile) {
+        await attachAttachmentsToEntity(
+          shortname,
+          website.main_space,
+          "settings/tiles",
+          imageFile
+        );
+      }
+
+      if (shortname) {
+        successToastMessage("Tile created successfully");
+        createModalOpen = false;
+        resetForm();
+        await loadTiles();
+      } else {
+        errorToastMessage("Failed to create tile");
+      }
+    } catch (error) {
+      console.error("Error creating tile:", error);
+      errorToastMessage("Failed to create tile");
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function handleUpdate() {
+    if (!selectedTile) return;
+
+    if (!tileForm.displayname_en.trim()) {
+      errorToastMessage("Display name (EN) is required");
+      return;
+    }
+
+    loading = true;
+    try {
+      const body: any = {
+        shape: tileForm.shape,
+        region: tileForm.region,
+        style: {
+          backgroundColor: tileForm.backgroundColor,
+        },
+      };
+
+      if (tileForm.shape === "banner") {
+        body.url = tileForm.url;
+      } else {
+        body.card_type = tileForm.card_type;
+        body.collection_shortname = tileForm.collection_shortname;
+      }
+
+      const success = await updateEntity(
+        selectedTile.shortname,
+        website.main_space,
+        "settings/tiles",
+        ResourceType.content,
+        {
+          displayname_en: tileForm.displayname_en,
+          displayname_ar: tileForm.displayname_ar,
+          description_en: tileForm.description_en,
+          description_ar: tileForm.description_ar,
+          body: body,
+          is_active: tileForm.is_active,
+          content_type: "json",
+        },
+        "",
+        ""
+      );
+
+      if (success && imageFile) {
+        await attachAttachmentsToEntity(
+          selectedTile.shortname,
+          website.main_space,
+          "settings/tiles",
+          imageFile
+        );
+      }
+
+      if (success) {
+        successToastMessage("Tile updated successfully");
+        editModalOpen = false;
+        resetForm();
+        await loadTiles();
+      } else {
+        errorToastMessage("Failed to update tile");
+      }
+    } catch (error) {
+      console.error("Error updating tile:", error);
+      errorToastMessage("Failed to update tile");
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function handleDelete() {
+    if (!selectedTile) return;
+
+    loading = true;
+    try {
+      const success = await deleteEntity(
+        selectedTile.shortname,
+        website.main_space,
+        "settings/tiles",
+        ResourceType.content
+      );
+
+      if (success) {
+        successToastMessage("Tile deleted successfully");
+        deleteModalOpen = false;
+        resetForm();
+        await loadTiles();
+      } else {
+        errorToastMessage("Failed to delete tile");
+      }
+    } catch (error) {
+      console.error("Error deleting tile:", error);
+      errorToastMessage("Failed to delete tile");
+    } finally {
+      loading = false;
+    }
+  }
+
+  function handleFileChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+      imageFile = target.files[0];
+    }
+  }
+
+  function getImageUrl(tile: any): string | null {
+    const media = tile.attachments?.media?.[0];
+    if (!media) return null;
+    return Dmart.getAttachmentUrl({
+      resource_type: ResourceType.media,
+      space_name: "personal",
+      subpath: `people/${tile.shortname}/protected/`,
+      parent_shortname: "avatar",
+      shortname: media.payload?.body || media.shortname,
+      ext: null,
+    });
+  }
+</script>
+
+<div class="tiles-container">
+  <div class="header">
+    <div>
+      <h1>Tiles Management</h1>
+      <p>Manage homepage tiles and banners</p>
+    </div>
+    <button class="btn-primary" on:click={openCreateModal}>
+      + Create New Tile
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-group">
+      <label for="region-filter">Region:</label>
+      <select id="region-filter" bind:value={selectedRegion}>
+        <option value="all">All Regions</option>
+        {#each regions as region}
+          <option value={region.value}>{region.label}</option>
+        {/each}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="shape-filter">Shape:</label>
+      <select id="shape-filter" bind:value={selectedShape}>
+        <option value="all">All Shapes</option>
+        {#each shapes as shape}
+          <option value={shape.value}>{shape.label}</option>
+        {/each}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="search">Search:</label>
+      <input
+        id="search"
+        type="text"
+        bind:value={searchQuery}
+        placeholder="Search tiles..."
+      />
+    </div>
+  </div>
+
+  <!-- Tiles Grid -->
+  {#if loading}
+    <div class="loading">Loading tiles...</div>
+  {:else if filteredTiles.length === 0}
+    <div class="empty-state">
+      <p>No tiles found</p>
+    </div>
+  {:else}
+    <div class="tiles-grid">
+      {#each filteredTiles as tile}
+        {@const body = tile.attributes.payload?.body || {}}
+        {@const imageUrl = getImageUrl(tile)}
+        <div class="tile-card">
+          {#if imageUrl}
+            <div class="tile-image">
+              <img src={imageUrl} alt={tile.attributes.displayname?.en || ""} />
+            </div>
+          {:else}
+            <div
+              class="tile-placeholder"
+              style="background-color: {body.style?.backgroundColor ||
+                '#f0f0f0'}"
+            >
+              {#if body.shape === "carousel"}
+                <span class="icon">
+                  <svg
+                    width="32"
+                    height="32"
+                    viewBox="0 0 32 32"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="6" y="8" width="20" height="16" rx="2" />
+                    <path d="M2 12v8M30 12v8" />
+                  </svg>
+                </span>
+              {:else}
+                <span class="icon">
+                  <svg
+                    width="32"
+                    height="32"
+                    viewBox="0 0 32 32"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="4" y="8" width="24" height="16" rx="2" />
+                    <path d="M8 12l4 6 3-3 5 5" />
+                    <circle cx="20" cy="13" r="1.5" fill="currentColor" />
+                  </svg>
+                </span>
+              {/if}
+            </div>
+          {/if}
+
+          <div class="tile-content">
+            <div class="tile-header">
+              <h3>{tile.attributes.displayname?.en || "Untitled"}</h3>
+              <span class="badge badge-{body.shape}">
+                {body.shape}
+              </span>
+            </div>
+
+            {#if tile.attributes.description?.en}
+              <p class="tile-description">{tile.attributes.description.en}</p>
+            {/if}
+
+            <div class="tile-meta">
+              <span class="region-badge">{body.region?.replace(/_/g, " ")}</span
+              >
+              <span
+                class="status-badge"
+                class:active={tile.attributes.is_active}
+              >
+                {tile.attributes.is_active ? "Active" : "Inactive"}
+              </span>
+            </div>
+
+            {#if body.shape === "carousel"}
+              <div class="tile-info">
+                <small>Collection: {body.collection_shortname}</small>
+                <small>Type: {body.card_type}</small>
+              </div>
+            {:else if body.url}
+              <div class="tile-info">
+                <small>URL: {body.url}</small>
+              </div>
+            {/if}
+
+            <div class="tile-actions">
+              <button
+                class="btn-icon"
+                on:click={() => openViewModal(tile)}
+                title="View"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path d="M8 3C4.5 3 2 8 2 8s2.5 5 6 5 6-5 6-5-2.5-5-6-5z" />
+                  <circle cx="8" cy="8" r="2" />
+                </svg>
+              </button>
+              <button
+                class="btn-icon"
+                on:click={() => openEditModal(tile)}
+                title="Edit"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path d="M11.5 2.5l2 2L6 12H4v-2l7.5-7.5z" />
+                  <path d="M10 4l2 2" />
+                </svg>
+              </button>
+              <button
+                class="btn-icon delete"
+                on:click={() => openDeleteModal(tile)}
+                title="Delete"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path d="M3 4h10M5 4V3h6v1M6 7v4M10 7v4M5 4l.5 9h5l.5-9" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      {/each}
+    </div>
+  {/if}
+</div>
+
+<!-- Create/Edit Modal -->
+{#if createModalOpen || editModalOpen}
+  <div
+    class="modal-overlay"
+    on:click={() => {
+      createModalOpen = false;
+      editModalOpen = false;
+    }}
+  >
+    <div class="modal modal-large" on:click|stopPropagation>
+      <div class="modal-header">
+        <h2>{createModalOpen ? "Create New Tile" : "Edit Tile"}</h2>
+        <button
+          class="close-btn"
+          on:click={() => {
+            createModalOpen = false;
+            editModalOpen = false;
+          }}
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="displayname_en">Display Name (EN) *</label>
+            <input
+              id="displayname_en"
+              type="text"
+              bind:value={tileForm.displayname_en}
+              placeholder="Happy New Year"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="displayname_ar">Display Name (AR)</label>
+            <input
+              id="displayname_ar"
+              type="text"
+              bind:value={tileForm.displayname_ar}
+              placeholder="سنة جديدة سعيدة"
+            />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="description_en">Description (EN)</label>
+            <textarea
+              id="description_en"
+              bind:value={tileForm.description_en}
+              placeholder="Check out our offers for new year"
+              rows="2"
+            ></textarea>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="description_ar">Description (AR)</label>
+            <textarea
+              id="description_ar"
+              bind:value={tileForm.description_ar}
+              placeholder="تحقق من عروضنا للسنة الجديدة"
+              rows="2"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="shape">Shape *</label>
+            <select id="shape" bind:value={tileForm.shape}>
+              {#each shapes as shape}
+                <option value={shape.value}>{shape.label}</option>
+              {/each}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="region">Region *</label>
+            <select id="region" bind:value={tileForm.region}>
+              {#each regions as region}
+                <option value={region.value}>{region.label}</option>
+              {/each}
+            </select>
+          </div>
+
+          {#if tileForm.shape === "banner"}
+            <div class="form-group">
+              <label for="url">URL *</label>
+              <input
+                id="url"
+                type="text"
+                bind:value={tileForm.url}
+                placeholder="/pages/newyear"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="image">Image</label>
+              <input
+                id="image"
+                type="file"
+                accept="image/*"
+                on:change={handleFileChange}
+              />
+            </div>
+          {:else}
+            <div class="form-group">
+              <label for="collection_shortname">Collection Shortname *</label>
+              <input
+                id="collection_shortname"
+                type="text"
+                bind:value={tileForm.collection_shortname}
+                placeholder="19901458"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="card_type">Card Type</label>
+              <select id="card_type" bind:value={tileForm.card_type}>
+                {#each cardTypes as type}
+                  <option value={type.value}>{type.label}</option>
+                {/each}
+              </select>
+            </div>
+          {/if}
+
+          <div class="form-group">
+            <label for="backgroundColor">Background Color</label>
+            <input
+              id="backgroundColor"
+              type="color"
+              bind:value={tileForm.backgroundColor}
+            />
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" bind:checked={tileForm.is_active} />
+              Active
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button
+          class="btn-secondary"
+          on:click={() => {
+            createModalOpen = false;
+            editModalOpen = false;
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          class="btn-primary"
+          on:click={createModalOpen ? handleCreate : handleUpdate}
+          disabled={loading}
+        >
+          {loading ? "Saving..." : createModalOpen ? "Create" : "Update"}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- View Modal -->
+{#if viewModalOpen && selectedTile}
+  <div class="modal-overlay" on:click={() => (viewModalOpen = false)}>
+    <div class="modal modal-large" on:click|stopPropagation>
+      <div class="modal-header">
+        <h2>Tile Details</h2>
+        <button class="close-btn" on:click={() => (viewModalOpen = false)}
+          >×</button
+        >
+      </div>
+
+      <div class="modal-body">
+        {#if selectedTile}
+          {@const body = selectedTile.payload?.body || {}}
+          {@const imageUrl = getImageUrl(selectedTile)}
+
+          {#if imageUrl}
+            <div class="view-image">
+              <img src={imageUrl} alt={selectedTile.displayname?.en || ""} />
+            </div>
+          {/if}
+
+          <div class="view-details">
+            <div class="detail-row">
+              <strong>Display Name (EN):</strong>
+              <span>{selectedTile.displayname?.en || "N/A"}</span>
+            </div>
+            <div class="detail-row">
+              <strong>Display Name (AR):</strong>
+              <span>{selectedTile.displayname?.ar || "N/A"}</span>
+            </div>
+            <div class="detail-row">
+              <strong>Description (EN):</strong>
+              <span>{selectedTile.description?.en || "N/A"}</span>
+            </div>
+            <div class="detail-row">
+              <strong>Shape:</strong>
+              <span class="badge badge-{body.shape}">{body.shape}</span>
+            </div>
+            <div class="detail-row">
+              <strong>Region:</strong>
+              <span>{body.region?.replace(/_/g, " ")}</span>
+            </div>
+            {#if body.url}
+              <div class="detail-row">
+                <strong>URL:</strong>
+                <span>{body.url}</span>
+              </div>
+            {/if}
+            {#if body.collection_shortname}
+              <div class="detail-row">
+                <strong>Collection:</strong>
+                <span>{body.collection_shortname}</span>
+              </div>
+              <div class="detail-row">
+                <strong>Card Type:</strong>
+                <span>{body.card_type}</span>
+              </div>
+            {/if}
+            <div class="detail-row">
+              <strong>Background Color:</strong>
+              <span>
+                <span
+                  class="color-preview"
+                  style="background-color: {body.style?.backgroundColor}"
+                ></span>
+                {body.style?.backgroundColor || "N/A"}
+              </span>
+            </div>
+            <div class="detail-row">
+              <strong>Status:</strong>
+              <span class="status-badge" class:active={selectedTile.is_active}>
+                {selectedTile.is_active ? "Active" : "Inactive"}
+              </span>
+            </div>
+            <div class="detail-row">
+              <strong>Created:</strong>
+              <span>{new Date(selectedTile.created_at).toLocaleString()}</span>
+            </div>
+            <div class="detail-row">
+              <strong>Updated:</strong>
+              <span>{new Date(selectedTile.updated_at).toLocaleString()}</span>
+            </div>
+          </div>
+        {/if}
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" on:click={() => (viewModalOpen = false)}
+          >Close</button
+        >
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Delete Modal -->
+{#if deleteModalOpen && selectedTile}
+  <div class="modal-overlay" on:click={() => (deleteModalOpen = false)}>
+    <div class="modal modal-small" on:click|stopPropagation>
+      <div class="modal-header">
+        <h2>Delete Tile</h2>
+        <button class="close-btn" on:click={() => (deleteModalOpen = false)}
+          >×</button
+        >
+      </div>
+
+      <div class="modal-body">
+        <p>
+          Are you sure you want to delete the tile
+          <strong
+            >{selectedTile.attributes?.displayname?.en ||
+              selectedTile.displayname?.en}</strong
+          >?
+        </p>
+        <p class="warning">This action cannot be undone.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" on:click={() => (deleteModalOpen = false)}
+          >Cancel</button
+        >
+        <button class="btn-danger" on:click={handleDelete} disabled={loading}>
+          {loading ? "Deleting..." : "Delete"}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}

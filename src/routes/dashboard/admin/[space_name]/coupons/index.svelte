@@ -589,17 +589,53 @@
                       on:click={() => openEditModal(coupon)}
                       title="Edit"
                     >
-                      ✏️
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      >
+                        <path d="M11.5 2.5l2 2L6 12H4v-2l7.5-7.5z" />
+                        <path d="M10 4l2 2" />
+                      </svg>
                     </button>
                     <button
                       class="btn-icon delete"
                       on:click={() => openDeleteModal(coupon)}
                       title="Delete"
                     >
-                      🗑️
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      >
+                        <path
+                          d="M3 4h10M5 4V3h6v1M6 7v4M10 7v4M5 4l.5 9h5l.5-9"
+                        />
+                      </svg>
                     </button>
                   {:else}
-                    <button class="btn-icon view" title="View Only">👁️</button>
+                    <button class="btn-icon view" title="View Only">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      >
+                        <path
+                          d="M8 3C4.5 3 2 8 2 8s2.5 5 6 5 6-5 6-5-2.5-5-6-5z"
+                        />
+                        <circle cx="8" cy="8" r="2" />
+                      </svg>
+                    </button>
+                    >
                   {/if}
                 </td>
               </tr>
