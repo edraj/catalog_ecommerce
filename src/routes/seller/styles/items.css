@@ -14,7 +14,7 @@
 .stats-icon {
   width: 1.5rem;
   height: 1.5rem;
-  color: #667eea;
+  color: #281f51;
   stroke-width: 2;
 }
 
@@ -25,7 +25,7 @@
 }
 
 .stats-text strong {
-  color: #667eea;
+  color: #281f51;
   font-weight: 700;
 }
 
@@ -116,7 +116,7 @@
 .type-icon-small {
   width: 1.25rem;
   height: 1.25rem;
-  color: #667eea;
+  color: #281f51;
   flex-shrink: 0;
 }
 
@@ -288,8 +288,8 @@
 }
 
 .table-action-btn.view:hover {
-  background: #667eea;
-  border-color: #667eea;
+  background: #281f51;
+  border-color: #281f51;
 }
 
 .table-action-btn.view:hover .action-icon {
@@ -325,7 +325,7 @@
 .meta-icon {
   width: 1rem;
   height: 1rem;
-  color: #667eea;
+  color: #281f51;
   stroke-width: 2;
 }
 

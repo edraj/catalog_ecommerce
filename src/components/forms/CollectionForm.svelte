@@ -859,7 +859,7 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #281f51 0%, #764ba2 100%);
     color: white;
     display: flex;
     align-items: center;
@@ -944,7 +944,7 @@
   }
 
   .item-order-badge {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #281f51 0%, #764ba2 100%);
     color: white;
     font-weight: 700;
     font-size: 0.75rem;

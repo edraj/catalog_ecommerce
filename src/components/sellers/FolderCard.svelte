@@ -80,7 +80,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(90deg, #281f51 0%, #764ba2 100%);
     transform: scaleX(0);
     transition: transform 0.4s ease;
   }
@@ -88,7 +88,7 @@
   .folder-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-    border-color: #667eea;
+    border-color: #281f51;
   }
 
   .folder-card:hover::before {
@@ -98,7 +98,7 @@
   .folder-card-icon {
     width: 5rem;
     height: 5rem;
-    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    background: linear-gradient(135deg, #281f5115 0%, #764ba215 100%);
     border-radius: 18px;
     display: flex;
     align-items: center;
@@ -109,13 +109,13 @@
 
   .folder-card:hover .folder-card-icon {
     transform: scale(1.1) rotate(5deg);
-    background: linear-gradient(135deg, #667eea25 0%, #764ba225 100%);
+    background: linear-gradient(135deg, #281f5125 0%, #764ba225 100%);
   }
 
   :global(.folder-card .folder-icon) {
     width: 3rem;
     height: 3rem;
-    color: #667eea;
+    color: #281f51;
   }
 
   .folder-card-body {

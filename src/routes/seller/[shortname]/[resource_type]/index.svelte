@@ -65,11 +65,18 @@
   }
 
   function goBack() {
-    $goto("/sellers");
+    // Check if there's a previous folder stored
+    const previousFolder = sessionStorage.getItem("seller_previous_folder");
+    if (previousFolder) {
+      sessionStorage.removeItem("seller_previous_folder");
+      $goto("/seller/" + previousFolder);
+    } else {
+      $goto("/seller");
+    }
   }
 
   function editItem() {
-    $goto("/sellers/[shortname]/[resource_type]/edit", {
+    $goto("/seller/[shortname]/[resource_type]/edit", {
       space_name: website.main_space,
       subpath: $params.subpath,
       shortname: $params.shortname,
@@ -989,7 +996,7 @@
   }
 
   .info-value.highlight {
-    color: #667eea;
+    color: #281f51;
     font-size: 1.5rem;
     font-weight: 700;
   }
@@ -1049,7 +1056,7 @@
   .back-button-large {
     padding: 1rem 2rem;
     background: white;
-    color: #667eea;
+    color: #281f51;
     border: none;
     border-radius: 0.75rem;
     font-size: 1.125rem;

@@ -342,7 +342,7 @@
     width: 1.125rem;
     height: 1.125rem;
     cursor: pointer;
-    accent-color: #667eea;
+    accent-color: #281f51;
   }
 
   .brand-checkbox span {

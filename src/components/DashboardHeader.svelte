@@ -138,7 +138,7 @@
               if ($roles.includes("super_admin")) {
                 $goto("/dashboard/admin");
               } else if ($roles.includes("zm_seller")) {
-                $goto("/sellers");
+                $goto("/seller");
               } else {
                 $goto("/");
               }

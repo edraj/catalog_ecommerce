@@ -704,7 +704,7 @@
   .form-select:focus,
   .form-textarea:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #281f51;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
 
@@ -741,13 +741,13 @@
   }
 
   .request-type-card:hover {
-    border-color: #667eea;
+    border-color: #281f51;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
     transform: translateY(-2px);
   }
 
   .request-type-card.active {
-    border-color: #667eea;
+    border-color: #281f51;
     box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
   }
 

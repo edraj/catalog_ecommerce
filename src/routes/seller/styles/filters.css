@@ -38,7 +38,7 @@
 
 .search-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #281f51;
   box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
 }
 
@@ -50,7 +50,6 @@
 .filters-group {
   display: flex;
   gap: 1rem;
-  flex-wrap: wrap;
 }
 
 .filter-item {
@@ -67,7 +66,7 @@
 }
 
 .filter-item:focus-within {
-  border-color: #667eea;
+  border-color: #281f51;
   box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
 }
 

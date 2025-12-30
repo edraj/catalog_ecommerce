@@ -59,7 +59,7 @@
       if (storedRoles.includes("super_admin")) {
         $goto("/dashboard/admin");
       } else {
-        $goto("/sellers");
+        $goto("/seller");
       }
     } catch (error) {
       isError = true;

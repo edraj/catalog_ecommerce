@@ -160,7 +160,7 @@
   }
 
   function goBack() {
-    $goto("/sellers/[shortname]/[resource_type]", {
+    $goto("/seller/[shortname]/[resource_type]", {
       space_name: website.main_space,
       subpath: $params.subpath,
       shortname: $params.shortname,
@@ -1215,7 +1215,7 @@
   .form-select:focus,
   .form-textarea:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #281f51;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
 
@@ -1286,7 +1286,7 @@
   .back-button-large {
     padding: 1rem 2rem;
     background: white;
-    color: #667eea;
+    color: #281f51;
     border: none;
     border-radius: 0.75rem;
     font-size: 1.125rem;

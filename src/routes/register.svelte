@@ -260,7 +260,7 @@
       })();
 
       if (userRoles.includes("seller")) {
-        $goto("/sellers");
+        $goto("/seller");
       } else {
         $goto("/entries");
       }

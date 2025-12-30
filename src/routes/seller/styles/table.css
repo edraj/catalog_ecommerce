@@ -98,6 +98,102 @@
   color: #2d3748;
 }
 
+/* Stock Badge Styles */
+.stock-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stock-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #10b981;
+  color: white;
+  min-width: 2.5rem;
+}
+
+.stock-badge.low-stock {
+  background: #f59e0b;
+}
+
+.stock-badge.out-of-stock {
+  background: #ef4444;
+}
+
+/* Status Badge Styles */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-badge.active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Shipping Badge Styles */
+.shipping-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.shipping-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem;
+  border-radius: 0.5rem;
+  transition: transform 0.2s ease;
+}
+
+.shipping-badge:hover {
+  transform: scale(1.1);
+}
+
+.shipping-badge.fast {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.shipping-badge.free {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* Price Display */
+.price-display {
+  font-size: 0.875rem;
+  color: #1f2937;
+  white-space: nowrap;
+}
+
+.price-display strong {
+  font-weight: 600;
+  color: #111827;
+}
+
 .attribute-value-cell.rtl {
   text-align: right;
 }
@@ -139,7 +235,7 @@
 .variation-icon {
   width: 1.25rem;
   height: 1.25rem;
-  color: #667eea;
+  color: #281f51;
   stroke-width: 2;
   flex-shrink: 0;
 }
@@ -157,7 +253,7 @@
 
 .table-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #281f51;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -168,7 +264,7 @@
 .price-input-field {
   max-width: 120px;
   font-weight: 600;
-  color: #667eea;
+  color: #281f51;
 }
 
 .stock-input-field {

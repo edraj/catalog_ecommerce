@@ -131,7 +131,7 @@ export function getItemCategory(item: any): {
     content.product_id &&
     content.category_id
   ) {
-    return { type: "product", icon: "🛍️", color: "#667eea" };
+    return { type: "product", icon: "🛍️", color: "#281f51" };
   } else if (
     item.subpath.includes("/coupons") &&
     content.type &&

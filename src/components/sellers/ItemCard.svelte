@@ -126,7 +126,7 @@
       content.product_id &&
       content.category_id
     ) {
-      return { type: "product", icon: "🛍️", color: "#667eea" };
+      return { type: "product", icon: "🛍️", color: "#281f51" };
     } else if (
       item.subpath.includes("/coupons") &&
       content.type &&
@@ -298,7 +298,7 @@
   .item-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-    border-color: #667eea;
+    border-color: #281f51;
   }
 
   .item-card:hover::before {
@@ -351,8 +351,8 @@
   }
 
   .action-button.view:hover {
-    background: #667eea;
-    border-color: #667eea;
+    background: #281f51;
+    border-color: #281f51;
   }
 
   .action-button.view:hover .action-icon {
