@@ -53,7 +53,7 @@
         "management",
         "/users",
         "managed",
-        100,
+        1000,
         0,
         false
       );
@@ -74,7 +74,7 @@
         website.main_space,
         "/available_products",
         "managed",
-        100,
+        1000,
         0,
         false
       );
@@ -129,8 +129,8 @@
       return false;
     }
 
-    if (formData.items.length === 0) {
-      alert($_("validation.selectAtLeastOneProduct"));
+    if (formData.items.length < 4) {
+      alert($_("validation.minProductsRequired"));
       return false;
     }
 
@@ -216,12 +216,6 @@
 
     formData.items = [...formData.items];
   }
-
-  $effect(() => {
-    if (sellers.length > 0 && !searchTerm) {
-      showSellerSearch = true;
-    }
-  });
 
   let filteredSellers = $derived(
     searchTerm
@@ -349,57 +343,118 @@
   </div>
 
   <div class="card">
-    <h2 class="card-title">
-      {$_("collection.items")} ({formData.items.length}/20)
-    </h2>
+    <div class="card-header-section">
+      <div>
+        <h2 class="card-title">
+          {$_("collection.items")}
+        </h2>
+        <p class="card-subtitle">
+          {#if formData.items.length < 4}
+            <span class="status-badge error">
+              {formData.items.length}/20 items - Minimum 4 required
+            </span>
+          {:else}
+            <span class="status-badge success">
+              {formData.items.length}/20 items
+            </span>
+          {/if}
+        </p>
+      </div>
+    </div>
 
     {#if loading}
       <div class="loading-skeleton">
         <div class="skeleton-line"></div>
       </div>
     {:else}
-      <div class="product-search">
-        <input
-          type="text"
-          class="form-input"
-          bind:value={searchTerm}
-          placeholder={$_("collection.searchSellers")}
-          onfocus={() => (showSellerSearch = true)}
-        />
-        {#if showSellerSearch}
-          <div class="search-results">
-            {#each filteredSellers.slice(0, 10) as seller}
-              <button
-                type="button"
-                class="search-result-item"
-                onclick={() => startAddingItem(seller)}
-              >
-                <div class="seller-search-item">
-                  <div class="seller-search-name">
-                    {seller.displayname || seller.shortname}
-                  </div>
-                  {#if seller.displayname && seller.displayname !== seller.shortname}
-                    <div class="seller-search-shortname">
-                      @{seller.shortname}
+      <div class="add-item-section">
+        <div class="add-item-header">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="10" cy="10" r="8" />
+            <path d="M10 6v8M6 10h8" />
+          </svg>
+          <span class="add-item-title">Add Products to Collection</span>
+        </div>
+        <div class="product-search">
+          <input
+            type="text"
+            class="form-input search-input"
+            bind:value={searchTerm}
+            placeholder="🔍 Search sellers to add their products..."
+            onfocus={() => (showSellerSearch = true)}
+          />
+          {#if showSellerSearch}
+            <div class="search-results">
+              {#each filteredSellers as seller}
+                <button
+                  type="button"
+                  class="search-result-item"
+                  onclick={() => startAddingItem(seller)}
+                >
+                  <div class="seller-search-item">
+                    <div class="seller-avatar">
+                      {seller.displayname?.[0]?.toUpperCase() ||
+                        seller.shortname[0].toUpperCase()}
                     </div>
-                  {/if}
+                    <div class="seller-info">
+                      <div class="seller-search-name">
+                        {seller.displayname || seller.shortname}
+                      </div>
+                      {#if seller.displayname && seller.displayname !== seller.shortname}
+                        <div class="seller-search-shortname">
+                          @{seller.shortname}
+                        </div>
+                      {/if}
+                    </div>
+                    <svg
+                      class="arrow-icon"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M6 4l4 4-4 4" />
+                    </svg>
+                  </div>
+                </button>
+              {/each}
+              {#if filteredSellers.length === 0}
+                <div class="empty-search-message">
+                  {$_("collection.noSellersAvailable")}
                 </div>
-              </button>
-            {/each}
-            {#if filteredSellers.length === 0}
-              <div class="empty-search-message">
-                {$_("collection.noSellersAvailable")}
-              </div>
-            {/if}
-          </div>
-        {/if}
+              {/if}
+            </div>
+          {/if}
+        </div>
       </div>
+
+      {#if formData.items.length > 0}
+        <div class="items-list-header">
+          <span class="items-count"
+            >Selected Items ({formData.items.length})</span
+          >
+          {#if formData.items.length < 4}
+            <span class="items-warning"
+              >⚠️ Add {4 - formData.items.length} more to reach minimum</span
+            >
+          {/if}
+        </div>
+      {/if}
 
       <div class="items-list">
         {#each formData.items as item, index}
           <div class="item-card">
-            <div class="item-header">
-              <span class="item-order">#{index + 1}</span>
+            <div class="item-order-badge">#{index + 1}</div>
+            <div class="item-content">
               <div class="item-info">
                 <div class="item-name">
                   {#if item.product_displayname}
@@ -409,42 +464,93 @@
                   {/if}
                 </div>
                 <div class="item-meta">
-                  <span class="meta-badge"
-                    >Variant: {item.variant_key.substring(0, 8)}...</span
-                  >
-                  <span class="meta-badge"
-                    >Seller: {item.seller_displayname ||
+                  <span class="meta-badge variant">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    >
+                      <rect x="1" y="1" width="10" height="10" rx="1" />
+                    </svg>
+                    {item.variant_key.substring(0, 8)}...
+                  </span>
+                  <span class="meta-badge seller">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    >
+                      <path
+                        d="M6 1C3.5 1 2 4 2 4s1.5 3 4 3 4-3 4-3-1.5-3-4-3z"
+                      />
+                      <circle cx="6" cy="4" r="1.5" />
+                      <path d="M2 11c0-2 1.5-3 4-3s4 1 4 3" />
+                    </svg>
+                    {item.seller_displayname ||
                       item.seller_shortname ||
-                      item.available_product_shortname}</span
-                  >
+                      item.available_product_shortname}
+                  </span>
                 </div>
               </div>
               <div class="item-actions">
                 <button
                   type="button"
-                  class="btn-icon"
+                  class="btn-icon-modern"
                   onclick={() => moveItem(index, "up")}
                   disabled={index === 0}
                   title="Move up"
                 >
-                  ↑
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M8 12V4M4 8l4-4 4 4" />
+                  </svg>
                 </button>
                 <button
                   type="button"
-                  class="btn-icon"
+                  class="btn-icon-modern"
                   onclick={() => moveItem(index, "down")}
                   disabled={index === formData.items.length - 1}
                   title="Move down"
                 >
-                  ↓
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M8 4v8M4 8l4 4 4-4" />
+                  </svg>
                 </button>
                 <button
                   type="button"
-                  class="btn-icon btn-delete"
+                  class="btn-icon-modern btn-delete"
                   onclick={() => removeItem(index)}
                   title="Remove"
                 >
-                  ×
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M3 4h10M5 4V3h6v1M6 7v4M10 7v4M5 4l.5 9h5l.5-9" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -452,8 +558,24 @@
         {/each}
 
         {#if formData.items.length === 0}
-          <div class="empty-state">
-            <p>{$_("collection.noItemsYet")}</p>
+          <div class="empty-state-modern">
+            <svg
+              class="empty-icon"
+              width="48"
+              height="48"
+              viewBox="0 0 48 48"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect x="8" y="12" width="32" height="28" rx="2" />
+              <path d="M16 12V8h16v4M24 20v12M18 26h12" />
+            </svg>
+            <p class="empty-title">No items added yet</p>
+            <p class="empty-description">
+              Search for a seller above to start adding products to your
+              collection. You need at least 4 items.
+            </p>
           </div>
         {/if}
       </div>
@@ -586,11 +708,64 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
+  .card-header-section {
+    margin-bottom: 1.5rem;
+  }
+
   .card-title {
     font-size: 1.25rem;
     font-weight: 600;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
     color: #1f2937;
+  }
+
+  .card-subtitle {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .status-badge.error {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  .status-badge.success {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .add-item-section {
+    background: #f9fafb;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .add-item-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    color: #374151;
+  }
+
+  .add-item-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .search-input {
+    font-size: 0.95rem !important;
   }
 
   .form-group {
@@ -656,25 +831,57 @@
 
   .search-result-item {
     width: 100%;
-    padding: 0.625rem;
+    padding: 0.875rem;
     text-align: left;
     border: none;
     background: white;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
+    border-bottom: 1px solid #f3f4f6;
   }
 
   .search-result-item:hover {
-    background-color: #f3f4f6;
+    background-color: #f9fafb;
+  }
+
+  .search-result-item:last-child {
+    border-bottom: none;
   }
 
   .seller-search-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     width: 100%;
+  }
+
+  .seller-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+  }
+
+  .seller-info {
+    flex: 1;
   }
 
   .seller-search-name {
     font-weight: 500;
     color: #1f2937;
+    font-size: 0.9375rem;
+  }
+
+  .arrow-icon {
+    color: #9ca3af;
+    flex-shrink: 0;
   }
 
   .seller-search-shortname {
@@ -690,6 +897,28 @@
     font-size: 0.875rem;
   }
 
+  .items-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border-radius: 6px;
+  }
+
+  .items-count {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.875rem;
+  }
+
+  .items-warning {
+    font-size: 0.8125rem;
+    color: #f59e0b;
+    font-weight: 500;
+  }
+
   .items-list {
     display: flex;
     flex-direction: column;
@@ -701,20 +930,37 @@
   .item-card {
     padding: 1rem;
     border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    background: #f9fafb;
+    border-radius: 8px;
+    background: white;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    transition: all 0.2s;
   }
 
-  .item-header {
+  .item-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-color: #d1d5db;
+  }
+
+  .item-order-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 0.375rem 0.625rem;
+    border-radius: 6px;
+    min-width: 32px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .item-content {
+    flex: 1;
     display: flex;
+    justify-content: space-between;
     align-items: flex-start;
     gap: 0.75rem;
-  }
-
-  .item-order {
-    font-weight: 600;
-    color: #6b7280;
-    min-width: 30px;
   }
 
   .item-info {
@@ -722,9 +968,10 @@
   }
 
   .item-name {
-    font-weight: 500;
+    font-weight: 600;
     margin-bottom: 0.5rem;
     color: #1f2937;
+    font-size: 0.9375rem;
   }
 
   .item-meta {
@@ -735,15 +982,73 @@
 
   .meta-badge {
     font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-    background: #e5e7eb;
-    border-radius: 4px;
+    padding: 0.3125rem 0.625rem;
+    background: #f3f4f6;
+    border-radius: 6px;
     color: #374151;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .meta-badge.variant {
+    background: #e0e7ff;
+    color: #4338ca;
+  }
+
+  .meta-badge.seller {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .meta-badge svg {
+    width: 12px;
+    height: 12px;
   }
 
   .item-actions {
     display: flex;
-    gap: 0.25rem;
+    gap: 0.375rem;
+  }
+
+  .btn-icon-modern {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+  }
+
+  .btn-icon-modern:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    color: #374151;
+  }
+
+  .btn-icon-modern:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-icon-modern.btn-delete {
+    color: #dc2626;
+  }
+
+  .btn-icon-modern.btn-delete:hover:not(:disabled) {
+    background: #fee2e2;
+    border-color: #fca5a5;
+  }
+
+  .btn-icon-modern svg {
+    width: 16px;
+    height: 16px;
   }
 
   .btn-icon {
@@ -782,6 +1087,32 @@
     text-align: center;
     padding: 2rem;
     color: #6b7280;
+  }
+
+  .empty-state-modern {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #6b7280;
+  }
+
+  .empty-icon {
+    color: #d1d5db;
+    margin: 0 auto 1rem;
+  }
+
+  .empty-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    max-width: 400px;
+    margin: 0 auto;
+    line-height: 1.5;
   }
 
   .loading-skeleton {

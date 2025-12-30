@@ -2957,6 +2957,7 @@
   "collections.editCollection": "Edit Collection",
   "collections.createCollection": "Create Collection",
   "validation.selectAtLeastOneProduct": "Please add at least one item to the collection",
+  "validation.minProductsRequired": "Please add at least 4 items to the collection (minimum required)",
   "validation.maxProductsExceeded": "Maximum 20 items allowed per collection",
   "validation.incompleteItem": "Please complete all item selections (product, variant, and seller)",
   "validation.noVariantsAvailable": "This product has no variants available",
