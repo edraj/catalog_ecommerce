@@ -548,17 +548,6 @@
               class="form-input rtl"
             />
           </div>
-
-          <div class="form-group">
-            <label class="form-label" class:rtl={$isRTL}>
-              {$_("brands.name_ku") || "Brand Name (Kurdish)"}
-            </label>
-            <input
-              type="text"
-              bind:value={createForm.displayname_ku}
-              class="form-input rtl"
-            />
-          </div>
         </div>
 
         <div class="form-section">
@@ -586,17 +575,6 @@
               bind:value={createForm.description_ar}
               rows="3"
               placeholder="وصف مختصر للعلامة التجارية..."
-              class="form-textarea rtl"
-            ></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" class:rtl={$isRTL}>
-              {$_("brands.description_ku") || "Description (Kurdish)"}
-            </label>
-            <textarea
-              bind:value={createForm.description_ku}
-              rows="3"
               class="form-textarea rtl"
             ></textarea>
           </div>
@@ -676,17 +654,6 @@
               class="form-input rtl"
             />
           </div>
-
-          <div class="form-group">
-            <label class="form-label" class:rtl={$isRTL}>
-              {$_("brands.name_ku") || "Brand Name (Kurdish)"}
-            </label>
-            <input
-              type="text"
-              bind:value={editForm.displayname_ku}
-              class="form-input rtl"
-            />
-          </div>
         </div>
 
         <div class="form-section">
@@ -711,17 +678,6 @@
             </label>
             <textarea
               bind:value={editForm.description_ar}
-              rows="3"
-              class="form-textarea rtl"
-            ></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" class:rtl={$isRTL}>
-              {$_("brands.description_ku") || "Description (Kurdish)"}
-            </label>
-            <textarea
-              bind:value={editForm.description_ku}
               rows="3"
               class="form-textarea rtl"
             ></textarea>

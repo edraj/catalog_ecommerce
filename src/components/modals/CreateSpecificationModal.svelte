@@ -102,20 +102,6 @@
     </div>
 
     <div class="form-group">
-      <label for="specification-name-ku"
-        >{$_("common.name") || "Name"} (Kurdish)</label
-      >
-      <input
-        id="specification-name-ku"
-        type="text"
-        bind:value={formData.displayname_ku}
-        placeholder="ناوی تایبەتمەندی"
-        class="form-input"
-        dir="rtl"
-      />
-    </div>
-
-    <div class="form-group">
       <label>{$_("common.options") || "Options"} *</label>
       <p class="form-help">
         {$_("admin_dashboard.options_help") ||
@@ -145,13 +131,6 @@
               type="text"
               bind:value={option.name.ar}
               placeholder="Arabic (e.g., '4 جيجابايت')"
-              class="form-input"
-              dir="rtl"
-            />
-            <input
-              type="text"
-              bind:value={option.name.ku}
-              placeholder="Kurdish"
               class="form-input"
               dir="rtl"
             />

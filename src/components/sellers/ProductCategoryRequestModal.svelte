@@ -173,21 +173,6 @@
                     dir="rtl"
                   />
                 </div>
-
-                <div class="form-group">
-                  <!-- svelte-ignore a11y_label_has_associated_control -->
-                  <label class="form-label">
-                    {$_("seller_dashboard.name_kurdish") || "Name (Kurdish)"}
-                  </label>
-                  <input
-                    type="text"
-                    bind:value={productRequestForm.name_ku}
-                    placeholder={$_("seller_dashboard.enter_product_name") ||
-                      "Enter product name..."}
-                    class="form-input rtl"
-                    dir="rtl"
-                  />
-                </div>
               </div>
 
               <div class="form-group">
@@ -215,22 +200,6 @@
                   </label>
                   <textarea
                     bind:value={productRequestForm.description_ar}
-                    placeholder={$_("seller_dashboard.enter_description") ||
-                      "Enter product description..."}
-                    class="form-textarea rtl"
-                    dir="rtl"
-                    rows="3"
-                  ></textarea>
-                </div>
-
-                <div class="form-group">
-                  <!-- svelte-ignore a11y_label_has_associated_control -->
-                  <label class="form-label">
-                    {$_("seller_dashboard.description_kurdish") ||
-                      "Description (Kurdish)"}
-                  </label>
-                  <textarea
-                    bind:value={productRequestForm.description_ku}
                     placeholder={$_("seller_dashboard.enter_description") ||
                       "Enter product description..."}
                     class="form-textarea rtl"
@@ -433,21 +402,6 @@
                     dir="rtl"
                   />
                 </div>
-
-                <div class="form-group">
-                  <!-- svelte-ignore a11y_label_has_associated_control -->
-                  <label class="form-label">
-                    {$_("seller_dashboard.name_kurdish") || "Name (Kurdish)"}
-                  </label>
-                  <input
-                    type="text"
-                    bind:value={categoryRequestForm.name_ku}
-                    placeholder={$_("seller_dashboard.enter_category_name") ||
-                      "Enter category name..."}
-                    class="form-input rtl"
-                    dir="rtl"
-                  />
-                </div>
               </div>
 
               <div class="form-group">
@@ -475,22 +429,6 @@
                   </label>
                   <textarea
                     bind:value={categoryRequestForm.description_ar}
-                    placeholder={$_("seller_dashboard.enter_description") ||
-                      "Enter category description..."}
-                    class="form-textarea rtl"
-                    dir="rtl"
-                    rows="3"
-                  ></textarea>
-                </div>
-
-                <div class="form-group">
-                  <!-- svelte-ignore a11y_label_has_associated_control -->
-                  <label class="form-label">
-                    {$_("seller_dashboard.description_kurdish") ||
-                      "Description (Kurdish)"}
-                  </label>
-                  <textarea
-                    bind:value={categoryRequestForm.description_ku}
                     placeholder={$_("seller_dashboard.enter_description") ||
                       "Enter category description..."}
                     class="form-textarea rtl"

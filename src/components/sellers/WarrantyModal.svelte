@@ -98,21 +98,6 @@
               placeholder="مثال: سنة واحدة - النبأ"
             />
           </div>
-
-          <div class="form-group">
-            <label class="form-label" class:rtl={isRTL}>
-              <span
-                >{$_("seller_dashboard.name_kurdish") || "Name (Kurdish)"}</span
-              >
-            </label>
-            <input
-              type="text"
-              bind:value={warrantyForm.displaynameKu}
-              class="form-input"
-              class:rtl={true}
-              placeholder="نموونە: یەک ساڵ - النبأ"
-            />
-          </div>
         </div>
 
         <!-- Descriptions -->
@@ -151,22 +136,6 @@
               class:rtl={true}
               rows="4"
               placeholder="أدخل شروط وأحكام الضمان..."
-            ></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" class:rtl={isRTL}>
-              <span
-                >{$_("seller_dashboard.description_kurdish") ||
-                  "Description (Kurdish)"}</span
-              >
-            </label>
-            <textarea
-              bind:value={warrantyForm.descriptionKu}
-              class="form-textarea"
-              class:rtl={true}
-              rows="4"
-              placeholder="مەرجەکانی گەرەنتی بنووسە..."
             ></textarea>
           </div>
         </div>

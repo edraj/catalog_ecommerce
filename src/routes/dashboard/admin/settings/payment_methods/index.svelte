@@ -13,7 +13,7 @@
     updatePaymentMethod,
     deleteEntity,
   } from "@/lib/dmart_services";
-  import {website} from "@/config";
+  import { website } from "@/config";
 
   let paymentMethods = $state([]);
   let isLoading = $state(true);
@@ -209,15 +209,6 @@
                 <span class="info-label">{$_("paymentMethod.arabicName")}:</span
                 >
                 <span class="info-value">{nestedPayload.displayname.ar}</span>
-              </div>
-            {/if}
-
-            {#if nestedPayload.displayname?.ku}
-              <div class="info-item">
-                <span class="info-label"
-                  >{$_("paymentMethod.kurdishName")}:</span
-                >
-                <span class="info-value">{nestedPayload.displayname.ku}</span>
               </div>
             {/if}
           </div>
