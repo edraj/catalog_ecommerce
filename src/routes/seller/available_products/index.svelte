@@ -34,7 +34,7 @@
     type SpecificationGroup,
   } from "@/lib/utils/productVariationUtils";
   import "../styles/index.css";
-  import AddProductModal from "@/components/sellers/AddProductModal_new.svelte";
+  import AddProductModal from "@/components/sellers/AddProductModal.svelte";
   import DeleteConfirmModal from "@/components/sellers/DeleteConfirmModal.svelte";
   import { website } from "@/config";
 
@@ -214,37 +214,33 @@
 
   async function filterProductsSearch() {
     if (!productSearchTerm || productSearchTerm.trim() === "") {
-      filteredProducts = products;
+      filteredProducts = [...products];
+      hasMoreProducts = true;
       return;
     }
 
     isSearching = true;
+    hasMoreProducts = false;
+
     try {
       const { searchProducts } = await import("@/lib/dmart_services");
 
-      // Search across all products
       const searchResults = await searchProducts(
         website.main_space,
         productSearchTerm,
         1000
       );
 
-      filteredProducts = searchResults.filter((product) => {
-        const displayName = getLocalizedDisplayName(
-          product,
-          $locale
-        ).toLowerCase();
-        const searchLower = productSearchTerm.toLowerCase();
-        return displayName.includes(searchLower);
-      });
+      // searchProducts already returns filtered results, just assign them
+      filteredProducts = [...searchResults];
     } catch (error) {
       console.error("Error searching products:", error);
-      // Fallback to local search
-      filteredProducts = filterProductsBySearch(
+      const localResults = filterProductsBySearch(
         products,
         productSearchTerm,
         $locale
       );
+      filteredProducts = [...localResults];
     } finally {
       isSearching = false;
     }
@@ -300,7 +296,7 @@
           : response.records;
 
         products = reset ? newProducts : [...products, ...newProducts];
-        filteredProducts = products;
+        filteredProducts = [...products];
         hasMoreProducts = response.records.length === 20;
         productsOffset += response.records.length;
       }
