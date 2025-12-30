@@ -34,7 +34,7 @@
     type SpecificationGroup,
   } from "@/lib/utils/productVariationUtils";
   import "../styles/index.css";
-  import AddProductModal from "@/components/sellers/AddProductModal.svelte";
+  import AddProductModal from "@/components/sellers/AddProductModal_new.svelte";
   import DeleteConfirmModal from "@/components/sellers/DeleteConfirmModal.svelte";
   import { website } from "@/config";
 
@@ -64,6 +64,10 @@
   let isLoadingVariations = $state(false);
   let productSearchTerm = $state("");
   let filteredProducts = $state([]);
+  let productsOffset = $state(0);
+  let hasMoreProducts = $state(true);
+  let isLoadingMore = $state(false);
+  let isSearching = $state(false);
 
   let availabilityForm = $state({
     hasFastDelivery: false,
@@ -208,12 +212,42 @@
     filteredItems = filterItems(items, searchTerm, categoryFilter, $locale);
   }
 
-  function filterProductsSearch() {
-    filteredProducts = filterProductsBySearch(
-      products,
-      productSearchTerm,
-      $locale
-    );
+  async function filterProductsSearch() {
+    if (!productSearchTerm || productSearchTerm.trim() === "") {
+      filteredProducts = products;
+      return;
+    }
+
+    isSearching = true;
+    try {
+      const { searchProducts } = await import("@/lib/dmart_services");
+
+      // Search across all products
+      const searchResults = await searchProducts(
+        website.main_space,
+        productSearchTerm,
+        1000
+      );
+
+      filteredProducts = searchResults.filter((product) => {
+        const displayName = getLocalizedDisplayName(
+          product,
+          $locale
+        ).toLowerCase();
+        const searchLower = productSearchTerm.toLowerCase();
+        return displayName.includes(searchLower);
+      });
+    } catch (error) {
+      console.error("Error searching products:", error);
+      // Fallback to local search
+      filteredProducts = filterProductsBySearch(
+        products,
+        productSearchTerm,
+        $locale
+      );
+    } finally {
+      isSearching = false;
+    }
   }
 
   function viewItem(item) {
@@ -238,37 +272,53 @@
     loadProducts();
   }
 
-  async function loadProducts(categoryShortname?: string) {
+  async function loadProducts(
+    categoryShortname?: string,
+    reset: boolean = true
+  ) {
     isLoadingProducts = true;
-    selectedProduct = "";
-    productVariants = [];
-    selectedVariants = [];
+    if (reset) {
+      selectedProduct = "";
+      productVariants = [];
+      selectedVariants = [];
+      productsOffset = 0;
+      products = [];
+    }
     try {
       const response = await getSpaceContents(
         website.main_space,
         "products",
         "managed",
-        100,
-        0,
+        20,
+        productsOffset,
         true
       );
 
       if (response?.records) {
-        if (categoryShortname) {
-          products = filterProductsByCategory(
-            response.records,
-            categoryShortname
-          );
-        } else {
-          products = response.records;
-        }
+        const newProducts = categoryShortname
+          ? filterProductsByCategory(response.records, categoryShortname)
+          : response.records;
+
+        products = reset ? newProducts : [...products, ...newProducts];
         filteredProducts = products;
+        hasMoreProducts = response.records.length === 20;
+        productsOffset += response.records.length;
       }
     } catch (error) {
       console.error("Error loading products:", error);
       errorToastMessage("Error loading products");
     } finally {
       isLoadingProducts = false;
+    }
+  }
+
+  async function loadMoreProducts() {
+    if (!hasMoreProducts || isLoadingMore) return;
+    isLoadingMore = true;
+    try {
+      await loadProducts(selectedCategory, false);
+    } finally {
+      isLoadingMore = false;
     }
   }
 
@@ -284,7 +334,7 @@
         website.main_space,
         "variations",
         "managed",
-        100,
+        10000,
         0,
         true
       );
@@ -824,6 +874,9 @@
   {isLoadingVariations}
   {productVariants}
   {selectedVariants}
+  {hasMoreProducts}
+  {isLoadingMore}
+  {isSearching}
   onClose={closeModal}
   onSubmit={submitProductVariations}
   onProductSearchChange={(value) => (productSearchTerm = value)}
@@ -836,6 +889,7 @@
     const variant = productVariants.find((v) => v.key === key);
     if (variant) variant[field] = value;
   }}
+  onLoadMore={loadMoreProducts}
 />
 
 <!-- Delete Confirmation Modal -->

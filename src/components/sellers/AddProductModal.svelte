@@ -45,110 +45,106 @@
 </script>
 
 {#if show}
-  <div class="modal-overlay">
-    <div class="modal-container">
+  <div class="modal-overlay" onclick={onClose}>
+    <div class="modal-container" onclick={(e) => e.stopPropagation()}>
       <div class="modal-header">
-        <h2 class="modal-title">
-          {$_("seller_dashboard.add_product_item") || "Add Product to Store"}
-        </h2>
+        <div class="header-content">
+          <div class="icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="modal-title">
+              {$_("seller_dashboard.add_product_item") || "Add Product to Store"}
+            </h2>
+            <p class="modal-subtitle">Search and select products to add to your inventory</p>
+          </div>
+        </div>
         <button class="modal-close" onclick={onClose}>
-          <svg
-            class="close-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
       <div class="modal-body">
-        <!-- Product Search and Selection -->
-        <div class="form-group">
-          <label class="form-label" class:rtl={isRTL}>
-            <svg
-              class="label-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
+        <!-- Product Search -->
+        <div class="search-section">
+          <div class="search-wrapper">
+            <svg class="search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+              <circle cx="8" cy="8" r="5" stroke-width="2" />
+              <path d="M12 12l4 4" stroke-width="2" stroke-linecap="round" />
             </svg>
-            <span
-              >{$_("seller_dashboard.search_products") ||
-                "Search Products"}</span
-            >
-          </label>
-          <input
-            type="text"
-            bind:value={productSearchTerm}
-            oninput={onFilterProducts}
-            placeholder={$_("seller_dashboard.search_placeholder") ||
-              "Search by product name..."}
-            class="form-input"
-            class:rtl={isRTL}
-          />
+            <input
+              type="text"
+              bind:value={productSearchTerm}
+              oninput={onFilterProducts}
+              placeholder={$_("seller_dashboard.search_placeholder") || "Search by product name..."}
+              class="search-input"
+              class:rtl={isRTL}
+            />
+            {#if productSearchTerm}
+              <button class="clear-search" onclick={() => { productSearchTerm = ""; onFilterProducts(); }}>
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 8.586L6.707 5.293a1 1 0 00-1.414 1.414L8.586 10l-3.293 3.293a1 1 0 101.414 1.414L10 11.414l3.293 3.293a1 1 0 001.414-1.414L11.414 10l3.293-3.293a1 1 0 00-1.414-1.414L10 8.586z" />
+                </svg>
+              </button>
+            {/if}
+          </div>
+          {#if filteredProducts.length > 0}
+            <div class="results-count">
+              {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} found
+            </div>
+          {/if}
         </div>
 
         <!-- Product List -->
         {#if isLoadingProducts}
-          <div class="loading-select">
-            <div class="mini-spinner"></div>
-            <span
-              >{$_("seller_dashboard.loading") || "Loading products..."}</span
-            >
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>{$_("seller_dashboard.loading") || "Loading products..."}</p>
           </div>
         {:else if filteredProducts.length === 0}
-          <p class="empty-message">
-            {$_("seller_dashboard.no_products_found") || "No products found"}
-          </p>
+          <div class="empty-state-card">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor">
+              <rect x="8" y="8" width="32" height="32" rx="4" stroke-width="2" />
+              <path d="M16 24h16M24 16v16" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            <p class="empty-message">{$_("seller_dashboard.no_products_found") || "No products found"}</p>
+            <p class="empty-hint">Try adjusting your search terms</p>
+          </div>
         {:else}
-          <div class="form-group">
-            <label class="form-label" class:rtl={isRTL}>
-              <svg
-                class="label-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
+          <div class="products-grid">
+            {#each filteredProducts as product}
+              <button
+                class="product-card"
+                class:selected={selectedProduct === product.shortname}
+                onclick={() => {
+                  selectedProduct = product.shortname;
+                  onProductChange();
+                }}
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                />
-              </svg>
-              <span
-                >{$_("seller_dashboard.select_product") ||
-                  "Select Product"}</span
-              >
-            </label>
-            <select
-              bind:value={selectedProduct}
-              onchange={onProductChange}
-              class="form-select"
-              class:rtl={isRTL}
-            >
-              <option value="">
-                {$_("seller_dashboard.choose_product") || "Choose a product..."}
-              </option>
-              {#each filteredProducts as product}
-                <option value={product.shortname}>
-                  {getLocalizedDisplayName(product)}
-                </option>
-              {/each}
-            </select>
+                <div class="product-card-header">
+                  <div class="product-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </div>
+                  {#if selectedProduct === product.shortname}
+                    <div class="selected-badge">
+                      <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                      </svg>
+                    </div>
+                  {/if}
+                </div>
+                <h3 class="product-name">{getLocalizedDisplayName(product)}</h3>
+                <div class="product-meta">
+                  <span class="product-id">ID: {product.shortname}</span>
+                </div>
+              </button>
+            {/each}
           </div>
         {/if}
 

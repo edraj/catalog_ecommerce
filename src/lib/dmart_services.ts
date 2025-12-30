@@ -2044,6 +2044,29 @@ export async function searchInCatalog(search: string = "") {
   return allRecordsArrays.flat();
 }
 
+export async function searchProducts(
+  spaceName: string,
+  search: string = "",
+  limit: number = 1000
+): Promise<any[]> {
+  const queryRequest: QueryRequest = {
+    filter_shortnames: [],
+    type: QueryType.search,
+    space_name: spaceName,
+    subpath: "products",
+    exact_subpath: false,
+    sort_by: "shortname",
+    sort_type: SortyType.ascending,
+    search,
+    limit,
+    retrieve_json_payload: true,
+    retrieve_attachments: false,
+  };
+
+  const response: ApiQueryResponse = await Dmart.query(queryRequest, "managed");
+  return response?.records ?? [];
+}
+
 export async function createMessages(data: any) {
   let actionRequest: ActionRequest;
 

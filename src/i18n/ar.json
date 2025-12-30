@@ -1463,6 +1463,7 @@
   "create_space": "إنشاء مساحة",
   "Users": "المستخدمون",
   "seller_dashboard": {
+    "load_more": "تحميل المزيد من العناصر",
     "select_variations": "اختر المتغيرات الخاصة بك",
     "color": "اللون",
     "optional": "اختياري",

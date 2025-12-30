@@ -1280,6 +1280,7 @@
   "fix_validation_errors": "Please fix validation errors before saving",
   "Users": "Users",
   "seller_dashboard": {
+    "load_more": "Load More",
     "enter_details": "Enter Details",
     "remove": "Remove",
     "title": "Seller Dashboard",
