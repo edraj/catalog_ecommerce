@@ -412,7 +412,7 @@
                           </svg>
                           <span>{$_("variation_requests")}</span>
                         </button>
-                        <button
+                        <!-- <button
                           aria-label={`Manage Regions`}
                           onclick={() =>
                             handleMenuItemClick(
@@ -482,27 +482,6 @@
                           <span>{$_("payment_methods")}</span>
                         </button>
                         <button
-                          aria-label={`Manage Configurations`}
-                          onclick={() =>
-                            handleMenuItemClick("/dashboard/admin/configs")}
-                          class="menu-item submenu-item"
-                        >
-                          <svg
-                            class="menu-icon"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M11.983 13.983a2 2 0 100-4 2 2 0 000 4zM19.4 15a1.65 1.65 0 01.33 1.82l-.58 1a1.65 1.65 0 01-1.51.88h-1.12a6.66 6.66 0 01-1.3.76l-.17 1.12a1.65 1.65 0 01-.88 1.51l-1 .58a1.65 1.65 0 01-1.82-.33l-.8-.8a6.66 6.66 0 01-.76-1.3H7.4a1.65 1.65 0 01-1.51-.88l-.58-1a1.65 1.65 0 01.33-1.82l.8-.8a6.66 6.66 0 010-1.52l-.8-.8a1.65 1.65 0 01-.33-1.82l.58-1a1.65 1.65 0 011.51-.88h1.12c.23-.46.49-.89.76-1.3l-.17-1.12a1.65 1.65 0 01.88-1.51l1-.58a1.65 1.65 0 011.82.33l.8.8c.51-.13 1.03-.24 1.52-.24s1.01.11 1.52.24l.8-.8a1.65 1.65 0 011.82-.33l1 .58a1.65 1.65 0 01.88 1.51l-.17 1.12c.46.23.89.49 1.3.76h1.12a1.65 1.65 0 011.51.88l.58 1a1.65 1.65 0 01-.33 1.82l-.8.8c.13.51.24 1.03.24 1.52s-.11 1.01-.24 1.52l.8.8z"
-                            />
-                          </svg>
-                          <span>{$_("DefaultRole")}</span>
-                        </button>
-                        <button
                           aria-label={`Manage Widgets`}
                           onclick={() =>
                             handleMenuItemClick(
@@ -524,6 +503,50 @@
                             />
                           </svg>
                           <span>{$_("widgets.title")}</span>
+                        </button> -->
+                        <button
+                          aria-label={`Settings`}
+                          onclick={() =>
+                            handleMenuItemClick(
+                              "/dashboard/admin/[space_name]/settings"
+                            )}
+                          class="menu-item submenu-item"
+                        >
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 4c0-.64-.06-1.27-.18-1.89l2.03-1.58a1 1 0 00.24-1.32l-1.92-3.32a1 1 0 00-1.25-.45l-2.39.96a7.03 7.03 0 00-1.63-.95l-.36-2.53A1 1 0 0014 2h-4a1 1 0 00-1 .84l-.36 2.53c-.6.23-1.17.54-1.7.9l-2.39-.96a1 1 0 00-1.25.45l-1.92 3.32a1 1 0 00.24 1.32l2.03 1.58c-.12.62-.18 1.25-.18 1.89s.06 1.27.18 1.89l-2.03 1.58a1 1 0 00-.24 1.32l1.92 3.32a1 1 0 001.25.45l2.39-.96c.52.36 1.09.67 1.7.9l.36 2.53A1 1 0 0010 22h4a1 1 0 001-.84l.36-2.53c.6-.23 1.17-.54 1.7-.9l2.39.96a1 1 0 001.25-.45l1.92-3.32a1 1 0 00-.24-1.32l-2.03-1.58c.12-.62.18-1.25.18-1.89z"
+                            />
+                          </svg>
+                          <span>{$_("admin.settings")}</span>
+                        </button>
+                        <button
+                          aria-label={`Manage Configurations`}
+                          onclick={() =>
+                            handleMenuItemClick("/dashboard/admin/configs")}
+                          class="menu-item submenu-item"
+                        >
+                          <svg
+                            class="menu-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M11.983 13.983a2 2 0 100-4 2 2 0 000 4zM19.4 15a1.65 1.65 0 01.33 1.82l-.58 1a1.65 1.65 0 01-1.51.88h-1.12a6.66 6.66 0 01-1.3.76l-.17 1.12a1.65 1.65 0 01-.88 1.51l-1 .58a1.65 1.65 0 01-1.82-.33l-.8-.8a6.66 6.66 0 01-.76-1.3H7.4a1.65 1.65 0 01-1.51-.88l-.58-1a1.65 1.65 0 01.33-1.82l.8-.8a6.66 6.66 0 010-1.52l-.8-.8a1.65 1.65 0 01-.33-1.82l.58-1a1.65 1.65 0 011.51-.88h1.12c.23-.46.49-.89.76-1.3l-.17-1.12a1.65 1.65 0 01.88-1.51l1-.58a1.65 1.65 0 011.82.33l.8.8c.51-.13 1.03-.24 1.52-.24s1.01.11 1.52.24l.8-.8a1.65 1.65 0 011.82-.33l1 .58a1.65 1.65 0 01.88 1.51l-.17 1.12c.46.23.89.49 1.3.76h1.12a1.65 1.65 0 011.51.88l.58 1a1.65 1.65 0 01-.33 1.82l-.8.8c.13.51.24 1.03.24 1.52s-.11 1.01-.24 1.52l.8.8z"
+                            />
+                          </svg>
+                          <span>{$_("DefaultRole")}</span>
                         </button>
                       </div>
                     </div>

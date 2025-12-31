@@ -3107,5 +3107,11 @@
   "widgets.error.saveFailed": "Failed to save widget",
   "widgets.error.uploadFailed": "Failed to upload image",
   "widgets.error.requiredFields": "Please fill in all required fields",
-  "widgets.error.keyRequired": "Key is required"
+  "widgets.error.keyRequired": "Key is required",
+  "admin.settings": "Settings",
+  "admin.settings_navigation_help": "Quickly navigate to settings features below:",
+  "admin.settings_regions": "Regions",
+  "admin.settings_collections": "Collections",
+  "admin.settings_tiles": "Tiles",
+  "admin.settings_widgets": "Widgets"
 }

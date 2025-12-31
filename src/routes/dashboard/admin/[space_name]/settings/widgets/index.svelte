@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { _ } from "../../../../../i18n";
+  import { _ } from "@/i18n";
   import {
     getWidgets,
     updateWidget,
