@@ -191,17 +191,6 @@
         </button>
       </form>
 
-      <div class="register-link" class:rtl={isRTL}>
-        <span class="register-text">{$_("DontHaveAccount")}</span>
-        <button
-          aria-label={`Go to register`}
-          class="link-button"
-          onclick={goToRegister}
-        >
-          {$_("Register")}
-        </button>
-      </div>
-
       <div class="terms-text" class:rtl={isRTL}>
         <p>{$_("TermsAndConditions")}</p>
       </div>
