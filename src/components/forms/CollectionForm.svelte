@@ -112,7 +112,9 @@
       );
 
       if (response && response.records) {
-        availableProducts = response.records;
+        availableProducts = response.records.filter(
+          (record) => record.attributes?.is_active === true
+        );
       }
     } catch (error) {
       console.error("Failed to load seller products:", error);

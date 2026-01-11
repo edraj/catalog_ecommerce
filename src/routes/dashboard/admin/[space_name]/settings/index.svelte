@@ -3,7 +3,6 @@
   import { goto } from "@roxi/routify";
   $goto;
   const settingsLinks = [
-    { path: "regions", label: $_("admin.settings_regions") || "Regions" },
     {
       path: "collections",
       label: $_("admin.settings_collections") || "Collections",

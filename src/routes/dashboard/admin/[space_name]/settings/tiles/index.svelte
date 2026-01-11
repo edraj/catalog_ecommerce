@@ -214,6 +214,7 @@
       const body: any = {
         shape: tileForm.shape,
         region: tileForm.region,
+        collection_shortname: tileForm.collection_shortname,
         style: {
           backgroundColor: tileForm.backgroundColor,
         },
@@ -221,6 +222,7 @@
 
       if (tileForm.shape === "banner") {
         body.url = tileForm.url;
+        body.collection_shortname = null;
       } else {
         body.card_type = tileForm.card_type;
         body.collection_shortname = tileForm.collection_shortname;
@@ -288,6 +290,7 @@
 
       if (tileForm.shape === "banner") {
         body.url = tileForm.url;
+        body.collection_shortname = null;
       } else {
         body.card_type = tileForm.card_type;
         body.collection_shortname = tileForm.collection_shortname;
