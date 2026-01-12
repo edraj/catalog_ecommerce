@@ -8,6 +8,10 @@
       label: $_("admin.settings_collections") || "Collections",
     },
     { path: "tiles", label: $_("admin.settings_tiles") || "Tiles" },
+    {
+      path: "payment_methods",
+      label: $_("admin.settings_payment_methods") || "Payment Methods",
+    },
     { path: "widgets", label: $_("admin.settings_widgets") || "Widgets" },
   ];
 </script>

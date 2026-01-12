@@ -3159,5 +3159,6 @@
   "admin.settings_regions": "Regions",
   "admin.settings_collections": "Collections",
   "admin.settings_tiles": "Tiles",
-  "admin.settings_widgets": "Widgets"
+  "admin.settings_widgets": "Widgets",
+  "admin.settings_payment_methods": "Payment Methods"
 }

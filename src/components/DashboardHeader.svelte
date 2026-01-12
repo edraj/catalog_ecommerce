@@ -164,7 +164,7 @@
           </div>
           <span
             class="font-bold text-xl text-gray-900 sm:inline-block group-hover:text-blue-600 transition-colors duration-200"
-            >{$_("Catalog")}</span
+            >{$_("dashboard")}</span
           >
         </button>
       </div>

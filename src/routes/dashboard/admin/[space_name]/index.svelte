@@ -1,7 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto, params } from "@roxi/routify";
-  import { deleteEntity, getSpaceContents } from "@/lib/dmart_services";
+  import {
+    deleteEntity,
+    getSpaceContents,
+    getSpaces,
+  } from "@/lib/dmart_services";
   import { Diamonds } from "svelte-loading-spinners";
   import { _, locale } from "@/i18n";
   import { derived } from "svelte/store";
@@ -33,6 +37,8 @@
   let error = $state(null);
   let spaceName = $state("");
   let actualSubpath = $state("");
+  let currentSpace = $state(null);
+  let hideFolders = $state([]);
   let isEditMode = $state(false);
   let selectedFolderForEdit = $state(null);
 
@@ -104,6 +110,14 @@
   async function loadContents() {
     isLoading = true;
     try {
+      const spacesResponse = await getSpaces(false, "managed");
+      if (spacesResponse && spacesResponse.records) {
+        currentSpace = spacesResponse.records.find(
+          (s) => s.shortname === spaceName
+        );
+        hideFolders = currentSpace?.attributes?.hide_folders || [];
+      }
+
       const response = await getSpaceContents(
         spaceName,
         "/",
@@ -113,7 +127,12 @@
         true
       );
       if (response && response.records) {
-        allContents = response.records;
+        allContents = response.records.filter((item) => {
+          if (item.resource_type === "folder" && item.subpath === "/") {
+            return !hideFolders.includes(item.shortname);
+          }
+          return true;
+        });
         applyFilters();
       } else {
         allContents = [];
@@ -415,8 +434,6 @@
     }
   }
 
-  // Helper functions now imported from utility modules
-
   function goBack() {
     $goto("/dashboard/admin");
   }
@@ -425,7 +442,7 @@
 <div class="min-h-screen bg-gray-50" class:rtl={$isRTL}>
   <div class="bg-white border-b border-gray-200">
     <div class="container mx-auto px-4 py-6 max-w-7xl">
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between py-6">
         <div class="flex items-center space-x-4" class:space-x-reverse={$isRTL}>
           <button
             onclick={goBack}
