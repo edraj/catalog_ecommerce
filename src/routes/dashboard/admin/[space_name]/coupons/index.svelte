@@ -15,6 +15,9 @@
   import "./index.css";
   import { ResourceType } from "@edraj/tsdmart";
   import { website } from "@/config";
+  import { formatNumber } from "@/lib/helpers";
+  import { _, locale } from "@/i18n";
+  import { Pagination } from "@/components/ui";
 
   let activeTab: "all" | "global" | "create" = "all";
   let allCoupons: any[] = [];
@@ -23,6 +26,20 @@
   let loading = false;
   let selectedFilter = "all";
   let searchQuery = "";
+
+  // Pagination state
+  let currentPage = $state(1);
+  let itemsPerPage = $state(10);
+
+  let paginatedCoupons = $derived.by(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredCoupons.slice(startIndex, endIndex);
+  });
+
+  let totalPages = $derived.by(() => {
+    return Math.ceil(filteredCoupons.length / itemsPerPage);
+  });
 
   let newCoupon = {
     code: "",
@@ -154,6 +171,7 @@
     }
 
     filteredCoupons = coupons;
+    currentPage = 1; // Reset to first page when filters change
   }
 
   $: {
@@ -342,6 +360,10 @@
     newCoupon.applies_to[field] = newCoupon.applies_to[field].filter(
       (_, i) => i !== index
     );
+  }
+
+  function handlePageChange(page: number) {
+    currentPage = page;
   }
 </script>
 
@@ -545,7 +567,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each filteredCoupons as coupon}
+            {#each paginatedCoupons as coupon}
               {@const body = coupon.attributes.payload?.body || {}}
               <tr>
                 <td class="code-cell">
@@ -643,6 +665,14 @@
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        {currentPage}
+        {totalPages}
+        totalItems={filteredCoupons.length}
+        {itemsPerPage}
+        onPageChange={handlePageChange}
+      />
     {/if}
   {/if}
 </div>

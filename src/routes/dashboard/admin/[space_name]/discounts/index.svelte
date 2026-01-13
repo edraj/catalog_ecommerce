@@ -8,6 +8,8 @@
   import { derived } from "svelte/store";
   import { getSpaceContents } from "@/lib/dmart_services";
   import { getLocalizedDisplayName } from "@/lib/utils/sellerUtils";
+  import { formatNumber } from "@/lib/helpers";
+  import { Pagination } from "@/components/ui";
   import "./index.css";
   import { website } from "@/config";
 
@@ -20,6 +22,10 @@
   let searchTerm = $state("");
   let typeFilter = $state("all");
   let discountTypeFilter = $state("all");
+
+  // Pagination state
+  let currentPage = $state(1);
+  let itemsPerPage = $state(10);
 
   let filteredDiscounts = $derived.by(() => {
     let filtered = [...discounts];
@@ -47,6 +53,16 @@
     }
 
     return filtered;
+  });
+
+  let paginatedDiscounts = $derived.by(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredDiscounts.slice(startIndex, endIndex);
+  });
+
+  let totalPages = $derived.by(() => {
+    return Math.ceil(filteredDiscounts.length / itemsPerPage);
   });
 
   const isRTL = derived(
@@ -238,6 +254,10 @@
     const to = new Date(validity.to);
     return now >= from && now <= to;
   }
+
+  function handlePageChange(page: number) {
+    currentPage = page;
+  }
 </script>
 
 <div class="admin-page-container">
@@ -425,7 +445,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each filteredDiscounts as discount (discount.key || discount.record_shortname)}
+            {#each paginatedDiscounts as discount (discount.key || discount.record_shortname)}
               {@const isActiveNow = isActive(discount.validity)}
               {@const isExpiredNow = isExpired(discount.validity?.to)}
               <tr class="item-row">
@@ -529,6 +549,14 @@
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        {currentPage}
+        {totalPages}
+        totalItems={filteredDiscounts.length}
+        {itemsPerPage}
+        onPageChange={handlePageChange}
+      />
     {/if}
   </div>
 </div>

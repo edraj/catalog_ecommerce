@@ -8,3 +8,4 @@ export { default as EmptyState } from "./EmptyState.svelte";
 export { default as LoadingSpinner } from "./LoadingSpinner.svelte";
 export { default as Alert } from "./Alert.svelte";
 export { default as Select } from "./Select.svelte";
+export { default as Pagination } from "./Pagination.svelte";

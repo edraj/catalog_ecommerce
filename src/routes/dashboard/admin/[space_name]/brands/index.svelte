@@ -22,6 +22,8 @@
     SearchOutline,
   } from "flowbite-svelte-icons";
   import { getLocalizedDisplayName, formatDate } from "@/lib/utils/adminUtils";
+  import { formatNumber } from "@/lib/helpers";
+  import { Pagination } from "@/components/ui";
   import { website } from "@/config";
 
   $goto;
@@ -40,6 +42,20 @@
   let selectedBrand = $state(null);
   let searchTerm = $state("");
   let topBrandsFilter = $state("all");
+
+  // Pagination state
+  let currentPage = $state(1);
+  let itemsPerPage = $state(10);
+
+  let paginatedBrands = $derived.by(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredBrands.slice(startIndex, endIndex);
+  });
+
+  let totalPages = $derived.by(() => {
+    return Math.ceil(filteredBrands.length / itemsPerPage);
+  });
 
   let createForm = $state({
     displayname_en: "",
@@ -123,6 +139,7 @@
     }
 
     filteredBrands = result;
+    currentPage = 1; // Reset to first page when filters change
   }
 
   function openCreateModal() {
@@ -277,6 +294,10 @@
     }
   }
 
+  function handlePageChange(page: number) {
+    currentPage = page;
+  }
+
   $effect(() => {
     applyFilters();
   });
@@ -419,7 +440,7 @@
         </div>
 
         <div class="list-body">
-          {#each filteredBrands as brand (brand.shortname)}
+          {#each paginatedBrands as brand (brand.shortname)}
             <div class="list-row">
               <div class="list-cell name-cell">
                 <div class="brand-info">
@@ -494,6 +515,14 @@
           {/each}
         </div>
       </div>
+
+      <Pagination
+        {currentPage}
+        {totalPages}
+        totalItems={filteredBrands.length}
+        {itemsPerPage}
+        onPageChange={handlePageChange}
+      />
     {/if}
   </div>
 </div>

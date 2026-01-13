@@ -23,6 +23,7 @@
   import { getLocalizedDisplayName, generateKey } from "@/lib/utils/adminUtils";
   import { getVariationOptions, getOptionName } from "@/lib/utils/entityUtils";
   import { validateOptionForm } from "@/lib/utils/validationUtils";
+  import { formatNumber } from "@/lib/helpers";
   import {
     Button,
     IconButton,

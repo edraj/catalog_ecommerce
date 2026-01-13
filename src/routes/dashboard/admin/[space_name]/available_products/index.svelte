@@ -8,6 +8,8 @@
   import { derived } from "svelte/store";
   import { getSpaceContents, updateEntity } from "@/lib/dmart_services";
   import { getLocalizedDisplayName } from "@/lib/utils/sellerUtils";
+  import { formatNumber } from "@/lib/helpers";
+  import { Pagination } from "@/components/ui";
   import "./index.css";
   import { website } from "@/config";
 
@@ -25,6 +27,10 @@
   let currentOffset = $state(0);
   let hasMoreProducts = $state(true);
   const PRODUCTS_PER_PAGE = 50;
+
+  // Pagination state
+  let currentPage = $state(1);
+  let itemsPerPage = $state(10);
 
   let filteredProducts = $derived.by(() => {
     let filtered = [...products];
@@ -49,6 +55,16 @@
     }
 
     return filtered;
+  });
+
+  let paginatedProducts = $derived.by(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredProducts.slice(startIndex, endIndex);
+  });
+
+  let totalPages = $derived.by(() => {
+    return Math.ceil(filteredProducts.length / itemsPerPage);
   });
 
   const isRTL = derived(
@@ -130,6 +146,7 @@
       currentOffset = 0;
       products = [];
       hasMoreProducts = true;
+      currentPage = 1;
     }
 
     if (selectedSeller === "all") {
@@ -273,6 +290,10 @@
       console.error("Error updating product status:", error);
       errorToastMessage("Failed to update product status");
     }
+  }
+
+  function handlePageChange(page: number) {
+    currentPage = page;
   }
 
   $effect(() => {
@@ -437,7 +458,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each filteredProducts as item (item.shortname)}
+            {#each paginatedProducts as item (item.shortname)}
               {@const body = item.attributes?.payload?.body}
               {@const variants = body?.variants || []}
               {@const totalStock = variants.reduce(
@@ -611,6 +632,14 @@
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        {currentPage}
+        {totalPages}
+        totalItems={filteredProducts.length}
+        {itemsPerPage}
+        onPageChange={handlePageChange}
+      />
 
       {#if hasMoreProducts && !searchTerm && statusFilter === "all"}
         <div class="load-more-container">

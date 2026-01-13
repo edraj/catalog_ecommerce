@@ -22,6 +22,7 @@
   } from "flowbite-svelte-icons";
   import { getLocalizedDisplayName, formatDate } from "@/lib/utils/adminUtils";
   import { getEntityContent } from "@/lib/utils/entityUtils";
+  import { formatNumber } from "@/lib/helpers";
   import {
     Button,
     IconButton,
@@ -50,6 +51,20 @@
   let showDeleteModal = $state(false);
   let selectedSpecification = $state(null);
   let editFormData = $state<SpecificationFormData | undefined>(undefined);
+
+  // Pagination state
+  let currentPage = $state(1);
+  let itemsPerPage = $state(10);
+
+  let paginatedSpecifications = $derived.by(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return specifications.slice(startIndex, endIndex);
+  });
+
+  let totalPages = $derived.by(() => {
+    return Math.ceil(specifications.length / itemsPerPage);
+  });
 
   onMount(async () => {
     await loadSpecifications();
@@ -286,6 +301,24 @@
     if (option?.[locale]) return option[locale];
     return option?.en || option?.ar || option?.ku || "";
   }
+
+  function goToPage(page: number) {
+    if (page >= 1 && page <= totalPages) {
+      currentPage = page;
+    }
+  }
+
+  function nextPage() {
+    if (currentPage < totalPages) {
+      currentPage++;
+    }
+  }
+
+  function previousPage() {
+    if (currentPage > 1) {
+      currentPage--;
+    }
+  }
 </script>
 
 <div class="specifications-page" class:rtl={$isRTL}>
@@ -326,7 +359,7 @@
     </EmptyState>
   {:else}
     <div class="specifications-grid">
-      {#each specifications as specification}
+      {#each paginatedSpecifications as specification}
         <div class="specification-card">
           <div class="specification-header">
             <h3 class="specification-name">
@@ -380,6 +413,80 @@
         </div>
       {/each}
     </div>
+
+    {#if totalPages > 1}
+      <div class="pagination">
+        <button
+          class="btn btn-secondary btn-small"
+          onclick={previousPage}
+          disabled={currentPage === 1}
+        >
+          {$_("previous")}
+        </button>
+
+        <div class="pagination-pages">
+          {#if totalPages <= 7}
+            {#each Array(totalPages) as _, index}
+              <button
+                class="page-btn"
+                class:active={currentPage === index + 1}
+                onclick={() => goToPage(index + 1)}
+              >
+                {formatNumber(index + 1, $locale)}
+              </button>
+            {/each}
+          {:else}
+            <button
+              class="page-btn"
+              class:active={currentPage === 1}
+              onclick={() => goToPage(1)}
+            >
+              {formatNumber(1, $locale)}
+            </button>
+
+            {#if currentPage > 3}
+              <span class="page-ellipsis">...</span>
+            {/if}
+
+            {#each Array(totalPages) as _, index}
+              {#if index + 1 > 1 && index + 1 < totalPages && Math.abs(currentPage - (index + 1)) <= 1}
+                <button
+                  class="page-btn"
+                  class:active={currentPage === index + 1}
+                  onclick={() => goToPage(index + 1)}
+                >
+                  {formatNumber(index + 1, $locale)}
+                </button>
+              {/if}
+            {/each}
+
+            {#if currentPage < totalPages - 2}
+              <span class="page-ellipsis">...</span>
+            {/if}
+
+            <button
+              class="page-btn"
+              class:active={currentPage === totalPages}
+              onclick={() => goToPage(totalPages)}
+            >
+              {formatNumber(totalPages, $locale)}
+            </button>
+          {/if}
+        </div>
+
+        <div class="pagination-info">
+          <span>{formatNumber(specifications.length, $locale)} {$_("total_items")}</span>
+        </div>
+
+        <button
+          class="btn btn-secondary btn-small"
+          onclick={nextPage}
+          disabled={currentPage === totalPages}
+        >
+          {$_("next")}
+        </button>
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -404,3 +511,101 @@
   onConfirm={handleDeleteSpecification}
   specification={selectedSpecification}
 />
+
+<style>
+  .pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .pagination-pages {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .page-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #374151;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-btn:hover:not(.active) {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+  }
+
+  .page-btn.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+    font-weight: 600;
+  }
+
+  .page-ellipsis {
+    padding: 0 8px;
+    color: #9ca3af;
+    font-weight: 600;
+  }
+
+  .pagination-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6b7280;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn-small {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: #e5e7eb;
+  }
+</style>

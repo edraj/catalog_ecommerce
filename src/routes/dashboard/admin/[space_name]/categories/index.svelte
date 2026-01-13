@@ -31,11 +31,13 @@
     countSubCategories,
   } from "@/lib/utils/entityUtils";
   import { validateCategoryForm } from "@/lib/utils/validationUtils";
+  import { formatNumber } from "@/lib/helpers";
   import {
     Button,
     IconButton,
     LoadingSpinner,
     EmptyState,
+    Pagination,
   } from "@/components/ui";
   import {
     CreateCategoryModal,
@@ -62,6 +64,10 @@
   let selectedParentFilter = $state("all");
   let expandedCategories = $state(new Set());
   let editFormData = $state<CategoryFormData | undefined>(undefined);
+
+  // Pagination state
+  let currentPage = $state(1);
+  let itemsPerPage = $state(10);
 
   onMount(async () => {
     await Promise.all([loadCategories(), loadSpecifications()]);
@@ -272,6 +278,20 @@
       return getSubCategories(selectedParentFilter, categories);
     }
   });
+
+  let paginatedCategories = $derived.by(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredCategories.slice(startIndex, endIndex);
+  });
+
+  let totalPages = $derived.by(() => {
+    return Math.ceil(filteredCategories.length / itemsPerPage);
+  });
+
+  function handlePageChange(page: number) {
+    currentPage = page;
+  }
 </script>
 
 <div class="categories-page" class:rtl={$isRTL}>
@@ -343,7 +363,7 @@
           <div class="list-col col-date">Created</div>
           <div class="list-col col-actions">Actions</div>
         </div>
-        {#each filteredCategories as category}
+        {#each paginatedCategories as category}
           {@const subCategories = getSubCategories(
             category.shortname,
             categories
@@ -446,6 +466,14 @@
           {/if}
         {/each}
       </div>
+
+      <Pagination
+        {currentPage}
+        {totalPages}
+        totalItems={filteredCategories.length}
+        {itemsPerPage}
+        onPageChange={handlePageChange}
+      />
     {/if}
   </div>
 </div>
