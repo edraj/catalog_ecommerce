@@ -21,8 +21,8 @@
   let searchTerm = $state("");
   let statusFilter = $state("all");
   let scopeFilter = $state("all");
+  let totalWarrantiesCount = $state(0);
 
-  // Pagination state
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
 
@@ -67,6 +67,14 @@
 
   let totalPages = $derived.by(() => {
     return Math.ceil(filteredWarranties.length / itemsPerPage);
+  });
+
+  $effect(() => {
+    searchTerm;
+    statusFilter;
+    scopeFilter;
+    totalWarrantiesCount = filteredWarranties.length;
+    currentPage = 1;
   });
 
   const isRTL = derived(
@@ -579,7 +587,10 @@
           </div>
 
           <div class="pagination-info">
-            <span>{formatNumber(filteredWarranties.length, $locale)} {$_("total_items")}</span>
+            <span
+              >{formatNumber(filteredWarranties.length, $locale)}
+              {$_("total_items")}</span
+            >
           </div>
 
           <button

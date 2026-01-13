@@ -26,19 +26,26 @@
   let loading = false;
   let selectedFilter = "all";
   let searchQuery = "";
+  let totalCouponsCount = $state(0);
+  let allCouponsCache: any[] = [];
 
-  // Pagination state
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
 
   let paginatedCoupons = $derived.by(() => {
+    if (selectedFilter !== "all" || searchQuery) {
+      return filteredCoupons;
+    }
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredCoupons.slice(startIndex, endIndex);
   });
 
   let totalPages = $derived.by(() => {
-    return Math.ceil(filteredCoupons.length / itemsPerPage);
+    if (selectedFilter !== "all" || searchQuery) {
+      return Math.ceil(filteredCoupons.length / itemsPerPage);
+    }
+    return Math.ceil(totalCouponsCount / itemsPerPage);
   });
 
   let newCoupon = {
@@ -171,17 +178,18 @@
     }
 
     filteredCoupons = coupons;
-    currentPage = 1; // Reset to first page when filters change
+    totalCouponsCount = coupons.length;
+    currentPage = 1;
   }
 
-  $: {
+  $effect(() => {
     allCoupons;
     globalCoupons;
     activeTab;
     selectedFilter;
     searchQuery;
     applyFilters();
-  }
+  });
 
   async function handleCreateCoupon() {
     if (!newCoupon.code.trim()) {

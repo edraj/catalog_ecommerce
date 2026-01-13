@@ -47,8 +47,8 @@
   let showDetailsModal = $state(false);
   let selectedProduct = $state(null);
   let selectedCategoryFilter = $state("all");
+  let totalProductsCount = $state(0);
 
-  // Pagination state
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
 
@@ -596,7 +596,16 @@
   });
 
   let totalPages = $derived.by(() => {
-    return Math.ceil(filteredProducts.length / itemsPerPage);
+    if (selectedCategoryFilter !== "all") {
+      return Math.ceil(filteredProducts.length / itemsPerPage);
+    }
+    return Math.ceil(totalProductsCount / itemsPerPage);
+  });
+
+  $effect(() => {
+    selectedCategoryFilter;
+    totalProductsCount = filteredProducts.length;
+    currentPage = 1;
   });
 
   // Filtered variations with search
@@ -1118,7 +1127,10 @@
         </div>
 
         <div class="pagination-info">
-          <span>{formatNumber(filteredProducts.length, $locale)} {$_("total_items")}</span>
+          <span
+            >{formatNumber(filteredProducts.length, $locale)}
+            {$_("total_items")}</span
+          >
         </div>
 
         <button

@@ -29,8 +29,8 @@
   let categoryFilter = $state("all");
   let showCreateModal = $state(false);
   let isSaving = $state(false);
+  let totalServicesCount = $state(0);
 
-  // Pagination state
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
 
@@ -77,6 +77,14 @@
 
   let totalPages = $derived.by(() => {
     return Math.ceil(filteredServices.length / itemsPerPage);
+  });
+
+  $effect(() => {
+    searchTerm;
+    statusFilter;
+    categoryFilter;
+    totalServicesCount = filteredServices.length;
+    currentPage = 1;
   });
 
   const isRTL = derived(
@@ -702,7 +710,10 @@
           </div>
 
           <div class="pagination-info">
-            <span>{formatNumber(filteredServices.length, $locale)} {$_("total_items")}</span>
+            <span
+              >{formatNumber(filteredServices.length, $locale)}
+              {$_("total_items")}</span
+            >
           </div>
 
           <button

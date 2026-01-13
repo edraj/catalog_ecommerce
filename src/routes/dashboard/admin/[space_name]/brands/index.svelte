@@ -42,19 +42,24 @@
   let selectedBrand = $state(null);
   let searchTerm = $state("");
   let topBrandsFilter = $state("all");
+  let totalBrandsCount = $state(0);
+  let allBrandsCache = $state([]);
 
-  // Pagination state
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
 
   let paginatedBrands = $derived.by(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredBrands.slice(startIndex, endIndex);
+    if (searchTerm || topBrandsFilter !== "all") {
+      return filteredBrands;
+    }
+    return brands;
   });
 
   let totalPages = $derived.by(() => {
-    return Math.ceil(filteredBrands.length / itemsPerPage);
+    if (searchTerm || topBrandsFilter !== "all") {
+      return Math.ceil(filteredBrands.length / itemsPerPage);
+    }
+    return Math.ceil(totalBrandsCount / itemsPerPage);
   });
 
   let createForm = $state({
@@ -83,6 +88,32 @@
 
   async function loadBrands() {
     isLoading = true;
+    const offset = (currentPage - 1) * itemsPerPage;
+
+    try {
+      const response = await getSpaceContents(
+        website.main_space,
+        "brands",
+        "managed",
+        itemsPerPage,
+        offset,
+        true
+      );
+
+      if (response?.records) {
+        brands = response.records;
+        totalBrandsCount =
+          response.attributes?.total || response.records.length;
+      }
+    } catch (error) {
+      console.error("Error loading brands:", error);
+      errorToastMessage("Failed to load brands");
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  async function loadAllBrandsForFiltering() {
     try {
       const response = await getSpaceContents(
         website.main_space,
@@ -94,21 +125,18 @@
       );
 
       if (response?.records) {
-        brands = response.records;
+        allBrandsCache = response.records;
         applyFilters();
       }
     } catch (error) {
-      console.error("Error loading brands:", error);
+      console.error("Error loading brands for filtering:", error);
       errorToastMessage("Failed to load brands");
-    } finally {
-      isLoading = false;
     }
   }
 
   function applyFilters() {
-    let result = [...brands];
+    let result = [...allBrandsCache];
 
-    // Filter by search term
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
       result = result.filter((brand) => {
@@ -127,7 +155,6 @@
       });
     }
 
-    // Filter by top brands
     if (topBrandsFilter === "top") {
       result = result.filter(
         (brand) => brand.attributes?.payload?.body?.top === true
@@ -139,7 +166,7 @@
     }
 
     filteredBrands = result;
-    currentPage = 1; // Reset to first page when filters change
+    currentPage = 1;
   }
 
   function openCreateModal() {
@@ -296,10 +323,21 @@
 
   function handlePageChange(page: number) {
     currentPage = page;
+    if (!searchTerm && topBrandsFilter === "all") {
+      loadBrands();
+    }
   }
 
   $effect(() => {
-    applyFilters();
+    if (searchTerm || topBrandsFilter !== "all") {
+      if (allBrandsCache.length === 0) {
+        loadAllBrandsForFiltering();
+      } else {
+        applyFilters();
+      }
+    } else {
+      loadBrands();
+    }
   });
 </script>
 
@@ -363,18 +401,32 @@
       <div class="stats-bar">
         <div class="stat-item">
           <span class="stat-label">{$_("brands.total") || "Total"}:</span>
-          <span class="stat-value">{brands.length}</span>
+          <span class="stat-value"
+            >{searchTerm || topBrandsFilter !== "all"
+              ? allBrandsCache.length
+              : totalBrandsCount}</span
+          >
         </div>
         <div class="stat-item">
           <span class="stat-label">{$_("brands.showing") || "Showing"}:</span>
-          <span class="stat-value">{filteredBrands.length}</span>
+          <span class="stat-value"
+            >{searchTerm || topBrandsFilter !== "all"
+              ? filteredBrands.length
+              : Math.min(
+                  itemsPerPage,
+                  totalBrandsCount - (currentPage - 1) * itemsPerPage
+                )}</span
+          >
         </div>
         <div class="stat-item">
           <span class="stat-label"
             >{$_("brands.top_brands") || "Top Brands"}:</span
           >
           <span class="stat-value"
-            >{brands.filter((b) => b.attributes?.payload?.body?.top === true)
+            >{(searchTerm || topBrandsFilter !== "all"
+              ? allBrandsCache
+              : brands
+            ).filter((b) => b.attributes?.payload?.body?.top === true)
               .length}</span
           >
         </div>
@@ -519,7 +571,9 @@
       <Pagination
         {currentPage}
         {totalPages}
-        totalItems={filteredBrands.length}
+        totalItems={searchTerm || topBrandsFilter !== "all"
+          ? filteredBrands.length
+          : totalBrandsCount}
         {itemsPerPage}
         onPageChange={handlePageChange}
       />

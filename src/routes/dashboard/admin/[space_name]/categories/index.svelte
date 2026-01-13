@@ -64,8 +64,9 @@
   let selectedParentFilter = $state("all");
   let expandedCategories = $state(new Set());
   let editFormData = $state<CategoryFormData | undefined>(undefined);
+  let totalCategoriesCount = $state(0);
+  let allCategoriesCache = $state([]);
 
-  // Pagination state
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
 
@@ -75,6 +76,32 @@
 
   async function loadCategories() {
     isLoading = true;
+    const offset = (currentPage - 1) * itemsPerPage;
+
+    try {
+      const response = await getSpaceContents(
+        website.main_space,
+        "categories",
+        "managed",
+        itemsPerPage,
+        offset,
+        true
+      );
+
+      if (response?.records) {
+        categories = response.records;
+        totalCategoriesCount =
+          response.attributes?.total || response.records.length;
+      }
+    } catch (error) {
+      console.error("Error loading categories:", error);
+      errorToastMessage("Failed to load categories");
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  async function loadAllCategoriesForFiltering() {
     try {
       const response = await getSpaceContents(
         website.main_space,
@@ -86,13 +113,11 @@
       );
 
       if (response?.records) {
-        categories = response.records;
+        allCategoriesCache = response.records;
       }
     } catch (error) {
-      console.error("Error loading categories:", error);
+      console.error("Error loading categories for filtering:", error);
       errorToastMessage("Failed to load categories");
-    } finally {
-      isLoading = false;
     }
   }
 
@@ -268,30 +293,52 @@
   }
 
   const parentCategories = $derived.by(() => {
-    return categories.filter((c) => isParentCategory(c));
+    const source =
+      selectedParentFilter === "all" || selectedParentFilter === "root"
+        ? categories
+        : allCategoriesCache;
+    return source.filter((c) => isParentCategory(c));
   });
 
   const filteredCategories = $derived.by(() => {
     if (selectedParentFilter === "all" || selectedParentFilter === "root") {
       return parentCategories;
     } else {
-      return getSubCategories(selectedParentFilter, categories);
+      return getSubCategories(selectedParentFilter, allCategoriesCache);
     }
   });
 
   let paginatedCategories = $derived.by(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredCategories.slice(startIndex, endIndex);
+    if (selectedParentFilter !== "all" && selectedParentFilter !== "root") {
+      return filteredCategories;
+    }
+    return categories;
   });
 
   let totalPages = $derived.by(() => {
-    return Math.ceil(filteredCategories.length / itemsPerPage);
+    if (selectedParentFilter !== "all" && selectedParentFilter !== "root") {
+      return Math.ceil(filteredCategories.length / itemsPerPage);
+    }
+    return Math.ceil(totalCategoriesCount / itemsPerPage);
   });
 
   function handlePageChange(page: number) {
     currentPage = page;
+    if (selectedParentFilter === "all" || selectedParentFilter === "root") {
+      loadCategories();
+    }
   }
+
+  $effect(() => {
+    if (selectedParentFilter !== "all" && selectedParentFilter !== "root") {
+      if (allCategoriesCache.length === 0) {
+        loadAllCategoriesForFiltering();
+      }
+      currentPage = 1;
+    } else {
+      loadCategories();
+    }
+  });
 </script>
 
 <div class="categories-page" class:rtl={$isRTL}>

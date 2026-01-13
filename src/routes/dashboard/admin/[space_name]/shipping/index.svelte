@@ -21,8 +21,8 @@
   let searchTerm = $state("");
   let statusFilter = $state("all");
   let typeFilter = $state("all");
+  let totalShippingCount = $state(0);
 
-  // Pagination state
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
 
@@ -61,6 +61,14 @@
 
   let totalPages = $derived.by(() => {
     return Math.ceil(filteredShippingOptions.length / itemsPerPage);
+  });
+
+  $effect(() => {
+    searchTerm;
+    statusFilter;
+    typeFilter;
+    totalShippingCount = filteredShippingOptions.length;
+    currentPage = 1;
   });
 
   const isRTL = derived(
@@ -596,7 +604,10 @@
           </div>
 
           <div class="pagination-info">
-            <span>{formatNumber(filteredShippingOptions.length, $locale)} {$_("total_items")}</span>
+            <span
+              >{formatNumber(filteredShippingOptions.length, $locale)}
+              {$_("total_items")}</span
+            >
           </div>
 
           <button

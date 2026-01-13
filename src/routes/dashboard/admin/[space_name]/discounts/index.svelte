@@ -22,8 +22,8 @@
   let searchTerm = $state("");
   let typeFilter = $state("all");
   let discountTypeFilter = $state("all");
+  let totalDiscountsCount = $state(0);
 
-  // Pagination state
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
 
@@ -63,6 +63,13 @@
 
   let totalPages = $derived.by(() => {
     return Math.ceil(filteredDiscounts.length / itemsPerPage);
+  });
+
+  $effect(() => {
+    searchTerm;
+    typeFilter;
+    discountTypeFilter;
+    currentPage = 1;
   });
 
   const isRTL = derived(

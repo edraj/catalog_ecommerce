@@ -19,16 +19,12 @@
   let products = $state([]);
   let isLoadingSellers = $state(true);
   let isLoadingProducts = $state(false);
-  let isLoadingMore = $state(false);
   let searchTerm = $state("");
   let statusFilter = $state("all");
   let productsMap = $state(new Map());
   let allVariations = $state([]);
-  let currentOffset = $state(0);
-  let hasMoreProducts = $state(true);
-  const PRODUCTS_PER_PAGE = 50;
+  let totalProductsCount = $state(0);
 
-  // Pagination state
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
 
@@ -58,13 +54,17 @@
   });
 
   let paginatedProducts = $derived.by(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredProducts.slice(startIndex, endIndex);
+    if (searchTerm || statusFilter !== "all") {
+      return filteredProducts;
+    }
+    return products;
   });
 
   let totalPages = $derived.by(() => {
-    return Math.ceil(filteredProducts.length / itemsPerPage);
+    if (searchTerm || statusFilter !== "all") {
+      return Math.ceil(filteredProducts.length / itemsPerPage);
+    }
+    return Math.ceil(totalProductsCount / itemsPerPage);
   });
 
   const isRTL = derived(
@@ -141,20 +141,15 @@
     }
   }
 
-  async function loadSellerProducts(reset = true) {
-    if (reset) {
-      currentOffset = 0;
-      products = [];
-      hasMoreProducts = true;
-      currentPage = 1;
-    }
+  async function loadSellerProducts() {
+    isLoadingProducts = true;
 
-    if (selectedSeller === "all") {
-      isLoadingProducts = reset;
-      isLoadingMore = !reset;
-      try {
-        const newProducts = [];
-        let hasMore = false;
+    const offset = (currentPage - 1) * itemsPerPage;
+
+    try {
+      if (selectedSeller === "all") {
+        const allProducts = [];
+        let totalCount = 0;
 
         for (const seller of sellers) {
           try {
@@ -162,16 +157,16 @@
               website.main_space,
               `available_products/${seller.shortname}`,
               "managed",
-              PRODUCTS_PER_PAGE,
-              currentOffset,
+              itemsPerPage,
+              offset,
               true
             );
 
             if (response?.records) {
-              newProducts.push(...response.records);
-              if (response.records.length === PRODUCTS_PER_PAGE) {
-                hasMore = true;
-              }
+              allProducts.push(...response.records);
+            }
+            if (response?.attributes?.total) {
+              totalCount += response.attributes.total;
             }
           } catch (error) {
             console.error(
@@ -181,50 +176,30 @@
           }
         }
 
-        products = reset ? newProducts : [...products, ...newProducts];
-        hasMoreProducts = hasMore;
-        currentOffset += PRODUCTS_PER_PAGE;
-      } catch (error) {
-        console.error("Error loading products:", error);
-        errorToastMessage("Error loading products");
-      } finally {
-        isLoadingProducts = false;
-        isLoadingMore = false;
-      }
-      return;
-    }
+        products = allProducts;
+        totalProductsCount = totalCount || allProducts.length;
+      } else {
+        const response = await getSpaceContents(
+          website.main_space,
+          `available_products/${selectedSeller}`,
+          "managed",
+          itemsPerPage,
+          offset,
+          true
+        );
 
-    isLoadingProducts = reset;
-    isLoadingMore = !reset;
-    try {
-      const response = await getSpaceContents(
-        website.main_space,
-        `available_products/${selectedSeller}`,
-        "managed",
-        PRODUCTS_PER_PAGE,
-        currentOffset,
-        true
-      );
-
-      if (response?.records) {
-        products = reset
-          ? response.records
-          : [...products, ...response.records];
-        hasMoreProducts = response.records.length === PRODUCTS_PER_PAGE;
-        currentOffset += PRODUCTS_PER_PAGE;
+        if (response?.records) {
+          products = response.records;
+          totalProductsCount =
+            response.attributes?.total || response.records.length;
+        }
       }
     } catch (error) {
       console.error("Error loading products:", error);
       errorToastMessage("Error loading products");
     } finally {
       isLoadingProducts = false;
-      isLoadingMore = false;
     }
-  }
-
-  async function loadMoreProducts() {
-    if (!hasMoreProducts || isLoadingMore) return;
-    await loadSellerProducts(false);
   }
 
   function resolveOptionKey(
@@ -294,12 +269,22 @@
 
   function handlePageChange(page: number) {
     currentPage = page;
+    if (!searchTerm && statusFilter === "all") {
+      loadSellerProducts();
+    }
   }
 
   $effect(() => {
     if (selectedSeller && selectedSeller !== previousSeller) {
       previousSeller = selectedSeller;
-      loadSellerProducts(true);
+      currentPage = 1;
+      loadSellerProducts();
+    }
+  });
+
+  $effect(() => {
+    if (searchTerm || statusFilter !== "all") {
+      currentPage = 1;
     }
   });
 </script>
@@ -431,8 +416,20 @@
       <div class="items-stats">
         <p>
           {$_("admin.showing") || "Showing"}
-          <strong>{filteredProducts.length}</strong>
-          {$_("admin.products") || "products"}
+          {#if searchTerm || statusFilter !== "all"}
+            <strong>{filteredProducts.length}</strong>
+            {$_("admin.products") || "products"}
+          {:else}
+            <strong
+              >{Math.min(
+                itemsPerPage,
+                totalProductsCount - (currentPage - 1) * itemsPerPage
+              )}</strong
+            >
+            {$_("admin.of") || "of"}
+            <strong>{totalProductsCount}</strong>
+            {$_("admin.products") || "products"}
+          {/if}
           {#if selectedSeller !== "all"}
             from <strong
               >{getSellerDisplayName(
@@ -636,34 +633,12 @@
       <Pagination
         {currentPage}
         {totalPages}
-        totalItems={filteredProducts.length}
+        totalItems={searchTerm || statusFilter !== "all"
+          ? filteredProducts.length
+          : totalProductsCount}
         {itemsPerPage}
         onPageChange={handlePageChange}
       />
-
-      {#if hasMoreProducts && !searchTerm && statusFilter === "all"}
-        <div class="load-more-container">
-          <button
-            class="load-more-btn"
-            onclick={loadMoreProducts}
-            disabled={isLoadingMore}
-          >
-            {#if isLoadingMore}
-              <div class="spinner-small"></div>
-              <span>{$_("common.loading") || "Loading..."}</span>
-            {:else}
-              <svg viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-              <span>{$_("admin.load_more") || "Load More Products"}</span>
-            {/if}
-          </button>
-        </div>
-      {/if}
     {/if}
   </div>
 </div>

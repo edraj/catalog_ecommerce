@@ -51,8 +51,8 @@
   let showDeleteModal = $state(false);
   let selectedSpecification = $state(null);
   let editFormData = $state<SpecificationFormData | undefined>(undefined);
+  let totalSpecificationsCount = $state(0);
 
-  // Pagination state
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
 
@@ -72,18 +72,22 @@
 
   async function loadSpecifications() {
     isLoading = true;
+    const offset = (currentPage - 1) * itemsPerPage;
+
     try {
       const response = await getSpaceContents(
         website.main_space,
         "specifications",
         "managed",
-        100,
-        0,
+        itemsPerPage,
+        offset,
         true
       );
 
       if (response?.records) {
         specifications = response.records;
+        totalSpecificationsCount =
+          response.attributes?.total || response.records.length;
       }
     } catch (error) {
       console.error("Error loading specifications:", error);
@@ -475,7 +479,10 @@
         </div>
 
         <div class="pagination-info">
-          <span>{formatNumber(specifications.length, $locale)} {$_("total_items")}</span>
+          <span
+            >{formatNumber(totalSpecificationsCount, $locale)}
+            {$_("total_items")}</span
+          >
         </div>
 
         <button
