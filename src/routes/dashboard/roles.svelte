@@ -21,7 +21,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   let roleTypes = $state([]);
@@ -47,7 +47,7 @@
       const rolesResponse = await getSpaceContents(
         "management",
         "roles",
-        "managed"
+        "managed",
       );
 
       if (rolesResponse.status === "success") {
@@ -94,7 +94,7 @@
         ResourceType.role,
         "managed",
         true,
-        false
+        false,
       );
 
       if (roleEntity) {
@@ -110,7 +110,7 @@
         roleExists = false;
         currentRoleShortname = "";
         successToastMessage(
-          `No existing ${roleType} role found. Using defaults.`
+          `No existing ${roleType} role found. Using defaults.`,
         );
       }
     } catch (error) {
@@ -137,7 +137,7 @@
         ResourceType.role,
         formData,
         "",
-        ""
+        "",
       );
 
       if (result) {
@@ -175,7 +175,7 @@
         "roles",
         ResourceType.role,
         "",
-        ""
+        "",
       );
 
       if (result) {
@@ -207,7 +207,7 @@
         currentRoleShortname,
         "management",
         "roles",
-        ResourceType.role
+        ResourceType.role,
       );
 
       if (result) {
@@ -337,7 +337,7 @@
         {#if selectedRoleType === "super_admin"}
           Super Admin has full system access and can manage all aspects of the
           platform.
-        {:else if selectedRoleType === "admin"}
+        {:else if selectedRoleType === "zm_admin"}
           Admin has administrative access to manage content and users.
         {:else if selectedRoleType === "moderator"}
           Moderator can review and moderate content but has limited
