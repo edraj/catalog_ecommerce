@@ -11,8 +11,8 @@
     isLoadingVariations: boolean;
     productVariants: any[];
     selectedVariants: string[];
-    hasMoreProducts: boolean;
-    isLoadingMore: boolean;
+    currentPage: number;
+    totalPages: number;
     isSearching: boolean;
     onClose: () => void;
     onSubmit: () => void;
@@ -23,7 +23,7 @@
     isVariantSelected: (variantKey: string) => boolean;
     getLocalizedDisplayName: (item: any) => string;
     updateVariant: (key: string, field: string, value: any) => void;
-    onLoadMore: () => void;
+    onPageChange: (page: number) => void;
   };
 
   let {
@@ -36,8 +36,8 @@
     isLoadingVariations,
     productVariants,
     selectedVariants,
-    hasMoreProducts,
-    isLoadingMore,
+    currentPage,
+    totalPages,
     isSearching,
     onClose,
     onSubmit,
@@ -48,7 +48,7 @@
     isVariantSelected,
     getLocalizedDisplayName,
     updateVariant,
-    onLoadMore,
+    onPageChange,
   }: Props = $props();
 </script>
 
@@ -95,15 +95,21 @@
         <!-- Search Section -->
         <div class="search-section">
           <div class="search-wrapper">
-            <svg
-              class="search-icon"
-              viewBox="0 0 20 20"
-              fill="none"
-              stroke="currentColor"
-            >
-              <circle cx="8" cy="8" r="5" stroke-width="2" />
-              <path d="M12 12l4 4" stroke-width="2" stroke-linecap="round" />
-            </svg>
+            {#if isSearching}
+              <div class="search-icon spinner-icon">
+                <div class="spinner-small"></div>
+              </div>
+            {:else}
+              <svg
+                class="search-icon"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+              >
+                <circle cx="8" cy="8" r="5" stroke-width="2" />
+                <path d="M12 12l4 4" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            {/if}
             <input
               type="text"
               bind:value={productSearchTerm}
@@ -113,7 +119,7 @@
               class="search-input"
               class:rtl={isRTL}
             />
-            {#if productSearchTerm}
+            {#if productSearchTerm && !isSearching}
               <button
                 class="clear-search"
                 onclick={() => {
@@ -178,71 +184,130 @@
             <p class="empty-hint">Try adjusting your search terms</p>
           </div>
         {:else}
-          <div class="products-grid">
-            {#each filteredProducts as product}
-              <button
-                class="product-card"
-                class:selected={selectedProduct === product.shortname}
-                onclick={() => {
-                  selectedProduct = product.shortname;
-                  onProductChange();
-                }}
-              >
-                <div class="product-card-header">
-                  <div class="product-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                      />
-                    </svg>
-                  </div>
-                  {#if selectedProduct === product.shortname}
-                    <div class="selected-badge">
-                      <svg viewBox="0 0 20 20" fill="currentColor">
-                        <path
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        />
-                      </svg>
-                    </div>
-                  {/if}
-                </div>
-                <h3 class="product-name">{getLocalizedDisplayName(product)}</h3>
-                <div class="product-meta">
-                  <span class="product-id"
-                    >ID: {product.shortname.slice(0, 12)}...</span
+          <div class="products-table-container">
+            <table class="products-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;"></th>
+                  <th
+                    >{$_("seller_dashboard.product_name") || "Product Name"}</th
                   >
-                </div>
-              </button>
-            {/each}
+                  <th style="width: 200px;"
+                    >{$_("seller_dashboard.product_id") || "Product ID"}</th
+                  >
+                  <th style="width: 150px;"
+                    >{$_("common.category") || "Category"}</th
+                  >
+                </tr>
+              </thead>
+              <tbody>
+                {#each filteredProducts as product}
+                  <tr
+                    class="product-row"
+                    class:selected={selectedProduct === product.shortname}
+                    onclick={() => {
+                      selectedProduct = product.shortname;
+                      onProductChange();
+                    }}
+                  >
+                    <td class="radio-cell">
+                      <div class="radio-wrapper">
+                        <input
+                          type="radio"
+                          name="product-select"
+                          checked={selectedProduct === product.shortname}
+                          onchange={() => {
+                            selectedProduct = product.shortname;
+                            onProductChange();
+                          }}
+                        />
+                        <div class="radio-custom"></div>
+                      </div>
+                    </td>
+                    <td class="product-name-cell">
+                      <div class="product-name-content">
+                        <div class="product-icon-small">
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                            />
+                          </svg>
+                        </div>
+                        <span class="product-name-text"
+                          >{getLocalizedDisplayName(product)}</span
+                        >
+                      </div>
+                    </td>
+                    <td class="product-id-cell">
+                      <code class="product-id-code">{product.shortname}</code>
+                    </td>
+                    <td class="product-category-cell">
+                      <span class="category-badge">
+                        {product.attributes?.payload?.body?.category ||
+                          "General"}
+                      </span>
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
           </div>
 
-          <!-- Load More Button -->
-          {#if hasMoreProducts && !isSearching}
-            <div class="load-more-container">
+          <!-- Pagination -->
+          {#if totalPages > 1 && !isSearching}
+            <div class="pagination-container">
               <button
-                class="load-more-btn"
-                onclick={onLoadMore}
-                disabled={isLoadingMore}
+                class="pagination-btn"
+                onclick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1 || isLoadingProducts}
+                title={$_("common.previous") || "Previous"}
               >
-                {#if isLoadingMore}
-                  <div class="spinner-small"></div>
-                  <span>{$_("seller_dashboard.loading") || "Loading..."}</span>
-                {:else}
-                  <svg viewBox="0 0 20 20" fill="currentColor">
-                    <path
-                      fill-rule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                  <span
-                    >{$_("seller_dashboard.load_more") ||
-                      "Load More Products"}</span
-                  >
-                {/if}
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fill-rule="evenodd"
+                    d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </button>
+
+              <div class="pagination-numbers">
+                {#each Array.from({ length: totalPages }, (_, i) => i + 1) as pageNum}
+                  {#if pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)}
+                    <button
+                      class="pagination-number"
+                      class:active={pageNum === currentPage}
+                      onclick={() => onPageChange(pageNum)}
+                      disabled={isLoadingProducts}
+                    >
+                      {pageNum}
+                    </button>
+                  {:else if pageNum === currentPage - 2 || pageNum === currentPage + 2}
+                    <span class="pagination-ellipsis">...</span>
+                  {/if}
+                {/each}
+              </div>
+
+              <button
+                class="pagination-btn"
+                onclick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || isLoadingProducts}
+                title={$_("common.next") || "Next"}
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fill-rule="evenodd"
+                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
               </button>
             </div>
           {/if}
@@ -274,7 +339,7 @@
                 </p>
               </div>
             {:else if productVariants.length === 0}
-              <div class="info-message">
+              <div class="info-message warning">
                 <svg viewBox="0 0 20 20" fill="currentColor">
                   <path
                     fill-rule="evenodd"
@@ -282,11 +347,153 @@
                     clip-rule="evenodd"
                   />
                 </svg>
-                <p>
-                  {$_("seller_dashboard.no_variations") ||
-                    "No variations available for this product"}
-                </p>
+                <div>
+                  <p class="warning-title">
+                    {$_("seller_dashboard.no_variations") ||
+                      "No variations available for this product"}
+                  </p>
+                  <p class="warning-subtitle">
+                    You can still add this product by selecting "No Variation"
+                    below
+                  </p>
+                </div>
               </div>
+
+              <!-- No Variation Option -->
+              <div class="variants-grid">
+                <label
+                  class="variant-card"
+                  class:selected={isVariantSelected("none")}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isVariantSelected("none")}
+                    onchange={() => onToggleVariant("none")}
+                    class="variant-checkbox-hidden"
+                  />
+                  <div class="variant-card-content">
+                    <div class="variant-header">
+                      <div class="variant-icon none-icon">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                          <path
+                            fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clip-rule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      {#if isVariantSelected("none")}
+                        <div class="check-icon">
+                          <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            />
+                          </svg>
+                        </div>
+                      {/if}
+                    </div>
+                    <h4 class="variant-name">No Variation</h4>
+                    <span class="variant-type">Standard Product</span>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Details for No Variation -->
+              {#if isVariantSelected("none")}
+                <div class="details-section">
+                  <h4 class="details-title">
+                    {$_("seller_dashboard.enter_details") || "Enter Details"}
+                  </h4>
+                  <div class="details-table-wrapper">
+                    <table class="details-table">
+                      <thead>
+                        <tr>
+                          <th>{$_("seller_dashboard.sku") || "SKU"}</th>
+                          <th>{$_("seller_dashboard.stock") || "Stock"}</th>
+                          <th
+                            >{$_("seller_dashboard.price") || "Price"} (IQD)</th
+                          >
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>
+                            <input
+                              type="text"
+                              value={productVariants[0]?.sku || ""}
+                              oninput={(e) => {
+                                if (!productVariants[0]) {
+                                  productVariants[0] = {
+                                    key: "none",
+                                    sku: "",
+                                    qty: 0,
+                                    retailPrice: 0,
+                                  };
+                                }
+                                productVariants[0].sku = e.currentTarget.value;
+                                updateVariant(
+                                  "none",
+                                  "sku",
+                                  e.currentTarget.value,
+                                );
+                              }}
+                              placeholder="Enter SKU"
+                              class="table-input"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              min="0"
+                              value={productVariants[0]?.qty || 0}
+                              oninput={(e) => {
+                                if (!productVariants[0]) {
+                                  productVariants[0] = {
+                                    key: "none",
+                                    sku: "",
+                                    qty: 0,
+                                    retailPrice: 0,
+                                  };
+                                }
+                                const val =
+                                  parseInt(e.currentTarget.value) || 0;
+                                productVariants[0].qty = val;
+                                updateVariant("none", "qty", val);
+                              }}
+                              placeholder="0"
+                              class="table-input"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={productVariants[0]?.retailPrice || 0}
+                              oninput={(e) => {
+                                if (!productVariants[0]) {
+                                  productVariants[0] = {
+                                    key: "none",
+                                    sku: "",
+                                    qty: 0,
+                                    retailPrice: 0,
+                                  };
+                                }
+                                const val =
+                                  parseFloat(e.currentTarget.value) || 0;
+                                productVariants[0].retailPrice = val;
+                                updateVariant("none", "retailPrice", val);
+                              }}
+                              placeholder="0.00"
+                              class="table-input"
+                            />
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {/if}
             {:else}
               <!-- Variants Grid -->
               <div class="variants-grid">
@@ -361,7 +568,7 @@
                         </tr>
                       </thead>
                       <tbody>
-                        {#each productVariants.filter( (v) => isVariantSelected(v.key) ) as variant}
+                        {#each productVariants.filter( (v) => isVariantSelected(v.key), ) as variant}
                           <tr>
                             <td class="variant-cell">
                               {#if variant.type === "color" && variant.hex}
@@ -423,9 +630,12 @@
           onclick={onSubmit}
           disabled={!selectedProduct ||
             selectedVariants.length === 0 ||
-            !productVariants
+            (!productVariants
               .filter((v) => isVariantSelected(v.key))
-              .some((v) => v.retailPrice)}
+              .some((v) => v.retailPrice) &&
+              !isVariantSelected("none")) ||
+            (isVariantSelected("none") &&
+              (!productVariants[0] || !productVariants[0].retailPrice))}
         >
           <svg
             viewBox="0 0 20 20"
@@ -473,7 +683,7 @@
     background: white;
     border-radius: 1rem;
     width: 100%;
-    max-width: 1200px;
+    max-width: 1400px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
@@ -589,6 +799,332 @@
     pointer-events: none;
   }
 
+  .products-table-container {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: white;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .products-table-container::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .products-table-container::-webkit-scrollbar-track {
+    background: #f3f4f6;
+  }
+
+  .products-table-container::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+  }
+
+  .products-table-container::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+
+  .products-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .products-table thead {
+    background: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .products-table th {
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .products-table tbody tr {
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .products-table tbody tr:hover {
+    background: #f9fafb;
+  }
+
+  .products-table tbody tr.selected {
+    background: #f0f4ff;
+    border-left: 3px solid #281f51;
+  }
+
+  .products-table tbody tr.selected:hover {
+    background: #e8f0ff;
+  }
+
+  .products-table td {
+    padding: 1rem;
+    font-size: 0.875rem;
+    color: #374151;
+  }
+
+  .radio-cell {
+    width: 50px;
+    text-align: center;
+  }
+
+  .radio-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  .radio-wrapper input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .radio-custom {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #d1d5db;
+    border-radius: 50%;
+    position: relative;
+    transition: all 0.2s;
+  }
+
+  .radio-wrapper input[type="radio"]:checked + .radio-custom {
+    border-color: #281f51;
+    background: #281f51;
+  }
+
+  .radio-wrapper input[type="radio"]:checked + .radio-custom::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: white;
+  }
+
+  .product-name-cell {
+    font-weight: 500;
+  }
+
+  .product-name-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .product-icon-small {
+    width: 36px;
+    height: 36px;
+    border-radius: 0.5rem;
+    background: linear-gradient(135deg, #281f51 0%, #3d2f6a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .product-icon-small svg {
+    width: 18px;
+    height: 18px;
+    stroke: white;
+    stroke-width: 2;
+  }
+
+  .product-name-text {
+    color: #111827;
+    font-weight: 500;
+  }
+
+  .product-id-cell {
+    font-family: "Monaco", "Courier New", monospace;
+  }
+
+  .product-id-code {
+    padding: 0.25rem 0.5rem;
+    background: #f3f4f6;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    color: #4b5563;
+    font-family: "Monaco", "Courier New", monospace;
+  }
+
+  .category-badge {
+    padding: 0.25rem 0.75rem;
+    background: #ede9fe;
+    color: #6d28d9;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .spinner-small {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e5e7eb;
+    border-top-color: #281f51;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  .spinner-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pagination-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding: 1rem 0;
+  }
+
+  .pagination-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .pagination-btn:hover:not(:disabled) {
+    border-color: #281f51;
+    background: #f8f7fb;
+  }
+
+  .pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .pagination-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: #6b7280;
+  }
+
+  .pagination-numbers {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .pagination-number {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .pagination-number:hover:not(:disabled):not(.active) {
+    border-color: #281f51;
+    background: #f8f7fb;
+  }
+
+  .pagination-number.active {
+    border-color: #281f51;
+    background: #281f51;
+    color: white;
+  }
+
+  .pagination-number:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .pagination-ellipsis {
+    padding: 0 0.25rem;
+    color: #9ca3af;
+    font-weight: 500;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: #6b7280;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #281f51;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    background: #f9fafb;
+    border: 2px dashed #e5e7eb;
+    border-radius: 0.75rem;
+    color: #6b7280;
+  }
+
+  .empty-state-card svg {
+    width: 64px;
+    height: 64px;
+    stroke: #d1d5db;
+    margin-bottom: 1rem;
+  }
+
+  .empty-message {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #374151;
+    margin: 0 0 0.5rem;
+  }
+
+  .empty-hint {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    margin: 0;
+  }
+
   .search-input {
     width: 100%;
     padding: 0.875rem 3rem 0.875rem 3rem;
@@ -604,19 +1140,23 @@
     box-shadow: 0 0 0 3px rgba(40, 31, 81, 0.1);
   }
 
+  .search-input.rtl {
+    text-align: right;
+    padding: 0.875rem 3rem 0.875rem 3rem;
+  }
+
   .clear-search {
     position: absolute;
     right: 1rem;
-    width: 24px;
-    height: 24px;
-    border: none;
     background: transparent;
+    border: none;
     cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0.375rem;
-    transition: background 0.2s;
+    transition: all 0.2s;
   }
 
   .clear-search:hover {
@@ -624,215 +1164,18 @@
   }
 
   .clear-search svg {
-    width: 16px;
-    height: 16px;
-    fill: #9ca3af;
+    width: 18px;
+    height: 18px;
+    color: #9ca3af;
   }
 
   .results-count {
     margin-top: 0.75rem;
-    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     color: #6b7280;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem;
-    gap: 1rem;
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid #e5e7eb;
-    border-top-color: #281f51;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  .spinner-small {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #e5e7eb;
-    border-top-color: #281f51;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .load-more-container {
-    display: flex;
-    justify-content: center;
-    padding: 1.5rem 0;
-    margin-top: 1rem;
-  }
-
-  .load-more-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #281f51 0%, #3d2f6f 100%);
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
     font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .load-more-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  }
-
-  .load-more-btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-
-  .load-more-btn svg {
-    width: 20px;
-    height: 20px;
-    fill: currentColor;
-  }
-
-  .empty-state-card {
-    text-align: center;
-    padding: 3rem;
-    background: #f9fafb;
-    border-radius: 0.75rem;
-    border: 2px dashed #d1d5db;
-  }
-
-  .empty-state-card svg {
-    width: 64px;
-    height: 64px;
-    stroke: #d1d5db;
-    margin: 0 auto 1rem;
-  }
-
-  .empty-message {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #374151;
-    margin: 0;
-  }
-
-  .empty-hint {
-    font-size: 0.875rem;
-    color: #9ca3af;
-    margin: 0.5rem 0 0;
-  }
-
-  .products-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1rem;
-  }
-
-  .product-card {
-    padding: 1.25rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 0.75rem;
-    background: white;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .product-card:hover {
-    border-color: #281f51;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-  }
-
-  .product-card.selected {
-    border-color: #281f51;
-    background: #f8f7fb;
-    box-shadow: 0 4px 6px -1px rgba(40, 31, 81, 0.1);
-  }
-
-  .product-card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .product-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 0.5rem;
-    background: #f3f4f6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .product-card.selected .product-icon {
-    background: #281f51;
-  }
-
-  .product-icon svg {
-    width: 20px;
-    height: 20px;
-    stroke: #6b7280;
-  }
-
-  .product-card.selected .product-icon svg {
-    stroke: white;
-  }
-
-  .selected-badge {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: #10b981;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .selected-badge svg {
-    width: 16px;
-    height: 16px;
-    fill: white;
-  }
-
-  .product-name {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #111827;
-    margin: 0;
-    line-height: 1.4;
-  }
-
-  .product-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .product-id {
-    font-size: 0.75rem;
-    color: #9ca3af;
-    font-family: monospace;
   }
 
   .variations-section {
@@ -863,7 +1206,7 @@
 
   .info-message {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.75rem;
     padding: 1rem;
     background: #fef3c7;
@@ -871,17 +1214,41 @@
     border: 1px solid #fbbf24;
   }
 
+  .info-message.warning {
+    background: #fef3c7;
+    border-color: #fbbf24;
+  }
+
   .info-message svg {
     width: 20px;
     height: 20px;
     fill: #f59e0b;
     flex-shrink: 0;
+    margin-top: 0.125rem;
   }
 
   .info-message p {
     margin: 0;
     font-size: 0.875rem;
     color: #92400e;
+  }
+
+  .warning-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .warning-subtitle {
+    font-size: 0.8125rem;
+    opacity: 0.9;
+  }
+
+  .none-icon {
+    background: #f3f4f6 !important;
+  }
+
+  .none-icon svg {
+    fill: #9ca3af !important;
   }
 
   .variants-grid {

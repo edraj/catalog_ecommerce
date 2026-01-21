@@ -100,6 +100,361 @@ export interface QueryResponse<T = any> extends ApiResponse<T> {
   attributes?: Record<string, any>;
 }
 
+// Order related interfaces
+export interface OrderItem {
+  sku: string;
+  options: Array<{
+    key: string;
+    variation_shortname: string;
+  }>;
+  discount: {
+    type: string;
+    value: number;
+  };
+  quantity: number;
+  subtotal: number;
+  variant_key: string;
+  item_subtotal: number;
+  brand_shortname: string;
+  price_at_purchase: number;
+  product_shortname: string;
+  available_shortname: string;
+  commission_category: string;
+  main_category_shortname: string;
+}
+
+export interface OrderUser {
+  email?: string;
+  phone: string;
+  state: string;
+  address: string;
+  shortname: string;
+  displayname: string;
+}
+
+export interface OrderShipping {
+  key: string;
+  max: number;
+  min: number;
+  cost: number;
+  minimum_retail: number;
+}
+
+export interface OrderCoupon {
+  code: string;
+  type: string;
+  is_shipping: boolean;
+  discount_type: string;
+  discount_value: number;
+  discount_amount: number;
+  seller_shortname?: string;
+  coupon_body?: any;
+}
+
+export interface OrderPayload {
+  info: string;
+  user: OrderUser;
+  items: OrderItem[];
+  coupon?: OrderCoupon;
+  services: any[];
+  shipping: OrderShipping;
+  is_active: boolean;
+  order_code: string;
+  order_from: string;
+  activated_at?: string;
+  payment_type: string;
+  tracking_code: string;
+  payment_status: string;
+  combined_order_id: number;
+  payment_transaction_id?: string;
+}
+
+// Wrapper for nested order structure from API
+export interface OrderPayloadWrapper {
+  tags: string[];
+  uuid: string;
+  state: string;
+  is_open: boolean;
+  payload: {
+    body: OrderPayload;
+    checksum: string;
+    content_type: string;
+  };
+  is_active: boolean;
+  shortname: string;
+  created_at: string;
+  updated_at: string;
+  attachments: Record<string, any>;
+  description: Record<string, any>;
+  displayname: Record<string, any>;
+  owner_shortname: string;
+  workflow_shortname: string;
+}
+
+export interface Order {
+  resource_type: 'ticket';
+  uuid: string;
+  shortname: string;
+  subpath: string;
+  attributes: {
+    created_at: string;
+    state: string;
+    updated_at: string;
+    is_open: boolean;
+    space_name: string;
+    owner_shortname: string;
+    workflow_shortname: string;
+    displayname?: Record<string, string>;
+    payload: {
+      body: OrderPayloadWrapper;
+      checksum: string;
+      content_type: string;
+      schema_shortname: string | null;
+    };
+    description?: Record<string, string>;
+    is_active: boolean;
+    tags: string[];
+  };
+}
+
+export interface CombinedOrderPayload {
+  info: string;
+  coupon?: OrderCoupon;
+  is_active: boolean;
+  created_at: string;
+  order_from: string;
+  payment_type: string;
+  total_amount: number;
+  payment_status: string;
+  user_shortname: string;
+  combined_order_id: number;
+  orders_shortnames: string[];
+}
+
+export interface CombinedOrder {
+  resource_type: 'content';
+  uuid: string;
+  shortname: string;
+  subpath: string;
+  attributes: {
+    created_at: string;
+    updated_at: string;
+    space_name: string;
+    owner_shortname: string;
+    payload: {
+      body: CombinedOrderPayload;
+      checksum: string;
+      content_type: string;
+    };
+    is_active: boolean;
+    tags: string[];
+  };
+}
+
+export interface PaymentPayload {
+  amount: number;
+  status: string;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+  payment_url?: string;
+  checkout_id?: string;
+  completed_at?: string;
+  failed_at?: string;
+  failure_reason?: string;
+  transaction_id: string;
+  payment_provider: string;
+  payment_response: any;
+  combined_order_shortname: string;
+}
+
+export interface Payment {
+  resource_type: 'content';
+  uuid: string;
+  shortname: string;
+  subpath: string;
+  attributes: {
+    created_at: string;
+    updated_at: string;
+    space_name: string;
+    owner_shortname: string;
+    payload: {
+      body: PaymentPayload;
+      checksum: string;
+      content_type: string;
+    };
+    is_active: boolean;
+    tags: string[];
+  };
+}
+}
+
+// Order related interfaces
+export interface OrderItem {
+  sku: string;
+  options: Array<{
+    key: string;
+    variation_shortname: string;
+  }>;
+  discount: {
+    type: string;
+    value: number;
+  };
+  quantity: number;
+  subtotal: number;
+  variant_key: string;
+  item_subtotal: number;
+  brand_shortname: string;
+  price_at_purchase: number;
+  product_shortname: string;
+  available_shortname: string;
+  commission_category: string;
+  main_category_shortname: string;
+}
+
+export interface OrderUser {
+  email?: string;
+  phone: string;
+  state: string;
+  address: string;
+  shortname: string;
+  displayname: string;
+}
+
+export interface OrderShipping {
+  key: string;
+  max: number;
+  min: number;
+  cost: number;
+  minimum_retail: number;
+}
+
+export interface OrderCoupon {
+  code: string;
+  type: string;
+  is_shipping: boolean;
+  discount_type: string;
+  discount_value: number;
+  discount_amount: number;
+  seller_shortname?: string;
+  coupon_body?: any;
+}
+
+export interface OrderPayload {
+  info: string;
+  user: OrderUser;
+  items: OrderItem[];
+  coupon?: OrderCoupon;
+  services: any[];
+  shipping: OrderShipping;
+  is_active: boolean;
+  order_code: string;
+  order_from: string;
+  activated_at?: string;
+  payment_type: string;
+  tracking_code: string;
+  payment_status: string;
+  combined_order_id: number;
+  payment_transaction_id?: string;
+}
+
+export interface Order {
+  resource_type: 'ticket';
+  uuid: string;
+  shortname: string;
+  subpath: string;
+  attributes: {
+    created_at: string;
+    state: string;
+    updated_at: string;
+    is_open: boolean;
+    space_name: string;
+    owner_shortname: string;
+    workflow_shortname: string;
+    displayname?: Record<string, string>;
+    payload: {
+      body: OrderPayload;
+      checksum: string;
+      content_type: string;
+      schema_shortname: string | null;
+    };
+    description?: Record<string, string>;
+    is_active: boolean;
+    tags: string[];
+  };
+}
+
+export interface CombinedOrderPayload {
+  info: string;
+  coupon?: OrderCoupon;
+  is_active: boolean;
+  created_at: string;
+  order_from: string;
+  payment_type: string;
+  total_amount: number;
+  payment_status: string;
+  user_shortname: string;
+  combined_order_id: number;
+  orders_shortnames: string[];
+}
+
+export interface CombinedOrder {
+  resource_type: 'content';
+  uuid: string;
+  shortname: string;
+  subpath: string;
+  attributes: {
+    created_at: string;
+    updated_at: string;
+    space_name: string;
+    owner_shortname: string;
+    payload: {
+      body: CombinedOrderPayload;
+      checksum: string;
+      content_type: string;
+    };
+    is_active: boolean;
+    tags: string[];
+  };
+}
+
+export interface PaymentPayload {
+  amount: number;
+  status: string;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+  payment_url?: string;
+  checkout_id?: string;
+  completed_at?: string;
+  failed_at?: string;
+  failure_reason?: string;
+  transaction_id: string;
+  payment_provider: string;
+  payment_response: any;
+  combined_order_shortname: string;
+}
+
+export interface Payment {
+  resource_type: 'content';
+  uuid: string;
+  shortname: string;
+  subpath: string;
+  attributes: {
+    created_at: string;
+    updated_at: string;
+    space_name: string;
+    owner_shortname: string;
+    payload: {
+      body: PaymentPayload;
+      checksum: string;
+      content_type: string;
+    };
+    is_active: boolean;
+    tags: string[];
+  };
+}
+
 // Request interfaces
 export interface RequestRecord {
   resource_type: string;

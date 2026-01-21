@@ -35,7 +35,7 @@
               type: "notification_subscription",
               space_name: "__ALL__",
               subpath: "__ALL__",
-            })
+            }),
           );
         };
 
@@ -135,7 +135,10 @@
         <button
           onclick={() => {
             if ($user.signedin) {
-              if ($roles.includes("super_admin")) {
+              if (
+                $roles.includes("super_admin") ||
+                $roles.includes("zm_admin")
+              ) {
                 $goto("/dashboard/admin");
               } else if ($roles.includes("zm_seller")) {
                 $goto("/seller");
@@ -210,7 +213,7 @@
                   : 'dropdown-menu-ltr'}"
               >
                 <div class="dropdown-content">
-                  {#if $roles.includes("super_admin")}
+                  {#if $roles.includes("super_admin") || $roles.includes("zm_admin")}
                     <!-- Admin Collapsible Section -->
                     <div class="menu-section">
                       <button
@@ -279,7 +282,7 @@
                           aria-label={`Contact Messages`}
                           onclick={() =>
                             handleMenuItemClick(
-                              "/dashboard/admin/contact-messages"
+                              "/dashboard/admin/contact-messages",
                             )}
                           class="menu-item submenu-item"
                         >
@@ -393,7 +396,7 @@
                           aria-label={`Check Variation Requests`}
                           onclick={() =>
                             handleMenuItemClick(
-                              "/dashboard/admin/variation_requests"
+                              "/dashboard/admin/variation_requests",
                             )}
                           class="menu-item submenu-item"
                         >
@@ -416,7 +419,7 @@
                           aria-label={`Services`}
                           onclick={() =>
                             handleMenuItemClick(
-                              `/dashboard/admin/[space_name]/service`
+                              `/dashboard/admin/[space_name]/service`,
                             )}
                           class="menu-item submenu-item"
                         >
@@ -439,7 +442,7 @@
                           aria-label={`Settings`}
                           onclick={() =>
                             handleMenuItemClick(
-                              "/dashboard/admin/[space_name]/settings"
+                              "/dashboard/admin/[space_name]/settings",
                             )}
                           class="menu-item submenu-item"
                         >

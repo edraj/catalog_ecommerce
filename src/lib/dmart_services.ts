@@ -194,7 +194,7 @@ export async function getEntity(
   resourceType: ResourceType,
   scope: string,
   retrieve_json_payload: boolean = true,
-  retrieve_attachments: boolean = true
+  retrieve_attachments: boolean = true,
 ) {
   let cleanSubpath = subpath.startsWith("/") ? subpath.substring(1) : subpath;
   if (!cleanSubpath || cleanSubpath === "/") {
@@ -212,7 +212,7 @@ export async function getEntity(
         retrieve_attachments,
         validate_schema: true,
       },
-      scope
+      scope,
     );
   } catch (error) {
     console.error(`Error retrieving item ${shortname}:`, error);
@@ -227,7 +227,7 @@ export async function createEntity(
   resourceType: ResourceType = ResourceType.content,
   workflow_shortname: string,
   schema_shortname: string,
-  content_type: string = "json"
+  content_type: string = "json",
 ) {
   let actionRequest: ActionRequest;
   if (workflow_shortname || schema_shortname) {
@@ -304,7 +304,7 @@ export async function createFolder(
   spaceName: string,
   subpath: string,
   data: any,
-  isEditMode: boolean = false
+  isEditMode: boolean = false,
 ) {
   let actionRequest: ActionRequest;
 
@@ -379,7 +379,7 @@ export async function updateEntity(
   resourceType: ResourceType,
   data: any,
   workflow_shortname: string,
-  schema_shortname: string
+  schema_shortname: string,
 ) {
   const contentType = data.content_type || "html";
 
@@ -432,7 +432,7 @@ export async function replaceEntity(
   resourceType: ResourceType,
   data: any,
   workflow_shortname: string,
-  schema_shortname: string
+  schema_shortname: string,
 ) {
   const contentType = data.content_type || "html";
 
@@ -478,7 +478,7 @@ export async function updatePermission(
   resourceType: ResourceType,
   data: any,
   workflow_shortname: string,
-  schema_shortname: string
+  schema_shortname: string,
 ) {
   const attributes: any = {
     is_active: data.is_active ?? true,
@@ -526,7 +526,7 @@ export async function updateRole(
   resourceType: ResourceType,
   data: any,
   workflow_shortname: string,
-  schema_shortname: string
+  schema_shortname: string,
 ) {
   const attributes: any = {
     is_active: data.is_active ?? true,
@@ -567,7 +567,7 @@ export async function getTemplates(
   scope: string = "managed",
   limit = 100,
   offset = 0,
-  exact_subpath = false
+  exact_subpath = false,
 ): Promise<ApiQueryResponse> {
   const response = await Dmart.query(
     {
@@ -583,7 +583,7 @@ export async function getTemplates(
       retrieve_attachments: true,
       exact_subpath: exact_subpath,
     },
-    scope
+    scope,
   );
   return response;
 }
@@ -593,7 +593,7 @@ export async function getPolls(
   scope: string = "managed",
   limit = 100,
   offset = 0,
-  exact_subpath = false
+  exact_subpath = false,
 ): Promise<ApiQueryResponse> {
   const response = await Dmart.query(
     {
@@ -609,7 +609,7 @@ export async function getPolls(
       retrieve_attachments: true,
       exact_subpath: exact_subpath,
     },
-    scope
+    scope,
   );
   return response;
 }
@@ -621,7 +621,7 @@ export async function createTemplate(
   data: {
     title: string;
     content: string;
-  }
+  },
 ) {
   const request: ActionRequest = {
     space_name: spaceName,
@@ -652,7 +652,7 @@ export async function updateTemplates(
   shortname,
   space_name,
   subpath,
-  data: any
+  data: any,
 ) {
   const attributes: any = {
     is_active: data.is_active,
@@ -690,7 +690,7 @@ export async function updateTemplates(
 export async function deleteTemplate(
   shortname: string,
   spaceName: string,
-  subpath: string
+  subpath: string,
 ) {
   const actionRequest: ActionRequest = {
     space_name: spaceName,
@@ -715,7 +715,7 @@ export async function createRole(
   subpath: string,
   resourceType: ResourceType,
   workflow_shortname: string,
-  schema_shortname: string
+  schema_shortname: string,
 ) {
   const attributes: any = {
     is_active: data.is_active ?? true,
@@ -756,7 +756,7 @@ export async function createPermission(
   subpath: string,
   resourceType: ResourceType,
   workflow_shortname: string,
-  schema_shortname: string
+  schema_shortname: string,
 ) {
   const attributes: any = {
     is_active: data.is_active ?? true,
@@ -802,7 +802,7 @@ export async function attachAttachmentsToEntity(
   shortname: string,
   spaceName: string,
   subpath: string,
-  attachment: File
+  attachment: File,
 ) {
   const fileTypeInfo = getFileType(attachment);
   if (!fileTypeInfo) {
@@ -829,7 +829,7 @@ export async function userVote(
   poll_shortname: string,
   candidate_shortname: string,
   voters: any,
-  isReplace: boolean = false
+  isReplace: boolean = false,
 ) {
   const data: ActionRequest = {
     space_name: "poll",
@@ -855,7 +855,7 @@ export async function userVote(
 
 export async function submitSurveyResponse(
   survey_shortname: string,
-  responses: any
+  responses: any,
 ) {
   const currentUser = get(user);
   if (!currentUser?.shortname) {
@@ -914,7 +914,7 @@ export async function submitSurveyResponse(
 }
 
 export async function getUserSurveyResponseRecord(
-  survey_shortname: string
+  survey_shortname: string,
 ): Promise<any | null> {
   const currentUser = get(user);
   if (!currentUser?.shortname) {
@@ -929,7 +929,7 @@ export async function getUserSurveyResponseRecord(
       ResourceType.content,
       "managed",
       true,
-      true
+      true,
     );
 
     if (!survey || !survey.attachments || !survey.attachments.json) {
@@ -938,7 +938,7 @@ export async function getUserSurveyResponseRecord(
 
     const userResponse = survey.attachments.json.find(
       (attachment: any) =>
-        attachment.attributes?.owner_shortname === currentUser.shortname
+        attachment.attributes?.owner_shortname === currentUser.shortname,
     );
 
     return userResponse || null;
@@ -949,7 +949,7 @@ export async function getUserSurveyResponseRecord(
 }
 
 export async function hasUserRespondedToSurvey(
-  survey_shortname: string
+  survey_shortname: string,
 ): Promise<boolean> {
   const currentUser = get(user);
   if (!currentUser?.shortname) {
@@ -964,7 +964,7 @@ export async function hasUserRespondedToSurvey(
       ResourceType.content,
       "managed",
       true,
-      true
+      true,
     );
 
     if (!survey || !survey.attachments || !survey.attachments.json) {
@@ -973,7 +973,7 @@ export async function hasUserRespondedToSurvey(
 
     const userResponse = survey.attachments.json.find(
       (attachment: any) =>
-        attachment.attributes?.owner_shortname === currentUser.shortname
+        attachment.attributes?.owner_shortname === currentUser.shortname,
     );
 
     return !!userResponse;
@@ -984,7 +984,7 @@ export async function hasUserRespondedToSurvey(
 }
 
 export async function getUserSurveyResponses(
-  survey_shortname: string
+  survey_shortname: string,
 ): Promise<any | null> {
   const currentUser = get(user);
   if (!currentUser?.shortname) {
@@ -999,7 +999,7 @@ export async function getUserSurveyResponses(
       ResourceType.content,
       "managed",
       true,
-      true
+      true,
     );
 
     if (!survey || !survey.attachments || !survey.attachments.json) {
@@ -1008,7 +1008,7 @@ export async function getUserSurveyResponses(
 
     const userResponse = survey.attachments.json.find(
       (attachment: any) =>
-        attachment.attributes?.owner_shortname === currentUser.shortname
+        attachment.attributes?.owner_shortname === currentUser.shortname,
     );
 
     if (!userResponse) {
@@ -1070,7 +1070,7 @@ export async function getUserSurveys() {
 export async function getEntityAttachmentsCount(
   shortname: string,
   spaceName: string,
-  subpath: string
+  subpath: string,
 ) {
   const query: QueryRequest = {
     filter_shortnames: [],
@@ -1094,7 +1094,7 @@ export async function deleteEntity(
   shortname: string,
   spaceName: string,
   subpath: string,
-  resource_type: ResourceType
+  resource_type: ResourceType,
 ) {
   const actionRequest: ActionRequest = {
     space_name: spaceName,
@@ -1117,7 +1117,7 @@ export async function deleteEntity(
 export async function getSpaces(
   ignoreFilter = false,
   scope: string = "managed",
-  hiddenspaces: string[] = []
+  hiddenspaces: string[] = [],
 ): Promise<ApiQueryResponse> {
   const _spaces: any = await Dmart.query(
     {
@@ -1127,18 +1127,18 @@ export async function getSpaces(
       search: "-shortname:management",
       limit: 100,
     },
-    scope
+    scope,
   );
 
   if (ignoreFilter === false) {
     _spaces.records = _spaces.records.filter((e) => !e.attributes.hide_space);
     hiddenspaces.forEach((space) => {
       _spaces.records = _spaces.records.filter(
-        (e) => !e.shortname.includes(space)
+        (e) => !e.shortname.includes(space),
       );
     });
     _spaces.records = _spaces.records.filter(
-      (e) => !e.shortname.includes("applications")
+      (e) => !e.shortname.includes("applications"),
     );
   }
 
@@ -1161,7 +1161,7 @@ export async function getSpaceContents(
   limit = 100,
   offset = 0,
   exact_subpath = false,
-  queryType: QueryType = QueryType.search
+  queryType: QueryType = QueryType.search,
 ): Promise<ApiQueryResponse> {
   let search = "";
   if (scope === "public") {
@@ -1181,7 +1181,7 @@ export async function getSpaceContents(
       retrieve_attachments: true,
       exact_subpath: exact_subpath,
     },
-    scope
+    scope,
   );
   return response;
 }
@@ -1193,7 +1193,7 @@ export async function getRelatedContents(
   currentTags: string[] = [],
   editorShortname?: string,
   limit = 10,
-  offset = 0
+  offset = 0,
 ): Promise<ApiQueryResponse> {
   let searchQuery = "-@shortname:" + editorShortname;
 
@@ -1211,7 +1211,7 @@ export async function getRelatedContents(
       retrieve_attachments: false,
       exact_subpath: false,
     },
-    scope
+    scope,
   );
   return response;
 }
@@ -1221,7 +1221,7 @@ export async function getSpaceFolders(
   subpath = "/",
   scope: string,
   limit = 100,
-  offset = 0
+  offset = 0,
 ): Promise<ApiQueryResponse> {
   const response = await Dmart.query(
     {
@@ -1238,7 +1238,7 @@ export async function getSpaceFolders(
       exact_subpath: false,
       filter_types: [ResourceType.folder],
     },
-    scope
+    scope,
   );
   return response;
 }
@@ -1247,7 +1247,7 @@ export async function getSpaceSchema(
   subpath: string,
   scope: string,
   limit = 100,
-  offset = 0
+  offset = 0,
 ): Promise<ApiQueryResponse> {
   const response = await Dmart.query(
     {
@@ -1263,7 +1263,7 @@ export async function getSpaceSchema(
       retrieve_attachments: true,
       exact_subpath: false,
     },
-    scope
+    scope,
   );
   return response;
 }
@@ -1274,7 +1274,7 @@ export async function getSpaceContentsByTags(
   scope: string,
   limit = 100,
   offset = 0,
-  tags: string[] = []
+  tags: string[] = [],
 ): Promise<ApiQueryResponse> {
   let searchQuery = "";
   if (tags.length > 0) {
@@ -1296,14 +1296,14 @@ export async function getSpaceContentsByTags(
       retrieve_attachments: true,
       exact_subpath: false,
     },
-    scope
+    scope,
   );
 
   return response;
 }
 
 export async function getSpaceTags(
-  spaceName: string
+  spaceName: string,
 ): Promise<ApiQueryResponse> {
   const response = await Dmart.query(
     {
@@ -1319,7 +1319,7 @@ export async function getSpaceTags(
       retrieve_attachments: true,
       exact_subpath: false,
     },
-    "public"
+    "public",
   );
 
   return response;
@@ -1330,7 +1330,7 @@ export async function createComment(
   subpath: string,
   shortname: string,
   comment: string,
-  parentCommentId?: string
+  parentCommentId?: string,
 ) {
   const data: ActionRequest = {
     space_name: spaceName,
@@ -1362,7 +1362,7 @@ export async function deleteComment(
   commentShortname: string,
   spaceName: string,
   subpath: string,
-  entryShortname: string
+  entryShortname: string,
 ) {
   const actionRequest: ActionRequest = {
     space_name: spaceName,
@@ -1385,7 +1385,7 @@ export async function deleteMultipleComments(
   commentShortnames: string[],
   spaceName: string,
   subpath: string,
-  entryShortname: string
+  entryShortname: string,
 ) {
   if (commentShortnames.length === 0) return true;
 
@@ -1408,13 +1408,13 @@ export async function deleteMultipleComments(
 
 export function findAllChildComments(
   parentCommentId: string,
-  allComments: any[]
+  allComments: any[],
 ): string[] {
   const childIds: string[] = [];
 
   const directChildren = allComments.filter(
     (comment) =>
-      comment.attributes?.payload?.body?.parent_comment_id === parentCommentId
+      comment.attributes?.payload?.body?.parent_comment_id === parentCommentId,
   );
 
   directChildren.forEach((child) => {
@@ -1429,7 +1429,7 @@ export function findAllChildComments(
 export async function createReaction(
   shortname: string,
   spaceName: string,
-  subpath: string
+  subpath: string,
 ) {
   const data: ActionRequest = {
     space_name: spaceName,
@@ -1460,7 +1460,7 @@ export async function deleteReactionComment(
   type: ResourceType,
   entry: string,
   shortname: string,
-  spaceName: string
+  spaceName: string,
 ) {
   const data: ActionRequest = {
     space_name: spaceName,
@@ -1483,7 +1483,7 @@ export async function checkCurrentUserReactedIdea(
   user_shortname: string,
   entry_shortname: string,
   spaceName: string,
-  subpath: string
+  subpath: string,
 ) {
   const data: QueryRequest = {
     filter_shortnames: [],
@@ -1524,7 +1524,7 @@ export async function fetchMyNotifications(shortname: string) {
 export async function markNotification(
   user_shortname: string,
   shortname: string,
-  markRead: boolean = true
+  markRead: boolean = true,
 ) {
   const response = await Dmart.request({
     space_name: "personal",
@@ -1566,7 +1566,7 @@ export async function deleteNotification(shortname: string) {
 
 export async function deleteAllNotification(
   user_shortname: string,
-  shortnames: string[]
+  shortnames: string[],
 ) {
   const response = await Dmart.request({
     space_name: "personal",
@@ -1612,7 +1612,7 @@ export async function markMessageAsReplied(
   spaceName: string,
   subpath: string,
   parentShortname: string,
-  replyContent: string
+  replyContent: string,
 ) {
   const actionRequest: ActionRequest = {
     space_name: spaceName,
@@ -1644,7 +1644,7 @@ export async function createItem(
   itemName: string,
   itemType: string,
   spaceName: string,
-  subpath: string = "/"
+  subpath: string = "/",
 ) {
   const actionRequest = {
     space_name: spaceName,
@@ -1677,7 +1677,7 @@ export async function deleteItem(
   shortname: string,
   resourceType: string,
   subpath: string,
-  spaceName: string
+  spaceName: string,
 ) {
   const actionRequest = {
     space_name: spaceName,
@@ -1751,7 +1751,7 @@ export async function deleteSpace(shortname: string) {
 
 export async function editSpace(
   shortname: string,
-  attributes: Record<string, any>
+  attributes: Record<string, any>,
 ) {
   try {
     await Dmart.request({
@@ -1779,7 +1779,7 @@ export async function getChildren(
   offset: number = 0,
   restrict_types: Array<ResourceType> = [],
   spaces: any = null,
-  ignoreFilter = false
+  ignoreFilter = false,
 ): Promise<ApiQueryResponse> {
   const folders = await Dmart.query({
     type: QueryType.search,
@@ -1793,12 +1793,12 @@ export async function getChildren(
   });
   if (ignoreFilter == false && spaces !== null) {
     const selectedSpace = spaces.records.find(
-      (record) => record.shortname === space_name
+      (record) => record.shortname === space_name,
     );
     const hiddenFolders: string[] = selectedSpace.attributes.hide_folders;
     if (hiddenFolders) {
       folders.records = folders.records.filter(
-        (record) => hiddenFolders.includes(record.shortname) === false
+        (record) => hiddenFolders.includes(record.shortname) === false,
       );
     }
   }
@@ -1817,7 +1817,7 @@ export async function getChildrenAndSubChildren(
   subpathsPTR: any,
   spacename,
   base: string,
-  _subpaths: any
+  _subpaths: any,
 ) {
   for (const _subpath of _subpaths.records) {
     if (_subpath.resource_type === "folder") {
@@ -1826,7 +1826,7 @@ export async function getChildrenAndSubChildren(
         subpathsPTR,
         spacename,
         `${base}/${_subpath.shortname}`,
-        childSubpaths
+        childSubpaths,
       );
       subpathsPTR.push(`${base}/${_subpath.shortname}`);
     }
@@ -1839,7 +1839,7 @@ export async function updateDmartEntity(
   subpath: string,
   resourceType: ResourceType,
   data: any,
-  isReplace: boolean = false
+  isReplace: boolean = false,
 ) {
   try {
     const response = await Dmart.request({
@@ -1864,7 +1864,7 @@ export async function updateDmartEntity(
 }
 
 export async function setDefaultUserRole(
-  roleShortname: string
+  roleShortname: string,
 ): Promise<boolean> {
   try {
     const existingConfig = await getEntity(
@@ -1874,7 +1874,7 @@ export async function setDefaultUserRole(
       ResourceType.content,
       "managed",
       true,
-      false
+      false,
     );
 
     if (existingConfig) {
@@ -1882,7 +1882,7 @@ export async function setDefaultUserRole(
       let updatedItems = payload.items || [];
 
       const existingItemIndex = updatedItems.findIndex(
-        (item) => item.key === "default_user_role"
+        (item) => item.key === "default_user_role",
       );
 
       if (existingItemIndex !== -1) {
@@ -1910,7 +1910,7 @@ export async function setDefaultUserRole(
             },
           },
         },
-        true
+        true,
       );
 
       return result !== null;
@@ -1927,7 +1927,7 @@ export async function setDefaultUserRole(
         "configs",
         ResourceType.content,
         "",
-        ""
+        "",
       );
       return result !== null;
     }
@@ -1939,7 +1939,7 @@ export async function setDefaultUserRole(
 
 export async function getAllUsers(
   limit: number = 100,
-  offset: number = 0
+  offset: number = 0,
 ): Promise<ApiQueryResponse> {
   try {
     const response = await Dmart.query({
@@ -1963,7 +1963,7 @@ export async function getAllUsers(
 export async function filterUserByRole(
   role: string,
   limit: number = 100,
-  offset: number = 0
+  offset: number = 0,
 ): Promise<ApiQueryResponse> {
   try {
     const response = await Dmart.query({
@@ -1988,7 +1988,7 @@ export async function filterUserByRole(
 
 export async function updateUserRoles(
   userShortname: string,
-  roles: string[]
+  roles: string[],
 ): Promise<boolean> {
   try {
     const actionRequest: ActionRequest = {
@@ -2034,7 +2034,7 @@ export async function searchInCatalog(search: string = "") {
 
     const response: ApiQueryResponse = await Dmart.query(
       queryRequest,
-      "public"
+      "public",
     );
     return response?.records ?? [];
   });
@@ -2047,7 +2047,7 @@ export async function searchInCatalog(search: string = "") {
 export async function searchProducts(
   spaceName: string,
   search: string = "",
-  limit: number = 1000
+  limit: number = 1000,
 ): Promise<any[]> {
   const queryRequest: QueryRequest = {
     filter_shortnames: [],
@@ -2162,7 +2162,7 @@ export async function getMessagesBetweenUsers(
   currentUserShortname: string,
   otherUserShortname: string,
   limit: number = 10,
-  offset: number = 0
+  offset: number = 0,
 ) {
   try {
     const query = {
@@ -2321,7 +2321,7 @@ export async function getConversationPartners(currentUserShortname: string) {
 }
 
 export async function getUsersByShortnames(
-  shortnames: string[]
+  shortnames: string[],
 ): Promise<ApiQueryResponse> {
   try {
     if (shortnames.length === 0) {
@@ -2339,7 +2339,7 @@ export async function getUsersByShortnames(
           retrieve_attachments: false,
           exact_subpath: true,
         },
-        "managed"
+        "managed",
       );
     }
 
@@ -2377,7 +2377,7 @@ export async function getUsersByShortnames(
         retrieve_attachments: false,
         exact_subpath: true,
       },
-      "managed"
+      "managed",
     );
   }
 }
@@ -2387,7 +2387,7 @@ export async function getSurveys(
   scope: string = "managed",
   limit = 100,
   offset = 0,
-  exact_subpath = false
+  exact_subpath = false,
 ): Promise<ApiQueryResponse> {
   const response = await Dmart.query(
     {
@@ -2403,7 +2403,7 @@ export async function getSurveys(
       retrieve_attachments: true,
       exact_subpath: exact_subpath,
     },
-    scope
+    scope,
   );
   return response;
 }
@@ -2453,14 +2453,14 @@ export async function updateGroup(
     description?: string;
     participants?: string[];
     adminIds?: string[];
-  }
+  },
 ) {
   const group = await getEntity(
     groupShortname,
     "messages",
     "/groups",
     ResourceType.content,
-    "managed"
+    "managed",
   );
 
   if (!group) return false;
@@ -2503,7 +2503,7 @@ export async function updateGroup(
 }
 
 export async function getUserGroups(
-  userShortname: string
+  userShortname: string,
 ): Promise<ApiQueryResponse> {
   const query: QueryRequest = {
     space_name: "messages",
@@ -2531,7 +2531,7 @@ export async function getGroupDetails(groupShortname: string) {
     ResourceType.content,
     "managed",
     true,
-    false
+    false,
   );
 }
 
@@ -2574,7 +2574,7 @@ export async function createGroupMessage(data: {
 export async function getGroupMessages(
   groupId: string,
   limit: number = 10,
-  offset: number = 0
+  offset: number = 0,
 ) {
   try {
     const query: QueryRequest = {
@@ -2619,7 +2619,7 @@ export async function getGroupMessages(
 
 export async function addUserToGroup(
   groupShortname: string,
-  userShortname: string
+  userShortname: string,
 ) {
   const group = await getGroupDetails(groupShortname);
   if (!group) return false;
@@ -2638,7 +2638,7 @@ export async function addUserToGroup(
 
 export async function removeUserFromGroup(
   groupShortname: string,
-  userShortname: string
+  userShortname: string,
 ) {
   const group = await getGroupDetails(groupShortname);
   if (!group) return false;
@@ -2646,7 +2646,7 @@ export async function removeUserFromGroup(
   const currentParticipants =
     group.attributes.payload?.body?.participants || [];
   const updatedParticipants = currentParticipants.filter(
-    (p) => p !== userShortname
+    (p) => p !== userShortname,
   );
 
   const currentAdmins = group.attributes.payload?.body?.adminIds || [];
@@ -2660,7 +2660,7 @@ export async function removeUserFromGroup(
 
 export async function makeUserGroupAdmin(
   groupShortname: string,
-  userShortname: string
+  userShortname: string,
 ) {
   const group = await getGroupDetails(groupShortname);
   if (!group) return false;
@@ -2687,7 +2687,7 @@ export async function createReport(
     type?: string;
   },
   schema_shortname: string = "report",
-  workflow_shortname: string = "report_workflow"
+  workflow_shortname: string = "report_workflow",
 ) {
   const actionRequest: ActionRequest = {
     space_name: "Report",
@@ -2733,7 +2733,7 @@ export async function createReport(
 export async function getReports(
   status?: string,
   limit = 100,
-  offset = 0
+  offset = 0,
 ): Promise<ApiQueryResponse> {
   let searchQuery = "@resource_type:ticket";
   if (status) {
@@ -2754,13 +2754,13 @@ export async function getReports(
       retrieve_attachments: true,
       exact_subpath: false,
     },
-    "managed"
+    "managed",
   );
   return response;
 }
 
 export async function getReportDetails(
-  reportShortname: string
+  reportShortname: string,
 ): Promise<any | null> {
   try {
     const entity = await getEntity(
@@ -2770,7 +2770,7 @@ export async function getReportDetails(
       ResourceType.ticket,
       "managed",
       true,
-      true
+      true,
     );
     return entity;
   } catch (error) {
@@ -2782,7 +2782,7 @@ export async function getReportDetails(
 export async function updateReportStatus(
   reportShortname: string,
   newStatus: "Pending" | "Resolved" | "Canceled",
-  adminReply?: string
+  adminReply?: string,
 ) {
   try {
     const currentReport = await getReportDetails(reportShortname);
@@ -2802,8 +2802,8 @@ export async function updateReportStatus(
           newStatus === "Resolved"
             ? "Resolved"
             : newStatus === "Canceled"
-            ? "Canceled"
-            : "Replied",
+              ? "Canceled"
+              : "Replied",
       });
     }
 
@@ -2856,7 +2856,7 @@ export async function updateReportStatus(
 export async function replyToReport(
   reportShortname: string,
   reply: string,
-  action?: "delete_entry" | "warn_user" | "no_action"
+  action?: "delete_entry" | "warn_user" | "no_action",
 ) {
   try {
     let newStatus: "Pending" | "Resolved" | "Canceled" = action
@@ -2869,7 +2869,7 @@ export async function replyToReport(
       return await updateReportStatus(
         reportShortname,
         newStatus,
-        `${reply}${action ? ` [Action taken: ${action}]` : ""}`
+        `${reply}${action ? ` [Action taken: ${action}]` : ""}`,
       );
     }
 
@@ -2896,7 +2896,7 @@ export async function replyToReport(
             resourceType,
             "managed",
             false,
-            false
+            false,
           );
 
           if (reportedEntity) {
@@ -2918,7 +2918,7 @@ export async function replyToReport(
           reportedEntity.resource_type || ResourceType.content,
           { is_active: false },
           "",
-          ""
+          "",
         );
       } catch (error) {
         console.error("Error deactivating reported entry:", error);
@@ -2928,7 +2928,7 @@ export async function replyToReport(
     return await updateReportStatus(
       reportShortname,
       newStatus,
-      `${reply}${action ? ` [Action taken: ${action}]` : ""}`
+      `${reply}${action ? ` [Action taken: ${action}]` : ""}`,
     );
   } catch (error) {
     console.error("Error replying to report:", error);
@@ -2952,7 +2952,7 @@ export async function fetchWorkflows(space_name: string) {
 
 export async function createCollection(
   spaceName: string,
-  data: any
+  data: any,
 ): Promise<string | null> {
   const actionRequest: ActionRequest = {
     space_name: spaceName,
@@ -2985,7 +2985,7 @@ export async function createCollection(
 
 export async function updateCollection(
   spaceName: string,
-  data: any
+  data: any,
 ): Promise<string | null> {
   const actionRequest: ActionRequest = {
     space_name: spaceName,
@@ -3018,7 +3018,7 @@ export async function updateCollection(
 
 export async function createRegion(
   spaceName: string,
-  data: any
+  data: any,
 ): Promise<string | null> {
   const payloadBody: any = {
     region_type: data.region_type,
@@ -3057,7 +3057,7 @@ export async function createRegion(
 
 export async function updateRegion(
   spaceName: string,
-  data: any
+  data: any,
 ): Promise<string | null> {
   const payloadBody: any = {
     region_type: data.region_type,
@@ -3096,7 +3096,7 @@ export async function updateRegion(
 
 export async function createPaymentMethod(
   spaceName: string,
-  data: any
+  data: any,
 ): Promise<string | null> {
   const nestedPayload = {
     shortname: data.shortname,
@@ -3137,7 +3137,7 @@ export async function createPaymentMethod(
 
 export async function updatePaymentMethod(
   spaceName: string,
-  data: any
+  data: any,
 ): Promise<string | null> {
   const nestedPayload = {
     shortname: data.shortname,
@@ -3191,7 +3191,7 @@ export async function getWidgets(spaceName: string): Promise<ApiQueryResponse> {
       retrieve_attachments: true,
       exact_subpath: true,
     },
-    "managed"
+    "managed",
   );
   return response;
 }
@@ -3199,7 +3199,7 @@ export async function getWidgets(spaceName: string): Promise<ApiQueryResponse> {
 export async function updateWidget(
   spaceName: string,
   widgetShortname: string,
-  items: any[]
+  items: any[],
 ): Promise<boolean> {
   const actionRequest: ActionRequest = {
     space_name: spaceName,
@@ -3229,18 +3229,287 @@ export async function uploadWidgetMedia(
   spaceName: string,
   parentWidgetType: string,
   shortname: string,
-  attachment: File
+  attachment: File,
 ): Promise<boolean> {
   try {
     const result = await attachAttachmentsToEntity(
       parentWidgetType,
       spaceName,
       "/settings/widgets",
-      attachment
+      attachment,
     );
     return result;
   } catch (error) {
     console.error("Error uploading widget media:", error);
     return false;
   }
+}
+
+export async function getSellerOrders(
+  spaceName: string,
+  sellerShortname: string,
+  limit: number = 100,
+  offset: number = 0,
+  state?: string,
+): Promise<ApiQueryResponse> {
+  let search = "@resource_type:ticket";
+  if (state) {
+    search += ` @state:${state}`;
+  }
+
+  const query: QueryRequest = {
+    type: QueryType.search,
+    space_name: spaceName,
+    subpath: `orders/${sellerShortname}`,
+    filter_shortnames: [],
+    search: search,
+    limit: limit,
+    offset: offset,
+    sort_by: "created_at",
+    sort_type: SortyType.descending,
+    retrieve_json_payload: true,
+    retrieve_attachments: false,
+  };
+
+  return await Dmart.query(query, "managed");
+}
+
+export async function getOrderDetails(
+  spaceName: string,
+  sellerShortname: string,
+  orderShortname: string,
+): Promise<any | null> {
+  try {
+    const response = await getEntity(
+      orderShortname,
+      spaceName,
+      `orders/${sellerShortname}`,
+      ResourceType.ticket,
+      "managed",
+      true,
+      false,
+    );
+    return response;
+  } catch (error) {
+    console.error("Error fetching order details:", error);
+    return null;
+  }
+}
+
+export async function updateOrderState(
+  spaceName: string,
+  sellerShortname: string,
+  orderShortname: string,
+  newState: string,
+  additionalData?: any,
+): Promise<boolean> {
+  try {
+    const currentOrder = await getOrderDetails(
+      spaceName,
+      sellerShortname,
+      orderShortname,
+    );
+
+    if (!currentOrder) {
+      return false;
+    }
+
+    const updatedPayload = {
+      ...currentOrder,
+      ...additionalData,
+    };
+
+    const actionRequest: ActionRequest = {
+      space_name: spaceName,
+      request_type: RequestType.update,
+      records: [
+        {
+          resource_type: ResourceType.ticket,
+          shortname: orderShortname,
+          subpath: `orders/${sellerShortname}`,
+          attributes: {
+            state: newState,
+            payload: {
+              content_type: "json",
+              body: updatedPayload,
+            },
+          },
+        },
+      ],
+    };
+
+    const response: ActionResponse = await Dmart.request(actionRequest);
+    return response.status === "success";
+  } catch (error) {
+    console.error("Error updating order state:", error);
+    return false;
+  }
+}
+
+/**
+ * Fetches combined orders
+ * @param spaceName - The space name
+ * @param userShortname - Optional filter by user shortname
+ * @param limit - Maximum number of records
+ * @param offset - Offset for pagination
+ * @returns API query response with combined order records
+ */
+export async function getCombinedOrders(
+  spaceName: string,
+  userShortname?: string,
+  limit: number = 100,
+  offset: number = 0,
+): Promise<ApiQueryResponse> {
+  let search = "@resource_type:content";
+  if (userShortname) {
+    search += ` @owner_shortname:${userShortname}`;
+  }
+
+  const query: QueryRequest = {
+    type: QueryType.search,
+    space_name: spaceName,
+    subpath: "combined_orders",
+    filter_shortnames: [],
+    search: search,
+    limit: limit,
+    offset: offset,
+    sort_by: "created_at",
+    sort_type: SortyType.descending,
+    retrieve_json_payload: true,
+    retrieve_attachments: false,
+  };
+
+  return await Dmart.query(query, "managed");
+}
+
+/**
+ * Fetches a combined order by its ID or shortname
+ * @param spaceName - The space name
+ * @param combinedOrderShortname - The combined order shortname
+ * @returns The combined order record or null
+ */
+export async function getCombinedOrderDetails(
+  spaceName: string,
+  combinedOrderShortname: string,
+): Promise<any | null> {
+  try {
+    const response = await getEntity(
+      combinedOrderShortname,
+      spaceName,
+      "combined_orders",
+      ResourceType.content,
+      "managed",
+      true,
+      false,
+    );
+    return response;
+  } catch (error) {
+    console.error("Error fetching combined order details:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetches payments
+ * @param spaceName - The space name
+ * @param status - Optional filter by payment status
+ * @param limit - Maximum number of records
+ * @param offset - Offset for pagination
+ * @returns API query response with payment records
+ */
+export async function getPayments(
+  spaceName: string,
+  status?: string,
+  limit: number = 100,
+  offset: number = 0,
+): Promise<ApiQueryResponse> {
+  let search = "@resource_type:content";
+  if (status) {
+    search += ` @payload.body.status:${status}`;
+  }
+
+  const query: QueryRequest = {
+    type: QueryType.search,
+    space_name: spaceName,
+    subpath: "payments",
+    filter_shortnames: [],
+    search: search,
+    limit: limit,
+    offset: offset,
+    sort_by: "created_at",
+    sort_type: SortyType.descending,
+    retrieve_json_payload: true,
+    retrieve_attachments: false,
+  };
+
+  return await Dmart.query(query, "managed");
+}
+
+/**
+ * Fetches a payment by combined order shortname
+ * @param spaceName - The space name
+ * @param combinedOrderShortname - The combined order shortname
+ * @returns The payment record or null
+ */
+export async function getPaymentByCombinedOrder(
+  spaceName: string,
+  combinedOrderShortname: string,
+): Promise<any | null> {
+  try {
+    const query: QueryRequest = {
+      type: QueryType.search,
+      space_name: spaceName,
+      subpath: "payments",
+      filter_shortnames: [],
+      search: `@resource_type:content @payload.body.combined_order_shortname:${combinedOrderShortname}`,
+      limit: 1,
+      offset: 0,
+      sort_by: "created_at",
+      sort_type: SortyType.descending,
+      retrieve_json_payload: true,
+      retrieve_attachments: false,
+    };
+
+    const response = await Dmart.query(query, "managed");
+    return response.records.length > 0 ? response.records[0] : null;
+  } catch (error) {
+    console.error("Error fetching payment:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetches all orders across all sellers (admin view)
+ * @param spaceName - The space name
+ * @param limit - Maximum number of records
+ * @param offset - Offset for pagination
+ * @param state - Optional filter by order state
+ * @returns API query response with order records
+ */
+export async function getAllOrders(
+  spaceName: string,
+  limit: number = 100,
+  offset: number = 0,
+  state?: string,
+): Promise<ApiQueryResponse> {
+  let search = "@resource_type:ticket";
+  if (state) {
+    search += ` @state:${state}`;
+  }
+
+  const query: QueryRequest = {
+    type: QueryType.search,
+    space_name: spaceName,
+    subpath: "orders",
+    filter_shortnames: [],
+    search: search,
+    limit: limit,
+    offset: offset,
+    sort_by: "created_at",
+    sort_type: SortyType.descending,
+    retrieve_json_payload: true,
+    retrieve_attachments: false,
+  };
+
+  return await Dmart.query(query, "managed");
 }

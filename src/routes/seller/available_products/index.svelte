@@ -64,10 +64,12 @@
   let isLoadingVariations = $state(false);
   let productSearchTerm = $state("");
   let filteredProducts = $state([]);
-  let productsOffset = $state(0);
-  let hasMoreProducts = $state(true);
-  let isLoadingMore = $state(false);
+  let currentPage = $state(1);
+  let totalPages = $state(1);
+  let itemsPerPage = $state(20);
+  let totalProducts = $state(0);
   let isSearching = $state(false);
+  let searchDebounceTimer: number | null = null;
 
   let availabilityForm = $state({
     hasFastDelivery: false,
@@ -87,7 +89,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   function getItemDisplayName(item: any): string {
@@ -113,7 +115,7 @@
         "managed",
         1000,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -136,7 +138,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -155,7 +157,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
       if (response?.records) {
         allVariations = response.records;
@@ -173,7 +175,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
       if (response?.records) {
         productsMap = new Map(response.records.map((p) => [p.shortname, p]));
@@ -185,10 +187,10 @@
 
   function resolveOptionKey(
     optionKey: string,
-    variationShortname: string
+    variationShortname: string,
   ): string {
     const variation = allVariations.find(
-      (v) => v.shortname === variationShortname
+      (v) => v.shortname === variationShortname,
     );
     if (!variation) return optionKey;
 
@@ -213,37 +215,60 @@
   }
 
   async function filterProductsSearch() {
-    if (!productSearchTerm || productSearchTerm.trim() === "") {
+    // Clear existing timer
+    if (searchDebounceTimer !== null) {
+      clearTimeout(searchDebounceTimer);
+    }
+
+    const trimmedSearch = productSearchTerm?.trim() || "";
+
+    // If search is empty, reset to all products
+    if (trimmedSearch === "") {
       filteredProducts = [...products];
-      hasMoreProducts = true;
+      isSearching = false;
       return;
     }
 
-    isSearching = true;
-    hasMoreProducts = false;
-
-    try {
-      const { searchProducts } = await import("@/lib/dmart_services");
-
-      const searchResults = await searchProducts(
-        website.main_space,
-        productSearchTerm,
-        1000
-      );
-
-      // searchProducts already returns filtered results, just assign them
-      filteredProducts = [...searchResults];
-    } catch (error) {
-      console.error("Error searching products:", error);
+    // Only search if at least 3 characters to reduce API calls
+    if (trimmedSearch.length < 3) {
+      // Do local filtering for short search terms
       const localResults = filterProductsBySearch(
         products,
-        productSearchTerm,
-        $locale
+        trimmedSearch,
+        $locale,
       );
       filteredProducts = [...localResults];
-    } finally {
       isSearching = false;
+      return;
     }
+
+    // Set searching state immediately for UI feedback
+    isSearching = true;
+
+    // Debounce the search by 800ms for better UX
+    searchDebounceTimer = window.setTimeout(async () => {
+      try {
+        const { searchProducts } = await import("@/lib/dmart_services");
+
+        const searchResults = await searchProducts(
+          website.main_space,
+          trimmedSearch,
+          100, // Reduced from 1000 for better performance
+        );
+
+        filteredProducts = [...searchResults];
+      } catch (error) {
+        console.error("Error searching products:", error);
+        const localResults = filterProductsBySearch(
+          products,
+          trimmedSearch,
+          $locale,
+        );
+        filteredProducts = [...localResults];
+      } finally {
+        isSearching = false;
+      }
+    }, 800);
   }
 
   function viewItem(item) {
@@ -268,26 +293,21 @@
     loadProducts();
   }
 
-  async function loadProducts(
-    categoryShortname?: string,
-    reset: boolean = true
-  ) {
+  async function loadProducts(categoryShortname?: string, page: number = 1) {
     isLoadingProducts = true;
-    if (reset) {
-      selectedProduct = "";
-      productVariants = [];
-      selectedVariants = [];
-      productsOffset = 0;
-      products = [];
-    }
+    selectedProduct = "";
+    productVariants = [];
+    selectedVariants = [];
+
     try {
+      const offset = (page - 1) * itemsPerPage;
       const response = await getSpaceContents(
         website.main_space,
         "products",
         "managed",
-        20,
-        productsOffset,
-        true
+        itemsPerPage,
+        offset,
+        true,
       );
 
       if (response?.records) {
@@ -295,10 +315,16 @@
           ? filterProductsByCategory(response.records, categoryShortname)
           : response.records;
 
-        products = reset ? newProducts : [...products, ...newProducts];
+        products = newProducts;
         filteredProducts = [...products];
-        hasMoreProducts = response.records.length === 20;
-        productsOffset += response.records.length;
+
+        // Calculate total pages (estimate based on returned records)
+        if (response.records.length < itemsPerPage) {
+          totalPages = page;
+        } else {
+          totalPages = page + 1; // At least one more page
+        }
+        currentPage = page;
       }
     } catch (error) {
       console.error("Error loading products:", error);
@@ -308,14 +334,9 @@
     }
   }
 
-  async function loadMoreProducts() {
-    if (!hasMoreProducts || isLoadingMore) return;
-    isLoadingMore = true;
-    try {
-      await loadProducts(selectedCategory, false);
-    } finally {
-      isLoadingMore = false;
-    }
+  function handlePageChange(page: number) {
+    if (page < 1 || page > totalPages || isLoadingProducts) return;
+    loadProducts(selectedCategory, page);
   }
 
   async function loadSpecifications(productShortname: string) {
@@ -332,19 +353,19 @@
         "managed",
         10000,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
         const selectedProductData = products.find(
-          (p) => p.shortname === productShortname
+          (p) => p.shortname === productShortname,
         );
         const productContent = selectedProductData?.attributes?.payload?.body;
         const variationOptions = productContent?.variation_options || [];
 
         productVariants = loadProductVariations(
           response.records,
-          variationOptions
+          variationOptions,
         );
       }
     } catch (error) {
@@ -381,6 +402,20 @@
       selectedVariants = selectedVariants.filter((v) => v !== variantKey);
     } else {
       selectedVariants = [...selectedVariants, variantKey];
+
+      // Initialize productVariants for 'none' variant
+      if (variantKey === "none" && productVariants.length === 0) {
+        productVariants = [
+          {
+            key: "none",
+            sku: "",
+            qty: 0,
+            retailPrice: 0,
+            name: "No Variation",
+            type: "none",
+          } as any,
+        ];
+      }
     }
   }
 
@@ -412,20 +447,39 @@
     specificationGroups = [];
     productSearchTerm = "";
     filteredProducts = [];
+    currentPage = 1;
+    totalPages = 1;
+    isSearching = false;
+    if (searchDebounceTimer !== null) {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = null;
+    }
   }
 
   async function submitProductVariations() {
-    const validation = validateVariants(productVariants, selectedVariants);
-    if (!validation.isValid) {
-      errorToastMessage(validation.error || "Validation failed");
-      return;
+    // Handle 'none' variant separately
+    if (selectedVariants.includes("none")) {
+      if (!productVariants[0] || !productVariants[0].retailPrice) {
+        errorToastMessage("Please enter price for the product");
+        return;
+      }
+      if (!productVariants[0].qty) {
+        errorToastMessage("Please enter stock quantity");
+        return;
+      }
+    } else {
+      const validation = validateVariants(productVariants, selectedVariants);
+      if (!validation.isValid) {
+        errorToastMessage(validation.error || "Validation failed");
+        return;
+      }
     }
 
     try {
       isLoading = true;
 
       const selectedProductData = products.find(
-        (p) => p.shortname === selectedProduct
+        (p) => p.shortname === selectedProduct,
       );
 
       if (!selectedProductData) {
@@ -433,10 +487,24 @@
         return;
       }
 
-      const variants = prepareVariantsForSubmission(
-        productVariants,
-        selectedVariants
-      );
+      let variants;
+
+      // Handle 'none' variant - product without variations
+      if (selectedVariants.includes("none")) {
+        variants = [
+          {
+            sku: productVariants[0]?.sku || "",
+            qty: productVariants[0]?.qty || 0,
+            retail_price: productVariants[0]?.retailPrice || 0,
+            options: [], // No variation options
+          },
+        ];
+      } else {
+        variants = prepareVariantsForSubmission(
+          productVariants,
+          selectedVariants,
+        );
+      }
 
       const availabilityData = {
         displayname_en: getLocalizedDisplayName(selectedProductData, $locale),
@@ -466,11 +534,11 @@
         `/available_products/${$user.shortname}`,
         ResourceType.ticket,
         "availability",
-        ""
+        "",
       );
 
       successToastMessage(
-        `Product availability with ${variants.length} variant(s) added successfully!`
+        `Product availability with ${variants.length} variant(s) added successfully!`,
       );
       closeModal();
       await loadFolderContents();
@@ -502,7 +570,7 @@
         itemToDelete.shortname,
         itemToDelete.space_name,
         itemToDelete.subpath,
-        itemToDelete.resource_type
+        itemToDelete.resource_type,
       );
 
       successToastMessage("Product deleted successfully!");
@@ -635,16 +703,16 @@
               {@const variants = body?.variants || []}
               {@const totalStock = variants.reduce(
                 (sum, v) => sum + (v.qty || 0),
-                0
+                0,
               )}
               {@const priceRange =
                 variants.length > 0
                   ? {
                       min: Math.min(
-                        ...variants.map((v) => v.retail_price || 0)
+                        ...variants.map((v) => v.retail_price || 0),
                       ),
                       max: Math.max(
-                        ...variants.map((v) => v.retail_price || 0)
+                        ...variants.map((v) => v.retail_price || 0),
                       ),
                     }
                   : { min: 0, max: 0 }}
@@ -671,7 +739,7 @@
                           {#each variant.options || [] as option}
                             {resolveOptionKey(
                               option.key,
-                              option.variation_shortname
+                              option.variation_shortname,
                             )}
                           {/each}
                         </span>
@@ -870,8 +938,8 @@
   {isLoadingVariations}
   {productVariants}
   {selectedVariants}
-  {hasMoreProducts}
-  {isLoadingMore}
+  {currentPage}
+  {totalPages}
   {isSearching}
   onClose={closeModal}
   onSubmit={submitProductVariations}
@@ -885,7 +953,7 @@
     const variant = productVariants.find((v) => v.key === key);
     if (variant) variant[field] = value;
   }}
-  onLoadMore={loadMoreProducts}
+  onPageChange={handlePageChange}
 />
 
 <!-- Delete Confirmation Modal -->
