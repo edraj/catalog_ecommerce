@@ -1540,6 +1540,7 @@
     "create_bundle": "Create Bundle",
     "create_warranty": "Create Warranty",
     "create_discount": "Create Discount",
+    "edit_discount": "Edit Discount",
     "warranty_name": "Warranty Name",
     "warranty_description": "Warranty Description",
     "warranty_scope": "Warranty Scope",

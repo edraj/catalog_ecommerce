@@ -29,6 +29,8 @@
   let showDiscountModal = $state(false);
   let showDeleteModal = $state(false);
   let itemToDelete = $state(null);
+  let editingItem = $state(null);
+  let isEditMode = $state(false);
 
   let discountForm = $state({
     type: "",
@@ -46,7 +48,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   function getItemDisplayName(item: any): string {
@@ -70,12 +72,14 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
-      const configEntry = response?.records?.find(
-        (r) => r.shortname === "config"
-      );
+      // Get the first content record (the API returns records with dynamic shortnames)
+      const configEntry =
+        response?.records?.find((r) => r.resource_type === "content") ||
+        response?.records?.[0];
+
       if (configEntry?.attributes?.payload?.body?.items) {
         items = configEntry.attributes.payload.body.items.map(
           (item, index) => ({
@@ -83,7 +87,7 @@
             _key: item.key || `discount_${index}`,
             _isDiscountItem: true,
             _configEntry: configEntry,
-          })
+          }),
         );
         applyFilters();
       } else {
@@ -107,7 +111,7 @@
         "managed",
         1000,
         0,
-        true
+        true,
       );
       if (response?.records) {
         brands = response.records;
@@ -128,7 +132,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -157,6 +161,8 @@
 
   function openDiscountModal() {
     showDiscountModal = true;
+    isEditMode = false;
+    editingItem = null;
     discountForm = {
       type: "",
       typeShortname: "",
@@ -165,6 +171,20 @@
       validFrom: "",
       validTo: "",
     };
+  }
+
+  function openEditModal(item) {
+    editingItem = item;
+    isEditMode = true;
+    discountForm = {
+      type: item.type || "",
+      typeShortname: item.type_shortname || "",
+      value: item.discount_value?.toString() || "",
+      discountType: item.discount_type || "percentage",
+      validFrom: item.validity?.from || "",
+      validTo: item.validity?.to || "",
+    };
+    showDiscountModal = true;
   }
 
   function closeDiscountModal() {
@@ -189,9 +209,11 @@
     try {
       isLoading = true;
 
-      const itemKey = `discount_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const itemKey = isEditMode
+        ? editingItem.key
+        : `discount_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      const newDiscountItem = {
+      const discountItem = {
         key: itemKey,
         type: discountForm.type || null,
         type_shortname: discountForm.typeShortname || null,
@@ -201,10 +223,7 @@
           to: discountForm.validTo,
         },
         discount_type: discountForm.discountType,
-        discount_value:
-          discountForm.discountType === "percentage"
-            ? parseFloat(discountForm.value)
-            : parseFloat(discountForm.value),
+        discount_value: parseFloat(discountForm.value),
       };
 
       const response = await getSpaceContents(
@@ -213,22 +232,34 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
-      const configEntry = response?.records?.find(
-        (r) => r.shortname === "config"
-      );
+      const configEntry =
+        response?.records?.find((r) => r.resource_type === "content") ||
+        response?.records?.[0];
 
       if (configEntry) {
         const currentItems = configEntry.attributes?.payload?.body?.items || [];
+
+        let updatedItems;
+        if (isEditMode) {
+          // Replace the existing item
+          updatedItems = currentItems.map((item) =>
+            item.key === itemKey ? discountItem : item,
+          );
+        } else {
+          // Add new item
+          updatedItems = [...currentItems, discountItem];
+        }
+
         const updatedBody = {
-          items: [...currentItems, newDiscountItem],
+          items: updatedItems,
           seller_shortname: $user.shortname,
         };
 
         await updateEntity(
-          "config",
+          configEntry.shortname,
           website.main_space,
           `/discounts/${$user.shortname}`,
           ResourceType.content,
@@ -241,7 +272,7 @@
             is_active: true,
           },
           "",
-          ""
+          "",
         );
       } else {
         await createEntity(
@@ -250,7 +281,7 @@
             displayname_ar: null,
             displayname_ku: null,
             body: {
-              items: [newDiscountItem],
+              items: [discountItem],
               seller_shortname: $user.shortname,
             },
             tags: [],
@@ -260,11 +291,15 @@
           `/discounts/${$user.shortname}`,
           ResourceType.content,
           "",
-          ""
+          "",
         );
       }
 
-      successToastMessage("Discount created successfully!");
+      successToastMessage(
+        isEditMode
+          ? "Discount updated successfully!"
+          : "Discount created successfully!",
+      );
       closeDiscountModal();
       await loadDiscounts();
     } catch (error) {
@@ -299,11 +334,11 @@
 
       const currentItems = configEntry.attributes?.payload?.body?.items || [];
       const updatedItems = currentItems.filter(
-        (item) => item.key !== itemToDelete.key
+        (item) => item.key !== itemToDelete.key,
       );
 
       await updateEntity(
-        "config",
+        configEntry.shortname,
         website.main_space,
         `/discounts/${$user.shortname}`,
         ResourceType.content,
@@ -319,7 +354,7 @@
           is_active: true,
         },
         "",
-        ""
+        "",
       );
 
       successToastMessage("Discount deleted successfully!");
@@ -430,7 +465,7 @@
           </thead>
           <tbody>
             {#each filteredItems as item (item._key)}
-              <tr>
+              <tr class="clickable-row" onclick={() => openEditModal(item)}>
                 <td>
                   <span class="status-badge">
                     {item.type || "Global"}
@@ -453,7 +488,7 @@
                     {item.validity?.from} - {item.validity?.to}
                   </div>
                 </td>
-                <td>
+                <td onclick={(e) => e.stopPropagation()}>
                   <div class="action-buttons">
                     <button
                       class="btn-icon"
@@ -495,6 +530,7 @@
   onClose={closeDiscountModal}
   onSubmit={submitDiscount}
   getLocalizedDisplayName={getItemDisplayName}
+  {isEditMode}
 />
 
 <!-- Delete Confirmation Modal -->

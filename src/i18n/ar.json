@@ -1716,6 +1716,7 @@
     "create_bundle": "إنشاء حزمة",
     "create_warranty": "إنشاء ضمان",
     "create_discount": "إنشاء خصم",
+    "edit_discount": "تعديل الخصم",
     "warranty_name": "اسم الضمان",
     "warranty_description": "وصف الضمان",
     "warranty_scope": "نطاق الضمان",
