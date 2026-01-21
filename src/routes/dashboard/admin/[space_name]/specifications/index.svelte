@@ -41,7 +41,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   let specifications = $state([]);
@@ -81,7 +81,7 @@
         "managed",
         itemsPerPage,
         offset,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -110,13 +110,10 @@
     const content = specification.attributes?.payload?.body || {};
     const displayname = specification.attributes?.displayname || {};
 
-    // Normalize options to the format we use in forms
     let options = content?.options || [];
 
-    // Convert options to consistent format with name object
     const normalizedOptions = options.map((opt) => {
       if (opt.name) {
-        // Already in correct format
         return {
           key: opt.key || Math.random().toString(36).substring(2, 15),
           name: {
@@ -126,7 +123,6 @@
           },
         };
       } else if (opt.en || opt.ar) {
-        // Old format with direct locale keys
         return {
           key: opt.key || Math.random().toString(36).substring(2, 15),
           name: {
@@ -203,7 +199,7 @@
         "/specifications",
         ResourceType.content,
         "",
-        ""
+        "",
       );
 
       successToastMessage("Specification created successfully!");
@@ -251,7 +247,7 @@
         selectedSpecification.resource_type,
         specificationData,
         "",
-        ""
+        "",
       );
 
       successToastMessage("Specification updated successfully!");
@@ -271,7 +267,7 @@
         selectedSpecification.shortname,
         website.main_space,
         selectedSpecification.subpath,
-        selectedSpecification.resource_type
+        selectedSpecification.resource_type,
       );
 
       successToastMessage("Specification deleted successfully!");
@@ -283,14 +279,12 @@
     }
   }
 
-  // Helper function to get options from specification
   function getSpecificationOptions(specification: any): any[] {
     const content = specification.attributes?.payload?.body || {};
     return content?.options || [];
   }
 
   function getOptionName(option: any, locale: string): string {
-    // Handle new format with name object
     if (option?.name) {
       if (typeof option.name === "string") return option.name;
       return (
@@ -301,7 +295,6 @@
         ""
       );
     }
-    // Handle old format with direct locale keys
     if (option?.[locale]) return option[locale];
     return option?.en || option?.ar || option?.ku || "";
   }
@@ -410,7 +403,7 @@
             <span class="meta-item"
               >Created: {formatDate(
                 specification.attributes?.created_at,
-                $locale
+                $locale,
               )}</span
             >
           </div>

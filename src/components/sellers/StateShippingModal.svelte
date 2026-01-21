@@ -16,7 +16,6 @@
     onSubmit: () => void;
   } = $props();
 
-  // Static list of Iraq states/governorates
   const iraqStates = [
     {
       shortname: "baghdad",
@@ -92,7 +91,6 @@
     },
   ];
 
-  // Get display name based on current language
   const getStateDisplayName = (state: (typeof iraqStates)[0]) => {
     const lang = $_("lang") || "en";
     return (

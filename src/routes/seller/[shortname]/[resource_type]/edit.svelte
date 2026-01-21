@@ -64,7 +64,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   onMount(async () => {
@@ -83,7 +83,7 @@
         website.main_space,
         $params.subpath,
         resourceType,
-        "managed"
+        "managed",
       );
 
       if (response) {
@@ -176,7 +176,6 @@
     let updatedContent = { ...content };
 
     if (itemType === "availability") {
-      // For availability items, update the shipping and warranty info
       updatedContent = {
         ...updatedContent,
         has_fast_delivery: availabilityForm.hasFastDelivery,
@@ -187,7 +186,7 @@
         },
         warranty_shortname: availabilityForm.warrantyShortname,
         commission_category: availabilityForm.commissionCategory,
-        variants: variants, // Include the variants array
+        variants: variants,
       };
     } else if (itemType === "product") {
       if (!productForm.price || !productForm.stock) {
@@ -307,7 +306,7 @@
           content: updatedContent,
         },
         "",
-        ""
+        "",
       );
 
       successToastMessage("Item updated successfully");
@@ -402,7 +401,7 @@
       <div class="content-header">
         <h1 class="content-title" class:rtl={$isRTL}>
           {$_("seller_dashboard.edit") || "Edit"}: {getLocalizedDisplayName(
-            item
+            item,
           )}
         </h1>
         <p class="content-shortname">{item.shortname}</p>

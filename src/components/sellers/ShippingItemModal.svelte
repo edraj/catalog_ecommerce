@@ -16,7 +16,6 @@
     onSubmit: () => void;
   } = $props();
 
-  // Static list of Iraqi states/governorates
   const iraqStates = [
     { shortname: "baghdad", name: { en: "Baghdad", ar: "بغداد", ku: "بەغدا" } },
     { shortname: "basra", name: { en: "Basra", ar: "البصرة", ku: "بەسرە" } },
@@ -59,7 +58,6 @@
     },
   ];
 
-  // Get state display name
   const getStateDisplayName = (stateShortname: string) => {
     const state = iraqStates.find((s) => s.shortname === stateShortname);
     if (!state) return stateShortname;
@@ -67,7 +65,6 @@
     return state.name[lang as keyof typeof state.name] || state.name.en;
   };
 
-  // Toggle state selection
   function toggleState(stateShortname: string) {
     if (form.states.includes(stateShortname)) {
       form.states = form.states.filter((s) => s !== stateShortname);
@@ -76,7 +73,6 @@
     }
   }
 
-  // Add new setting tier
   function addSetting() {
     form.settings = [
       ...form.settings,
@@ -91,7 +87,6 @@
     ];
   }
 
-  // Remove setting tier
   function removeSetting(index: number) {
     form.settings = form.settings.filter((_, i) => i !== index);
   }
@@ -230,7 +225,7 @@
                 <div class="form-group">
                   <label class="form-label">
                     {$_("seller_dashboard.cost")} * ({$_(
-                      "seller_dashboard.currency"
+                      "seller_dashboard.currency",
                     )})
                   </label>
                   <input
@@ -247,7 +242,7 @@
                 <div class="form-group">
                   <label class="form-label">
                     {$_("seller_dashboard.minimum_retail_price")} ({$_(
-                      "seller_dashboard.currency"
+                      "seller_dashboard.currency",
                     )})
                   </label>
                   <input

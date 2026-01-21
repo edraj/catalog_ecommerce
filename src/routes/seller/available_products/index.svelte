@@ -215,23 +215,19 @@
   }
 
   async function filterProductsSearch() {
-    // Clear existing timer
     if (searchDebounceTimer !== null) {
       clearTimeout(searchDebounceTimer);
     }
 
     const trimmedSearch = productSearchTerm?.trim() || "";
 
-    // If search is empty, reset to all products
     if (trimmedSearch === "") {
       filteredProducts = [...products];
       isSearching = false;
       return;
     }
 
-    // Only search if at least 3 characters to reduce API calls
     if (trimmedSearch.length < 3) {
-      // Do local filtering for short search terms
       const localResults = filterProductsBySearch(
         products,
         trimmedSearch,
@@ -242,10 +238,8 @@
       return;
     }
 
-    // Set searching state immediately for UI feedback
     isSearching = true;
 
-    // Debounce the search by 800ms for better UX
     searchDebounceTimer = window.setTimeout(async () => {
       try {
         const { searchProducts } = await import("@/lib/dmart_services");
@@ -253,7 +247,7 @@
         const searchResults = await searchProducts(
           website.main_space,
           trimmedSearch,
-          100, // Reduced from 1000 for better performance
+          100,
         );
 
         filteredProducts = [...searchResults];
@@ -318,11 +312,10 @@
         products = newProducts;
         filteredProducts = [...products];
 
-        // Calculate total pages (estimate based on returned records)
         if (response.records.length < itemsPerPage) {
           totalPages = page;
         } else {
-          totalPages = page + 1; // At least one more page
+          totalPages = page + 1;
         }
         currentPage = page;
       }
@@ -403,7 +396,6 @@
     } else {
       selectedVariants = [...selectedVariants, variantKey];
 
-      // Initialize productVariants for 'none' variant
       if (variantKey === "none" && productVariants.length === 0) {
         productVariants = [
           {
@@ -457,7 +449,6 @@
   }
 
   async function submitProductVariations() {
-    // Handle 'none' variant separately
     if (selectedVariants.includes("none")) {
       if (!productVariants[0] || !productVariants[0].retailPrice) {
         errorToastMessage("Please enter price for the product");
@@ -489,14 +480,13 @@
 
       let variants;
 
-      // Handle 'none' variant - product without variations
       if (selectedVariants.includes("none")) {
         variants = [
           {
             sku: productVariants[0]?.sku || "",
             qty: productVariants[0]?.qty || 0,
             retail_price: productVariants[0]?.retailPrice || 0,
-            options: [], // No variation options
+            options: [],
           },
         ];
       } else {

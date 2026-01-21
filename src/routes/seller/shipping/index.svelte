@@ -41,7 +41,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   onMount(async () => {
@@ -57,7 +57,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response?.records && response.records.length > 0) {
@@ -102,7 +102,7 @@
           shippingConfig.resource_type,
           configData,
           "",
-          ""
+          "",
         );
       } else {
         await createEntity(
@@ -111,12 +111,12 @@
           `/shipping/${$user.shortname}`,
           ResourceType.content,
           "",
-          ""
+          "",
         );
       }
 
       successToastMessage(
-        $_("seller_dashboard.shipping_configured_successfully")
+        $_("seller_dashboard.shipping_configured_successfully"),
       );
       await loadShippingData();
     } catch (error) {
@@ -128,7 +128,6 @@
   }
 
   async function submitShippingItem() {
-    // Validate form
     if (shippingItemForm.settings.some((s) => !s.min || !s.max || !s.cost)) {
       errorToastMessage("Please fill in all required fields (min, max, cost)");
       return;
@@ -152,11 +151,9 @@
       };
 
       if (editingShippingItemIndex !== null) {
-        // Update existing item
         shippingConfig.attributes.payload.body.items[editingShippingItemIndex] =
           newItem;
       } else {
-        // Add new item
         if (!shippingConfig.attributes) {
           shippingConfig.attributes = { payload: { body: { items: [] } } };
         }
@@ -187,7 +184,6 @@
     showShippingItemModal = true;
 
     if (itemIndex !== null) {
-      // Edit existing item
       const item = shippingConfig.attributes.payload.body.items[itemIndex];
       shippingItemForm = {
         states: item.states || [],
@@ -201,7 +197,6 @@
         })),
       };
     } else {
-      // New item
       shippingItemForm = {
         states: [],
         settings: [
@@ -229,7 +224,7 @@
 
       shippingConfig.attributes.payload.body.items =
         shippingConfig.attributes.payload.body.items.filter(
-          (_, i) => i !== itemIndex
+          (_, i) => i !== itemIndex,
         );
 
       await saveShippingConfig();

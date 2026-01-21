@@ -25,7 +25,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   let requests = $state([]);
@@ -49,27 +49,24 @@
   async function loadRequests() {
     isLoading = true;
     try {
-      // Load product requests
       const productResponse = await getSpaceContents(
         website.main_space,
         "/variation_request/products_requests",
         "managed",
         100,
         0,
-        true
+        true,
       );
 
-      // Load category requests
       const categoryResponse = await getSpaceContents(
         website.main_space,
         "/variation_request/categories_requests",
         "managed",
         100,
         0,
-        true
+        true,
       );
 
-      // Combine both responses
       const productRecords = productResponse?.records || [];
       const categoryRecords = categoryResponse?.records || [];
       requests = [...productRecords, ...categoryRecords];
@@ -177,11 +174,11 @@
         selectedRequest.resource_type,
         updateData,
         "",
-        ""
+        "",
       );
 
       successToastMessage(
-        `Request ${reviewForm.status === "approved" ? "approved" : "rejected"} successfully!`
+        `Request ${reviewForm.status === "approved" ? "approved" : "rejected"} successfully!`,
       );
       closeReviewModal();
       await loadRequests();
@@ -202,7 +199,7 @@
         request.shortname,
         request.space_name,
         request.subpath,
-        request.resource_type
+        request.resource_type,
       );
 
       successToastMessage("Request deleted successfully!");
@@ -594,7 +591,7 @@
             <span class="block-label">Request Type:</span>
             <span
               class="block-value type-badge {getTypeBadgeClass(
-                content?.request_type
+                content?.request_type,
               )}"
             >
               {content?.request_type || "N/A"}

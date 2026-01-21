@@ -43,7 +43,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   let variations = $state([]);
@@ -55,12 +55,10 @@
   let selectedOption = $state(null);
   let editFormData = $state<OptionFormData | undefined>(undefined);
 
-  // Search and pagination state
   let searchQueries = $state<Record<string, string>>({});
   let expandedVariations = $state<Record<string, boolean>>({});
   const INITIAL_DISPLAY_COUNT = 10;
 
-  // Helper functions
   function getFilteredOptions(variation: any) {
     const options = getVariationOptions(variation);
     const searchQuery = searchQueries[variation.shortname]?.toLowerCase() || "";
@@ -111,7 +109,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -211,7 +209,7 @@
         selectedVariation.resource_type,
         JSON.stringify(variationData),
         "",
-        ""
+        "",
       );
 
       successToastMessage("Option added successfully!");
@@ -275,7 +273,7 @@
         selectedVariation.resource_type,
         JSON.stringify(variationData),
         "",
-        ""
+        "",
       );
 
       successToastMessage("Option updated successfully!");
@@ -292,7 +290,7 @@
       const currentOptions = getVariationOptions(selectedVariation);
 
       const updatedOptions = currentOptions.filter(
-        (opt) => opt.key !== selectedOption.key
+        (opt) => opt.key !== selectedOption.key,
       );
 
       const payloadBody = selectedVariation.attributes?.payload?.body || {};
@@ -314,7 +312,7 @@
         selectedVariation.resource_type,
         JSON.stringify(variationData),
         "",
-        ""
+        "",
       );
 
       successToastMessage("Option deleted successfully!");
@@ -325,8 +323,6 @@
       errorToastMessage("Failed to delete option");
     }
   }
-
-  // Helper functions now imported from utility modules
 </script>
 
 <div class="variations-page" class:rtl={$isRTL}>
@@ -391,7 +387,7 @@
                     oninput={(e) =>
                       updateSearch(
                         variation.shortname,
-                        (e.target as HTMLInputElement).value
+                        (e.target as HTMLInputElement).value,
                       )}
                     class="search-input"
                   />
@@ -462,7 +458,7 @@
                     {:else}
                       <span
                         >{$_("admin_dashboard.show_more") || "Show More"} ({getFilteredOptions(
-                          variation
+                          variation,
                         ).length - INITIAL_DISPLAY_COUNT}
                         {$_("common.more") || "more"})</span
                       >

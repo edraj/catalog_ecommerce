@@ -23,7 +23,7 @@
   let error = $state(null);
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
   let showCreateModal = $state(false);
   let newSpaceName = $state("");
@@ -155,7 +155,7 @@
         subpath: encodedSubpath,
         shortname: record.shortname,
         resource_type: record.resource_type,
-      }
+      },
     );
   }
 
@@ -240,14 +240,6 @@
       applyFilters();
     }
   });
-
-  // $effect(() => {
-  //   if (searchQuery.trim()) {
-  //     performSearch(searchQuery);
-  //   } else {
-  //     applyFilters();
-  //   }
-  // });
 
   function handleSpaceClick(space: any) {
     $goto(`/dashboard/admin/[space_name]`, {
@@ -632,7 +624,7 @@
               <p class="text-2xl font-semibold text-gray-900">
                 {formatNumberInText(
                   spaces.filter((s) => s.attributes?.is_active).length,
-                  $locale
+                  $locale,
                 )}
               </p>
             </div>
@@ -717,7 +709,7 @@
                     values: {
                       count: formatNumberInText(
                         displayedSpaces.length,
-                        $locale
+                        $locale,
                       ),
                     },
                   })}
@@ -726,12 +718,12 @@
                   {#if searchQuery.trim()}
                     Showing {formatNumberInText(
                       displayedSpaces.length,
-                      $locale
+                      $locale,
                     )} search results for "{searchQuery}"
                   {:else if isSearchActive}
                     Showing {formatNumberInText(
                       displayedSpaces.length,
-                      $locale
+                      $locale,
                     )} of {formatNumberInText(spaces.length, $locale)} spaces
                   {:else}
                     {$_("admin_dashboard.admin_access_description")}

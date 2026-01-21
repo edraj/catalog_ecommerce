@@ -13,7 +13,6 @@
     onDeleteItem: (index: number) => void;
   } = $props();
 
-  // Static list of Iraqi states/governorates
   const iraqStates = [
     { shortname: "baghdad", name: { en: "Baghdad", ar: "بغداد", ku: "بەغدا" } },
     { shortname: "basra", name: { en: "Basra", ar: "البصرة", ku: "بەسرە" } },
@@ -56,20 +55,17 @@
     },
   ];
 
-  // Get shipping items from config
   const items = $derived(
-    shippingConfig?.attributes?.payload?.body?.items || []
+    shippingConfig?.attributes?.payload?.body?.items || [],
   );
 
-  // Separate items into default and state-specific
   const defaultItems = $derived(
-    items.filter((item: any) => !item.states || item.states.length === 0)
+    items.filter((item: any) => !item.states || item.states.length === 0),
   );
   const stateSpecificItems = $derived(
-    items.filter((item: any) => item.states && item.states.length > 0)
+    items.filter((item: any) => item.states && item.states.length > 0),
   );
 
-  // Get state display name
   const getStateDisplayName = (stateShortname: string) => {
     const state = iraqStates.find((s) => s.shortname === stateShortname);
     if (!state) return stateShortname;

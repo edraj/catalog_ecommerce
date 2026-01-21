@@ -30,7 +30,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   let products = $state([]);
@@ -71,7 +71,6 @@
     tags: [],
   });
 
-  // Variation search and display state
   let colorSearchTerm = $state("");
   let storageSearchTerm = $state("");
   let showAllColors = $state(false);
@@ -100,7 +99,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -125,15 +124,15 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
         const colorsData = response.records.find(
-          (v) => v.shortname === "colors"
+          (v) => v.shortname === "colors",
         );
         const storagesData = response.records.find(
-          (v) => v.shortname === "storages"
+          (v) => v.shortname === "storages",
         );
 
         variations = {
@@ -158,7 +157,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -181,7 +180,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -214,7 +213,6 @@
       category_specifications: [],
       tags: [],
     };
-    // Reset variation search and display
     colorSearchTerm = "";
     storageSearchTerm = "";
     showAllColors = false;
@@ -237,10 +235,8 @@
     const displayname = product.attributes?.displayname || {};
     const description = product.attributes?.description || {};
 
-    // Normalize category_specifications to use values array
     const categorySpecs = content?.category_specifications || [];
     const normalizedSpecs = categorySpecs.map((spec: any) => {
-      // Handle both old format (value: string) and new format (values: string[])
       if (spec.value && !spec.values) {
         return { ...spec, values: [spec.value] };
       }
@@ -348,7 +344,7 @@
         "/products",
         ResourceType.content,
         "",
-        ""
+        "",
       );
 
       if (createdShortname && selectedImages.length > 0) {
@@ -423,7 +419,7 @@
         selectedProduct.resource_type,
         productData,
         "",
-        ""
+        "",
       );
 
       if (selectedImages.length > 0) {
@@ -450,7 +446,7 @@
         selectedProduct.shortname,
         website.main_space,
         selectedProduct.subpath,
-        selectedProduct.resource_type
+        selectedProduct.resource_type,
       );
 
       successToastMessage("Product deleted successfully!");
@@ -517,7 +513,7 @@
     const index = productForm.categories.indexOf(categoryId);
     if (index > -1) {
       productForm.categories = productForm.categories.filter(
-        (id) => id !== categoryId
+        (id) => id !== categoryId,
       );
       if (productForm.main_category === categoryId) {
         productForm.main_category = "";
@@ -539,17 +535,17 @@
 
   function toggleVariationValue(variationType: string, valueKey: string) {
     const existingOption = productForm.variation_options.find(
-      (opt) => opt.variation_shortname === variationType
+      (opt) => opt.variation_shortname === variationType,
     );
 
     if (existingOption) {
       if (existingOption.values.includes(valueKey)) {
         existingOption.values = existingOption.values.filter(
-          (v) => v !== valueKey
+          (v) => v !== valueKey,
         );
         if (existingOption.values.length === 0) {
           productForm.variation_options = productForm.variation_options.filter(
-            (opt) => opt.variation_shortname !== variationType
+            (opt) => opt.variation_shortname !== variationType,
           );
         }
       } else {
@@ -566,10 +562,10 @@
 
   function isVariationSelected(
     variationType: string,
-    valueKey: string
+    valueKey: string,
   ): boolean {
     const option = productForm.variation_options.find(
-      (opt) => opt.variation_shortname === variationType
+      (opt) => opt.variation_shortname === variationType,
     );
     return option ? option.values.includes(valueKey) : false;
   }
@@ -608,7 +604,6 @@
     currentPage = 1;
   });
 
-  // Filtered variations with search
   const filteredColors = $derived.by(() => {
     if (!colorSearchTerm) return variations.colors;
     const term = colorSearchTerm.toLowerCase();
@@ -616,7 +611,7 @@
       (c) =>
         c.name?.en?.toLowerCase().includes(term) ||
         c.name?.ar?.toLowerCase().includes(term) ||
-        c.key?.toLowerCase().includes(term)
+        c.key?.toLowerCase().includes(term),
     );
   });
 
@@ -627,7 +622,7 @@
       (s) =>
         s.name?.en?.toLowerCase().includes(term) ||
         s.name?.ar?.toLowerCase().includes(term) ||
-        s.key?.toLowerCase().includes(term)
+        s.key?.toLowerCase().includes(term),
     );
   });
 
@@ -654,7 +649,7 @@
     const specShortnames = new Set<string>();
     productForm.categories.forEach((categoryShortname) => {
       const category = categories.find(
-        (c) => c.shortname === categoryShortname
+        (c) => c.shortname === categoryShortname,
       );
       if (category) {
         const content = category.attributes?.payload?.body;
@@ -664,7 +659,7 @@
     });
 
     const filtered = specifications.filter((spec) =>
-      specShortnames.has(spec.shortname)
+      specShortnames.has(spec.shortname),
     );
     return filtered;
   });
@@ -692,22 +687,19 @@
 
   function toggleProductSpecification(specShortname: string) {
     const index = productForm.product_specifications.findIndex(
-      (ps) => ps.specification_shortname === specShortname
+      (ps) => ps.specification_shortname === specShortname,
     );
 
     if (index > -1) {
-      // Remove from product_specifications
       productForm.product_specifications =
         productForm.product_specifications.filter(
-          (ps) => ps.specification_shortname !== specShortname
+          (ps) => ps.specification_shortname !== specShortname,
         );
-      // Also remove from category_specifications
       productForm.category_specifications =
         productForm.category_specifications.filter(
-          (cs) => cs.specification_shortname !== specShortname
+          (cs) => cs.specification_shortname !== specShortname,
         );
     } else {
-      // Add to product_specifications
       productForm.product_specifications = [
         ...productForm.product_specifications,
         { specification_shortname: specShortname },
@@ -717,24 +709,23 @@
 
   function isSpecificationSelected(specShortname: string): boolean {
     return productForm.product_specifications.some(
-      (ps) => ps.specification_shortname === specShortname
+      (ps) => ps.specification_shortname === specShortname,
     );
   }
 
   function updateCategorySpecification(
     specShortname: string,
-    values: string[]
+    values: string[],
   ) {
     const index = productForm.category_specifications.findIndex(
-      (cs) => cs.specification_shortname === specShortname
+      (cs) => cs.specification_shortname === specShortname,
     );
 
     if (values.length === 0) {
-      // Remove if no values selected
       if (index > -1) {
         productForm.category_specifications =
           productForm.category_specifications.filter(
-            (cs) => cs.specification_shortname !== specShortname
+            (cs) => cs.specification_shortname !== specShortname,
           );
       }
     } else if (index > -1) {
@@ -752,9 +743,8 @@
 
   function getCategorySpecificationValues(specShortname: string): string[] {
     const spec = productForm.category_specifications.find(
-      (cs) => cs.specification_shortname === specShortname
+      (cs) => cs.specification_shortname === specShortname,
     );
-    // Handle both old format (value: string) and new format (values: string[])
     if (spec?.values) return spec.values;
     if (spec?.value) return [spec.value];
     return [];
@@ -762,7 +752,7 @@
 
   function isSpecificationValueSelected(
     specShortname: string,
-    valueKey: string
+    valueKey: string,
   ): boolean {
     const values = getCategorySpecificationValues(specShortname);
     return values.includes(valueKey);
@@ -825,7 +815,7 @@
           productShortname,
           website.main_space,
           "/products",
-          file
+          file,
         );
         return { success: result, file: file.name };
       } catch (error) {
@@ -848,7 +838,7 @@
           .map((r) => r.file)
           .join(", ");
         errorToastMessage(
-          `${failedCount} image(s) failed to upload: ${failedFiles}`
+          `${failedCount} image(s) failed to upload: ${failedFiles}`,
         );
       }
     } catch (error) {
@@ -1321,7 +1311,7 @@
                     <input
                       type="checkbox"
                       checked={productForm.categories.includes(
-                        category.shortname
+                        category.shortname,
                       )}
                       onchange={() => toggleCategory(category.shortname)}
                     />
@@ -1355,7 +1345,7 @@
                       <input
                         type="checkbox"
                         checked={productForm.categories.includes(
-                          subCategory.shortname
+                          subCategory.shortname,
                         )}
                         onchange={() => toggleCategory(subCategory.shortname)}
                       />
@@ -1471,7 +1461,7 @@
                     class="variation-option"
                     class:selected={isVariationSelected(
                       "storages",
-                      storage.key
+                      storage.key,
                     )}
                     onclick={() =>
                       toggleVariationValue("storages", storage.key)}
@@ -1557,12 +1547,12 @@
                               type="checkbox"
                               checked={isSpecificationValueSelected(
                                 spec.shortname,
-                                option.key
+                                option.key,
                               )}
                               onchange={() =>
                                 toggleSpecificationValue(
                                   spec.shortname,
-                                  option.key
+                                  option.key,
                                 )}
                             />
                             <span>{getOptionDisplayName(option)}</span>
@@ -1607,7 +1597,7 @@
               id="meta-description"
               bind:value={productForm.meta_description}
               placeholder={$_(
-                "admin_dashboard.seo_meta_description_placeholder"
+                "admin_dashboard.seo_meta_description_placeholder",
               ) || "SEO meta description"}
               class="form-textarea"
               rows="2"

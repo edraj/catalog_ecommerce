@@ -17,35 +17,35 @@
   import { website } from "@/config";
   import "./index.css";
   let orders = [];
-  let filteredOrders = [];
-  let loading = true;
-  let error = "";
-  let currentPage = 1;
-  let totalOrders = 0;
+  let filteredOrders = $state([]);
+  let loading = $state(false);
   let itemsPerPage = 15;
+  let totalOrders = 0;
+  let error = $state("");
+  let currentPage = $state(1);
 
-  // Filter states
-  let selectedState = "all";
-  let selectedPaymentStatus = "all";
-  let searchQuery = "";
-  let dateFrom = "";
-  let dateTo = "";
+  let selectedState = $state("all");
+  let selectedPaymentStatus = $state("all");
+  let searchQuery = $state("");
+  let dateFrom = $state("");
+  let dateTo = $state("");
 
-  // Modal
-  let showOrderDetails = false;
-  let selectedOrder = null;
-  let orderPayment: any = null;
-  let combinedOrderDetails: any = null;
+  let showOrderDetails = $state(false);
+  let selectedOrder = $state(null);
+  let orderPayment: any = $state(null);
+  let combinedOrderDetails: any = $state(null);
 
-  // Seller shortname - get from user store
   let sellerShortname = "";
-  $: {
-    if ($user) {
-      sellerShortname = $user.shortname;
-    }
-  }
+  let initialized = false;
 
-  // Order states available in workflow
+  $effect(() => {
+    if ($user && $user.shortname && !initialized) {
+      sellerShortname = $user.shortname;
+      initialized = true;
+      loadOrders();
+    }
+  });
+
   const orderStates = [
     { value: "all", label: "All Orders" },
     { value: "pending", label: "Pending" },
@@ -66,10 +66,6 @@
     { value: "nopaid", label: "Not Paid" },
     { value: "failed", label: "Failed" },
   ];
-
-  onMount(async () => {
-    await loadOrders();
-  });
 
   async function loadOrders() {
     if (!sellerShortname) {
@@ -113,7 +109,6 @@
       const orderPayload = order.attributes?.payload?.body;
       if (!orderPayload) return false;
 
-      // Payment status filter
       if (
         selectedPaymentStatus !== "all" &&
         orderPayload.payment_status !== selectedPaymentStatus
@@ -121,7 +116,6 @@
         return false;
       }
 
-      // Search filter (order code, customer name, tracking code)
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesOrderCode = orderPayload.order_code
@@ -145,7 +139,6 @@
         }
       }
 
-      // Date filter
       if (dateFrom) {
         const orderDate = new Date(order.attributes.created_at);
         const fromDate = new Date(dateFrom);
@@ -197,7 +190,6 @@
     loading = true;
 
     try {
-      // Fetch combined order details
       const combinedOrderId =
         order.attributes?.payload?.body?.combined_order_id?.toString();
 
@@ -212,7 +204,6 @@
         combinedOrderId,
       );
 
-      // Fetch payment details
       orderPayment = await getPaymentByCombinedOrder(
         website.main_space,
         combinedOrderId,
@@ -284,8 +275,10 @@
     return statusClasses[status] || "bg-gray-100 text-gray-800";
   }
 
-  // Pagination
-  $: totalPages = Math.ceil(totalOrders / itemsPerPage);
+  let totalPages = 0;
+  $effect(() => {
+    totalPages = Math.ceil(totalOrders / itemsPerPage);
+  });
 
   function goToPage(page: number) {
     currentPage = page;
@@ -306,8 +299,7 @@
     }
   }
 
-  // Watch for filter changes
-  $: {
+  $effect(() => {
     selectedState;
     selectedPaymentStatus;
     searchQuery;
@@ -316,15 +308,7 @@
     if (orders.length > 0) {
       applyFilters();
     }
-  }
-
-  // Reload when state filter changes
-  $: {
-    if (selectedState) {
-      currentPage = 1;
-      loadOrders();
-    }
-  }
+  });
 </script>
 
 <div class="orders-container">
@@ -337,7 +321,14 @@
     <div class="filters-row">
       <div class="filter-group">
         <label for="state-filter">Order State</label>
-        <select id="state-filter" bind:value={selectedState}>
+        <select
+          id="state-filter"
+          bind:value={selectedState}
+          on:change={() => {
+            currentPage = 1;
+            loadOrders();
+          }}
+        >
           {#each orderStates as state}
             <option value={state.value}>{state.label}</option>
           {/each}

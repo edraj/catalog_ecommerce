@@ -40,11 +40,10 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response && response.records) {
-        // Sort by order field
         paymentMethods = response.records.sort((a, b) => {
           const orderA = a.attributes?.payload?.body?.payload?.body?.order || 0;
           const orderB = b.attributes?.payload?.body?.payload?.body?.order || 0;
@@ -53,7 +52,7 @@
         successToastMessage(
           $_("paymentMethods.loaded", {
             values: { count: paymentMethods.length },
-          })
+          }),
         );
       }
     } catch (error) {
@@ -113,7 +112,7 @@
         successToastMessage(
           isEditing
             ? $_("paymentMethods.updated")
-            : $_("paymentMethods.created")
+            : $_("paymentMethods.created"),
         );
         closeModal();
         await loadPaymentMethods();
@@ -147,7 +146,7 @@
         paymentMethodToDelete.shortname,
         website.main_space,
         "/settings/payment_methods",
-        ResourceType.content
+        ResourceType.content,
       );
 
       successToastMessage($_("paymentMethods.deleted"));

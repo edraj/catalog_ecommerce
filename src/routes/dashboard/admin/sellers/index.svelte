@@ -55,7 +55,6 @@
   async function handleSubmit(event: Event) {
     event.preventDefault();
 
-    // Use validation utility
     const validation = validateSellerForm(formData, $_);
     errors = validation.errors;
 

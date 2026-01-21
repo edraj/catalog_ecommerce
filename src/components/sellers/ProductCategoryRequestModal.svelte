@@ -38,7 +38,6 @@
     getLocalizedDisplayName = (item: any) => "",
   } = $props();
 
-  // Type-safe wrapper functions
   const handleClose = (e: MouseEvent) => onClose(e);
   const handleSubmit = (e: MouseEvent) => onSubmit(e);
   const handleAddSpec = (e: MouseEvent) => onAddSpecification(e);
@@ -354,7 +353,7 @@
                 <textarea
                   bind:value={productRequestForm.justification}
                   placeholder={$_(
-                    "seller_dashboard.justification_placeholder"
+                    "seller_dashboard.justification_placeholder",
                   ) || "Explain why this product should be added..."}
                   class="form-textarea"
                   rows="4"
@@ -484,7 +483,7 @@
                 <textarea
                   bind:value={categoryRequestForm.justification}
                   placeholder={$_(
-                    "seller_dashboard.category_justification_placeholder"
+                    "seller_dashboard.category_justification_placeholder",
                   ) || "Explain why this category should be added..."}
                   class="form-textarea"
                   rows="4"

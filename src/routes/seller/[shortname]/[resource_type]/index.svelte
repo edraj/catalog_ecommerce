@@ -27,7 +27,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   onMount(async () => {
@@ -48,7 +48,7 @@
         resourceType,
         "managed",
         true,
-        true
+        true,
       );
 
       if (response) {
@@ -65,7 +65,6 @@
   }
 
   function goBack() {
-    // Check if there's a previous folder stored
     const previousFolder = sessionStorage.getItem("seller_previous_folder");
     if (previousFolder) {
       sessionStorage.removeItem("seller_previous_folder");
@@ -98,7 +97,7 @@
         $params.shortname,
         website.main_space,
         $params.subpath,
-        $params.resource_type
+        $params.resource_type,
       );
 
       successToastMessage("Item deleted successfully");

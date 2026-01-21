@@ -153,7 +153,6 @@
                 const state = record.attributes?.state || "pending";
 
                 if (body) {
-                  // Calculate total amount from items and shipping
                   const itemsTotal =
                     body.items?.reduce(
                       (sum, item) => sum + (item.subtotal || 0),
@@ -225,7 +224,6 @@
           const state = record.attributes?.state || "pending";
 
           if (body) {
-            // Calculate total amount from items and shipping
             const itemsTotal =
               body.items?.reduce(
                 (sum, item) => sum + (item.subtotal || 0),
