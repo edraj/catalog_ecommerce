@@ -11,6 +11,7 @@
   import {
     getSpaceContents,
     createEntity,
+    updateEntity,
     deleteEntity,
   } from "@/lib/dmart_services";
   import { getLocalizedDisplayName } from "@/lib/utils/sellerUtils";
@@ -29,6 +30,8 @@
   let showWarrantyModal = $state(false);
   let showDeleteModal = $state(false);
   let itemToDelete = $state(null);
+  let editingItem = $state(null);
+  let isEditMode = $state(false);
 
   let warrantyForm = $state({
     displaynameEn: "",
@@ -46,7 +49,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   function getItemDisplayName(item: any): string {
@@ -66,7 +69,7 @@
         "managed",
         1000,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -90,7 +93,7 @@
         "managed",
         1000,
         0,
-        true
+        true,
       );
       if (response?.records) {
         brands = response.records;
@@ -117,6 +120,8 @@
 
   function openWarrantyModal() {
     showWarrantyModal = true;
+    isEditMode = false;
+    editingItem = null;
     warrantyForm = {
       displaynameEn: "",
       displaynameAr: "",
@@ -127,6 +132,23 @@
       isGlobal: true,
       brandShortname: "",
     };
+  }
+
+  function openEditModal(item) {
+    editingItem = item;
+    isEditMode = true;
+    const body = item.attributes?.payload?.body;
+    warrantyForm = {
+      displaynameEn: item.attributes?.displayname?.en || "",
+      displaynameAr: item.attributes?.displayname?.ar || "",
+      displaynameKu: item.attributes?.displayname?.ku || "",
+      descriptionEn: item.attributes?.description?.en || "",
+      descriptionAr: item.attributes?.description?.ar || "",
+      descriptionKu: item.attributes?.description?.ku || "",
+      isGlobal: body?.is_global ?? true,
+      brandShortname: body?.brand_shortname || "",
+    };
+    showWarrantyModal = true;
   }
 
   function closeWarrantyModal() {
@@ -163,21 +185,41 @@
         is_active: true,
       };
 
-      await createEntity(
-        warrantyData,
-        website.main_space,
-        `/warranties/${$user.shortname}`,
-        ResourceType.content,
-        "",
-        ""
-      );
+      if (isEditMode && editingItem) {
+        // Use updateEntity for editing
+        const { updateEntity } = await import("@/lib/dmart_services");
+        await updateEntity(
+          editingItem.shortname,
+          website.main_space,
+          `/warranties/${$user.shortname}`,
+          ResourceType.content,
+          warrantyData,
+          "",
+          "",
+        );
+        successToastMessage("Warranty updated successfully!");
+      } else {
+        await createEntity(
+          warrantyData,
+          website.main_space,
+          `/warranties/${$user.shortname}`,
+          ResourceType.content,
+          "",
+          "",
+        );
+        successToastMessage("Warranty created successfully!");
+      }
 
-      successToastMessage("Warranty created successfully!");
       closeWarrantyModal();
       await loadWarranties();
     } catch (error) {
-      console.error("Error creating warranty:", error);
-      errorToastMessage("Failed to create warranty");
+      console.error(
+        isEditMode ? "Error updating warranty:" : "Error creating warranty:",
+        error,
+      );
+      errorToastMessage(
+        isEditMode ? "Failed to update warranty" : "Failed to create warranty",
+      );
     } finally {
       isLoading = false;
     }
@@ -203,7 +245,7 @@
         itemToDelete.shortname,
         itemToDelete.space_name,
         itemToDelete.subpath,
-        itemToDelete.resource_type
+        itemToDelete.resource_type,
       );
 
       successToastMessage("Warranty deleted successfully!");
@@ -316,7 +358,7 @@
           <tbody>
             {#each filteredItems as item (item.shortname)}
               {@const body = item.attributes?.payload?.body}
-              <tr>
+              <tr class="clickable-row" onclick={() => openEditModal(item)}>
                 <td>
                   <div class="item-name">{getItemDisplayName(item)}</div>
                 </td>
@@ -334,7 +376,7 @@
                       : body?.brand_shortname || "Brand Specific"}
                   </span>
                 </td>
-                <td>
+                <td onclick={(e) => e.stopPropagation()}>
                   <div class="action-buttons">
                     <button
                       class="btn-icon"
@@ -374,6 +416,7 @@
   onClose={closeWarrantyModal}
   onSubmit={submitWarranty}
   getLocalizedDisplayName={getItemDisplayName}
+  {isEditMode}
 />
 
 <!-- Delete Confirmation Modal -->

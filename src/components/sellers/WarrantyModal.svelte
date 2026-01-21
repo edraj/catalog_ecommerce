@@ -19,6 +19,7 @@
     onClose: () => void;
     onSubmit: () => void;
     getLocalizedDisplayName: (item: any) => string;
+    isEditMode?: boolean;
   };
 
   let {
@@ -30,6 +31,7 @@
     onClose,
     onSubmit,
     getLocalizedDisplayName,
+    isEditMode = false,
   }: Props = $props();
 
   function handleSubmit(e: Event) {
@@ -43,7 +45,9 @@
     <div class="modal-container" onclick={(e) => e.stopPropagation()}>
       <div class="modal-header">
         <h2 class="modal-title" class:rtl={isRTL}>
-          {$_("seller_dashboard.create_warranty") || "Create Warranty"}
+          {isEditMode
+            ? $_("seller_dashboard.edit_warranty") || "Edit Warranty"
+            : $_("seller_dashboard.create_warranty") || "Create Warranty"}
         </h2>
         <button class="modal-close-button" onclick={onClose}>
           <svg
