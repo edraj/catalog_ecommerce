@@ -30,7 +30,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   let brands = $state([]);
@@ -50,7 +50,9 @@
 
   let paginatedBrands = $derived.by(() => {
     if (searchTerm || topBrandsFilter !== "all") {
-      return filteredBrands;
+      const start = (currentPage - 1) * itemsPerPage;
+      const end = start + itemsPerPage;
+      return filteredBrands.slice(start, end);
     }
     return brands;
   });
@@ -69,7 +71,11 @@
     description_en: "",
     description_ar: "",
     description_ku: "",
+    meta_title_en: "",
+    meta_description_en: "",
     isTop: false,
+    boost_value: 0,
+    logo: null,
   });
 
   let editForm = $state({
@@ -79,7 +85,11 @@
     description_en: "",
     description_ar: "",
     description_ku: "",
+    meta_title_en: "",
+    meta_description_en: "",
     isTop: false,
+    boost_value: 0,
+    logo: null,
   });
 
   onMount(async () => {
@@ -97,7 +107,7 @@
         "managed",
         itemsPerPage,
         offset,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -121,7 +131,7 @@
         "managed",
         1000,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -142,7 +152,7 @@
       result = result.filter((brand) => {
         const displayname = getLocalizedDisplayName(
           brand,
-          $locale
+          $locale,
         ).toLowerCase();
         const shortname = brand.shortname?.toLowerCase() || "";
         const description =
@@ -157,11 +167,11 @@
 
     if (topBrandsFilter === "top") {
       result = result.filter(
-        (brand) => brand.attributes?.payload?.body?.top === true
+        (brand) => brand.attributes?.payload?.body?.top === true,
       );
     } else if (topBrandsFilter === "regular") {
       result = result.filter(
-        (brand) => brand.attributes?.payload?.body?.top !== true
+        (brand) => brand.attributes?.payload?.body?.top !== true,
       );
     }
 
@@ -177,7 +187,11 @@
       description_en: "",
       description_ar: "",
       description_ku: "",
+      meta_title_en: "",
+      meta_description_en: "",
       isTop: false,
+      boost_value: 0,
+      logo: null,
     };
     showCreateModal = true;
   }
@@ -195,7 +209,12 @@
       description_en: brand.attributes?.description?.en || "",
       description_ar: brand.attributes?.description?.ar || "",
       description_ku: brand.attributes?.description?.ku || "",
+      meta_title_en: brand.attributes?.payload?.body?.meta_title?.en || "",
+      meta_description_en:
+        brand.attributes?.payload?.body?.meta_description?.en || "",
       isTop: brand.attributes?.payload?.body?.top === true,
+      boost_value: brand.attributes?.payload?.body?.boost_value || 0,
+      logo: null,
     };
     showEditModal = true;
   }
@@ -232,10 +251,18 @@
         description_ku: createForm.description_ku || null,
         body: {
           top: createForm.isTop,
+          boost_value: createForm.boost_value,
+          meta_title: createForm.meta_title_en,
+          meta_description: createForm.meta_description_en,
         },
         tags: [],
         is_active: true,
       };
+
+      // Remove undefined fields from body
+      if (!brandData.body.meta_title) delete brandData.body.meta_title;
+      if (!brandData.body.meta_description)
+        delete brandData.body.meta_description;
 
       await createEntity(
         brandData,
@@ -243,7 +270,7 @@
         "/brands",
         ResourceType.content,
         "",
-        ""
+        "",
       );
 
       successToastMessage("Brand created successfully!");
@@ -277,10 +304,18 @@
         },
         body: {
           top: editForm.isTop,
+          boost_value: editForm.boost_value,
+          meta_title: editForm.meta_title_en,
+          meta_description: editForm.meta_description_en,
         },
         tags: selectedBrand.attributes?.tags || [],
         is_active: true,
       };
+
+      // Remove undefined fields from body
+      if (!brandData.body.meta_title) delete brandData.body.meta_title;
+      if (!brandData.body.meta_description)
+        delete brandData.body.meta_description;
 
       await updateEntity(
         selectedBrand.shortname,
@@ -289,7 +324,7 @@
         selectedBrand.resource_type,
         brandData,
         "",
-        ""
+        "",
       );
 
       successToastMessage("Brand updated successfully!");
@@ -309,7 +344,7 @@
         selectedBrand.shortname,
         website.main_space,
         selectedBrand.subpath,
-        selectedBrand.resource_type
+        selectedBrand.resource_type,
       );
 
       successToastMessage("Brand deleted successfully!");
@@ -414,7 +449,7 @@
               ? filteredBrands.length
               : Math.min(
                   itemsPerPage,
-                  totalBrandsCount - (currentPage - 1) * itemsPerPage
+                  totalBrandsCount - (currentPage - 1) * itemsPerPage,
                 )}</span
           >
         </div>
@@ -441,7 +476,7 @@
           {$_("brands.loading") || "Loading brands..."}
         </p>
       </div>
-    {:else if filteredBrands.length === 0}
+    {:else if paginatedBrands.length === 0 && !searchTerm && topBrandsFilter === "all"}
       <div class="empty-state">
         <svg
           class="empty-icon"
@@ -663,6 +698,49 @@
           </div>
         </div>
 
+        <div class="form-section">
+          <h3 class="section-title">
+            {$_("brands.seo_info") || "SEO Information"}
+          </h3>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.meta_title_en") || "Meta Title (English)"}
+            </label>
+            <input
+              type="text"
+              bind:value={createForm.meta_title_en}
+              placeholder="SEO title for search engines..."
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.meta_description_en") || "Meta Description (English)"}
+            </label>
+            <textarea
+              bind:value={createForm.meta_description_en}
+              rows="3"
+              placeholder="SEO description for search engines..."
+              class="form-textarea"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" class:rtl={$isRTL}>
+            {$_("brands.boost_value") || "Boost Value"}
+          </label>
+          <input
+            type="number"
+            bind:value={createForm.boost_value}
+            min="0"
+            placeholder="0"
+            class="form-input"
+          />
+        </div>
+
         <div class="form-group">
           <label class="checkbox-label">
             <input
@@ -765,6 +843,49 @@
               class="form-textarea rtl"
             ></textarea>
           </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="section-title">
+            {$_("brands.seo_info") || "SEO Information"}
+          </h3>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.meta_title_en") || "Meta Title (English)"}
+            </label>
+            <input
+              type="text"
+              bind:value={editForm.meta_title_en}
+              placeholder="SEO title for search engines..."
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={$isRTL}>
+              {$_("brands.meta_description_en") || "Meta Description (English)"}
+            </label>
+            <textarea
+              bind:value={editForm.meta_description_en}
+              rows="3"
+              placeholder="SEO description for search engines..."
+              class="form-textarea"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" class:rtl={$isRTL}>
+            {$_("brands.boost_value") || "Boost Value"}
+          </label>
+          <input
+            type="number"
+            bind:value={editForm.boost_value}
+            min="0"
+            placeholder="0"
+            class="form-input"
+          />
         </div>
 
         <div class="form-group">

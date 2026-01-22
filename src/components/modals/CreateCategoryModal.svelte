@@ -16,6 +16,7 @@
     description: string;
     parent_category_id: string;
     specification_shortnames: string[];
+    boost_value?: number;
   }
 
   let {
@@ -31,6 +32,7 @@
     description: "",
     parent_category_id: "",
     specification_shortnames: [],
+    boost_value: 0,
   });
 
   function handleSubmit() {
@@ -54,6 +56,7 @@
         description: "",
         parent_category_id: "",
         specification_shortnames: [],
+        boost_value: 0,
       };
     }
   });
@@ -142,6 +145,20 @@
     </div>
 
     <div class="form-group">
+      <label for="boost-value">
+        {$_("admin_dashboard.boost_value") || "Boost Value"}
+      </label>
+      <input
+        id="boost-value"
+        type="number"
+        min="0"
+        bind:value={formData.boost_value}
+        placeholder="0"
+        class="form-input"
+      />
+    </div>
+
+    <div class="form-group">
       <div class="form-label">
         {$_("admin_dashboard.specifications") || "Specifications"}
         ({$_("common.optional") || "Optional"})
@@ -158,7 +175,7 @@
               <input
                 type="checkbox"
                 checked={formData.specification_shortnames.includes(
-                  spec.shortname
+                  spec.shortname,
                 )}
                 onchange={() => toggleSpecification(spec.shortname)}
               />

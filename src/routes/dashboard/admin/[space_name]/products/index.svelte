@@ -63,6 +63,7 @@
     meta_description: "",
     brand_shortname: "",
     low_stock_quantity: 1,
+    boost_value: 0,
     categories: [],
     main_category: "",
     variation_options: [],
@@ -206,6 +207,7 @@
       meta_description: "",
       brand_shortname: "",
       low_stock_quantity: 1,
+      boost_value: 0,
       categories: [],
       main_category: "",
       variation_options: [],
@@ -254,6 +256,7 @@
       meta_description: content?.meta_description || "",
       brand_shortname: content?.brand_shortname || "",
       low_stock_quantity: content?.low_stock_quantity || 1,
+      boost_value: content?.boost_value || 0,
       categories: content?.categories_shortnames || [],
       main_category: content?.main_category_shortname || "",
       variation_options: content?.variation_options || [],
@@ -327,6 +330,7 @@
           meta_description: productForm.meta_description,
           brand_shortname: productForm.brand_shortname,
           low_stock_quantity: productForm.low_stock_quantity,
+          boost_value: productForm.boost_value,
           variation_options: productForm.variation_options,
           categories_shortnames: productForm.categories,
           main_category_shortname: productForm.main_category,
@@ -401,6 +405,7 @@
           meta_description: productForm.meta_description,
           brand_shortname: productForm.brand_shortname,
           low_stock_quantity: productForm.low_stock_quantity,
+          boost_value: productForm.boost_value,
           variation_options: productForm.variation_options,
           categories_shortnames: productForm.categories,
           main_category_shortname: productForm.main_category,
@@ -1265,6 +1270,22 @@
                 type="number"
                 min="0"
                 bind:value={productForm.low_stock_quantity}
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="boost-value"
+                >{$_("admin_dashboard.boost_value") || "Boost Value"}</label
+              >
+              <input
+                id="boost-value"
+                type="number"
+                min="0"
+                bind:value={productForm.boost_value}
+                placeholder="0"
                 class="form-input"
               />
             </div>

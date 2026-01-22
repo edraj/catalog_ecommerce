@@ -51,7 +51,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   let categories = $state([]);
@@ -85,7 +85,7 @@
         "managed",
         itemsPerPage,
         offset,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -109,7 +109,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -129,7 +129,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -157,6 +157,7 @@
       description: content?.description || "",
       parent_category_id: content?.parent_category_shortname || "",
       specification_shortnames: content?.specification_shortnames || [],
+      boost_value: content?.boost_value || 0,
     };
     showEditModal = true;
   }
@@ -192,6 +193,7 @@
           description: formData.description,
           parent_category_shortname: formData.parent_category_id || null,
           specification_shortnames: formData.specification_shortnames || [],
+          boost_value: formData.boost_value || 0,
           content_type: "json",
         },
         tags: [],
@@ -204,7 +206,7 @@
         "/categories",
         ResourceType.content,
         "",
-        ""
+        "",
       );
 
       successToastMessage("Category created successfully!");
@@ -233,6 +235,7 @@
           description: formData.description,
           parent_category_shortname: formData.parent_category_id || null,
           specification_shortnames: formData.specification_shortnames || [],
+          boost_value: formData.boost_value || 0,
         },
         content_type: "json",
         tags: selectedCategory.attributes?.tags || [],
@@ -246,7 +249,7 @@
         selectedCategory.resource_type,
         categoryData,
         "",
-        ""
+        "",
       );
 
       successToastMessage("Category updated successfully!");
@@ -266,7 +269,7 @@
         selectedCategory.shortname,
         website.main_space,
         selectedCategory.subpath,
-        selectedCategory.resource_type
+        selectedCategory.resource_type,
       );
 
       successToastMessage("Category deleted successfully!");
@@ -379,7 +382,7 @@
           {#each parentCategories as parent}
             <option value={parent.shortname}
               >{getLocalizedDisplayName(parent)} ({$_(
-                "common.sub_categories"
+                "common.sub_categories",
               ) || "Sub-categories"})</option
             >
           {/each}
@@ -413,7 +416,7 @@
         {#each paginatedCategories as category}
           {@const subCategories = getSubCategories(
             category.shortname,
-            categories
+            categories,
           )}
           {@const hasSubCategories = subCategories.length > 0}
           {@const expanded = isExpanded(category.shortname)}

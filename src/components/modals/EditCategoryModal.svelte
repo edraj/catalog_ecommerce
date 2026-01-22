@@ -28,6 +28,7 @@
     description: "",
     parent_category_id: "",
     specification_shortnames: [],
+    boost_value: 0,
   });
 
   // Update form when initialData changes
@@ -47,7 +48,7 @@
 
   // Filter out the current category from parent options to prevent circular references
   const availableParentCategories = $derived(
-    parentCategories.filter((p) => p.shortname !== category?.shortname)
+    parentCategories.filter((p) => p.shortname !== category?.shortname),
   );
 
   function toggleSpecification(shortname: string) {
@@ -134,6 +135,20 @@
     </div>
 
     <div class="form-group">
+      <label for="edit-boost-value">
+        {$_("admin_dashboard.boost_value") || "Boost Value"}
+      </label>
+      <input
+        id="edit-boost-value"
+        type="number"
+        min="0"
+        bind:value={formData.boost_value}
+        placeholder="0"
+        class="form-input"
+      />
+    </div>
+
+    <div class="form-group">
       <div class="form-label">
         {$_("admin_dashboard.specifications") || "Specifications"}
         ({$_("common.optional") || "Optional"})
@@ -150,7 +165,7 @@
               <input
                 type="checkbox"
                 checked={formData.specification_shortnames.includes(
-                  spec.shortname
+                  spec.shortname,
                 )}
                 onchange={() => toggleSpecification(spec.shortname)}
               />
