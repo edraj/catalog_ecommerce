@@ -366,6 +366,11 @@
   "brands.edit_brand": "تعديل العلامة التجارية",
 
   "admin.seller_products": "منتجات البائع",
+  "admin.individual_orders": "الطلبات الفردية",
+  "admin.combined_order_details": "تفاصيل الطلب المجمع",
+  "admin.order_information": "معلومات الطلب",
+  "admin.order_id": "رقم الطلب",
+  "admin.total": "الإجمالي",
   "admin.view_manage_sellers_products": "عرض وإدارة منتجات جميع البائعين",
   "admin.select_seller": "اختر بائع",
   "admin.all_sellers": "جميع البائعين",

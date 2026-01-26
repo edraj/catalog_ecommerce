@@ -479,6 +479,11 @@
 
   "admin": "Admin",
   "admin.seller_products": "Seller Products",
+  "admin.individual_orders": "Individual Orders",
+  "admin.combined_order_details": "Combined Order Details",
+  "admin.order_information": "Order Information",
+  "admin.order_id": "Order ID",
+  "admin.total": "Total",
   "admin.view_manage_sellers_products": "View and manage products from all sellers",
   "admin.select_seller": "Select Seller",
   "admin.all_sellers": "All Sellers",

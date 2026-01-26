@@ -1,82 +1,70 @@
 <script lang="ts">
   import { _ } from "@/i18n";
-  import { getSpaceContents } from "@/lib/dmart_services";
+  import { updateOrderState } from "@/lib/dmart_services";
   import { website } from "@/config";
-
+  import {
+    errorToastMessage,
+    successToastMessage,
+  } from "@/lib/toasts_messages";
+  import "./index.css";
   interface Props {
     isOpen: boolean;
-    orderShortname: string;
-    sellerShortname: string;
+    combinedOrder: any;
     onClose: () => void;
+    onStateChange?: (
+      sellerShortname: string,
+      orderShortname: string,
+      newState: string,
+    ) => void;
   }
 
   let {
     isOpen = $bindable(false),
-    orderShortname,
-    sellerShortname,
+    combinedOrder,
     onClose,
+    onStateChange,
   }: Props = $props();
 
-  let orderDetails = $state<any>(null);
-  let isLoading = $state(false);
-  let error = $state<string | null>(null);
+  const orderStates = [
+    "pending",
+    "confirmed",
+    "processing",
+    "shipped",
+    "out_for_delivery",
+    "confirm_delivery",
+    "delivered",
+    "cancelled",
+    "returned",
+  ];
 
-  $effect(() => {
-    if (isOpen && orderShortname && sellerShortname) {
-      loadOrderDetails();
-    }
-  });
-
-  async function loadOrderDetails() {
-    isLoading = true;
-    error = null;
+  async function handleStateChange(
+    sellerShortname: string,
+    orderShortname: string,
+    newState: string,
+  ) {
     try {
-      const response = await getSpaceContents(
+      const success = await updateOrderState(
         website.main_space,
-        `orders/${sellerShortname}`,
-        "managed",
-        1000,
-        0,
-        true,
+        sellerShortname,
+        orderShortname,
+        newState,
       );
 
-      if (response?.records) {
-        const record = response.records.find(
-          (r) => r.shortname === orderShortname,
-        );
-
-        if (record) {
-          const body = record.attributes?.payload?.body;
-          const itemsTotal =
-            body.items?.reduce((sum, item) => sum + (item.subtotal || 0), 0) ||
-            0;
-          const shippingCost = body.shipping?.cost || 0;
-          const couponDiscount = body.coupon?.discount_amount || 0;
-          const totalAmount = itemsTotal + shippingCost - couponDiscount;
-
-          orderDetails = {
-            ...record,
-            body,
-            calculated_total: totalAmount,
-            items_subtotal: itemsTotal,
-            shipping_cost: shippingCost,
-            coupon_discount: couponDiscount,
-          };
-        } else {
-          error = "Order not found";
+      if (success) {
+        successToastMessage("Order state updated successfully");
+        if (onStateChange) {
+          onStateChange(sellerShortname, orderShortname, newState);
         }
+      } else {
+        errorToastMessage("Failed to update order state");
       }
-    } catch (err) {
-      console.error("Error loading order details:", err);
-      error = "Failed to load order details";
-    } finally {
-      isLoading = false;
+    } catch (error) {
+      console.error("Error updating order state:", error);
+      errorToastMessage("An error occurred while updating order");
     }
   }
 
   function handleClose() {
-    orderDetails = null;
-    error = null;
     onClose();
   }
 
@@ -105,10 +93,14 @@
   function getStatusColor(status: string): string {
     const statusMap: Record<string, string> = {
       pending: "pending",
+      confirmed: "processing",
       processing: "processing",
       shipped: "shipped",
+      out_for_delivery: "shipped",
+      confirm_delivery: "delivered",
       delivered: "delivered",
       cancelled: "cancelled",
+      returned: "cancelled",
       approved: "delivered",
       rejected: "cancelled",
     };
@@ -133,10 +125,15 @@
     <div class="modal-container">
       <div class="modal-header">
         <div class="header-title">
-          <h2>{$_("admin.order_details") || "Order Details"}</h2>
-          {#if orderDetails}
+          <h2>
+            {$_("admin.combined_order_details") || "Combined Order Details"}
+          </h2>
+          {#if combinedOrder}
+            {@const payload = combinedOrder.attributes?.payload?.body}
             <div class="order-code-badge">
-              <code>{orderDetails.body.order_code}</code>
+              <code
+                >#{payload?.combined_order_id || combinedOrder.shortname}</code
+              >
             </div>
           {/if}
         </div>
@@ -152,380 +149,241 @@
       </div>
 
       <div class="modal-body">
-        {#if isLoading}
-          <div class="loading-state">
-            <div class="spinner"></div>
-            <p>{$_("common.loading") || "Loading order details..."}</p>
-          </div>
-        {:else if error}
-          <div class="error-state">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <circle cx="12" cy="12" r="10" stroke-width="2" />
-              <path
-                d="M12 8v4M12 16h.01"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
-            <p>{error}</p>
-          </div>
-        {:else if orderDetails}
-          <!-- Order Status Section -->
+        {#if combinedOrder}
+          {@const payload = combinedOrder.attributes?.payload?.body}
+          {@const customerShortname = payload?.user_shortname}
+          {@const individualOrders = combinedOrder.individualOrders || []}
+          {@const isLoadingOrders = combinedOrder.isLoadingOrders || false}
+
+          <!-- Combined Order Summary -->
           <div class="section">
             <div class="section-header-inline">
-              <h3>{$_("admin.order_status") || "Order Status"}</h3>
-              <div class="status-badges">
-                <div
-                  class="status-badge"
-                  class:pending={getStatusColor(
-                    orderDetails.attributes.state,
-                  ) === "pending"}
-                  class:processing={getStatusColor(
-                    orderDetails.attributes.state,
-                  ) === "processing"}
-                  class:shipped={getStatusColor(
-                    orderDetails.attributes.state,
-                  ) === "shipped"}
-                  class:delivered={getStatusColor(
-                    orderDetails.attributes.state,
-                  ) === "delivered"}
-                  class:cancelled={getStatusColor(
-                    orderDetails.attributes.state,
-                  ) === "cancelled"}
-                >
-                  <svg viewBox="0 0 8 8" fill="currentColor">
-                    <circle cx="4" cy="4" r="4" />
-                  </svg>
-                  {orderDetails.attributes.state.charAt(0).toUpperCase() +
-                    orderDetails.attributes.state.slice(1)}
-                </div>
-                <div
-                  class="payment-badge"
-                  class:paid={getPaymentStatusColor(
-                    orderDetails.body.payment_status,
-                  ) === "paid"}
-                  class:pending={getPaymentStatusColor(
-                    orderDetails.body.payment_status,
-                  ) === "pending"}
-                  class:failed={getPaymentStatusColor(
-                    orderDetails.body.payment_status,
-                  ) === "failed"}
-                  class:refunded={getPaymentStatusColor(
-                    orderDetails.body.payment_status,
-                  ) === "refunded"}
-                >
-                  {orderDetails.body.payment_status.charAt(0).toUpperCase() +
-                    orderDetails.body.payment_status.slice(1)}
-                </div>
+              <h3>{$_("admin.order_information") || "Order Information"}</h3>
+              <div
+                class="payment-badge {getPaymentStatusColor(
+                  payload?.payment_status || 'pending',
+                )}"
+              >
+                {payload?.payment_status || "pending"}
               </div>
             </div>
 
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label"
+                  >{$_("admin.order_id") || "Order ID"}</span
+                >
+                <span class="info-value">
+                  <strong>#{payload?.combined_order_id || "N/A"}</strong>
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label"
                   >{$_("admin.order_date") || "Order Date"}</span
                 >
                 <span class="info-value"
-                  >{formatDate(orderDetails.attributes.created_at)}</span
+                  >{formatDate(combinedOrder.attributes.created_at)}</span
                 >
               </div>
               <div class="info-item">
                 <span class="info-label"
-                  >{$_("admin.tracking_code") || "Tracking Code"}</span
+                  >{$_("admin.customer") || "Customer"}</span
                 >
                 <span class="info-value">
-                  <code>{orderDetails.body.tracking_code || "-"}</code>
+                  <strong>{customerShortname || "N/A"}</strong>
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("admin.order_from") || "Order From"}</span
+                >
+                <span class="info-value">
+                  {payload?.order_from || "-"}
                 </span>
               </div>
               <div class="info-item">
                 <span class="info-label"
                   >{$_("admin.payment_type") || "Payment Type"}</span
                 >
-                <span class="info-value"
-                  >{orderDetails.body.payment_type || "-"}</span
-                >
+                <span class="info-value">{payload?.payment_type || "-"}</span>
               </div>
               <div class="info-item">
                 <span class="info-label"
-                  >{$_("admin.order_from") || "Order From"}</span
+                  >{$_("admin.total_amount") || "Total Amount"}</span
                 >
-                <span class="info-value"
-                  >{orderDetails.body.order_from || "-"}</span
-                >
+                <span class="info-value">
+                  <strong
+                    >{(payload?.total_amount || 0).toLocaleString()}
+                    {$_("admin.currency") || "IQD"}</strong
+                  >
+                </span>
               </div>
             </div>
           </div>
 
-          <!-- Customer Information -->
-          <div class="section">
-            <h3>
-              {$_("admin.customer_information") || "Customer Information"}
-            </h3>
-            <div class="customer-card">
-              <div class="customer-header">
-                <div class="customer-avatar">
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                      d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <div class="customer-name">
-                    {orderDetails.body.user.displayname ||
-                      orderDetails.body.user.shortname}
-                  </div>
-                  <div class="customer-id">
-                    @{orderDetails.body.user.shortname}
-                  </div>
-                </div>
-              </div>
-              <div class="customer-details">
-                {#if orderDetails.body.user.phone}
-                  <div class="detail-row">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                      <path
-                        d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"
-                      />
-                    </svg>
-                    <span>{orderDetails.body.user.phone}</span>
-                  </div>
-                {/if}
-                {#if orderDetails.body.user.email}
-                  <div class="detail-row">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                      <path
-                        d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"
-                      />
-                      <path
-                        d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"
-                      />
-                    </svg>
-                    <span>{orderDetails.body.user.email}</span>
-                  </div>
-                {/if}
-                {#if orderDetails.body.user.address}
-                  <div class="detail-row">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                      <path
-                        fill-rule="evenodd"
-                        d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    <span>{orderDetails.body.user.address}</span>
-                  </div>
-                {/if}
-                {#if orderDetails.body.user.state}
-                  <div class="detail-row">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                      <path
-                        fill-rule="evenodd"
-                        d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    <span>{orderDetails.body.user.state}</span>
-                  </div>
-                {/if}
+          <!-- Individual Seller Orders -->
+          {#if isLoadingOrders}
+            <div class="section">
+              <h3>
+                {$_("admin.individual_orders") || "Individual Seller Orders"}
+              </h3>
+              <div class="loading-orders">
+                <div class="spinner-inline"></div>
+                <p>Loading individual orders...</p>
               </div>
             </div>
-          </div>
+          {:else if individualOrders.length > 0}
+            <div class="section">
+              <h3>
+                {$_("admin.individual_orders") || "Individual Seller Orders"} ({individualOrders.length})
+              </h3>
 
-          <!-- Order Items -->
-          <div class="section">
-            <h3>{$_("admin.order_items") || "Order Items"}</h3>
-            <div class="items-list">
-              {#each orderDetails.body.items as item, index}
-                <div class="item-card">
-                  <div class="item-header">
-                    <div class="item-index">{index + 1}</div>
-                    <div class="item-info">
-                      <div class="item-name">
-                        {item.product_shortname || item.sku}
+              {#each individualOrders as order, index}
+                {@const orderPayload = order.attributes?.payload?.body}
+                {@const orderState = order.attributes?.state || "pending"}
+                {@const itemsTotal =
+                  orderPayload?.items?.reduce(
+                    (sum, item) => sum + (item.subtotal || 0),
+                    0,
+                  ) || 0}
+                {@const shippingCost = orderPayload?.shipping?.cost || 0}
+                {@const couponDiscount =
+                  orderPayload?.coupon?.discount_amount || 0}
+                {@const orderTotal = itemsTotal + shippingCost - couponDiscount}
+
+                <div class="order-card">
+                  <div class="order-card-header">
+                    <div class="order-card-title">
+                      <span class="order-number">#{index + 1}</span>
+                      <div>
+                        <div class="seller-name">
+                          {$_("admin.seller") || "Seller"}:
+                          <strong>{order.seller_shortname}</strong>
+                        </div>
+                        <div class="order-shortname">{order.shortname}</div>
                       </div>
-                      <div class="item-sku">SKU: {item.sku}</div>
                     </div>
-                    <div class="item-quantity">
-                      <span class="quantity-label">×{item.quantity}</span>
+                    <div class="order-card-status">
+                      <span class="status-badge {getStatusColor(orderState)}">
+                        <svg viewBox="0 0 8 8" fill="currentColor">
+                          <circle cx="4" cy="4" r="3" />
+                        </svg>
+                        {orderState}
+                      </span>
+                      <select
+                        class="state-select-inline"
+                        value={orderState}
+                        onchange={(e) =>
+                          handleStateChange(
+                            order.seller_shortname,
+                            order.shortname,
+                            e.currentTarget.value,
+                          )}
+                      >
+                        {#each orderStates as state}
+                          <option value={state}>{state}</option>
+                        {/each}
+                      </select>
                     </div>
                   </div>
 
-                  {#if item.options && item.options.length > 0}
-                    <div class="item-options">
-                      {#each item.options as option}
-                        <span class="option-badge"
-                          >{option.variation_shortname}</span
-                        >
+                  <!-- Order Items -->
+                  {#if orderPayload?.items && orderPayload.items.length > 0}
+                    <div class="order-items-list">
+                      {#each orderPayload.items as item, itemIndex}
+                        <div class="order-item">
+                          <div class="item-row">
+                            <span class="item-number">{itemIndex + 1}</span>
+                            <div class="item-details">
+                              <div class="item-name">
+                                {item.product_shortname || item.sku}
+                              </div>
+                              <div class="item-sku">SKU: {item.sku}</div>
+                              {#if item.options && item.options.length > 0}
+                                <div class="item-options">
+                                  {#each item.options as option}
+                                    <span class="option-badge"
+                                      >{option.variation_shortname}</span
+                                    >
+                                  {/each}
+                                </div>
+                              {/if}
+                            </div>
+                            <div class="item-quantity">×{item.quantity}</div>
+                            <div class="item-price">
+                              {(item.subtotal || 0).toLocaleString()} IQD
+                            </div>
+                          </div>
+                        </div>
                       {/each}
                     </div>
                   {/if}
 
-                  <div class="item-pricing">
-                    <div class="pricing-row">
-                      <span>{$_("admin.price") || "Price"}</span>
+                  <!-- Order Summary -->
+                  <div class="order-summary">
+                    <div class="summary-row">
+                      <span>{$_("admin.items_subtotal") || "Items"}</span>
                       <span
-                        >{item.price_at_purchase?.toLocaleString()}
+                        >{itemsTotal.toLocaleString()}
                         {$_("admin.currency") || "IQD"}</span
                       >
                     </div>
-                    {#if item.discount && item.discount.value > 0}
-                      <div class="pricing-row discount">
-                        <span>{$_("admin.discount") || "Discount"}</span>
-                        <span>
-                          -{item.discount.value}
-                          {item.discount.type === "percentage"
-                            ? "%"
-                            : $_("admin.currency") || "IQD"}
-                        </span>
+                    {#if shippingCost > 0}
+                      <div class="summary-row">
+                        <span>{$_("admin.shipping") || "Shipping"}</span>
+                        <span
+                          >{shippingCost.toLocaleString()}
+                          {$_("admin.currency") || "IQD"}</span
+                        >
                       </div>
                     {/if}
-                    <div class="pricing-row total">
-                      <span>{$_("admin.subtotal") || "Subtotal"}</span>
+                    {#if couponDiscount > 0}
+                      <div class="summary-row discount">
+                        <span>{$_("admin.discount") || "Discount"}</span>
+                        <span
+                          >-{couponDiscount.toLocaleString()}
+                          {$_("admin.currency") || "IQD"}</span
+                        >
+                      </div>
+                    {/if}
+                    <div class="summary-row total">
+                      <span>{$_("admin.total") || "Total"}</span>
                       <span
-                        >{item.subtotal?.toLocaleString()}
+                        >{orderTotal.toLocaleString()}
                         {$_("admin.currency") || "IQD"}</span
                       >
                     </div>
                   </div>
 
-                  <div class="item-meta">
-                    <span class="meta-tag">{item.brand_shortname || "-"}</span>
-                    <span class="meta-tag"
-                      >{item.main_category_shortname || "-"}</span
-                    >
-                  </div>
-                </div>
-              {/each}
-            </div>
-          </div>
-
-          <!-- Shipping Information -->
-          {#if orderDetails.body.shipping}
-            <div class="section">
-              <h3>
-                {$_("admin.shipping_information") || "Shipping Information"}
-              </h3>
-              <div class="shipping-card">
-                <div class="info-grid">
-                  <div class="info-item">
-                    <span class="info-label"
-                      >{$_("admin.shipping_cost") || "Shipping Cost"}</span
-                    >
-                    <span class="info-value"
-                      >{orderDetails.shipping_cost.toLocaleString()}
-                      {$_("admin.currency") || "IQD"}</span
-                    >
-                  </div>
-                  <div class="info-item">
-                    <span class="info-label"
-                      >{$_("admin.delivery_time") || "Delivery Time"}</span
-                    >
-                    <span class="info-value"
-                      >{orderDetails.body.shipping.min}-{orderDetails.body
-                        .shipping.max}
-                      {$_("admin.days") || "days"}</span
-                    >
-                  </div>
-                  {#if orderDetails.body.shipping.minimum_retail}
-                    <div class="info-item">
-                      <span class="info-label"
-                        >{$_("admin.minimum_order") || "Minimum Order"}</span
-                      >
-                      <span class="info-value"
-                        >{orderDetails.body.shipping.minimum_retail.toLocaleString()}
-                        {$_("admin.currency") || "IQD"}</span
-                      >
+                  <!-- Shipping Info -->
+                  {#if orderPayload?.shipping}
+                    <div class="shipping-info">
+                      <div class="shipping-label">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                          <path
+                            d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"
+                          />
+                          <path
+                            d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"
+                          />
+                        </svg>
+                        {$_("admin.shipping_information") ||
+                          "Shipping Information"}
+                      </div>
+                      <div class="shipping-details">
+                        Delivery: {orderPayload.shipping.min}-{orderPayload
+                          .shipping.max} days
+                      </div>
                     </div>
                   {/if}
                 </div>
-              </div>
+              {/each}
+            </div>
+          {:else}
+            <div class="empty-state">
+              <p>No individual orders found for this combined order</p>
             </div>
           {/if}
-
-          <!-- Coupon Information -->
-          {#if orderDetails.body.coupon}
-            <div class="section">
-              <h3>{$_("admin.coupon_applied") || "Coupon Applied"}</h3>
-              <div class="coupon-card">
-                <div class="coupon-code">
-                  <svg viewBox="0 0 20 20" fill="currentColor">
-                    <path
-                      fill-rule="evenodd"
-                      d="M5 5a3 3 0 015-2.236A3 3 0 0114.83 6H16a2 2 0 110 4h-5V9a1 1 0 10-2 0v1H4a2 2 0 110-4h1.17C5.06 5.687 5 5.35 5 5zm4 1V5a1 1 0 10-1 1h1zm3 0a1 1 0 10-1-1v1h1z"
-                      clip-rule="evenodd"
-                    />
-                    <path
-                      d="M9 11H3v5a2 2 0 002 2h4v-7zM11 18h4a2 2 0 002-2v-5h-6v7z"
-                    />
-                  </svg>
-                  <code>{orderDetails.body.coupon.code}</code>
-                </div>
-                <div class="coupon-details">
-                  <div class="detail-row">
-                    <span>{$_("admin.discount_type") || "Discount Type"}</span>
-                    <span>{orderDetails.body.coupon.discount_type}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span>{$_("admin.discount_value") || "Discount Value"}</span
-                    >
-                    <span>
-                      {orderDetails.body.coupon.discount_value}
-                      {orderDetails.body.coupon.discount_type === "percentage"
-                        ? "%"
-                        : $_("admin.currency") || "IQD"}
-                    </span>
-                  </div>
-                  <div class="detail-row total">
-                    <span>{$_("admin.total_discount") || "Total Discount"}</span
-                    >
-                    <span
-                      >{orderDetails.coupon_discount.toLocaleString()}
-                      {$_("admin.currency") || "IQD"}</span
-                    >
-                  </div>
-                </div>
-              </div>
-            </div>
-          {/if}
-
-          <!-- Order Summary -->
-          <div class="section summary-section">
-            <h3>{$_("admin.order_summary") || "Order Summary"}</h3>
-            <div class="summary-card">
-              <div class="summary-row">
-                <span>{$_("admin.items_subtotal") || "Items Subtotal"}</span>
-                <span
-                  >{orderDetails.items_subtotal.toLocaleString()}
-                  {$_("admin.currency") || "IQD"}</span
-                >
-              </div>
-              <div class="summary-row">
-                <span>{$_("admin.shipping_cost") || "Shipping"}</span>
-                <span
-                  >{orderDetails.shipping_cost.toLocaleString()}
-                  {$_("admin.currency") || "IQD"}</span
-                >
-              </div>
-              {#if orderDetails.coupon_discount > 0}
-                <div class="summary-row discount">
-                  <span>{$_("admin.discount") || "Discount"}</span>
-                  <span
-                    >-{orderDetails.coupon_discount.toLocaleString()}
-                    {$_("admin.currency") || "IQD"}</span
-                  >
-                </div>
-              {/if}
-              <div class="summary-divider"></div>
-              <div class="summary-row total">
-                <span>{$_("admin.total_amount") || "Total Amount"}</span>
-                <span class="total-amount"
-                  >{orderDetails.calculated_total.toLocaleString()}
-                  {$_("admin.currency") || "IQD"}</span
-                >
-              </div>
-            </div>
-          </div>
         {/if}
       </div>
     </div>
@@ -668,80 +526,6 @@
     margin: 0;
   }
 
-  .status-badges {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.8125rem;
-    font-weight: 600;
-  }
-
-  .status-badge svg {
-    width: 8px;
-    height: 8px;
-  }
-
-  .status-badge.pending {
-    background: #fef3c7;
-    color: #92400e;
-  }
-
-  .status-badge.processing {
-    background: #dbeafe;
-    color: #1e40af;
-  }
-
-  .status-badge.shipped {
-    background: #e0e7ff;
-    color: #5b21b6;
-  }
-
-  .status-badge.delivered {
-    background: #d1fae5;
-    color: #065f46;
-  }
-
-  .status-badge.cancelled {
-    background: #fee2e2;
-    color: #991b1b;
-  }
-
-  .payment-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.375rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.8125rem;
-    font-weight: 600;
-  }
-
-  .payment-badge.paid {
-    background: #d1fae5;
-    color: #065f46;
-  }
-
-  .payment-badge.pending {
-    background: #fef3c7;
-    color: #92400e;
-  }
-
-  .payment-badge.failed {
-    background: #fee2e2;
-    color: #991b1b;
-  }
-
-  .payment-badge.refunded {
-    background: #e0e7ff;
-    color: #3730a3;
-  }
-
   .info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -766,12 +550,29 @@
     font-weight: 500;
   }
 
-  .info-value code {
-    padding: 0.25rem 0.5rem;
-    background: #f3f4f6;
-    border-radius: 0.375rem;
+  .payment-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
     font-size: 0.8125rem;
-    color: #374151;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .payment-badge.paid {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .payment-badge.pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .payment-badge.failed {
+    background: #fee2e2;
+    color: #991b1b;
   }
 
   .customer-card {
@@ -838,27 +639,34 @@
     flex-shrink: 0;
   }
 
-  .items-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .item-card {
+  .order-card {
     background: #f9fafb;
+    border: 1px solid #e5e7eb;
     border-radius: 0.75rem;
     padding: 1.25rem;
-    border: 1px solid #e5e7eb;
+    margin-bottom: 1rem;
   }
 
-  .item-header {
+  .order-card:last-child {
+    margin-bottom: 0;
+  }
+
+  .order-card-header {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
   }
 
-  .item-index {
+  .order-card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .order-number {
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -869,149 +677,170 @@
     justify-content: center;
     font-weight: 600;
     font-size: 0.875rem;
+  }
+
+  .seller-name {
+    font-size: 0.9375rem;
+    color: #374151;
+  }
+
+  .order-shortname {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-family: monospace;
+  }
+
+  .order-card-status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .status-badge svg {
+    width: 8px;
+    height: 8px;
+  }
+
+  .status-badge.pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .status-badge.processing {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .status-badge.shipped {
+    background: #e0e7ff;
+    color: #5b21b6;
+  }
+
+  .status-badge.delivered {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .status-badge.cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .state-select-inline {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: #374151;
+    background: white;
+    cursor: pointer;
+  }
+
+  .state-select-inline:hover {
+    border-color: #9ca3af;
+  }
+
+  .order-items-list {
+    margin-bottom: 1rem;
+  }
+
+  .order-item {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .order-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .item-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .item-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #e0e7ff;
+    color: #4338ca;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.75rem;
     flex-shrink: 0;
   }
 
-  .item-info {
+  .item-details {
     flex: 1;
   }
 
   .item-name {
     font-weight: 600;
     color: #111827;
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
   }
 
   .item-sku {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     color: #6b7280;
-    margin-top: 0.125rem;
-  }
-
-  .item-quantity {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #281f51;
-  }
-
-  .quantity-label {
-    padding: 0.375rem 0.75rem;
-    background: white;
-    border-radius: 0.5rem;
-    border: 1px solid #e5e7eb;
   }
 
   .item-options {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
   }
 
   .option-badge {
-    padding: 0.25rem 0.625rem;
-    background: white;
+    padding: 0.125rem 0.5rem;
+    background: #f3f4f6;
     border: 1px solid #e5e7eb;
-    border-radius: 0.375rem;
-    font-size: 0.8125rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
     color: #374151;
   }
 
-  .item-pricing {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    background: white;
-    border-radius: 0.5rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .pricing-row {
-    display: flex;
-    justify-content: space-between;
+  .item-quantity {
+    font-weight: 600;
+    color: #6b7280;
     font-size: 0.875rem;
-    color: #374151;
   }
 
-  .pricing-row.discount {
-    color: #dc2626;
-  }
-
-  .pricing-row.total {
+  .item-price {
     font-weight: 600;
     color: #111827;
-    padding-top: 0.5rem;
-    border-top: 1px solid #e5e7eb;
+    font-size: 0.875rem;
   }
 
-  .item-meta {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .meta-tag {
-    padding: 0.25rem 0.625rem;
-    background: #e0e7ff;
-    color: #3730a3;
-    border-radius: 0.375rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-  }
-
-  .shipping-card,
-  .coupon-card {
-    background: #f9fafb;
-    border-radius: 0.75rem;
-    padding: 1.25rem;
-    border: 1px solid #e5e7eb;
-  }
-
-  .coupon-code {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #e5e7eb;
-  }
-
-  .coupon-code svg {
-    width: 24px;
-    height: 24px;
-    color: #667eea;
-  }
-
-  .coupon-code code {
-    padding: 0.5rem 1rem;
+  .order-summary {
     background: white;
-    border: 2px dashed #667eea;
     border-radius: 0.5rem;
-    font-size: 1rem;
-    color: #667eea;
-    font-weight: 600;
-  }
-
-  .coupon-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .summary-card {
-    background: #f9fafb;
-    border-radius: 0.75rem;
-    padding: 1.5rem;
-    border: 1px solid #e5e7eb;
+    padding: 1rem;
+    margin-bottom: 1rem;
   }
 
   .summary-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 0;
-    font-size: 0.9375rem;
+    padding: 0.375rem 0;
+    font-size: 0.875rem;
     color: #374151;
   }
 
@@ -1020,24 +849,49 @@
   }
 
   .summary-row.total {
-    font-size: 1.25rem;
     font-weight: 700;
     color: #111827;
-    padding-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 0.5rem;
   }
 
-  .summary-divider {
-    height: 1px;
-    background: #e5e7eb;
-    margin: 0.5rem 0;
+  .shipping-info {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
 
-  .total-amount {
-    color: #281f51;
+  .shipping-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
   }
 
-  .loading-state,
-  .error-state {
+  .shipping-label svg {
+    width: 18px;
+    height: 18px;
+    color: #6b7280;
+  }
+
+  .shipping-details {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #6b7280;
+  }
+
+  .loading-orders {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1046,9 +900,14 @@
     gap: 1rem;
   }
 
-  .spinner {
-    width: 40px;
-    height: 40px;
+  .loading-orders p {
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+
+  .spinner-inline {
+    width: 32px;
+    height: 32px;
     border: 3px solid #e5e7eb;
     border-top-color: #281f51;
     border-radius: 50%;
@@ -1059,17 +918,6 @@
     to {
       transform: rotate(360deg);
     }
-  }
-
-  .error-state svg {
-    width: 48px;
-    height: 48px;
-    color: #dc2626;
-  }
-
-  .error-state p {
-    color: #6b7280;
-    text-align: center;
   }
 
   @media (max-width: 768px) {
@@ -1093,6 +941,17 @@
 
     .info-grid {
       grid-template-columns: 1fr;
+    }
+
+    .order-card-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .order-card-status {
+      width: 100%;
+      justify-content: space-between;
     }
   }
 </style>
