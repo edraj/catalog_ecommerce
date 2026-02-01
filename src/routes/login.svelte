@@ -16,6 +16,7 @@
   let showPassword = false;
   let isSubmitting = false;
   let showError = false;
+  let rememberMe = false;
   let errors: { identifier?: string; password?: string } = {};
   let isError: boolean;
   const isRTL = $locale === "ar" || $locale === "ku";
@@ -56,7 +57,10 @@
       }
 
       const storedRoles = JSON.parse(localStorage.getItem("roles") || "[]");
-      if (storedRoles.includes("super_admin")) {
+      if (
+        storedRoles.includes("super_admin") ||
+        storedRoles.includes("zm_admin")
+      ) {
         $goto("/dashboard/admin");
       } else {
         $goto("/seller");
@@ -77,122 +81,163 @@
     $goto("/register");
   }
 
-  function goBack() {
-    $goto("/");
+  function goToForgotPassword() {
+    // TODO: Implement forgot password functionality
+    console.log("Forgot password clicked");
   }
 </script>
 
 <div class="login-container">
-  <div class="login-content">
-    <div class="login-header">
-      <div class="header-content">
-        <div class="icon-wrapper">
-          <UserSolid class="header-icon text-white w-6 h-6" />
+  <div class="login-wrapper">
+    <!-- Left Side: Login Form -->
+    <div class="login-form-section">
+      <div class="logo-section">
+        <img
+          src="/assets/images/logo.svg"
+          alt="Zain Mart Logo"
+          class="logo-image"
+        />
+      </div>
+
+      <div class="form-content">
+        <h2 class="form-title">{$_("SignIn")}</h2>
+
+        {#if showError}
+          <div class="error-message" class:rtl={isRTL}>
+            <svg
+              class="shrink-0 inline w-4 h-4 me-3"
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"
+              />
+            </svg>
+            <div class="error-content">
+              <p class="error-text">{$_("InvalidCredentials")}</p>
+            </div>
+          </div>
+        {/if}
+
+        <form onsubmit={handleSubmit} class="login-form">
+          <div class="form-group">
+            <label for="identifier" class="form-label" class:rtl={isRTL}>
+              {$_("YourEmail")} / Username *
+            </label>
+            <div class="input-wrapper">
+              <input
+                id="identifier"
+                type="text"
+                bind:value={identifier}
+                placeholder="Enter your email or username"
+                class="form-input"
+                class:error={errors.identifier}
+                class:rtl={isRTL}
+                disabled={isSubmitting}
+              />
+              <span class="input-icon">
+                <UserSolid class="icon" />
+              </span>
+            </div>
+            {#if errors.identifier}
+              <p class="error-text-small" class:rtl={isRTL}>
+                {errors.identifier}
+              </p>
+            {/if}
+          </div>
+
+          <div class="form-group">
+            <label for="password" class="form-label" class:rtl={isRTL}>
+              {$_("YourPassword")} *
+            </label>
+            <div class="input-wrapper">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                bind:value={password}
+                placeholder={$_("EnterYourPassword")}
+                class="form-input password-input"
+                class:error={errors.password}
+                class:rtl={isRTL}
+                disabled={isSubmitting}
+              />
+              <span class="input-icon">
+                <LockSolid class="icon" />
+              </span>
+              <button
+                aria-label={`Toggle password visibility`}
+                type="button"
+                class="password-toggle"
+                onclick={togglePasswordVisibility}
+                class:rtl={isRTL}
+              >
+                {#if showPassword}
+                  <EyeSlashSolid class="toggle-icon" />
+                {:else}
+                  <EyeSolid class="toggle-icon" />
+                {/if}
+              </button>
+            </div>
+            {#if errors.password}
+              <p class="error-text-small" class:rtl={isRTL}>
+                {errors.password}
+              </p>
+            {/if}
+          </div>
+
+          <div class="form-options">
+            <label class="remember-me" class:rtl={isRTL}>
+              <input
+                type="checkbox"
+                bind:checked={rememberMe}
+                class="checkbox-input"
+              />
+              <span class="checkbox-label">{$_("RememberMe")}</span>
+            </label>
+            <button
+              type="button"
+              class="forgot-password-link"
+              onclick={goToForgotPassword}
+            >
+              {$_("ForgotPassword")}?
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            class="submit-button"
+            class:loading={isSubmitting}
+            disabled={isSubmitting}
+            aria-label={`Log in`}
+          >
+            {#if isSubmitting}
+              <div class="loading-spinner"></div>
+              {$_("LoggingIn")}
+            {:else}
+              {$_("LogIn")}
+            {/if}
+          </button>
+        </form>
+
+        <div class="signup-section" class:rtl={isRTL}>
+          <span class="signup-text">{$_("DontHaveAccount")}</span>
+          <button type="button" class="signup-link" onclick={goToRegister}>
+            {$_("SignUpHere")}
+          </button>
         </div>
-        <h1 class="login-title">{$_("WelcomeBack")}</h1>
-        <p class="login-description">{$_("PleaseSignInToContinue")}</p>
       </div>
     </div>
 
-    {#if showError}
-      <div class="error-message" class:rtl={isRTL}>
-        <svg
-          class="shrink-0 inline w-4 h-4 me-3"
-          aria-hidden="true"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path
-            d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"
-          />
-        </svg>
-        <div class="error-content">
-          <p class="error-text">{$_("InvalidCredentials")}</p>
-        </div>
-      </div>
-    {/if}
-
-    <div class="form-container">
-      <form onsubmit={handleSubmit} class="login-form">
-        <div class="form-group">
-          <label for="identifier" class="form-label" class:rtl={isRTL}>
-            <UserSolid class="label-icon" />
-            {$_("Username")} / {$_("Email")}
-          </label>
-          <input
-            id="identifier"
-            type="text"
-            bind:value={identifier}
-            placeholder={$_("Username") + " " + $_("or") + " " + $_("Email")}
-            class="form-input"
-            class:error={errors.identifier}
-            class:rtl={isRTL}
-            disabled={isSubmitting}
-          />
-          {#if errors.identifier}
-            <p class="error-text-small" class:rtl={isRTL}>
-              {errors.identifier}
-            </p>
-          {/if}
-        </div>
-
-        <div class="form-group">
-          <label for="password" class="form-label" class:rtl={isRTL}>
-            <LockSolid class="label-icon" />
-            {$_("Password")}
-          </label>
-          <div class="password-input-wrapper" class:rtl={isRTL}>
-            <label for="password" class="visually-hidden"></label>
-            <input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              bind:value={password}
-              placeholder={$_("Password")}
-              class="form-input password-input"
-              class:error={errors.password}
-              class:rtl={isRTL}
-              disabled={isSubmitting}
-            />
-            <button
-              aria-label={`Toggle password visibility`}
-              type="button"
-              class="password-toggle"
-              onclick={togglePasswordVisibility}
-              class:rtl={isRTL}
-            >
-              {#if showPassword}
-                <EyeSlashSolid class="toggle-icon" />
-              {:else}
-                <EyeSolid class="toggle-icon" />
-              {/if}
-            </button>
-          </div>
-          {#if errors.password}
-            <p class="error-text-small" class:rtl={isRTL}>{errors.password}</p>
-          {/if}
-        </div>
-
-        <button
-          type="submit"
-          class="submit-button"
-          class:loading={isSubmitting}
-          class:rtl={isRTL}
-          disabled={isSubmitting}
-          aria-label={`Sign in`}
-        >
-          {#if isSubmitting}
-            <div class="loading-spinner"></div>
-            {$_("SigningIn")}
-          {:else}
-            <UserSolid class="button-icon" />
-            {$_("SignIn")}
-          {/if}
-        </button>
-      </form>
-
-      <div class="terms-text" class:rtl={isRTL}>
-        <p>{$_("TermsAndConditions")}</p>
+    <!-- Right Side: Illustration -->
+    <div class="illustration-section">
+      <div class="illustration-content">
+        <img
+          src="/assets/images/employees-working-charts-dark.png"
+          alt="Employees working on charts"
+          class="illustration-image"
+        />
       </div>
     </div>
   </div>
@@ -201,8 +246,11 @@
 <style>
   .login-container {
     min-height: 100vh;
-    background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
-    padding: 2rem 1rem;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
     font-family:
       "uthmantn",
       -apple-system,
@@ -214,52 +262,57 @@
       sans-serif;
   }
 
-  .login-content {
-    max-width: 450px;
-    margin: 0 auto;
-  }
-
-  .login-header {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-  .header-content {
-    margin-bottom: 2rem;
-  }
-
-  .icon-wrapper {
-    width: 4rem;
-    height: 4rem;
-    background: #281f51;
-    border-radius: 1rem;
+  .login-wrapper {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1.5rem auto;
+    max-width: 1200px;
+    width: 100%;
+    background: white;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    min-height: 600px;
   }
 
-  .login-title {
-    font-size: 2rem;
-    font-weight: 800;
-    color: #1f2937;
-    margin-bottom: 1rem;
+  .login-form-section {
+    flex: 1;
+    padding: 3rem 4rem;
+    display: flex;
+    flex-direction: column;
   }
 
-  .login-description {
-    font-size: 1rem;
-    color: #6b7280;
-    line-height: 1.6;
+  .logo-section {
+    margin-bottom: 3rem;
+  }
+
+  .logo-image {
+    height: 35px;
+    width: auto;
+  }
+
+  .form-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 400px;
+  }
+
+  .form-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 2rem;
   }
 
   .error-message {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    border-radius: 0.75rem;
-    margin-bottom: 2rem;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
     background: #fef2f2;
-    border: 1px solid #fecaca;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
   }
 
   .error-message.rtl {
@@ -267,22 +320,13 @@
   }
 
   .error-text {
-    color: #374151;
     font-size: 0.875rem;
-  }
-
-  .form-container {
-    background: white;
-    border-radius: 1rem;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    border: 1px solid #f3f4f6;
   }
 
   .login-form {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.25rem;
   }
 
   .form-group {
@@ -292,81 +336,108 @@
   }
 
   .form-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    color: #374151;
     font-size: 0.875rem;
+    font-weight: 500;
+    color: #2d3748;
   }
 
   .form-label.rtl {
-    flex-direction: row-reverse;
-  }
-
-  .form-input {
-    padding: 0.75rem 1rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    font-size: 1rem;
-    transition: all 0.2s ease;
-    background: white;
-  }
-
-  .form-input:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  .form-input.error {
-    border-color: #dc2626;
-  }
-
-  .form-input.rtl {
     text-align: right;
   }
 
-  .password-input-wrapper {
+  .input-wrapper {
     position: relative;
     display: flex;
     align-items: center;
   }
 
+  .form-input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    padding-left: 2.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    background: #f7fafc;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: #8b7fe8;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(139, 127, 232, 0.1);
+  }
+
+  .form-input::placeholder {
+    color: #a0aec0;
+  }
+
+  .form-input.error {
+    border-color: #fc8181;
+    background: #fff5f5;
+  }
+
+  .form-input.rtl {
+    text-align: right;
+    padding-right: 2.75rem;
+    padding-left: 1rem;
+  }
+
+  .input-icon {
+    position: absolute;
+    left: 1rem;
+    color: #a0aec0;
+    pointer-events: none;
+  }
+
+  .input-icon .icon {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .form-input.rtl ~ .input-icon {
+    left: auto;
+    right: 1rem;
+  }
+
   .password-input {
     padding-right: 3rem;
-    width: 100%;
   }
 
   .password-input.rtl {
-    padding-right: 1rem;
     padding-left: 3rem;
+    padding-right: 2.75rem;
   }
 
   .password-toggle {
     position: absolute;
-    right: 0.75rem;
+    right: 1rem;
     background: none;
     border: none;
     cursor: pointer;
-    color: #6b7280;
+    color: #a0aec0;
     padding: 0.25rem;
-    border-radius: 0.25rem;
     transition: color 0.2s ease;
   }
 
   .password-toggle:hover {
-    color: #374151;
+    color: #718096;
   }
 
   .password-toggle.rtl {
     right: auto;
-    left: 0.75rem;
+    left: 1rem;
+  }
+
+  .toggle-icon {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 
   .error-text-small {
     font-size: 0.75rem;
-    color: #dc2626;
+    color: #e53e3e;
     margin-top: 0.25rem;
   }
 
@@ -374,36 +445,77 @@
     text-align: right;
   }
 
+  .form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+  }
+
+  .remember-me {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #4a5568;
+  }
+
+  .remember-me.rtl {
+    flex-direction: row-reverse;
+  }
+
+  .checkbox-input {
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+    accent-color: #8b7fe8;
+  }
+
+  .forgot-password-link {
+    background: none;
+    border: none;
+    color: #8b7fe8;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .forgot-password-link:hover {
+    color: #6b5fd8;
+    text-decoration: underline;
+  }
+
   .submit-button {
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    background: #281f51;
+    background: #553c9a;
     color: white;
     font-weight: 600;
-    padding: 1rem 2rem;
-    border-radius: 0.75rem;
+    padding: 0.875rem 1.5rem;
+    border-radius: 8px;
     border: none;
     cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 1rem;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    transition: all 0.2s ease;
+    font-size: 0.9375rem;
+    margin-top: 0.5rem;
   }
 
   .submit-button:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    background: #44307a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(85, 60, 154, 0.3);
   }
 
   .submit-button:disabled {
-    opacity: 0.7;
+    opacity: 0.6;
     cursor: not-allowed;
     transform: none;
-  }
-
-  .submit-button.rtl {
-    flex-direction: row-reverse;
   }
 
   .loading-spinner {
@@ -412,7 +524,7 @@
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-top: 2px solid white;
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s linear infinite;
   }
 
   @keyframes spin {
@@ -424,48 +536,79 @@
     }
   }
 
-  .register-link {
-    text-align: center;
+  .signup-section {
     margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #e5e7eb;
-  }
-
-  .register-text {
-    color: #6b7280;
+    text-align: center;
     font-size: 0.875rem;
+    color: #4a5568;
   }
 
-  .link-button {
-    background: none;
-    border: none;
-    color: #3b82f6;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: underline;
-    font-size: 0.875rem;
-    margin-left: 0.25rem;
+  .signup-section.rtl {
+    direction: rtl;
   }
 
-  .register-link.rtl .link-button {
-    margin-left: 0;
+  .signup-text {
     margin-right: 0.25rem;
   }
 
-  .link-button:hover {
-    color: #2563eb;
+  .signup-link {
+    background: none;
+    border: none;
+    color: #8b7fe8;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.2s ease;
   }
 
-  .terms-text {
-    text-align: center;
-    margin-top: 1rem;
-    font-size: 0.75rem;
-    color: #9ca3af;
-    line-height: 1.4;
+  .signup-link:hover {
+    color: #6b5fd8;
+    text-decoration: underline;
   }
 
-  .terms-text.rtl {
-    text-align: center;
+  .illustration-section {
+    flex: 1;
+    background: linear-gradient(135deg, #8b7fe8 0%, #6b5fd8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    position: relative;
+  }
+
+  .illustration-content {
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .illustration-image {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @media (max-width: 968px) {
+    .illustration-section {
+      display: none;
+    }
+
+    .login-wrapper {
+      max-width: 500px;
+    }
   }
 
   @media (max-width: 640px) {
@@ -473,12 +616,20 @@
       padding: 1rem;
     }
 
-    .login-title {
-      font-size: 1.75rem;
+    .login-form-section {
+      padding: 2rem 1.5rem;
     }
 
-    .form-container {
-      padding: 1.5rem;
+    .login-wrapper {
+      border-radius: 16px;
+    }
+
+    .form-content {
+      max-width: 100%;
+    }
+
+    .form-title {
+      font-size: 1.25rem;
     }
   }
 </style>
