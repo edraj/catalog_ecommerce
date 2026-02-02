@@ -186,7 +186,6 @@
       };
 
       if (isEditMode && editingItem) {
-        // Use updateEntity for editing
         const { updateEntity } = await import("@/lib/dmart_services");
         await updateEntity(
           editingItem.shortname,

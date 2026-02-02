@@ -75,7 +75,6 @@
         true,
       );
 
-      // Get the first content record (the API returns records with dynamic shortnames)
       const configEntry =
         response?.records?.find((r) => r.resource_type === "content") ||
         response?.records?.[0];
@@ -244,12 +243,10 @@
 
         let updatedItems;
         if (isEditMode) {
-          // Replace the existing item
           updatedItems = currentItems.map((item) =>
             item.key === itemKey ? discountItem : item,
           );
         } else {
-          // Add new item
           updatedItems = [...currentItems, discountItem];
         }
 

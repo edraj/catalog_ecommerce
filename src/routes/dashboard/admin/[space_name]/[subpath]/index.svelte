@@ -39,8 +39,6 @@
   let containTemplates = $state(false);
   const itemsPerLoadOptions = [20, 50, 100];
 
-  // let currentDisplayCount = $state(itemsPerLoad);
-
   let filteredContents = $state([]);
 
   let searchQuery = $state("");
@@ -51,7 +49,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   const typeOptions = [
@@ -137,12 +135,12 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
       for (const item of parent?.records) {
         if (
           item?.attributes?.payload?.body?.content_schema_shortnames?.includes(
-            "templates"
+            "templates",
           ) &&
           item?.shortname == `${$actualSubpath}`
         ) {
@@ -154,7 +152,7 @@
         `/${$actualSubpath}`,
         "managed",
         itemsPerLoad,
-        currentOffset
+        currentOffset,
       );
 
       if (response && response.records) {
@@ -168,7 +166,7 @@
               avatarUrl = "";
             }
             return { ...item, avatarUrl };
-          })
+          }),
         );
 
         if (reset) {
@@ -283,7 +281,6 @@
     });
 
     filteredContents = filtered;
-    // currentDisplayCount = itemsPerLoad;
     updateDisplayedContents();
   }
 
@@ -316,7 +313,7 @@
           subpath: subpath,
           shortname: item.shortname,
           resource_type: item.resource_type,
-        }
+        },
       );
     }
   }
@@ -329,7 +326,6 @@
         space_name: spaceName,
         subpath: $actualSubpath,
       });
-      // showCreateTemplateModal = true;
     } else {
       $goto("/entries/create", {
         space_name: spaceName,
@@ -350,7 +346,7 @@
       !confirm(
         $_("admin_content.confirm.delete_item", {
           values: { name: item.shortname },
-        })
+        }),
       )
     ) {
       return;
@@ -361,7 +357,7 @@
         item.shortname,
         spaceName,
         `/${$actualSubpath}`,
-        item.resource_type
+        item.resource_type,
       );
       if (success) {
         await loadContents(true);
@@ -464,7 +460,6 @@
     selectedStatus = "all";
     sortBy = "name";
     sortOrder = "asc";
-    // currentDisplayCount = itemsPerLoad;
     applyFilters();
   }
 
@@ -741,7 +736,7 @@
     } catch (err) {
       console.error("Error creating workflow:", err);
       alert(
-        $_("admin_content.error.create_workflow_error") + ": " + err.message
+        $_("admin_content.error.create_workflow_error") + ": " + err.message,
       );
     } finally {
       isCreatingWorkflow = false;
@@ -1043,7 +1038,7 @@
                 bind:value={itemsPerLoad}
                 onchange={(e) =>
                   handleItemsPerLoadChange(
-                    parseInt((e.target as HTMLSelectElement).value)
+                    parseInt((e.target as HTMLSelectElement).value),
                   )}
                 class="filter-select"
                 aria-label={$_("admin_content.infinite_scroll.items_per_load")}
@@ -1114,7 +1109,7 @@
               values: {
                 displayed: formatNumber(
                   displayedContentsDerived.length,
-                  $locale
+                  $locale,
                 ),
                 total: formatNumber(totalItemsDerived, $locale),
               },
@@ -1170,7 +1165,7 @@
                     </h3>
                     <span
                       class="resource-type-badge {getResourceTypeColor(
-                        item.resource_type
+                        item.resource_type,
                       )}"
                     >
                       {item.resource_type}
@@ -1316,7 +1311,7 @@
                     values: {
                       displayed: formatNumber(
                         displayedContentsDerived.length,
-                        $locale
+                        $locale,
                       ),
                       total: formatNumber(totalItemsDerived, $locale),
                     },
