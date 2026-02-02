@@ -23,13 +23,16 @@
     sortItems,
     matchesSearch,
   } from "@/lib/utils/adminUtils";
+  import { roles } from "@/stores/user";
 
   $goto;
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
+
+  let isZmAdmin = $state(false);
 
   let isLoading = $state(false);
   let allContents = $state([]);
@@ -104,7 +107,14 @@
   onMount(async () => {
     spaceName = $params.space_name;
     actualSubpath = $params.subpath || "/";
-    await loadContents();
+
+    const userRoles = $roles || [];
+    isZmAdmin =
+      userRoles.includes("zm_admin") && !userRoles.includes("super_admin");
+
+    if (!isZmAdmin) {
+      await loadContents();
+    }
   });
 
   async function loadContents() {
@@ -113,7 +123,7 @@
       const spacesResponse = await getSpaces(false, "managed");
       if (spacesResponse && spacesResponse.records) {
         currentSpace = spacesResponse.records.find(
-          (s) => s.shortname === spaceName
+          (s) => s.shortname === spaceName,
         );
         hideFolders = currentSpace?.attributes?.hide_folders || [];
       }
@@ -124,7 +134,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
       if (response && response.records) {
         allContents = response.records.filter((item) => {
@@ -155,11 +165,11 @@
         const shortname = item.shortname?.toLowerCase() || "";
         const displayName = getLocalizedDisplayName(
           item,
-          $locale
+          $locale,
         ).toLowerCase();
         const description = getLocalizedDescription(
           item,
-          $locale
+          $locale,
         ).toLowerCase();
         const owner = item.attributes?.owner_shortname?.toLowerCase() || "";
 
@@ -395,7 +405,7 @@
     } catch (err) {
       console.error(
         `Error ${isEditMode ? "updating" : "creating"} folder:`,
-        err
+        err,
       );
       const errorMessage = isEditMode
         ? $_("admin_space.error.update_folder_error")
@@ -413,7 +423,7 @@
       !confirm(
         $_("admin_space.confirm.delete_item", {
           values: { name: item.shortname },
-        })
+        }),
       )
     ) {
       return;
@@ -424,7 +434,7 @@
         item.shortname,
         spaceName,
         actualSubpath,
-        item.resource_type
+        item.resource_type,
       );
       if (success) {
         await loadContents();
@@ -440,21 +450,28 @@
 </script>
 
 <div class="min-h-screen bg-gray-50" class:rtl={$isRTL}>
-  <div class="bg-white border-b border-gray-200">
-    <div class="container mx-auto px-4 py-6 max-w-7xl">
-      <div class="flex items-center justify-between py-6">
-        <div class="flex items-center space-x-4" class:space-x-reverse={$isRTL}>
-          <button
-            onclick={goBack}
-            class="flex items-center text-gray-600 hover:text-gray-900 transition-colors duration-200"
-            class:flex-row-reverse={$isRTL}
-            aria-label={$_("admin_space.navigation.go_back")}
-          >
+  {#if isZmAdmin}
+    <!-- Welcome Dashboard for zm_admin -->
+    <div class="welcome-container">
+      <div class="welcome-content">
+        <div class="welcome-logo">
+          <img
+            src="/assets/images/logo.svg"
+            alt="{spaceName.charAt(0).toUpperCase() + spaceName.slice(1)} Logo"
+            class="logo-image"
+          />
+        </div>
+        <h1 class="welcome-title">
+          Welcome to {spaceName.charAt(0).toUpperCase() + spaceName.slice(1)} Admin
+        </h1>
+        <p class="welcome-text">
+          Use the sidebar to navigate through different sections and manage your {spaceName}
+          content.
+        </p>
+        <div class="features-grid">
+          <div class="feature-card">
             <svg
-              class="w-5 h-5 mr-2"
-              class:mr-2={!$isRTL}
-              class:ml-2={$isRTL}
-              class:rotate-180={$isRTL}
+              class="feature-icon"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -463,328 +480,125 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M15 19l-7-7 7-7"
-              ></path>
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+              />
             </svg>
-            {$_("admin_space.navigation.back_to_admin")}
-          </button>
-          <div class="h-6 w-px bg-gray-300"></div>
-          <div class:text-right={$isRTL}>
-            <h1 class="text-2xl font-bold text-gray-900 capitalize">
-              {$_("admin_space.title", { values: { spaceName } })}
-            </h1>
-            <p class="text-gray-600">
-              {$_("admin_space.subtitle")}
-            </p>
+            <h3>Manage Products</h3>
+            <p>Add, edit, and organize your product catalog</p>
+          </div>
+          <div class="feature-card">
+            <svg
+              class="feature-icon"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+              />
+            </svg>
+            <h3>Categories & Brands</h3>
+            <p>Organize products into categories and manage brands</p>
+          </div>
+          <div class="feature-card">
+            <svg
+              class="feature-icon"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              />
+            </svg>
+            <h3>Process Orders</h3>
+            <p>View and manage customer orders</p>
+          </div>
+          <div class="feature-card">
+            <svg
+              class="feature-icon"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            <h3>Configure Settings</h3>
+            <p>Customize your store settings and preferences</p>
           </div>
         </div>
-
-        <button
-          aria-label={`Create new folder`}
-          onclick={handleCreateFolder}
-          class="hover:bg-opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-          style="background-color: #281f51;"
-          class:flex-row-reverse={$isRTL}
-        >
-          <svg
-            class="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 4v16m8-8H4"
-            ></path>
-          </svg>
-          {$_("admin_space.actions.create_folder")}
-        </button>
       </div>
     </div>
-  </div>
-
-  <div class="container mx-auto px-4 py-8 max-w-7xl">
-    {#if isLoading}
-      <div class="flex justify-center py-16">
-        <Diamonds color="#3b82f6" size="60" unit="px" />
-      </div>
-    {:else if error}
-      <div class="text-center py-16" class:text-right={$isRTL}>
-        <div
-          class="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6"
-        >
-          <svg
-            class="w-12 h-12 text-red-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
-        </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">
-          {$_("admin_space.error.title")}
-        </h3>
-        <p class="text-gray-600">{error}</p>
-      </div>
-    {:else if allContents.length === 0}
-      <div class="text-center py-16" class:text-right={$isRTL}>
-        <div
-          class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6"
-        >
-          <svg
-            class="w-12 h-12 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 13h6m-3-3v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            ></path>
-          </svg>
-        </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">
-          {$_("admin_space.empty.title")}
-        </h3>
-        <p class="text-gray-600">
-          {$_("admin_space.empty.description")}
-        </p>
-      </div>
-    {:else}
-      <!-- Search and Filter Section -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-        <div class="p-6 border-b border-gray-200">
+  {:else}
+    <!-- Original content for super_admin -->
+    <div class="bg-white border-b border-gray-200">
+      <div class="container mx-auto px-4 py-6 max-w-7xl">
+        <div class="flex items-center justify-between py-6">
           <div
-            class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+            class="flex items-center space-x-4"
+            class:space-x-reverse={$isRTL}
           >
-            <div class="flex-1">
-              <h2 class="text-lg font-semibold text-gray-900 mb-2">
-                {$_("admin_dashboard.manage_spaces", {
-                  values: {
-                    count: formatNumberInText(
-                      displayedContents.length,
-                      $locale
-                    ),
-                  },
-                })}
-              </h2>
-              <p class="text-sm text-gray-600">
-                {#if isSearchActive}
-                  Showing {formatNumberInText(
-                    displayedContents.length,
-                    $locale
-                  )} of {formatNumberInText(allContents.length, $locale)} spaces
-                {:else}
-                  {$_("admin_dashboard.admin_access_description")}
-                {/if}
+            <button
+              onclick={goBack}
+              class="flex items-center text-gray-600 hover:text-gray-900 transition-colors duration-200"
+              class:flex-row-reverse={$isRTL}
+              aria-label={$_("admin_space.navigation.go_back")}
+            >
+              <svg
+                class="w-5 h-5 mr-2"
+                class:mr-2={!$isRTL}
+                class:ml-2={$isRTL}
+                class:rotate-180={$isRTL}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                ></path>
+              </svg>
+              {$_("admin_space.navigation.back_to_admin")}
+            </button>
+            <div class="h-6 w-px bg-gray-300"></div>
+            <div class:text-right={$isRTL}>
+              <h1 class="text-2xl font-bold text-gray-900 capitalize">
+                {$_("admin_space.title", { values: { spaceName } })}
+              </h1>
+              <p class="text-gray-600">
+                {$_("admin_space.subtitle")}
               </p>
             </div>
           </div>
-        </div>
 
-        <!-- Search and Filter Controls -->
-        <div class="p-6 bg-gray-50 border-b border-gray-200">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <!-- Search Input -->
-            <div class="lg:col-span-2">
-              <label
-                for="search"
-                class="block text-sm font-medium text-gray-700 mb-2"
-              >
-                {$_("search_filters.search_label")}
-              </label>
-              <div class="relative">
-                <div
-                  class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-                >
-                  <svg
-                    class="h-5 w-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    ></path>
-                  </svg>
-                </div>
-                <label for="search"></label>
-                <input
-                  id="search"
-                  type="text"
-                  bind:value={searchQuery}
-                  placeholder={$_("search_filters.search_placeholder")}
-                  class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-                />
-                {#if searchQuery}
-                  <button
-                    onclick={() => {
-                      searchQuery = "";
-                    }}
-                    class="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    aria-label={$_("search_filters.clear_search")}
-                  >
-                    <svg
-                      class="h-4 w-4 text-gray-400 hover:text-gray-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M6 18L18 6M6 6l12 12"
-                      ></path>
-                    </svg>
-                  </button>
-                {/if}
-              </div>
-            </div>
-
-            <!-- Type Filter -->
-            <div>
-              <label
-                for="type-filter"
-                class="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Type
-              </label>
-              <select
-                id="type-filter"
-                bind:value={selectedType}
-                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                {#each typeOptions as option}
-                  <option value={option.value}>{option.label}</option>
-                {/each}
-              </select>
-            </div>
-
-            <!-- Status Filter -->
-            <div>
-              <label
-                for="status-filter"
-                class="block text-sm font-medium text-gray-700 mb-2"
-              >
-                {$_("search_filters.status_label")}
-              </label>
-              <select
-                id="status-filter"
-                bind:value={selectedStatus}
-                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                {#each statusOptions as option}
-                  <option value={option.value}>{option.label}</option>
-                {/each}
-              </select>
-            </div>
-
-            <!-- Sort Options -->
-            <div>
-              <label
-                for="sort-by"
-                class="block text-sm font-medium text-gray-700 mb-2"
-              >
-                {$_("search_filters.sort_label")}
-              </label>
-              <div class="flex gap-2">
-                <select
-                  id="sort-by"
-                  bind:value={sortBy}
-                  class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {#each sortOptions as option}
-                    <option value={option.value}>{option.label}</option>
-                  {/each}
-                </select>
-                <button
-                  onclick={toggleSortOrder}
-                  class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  title={$_("search_filters.toggle_sort")}
-                  aria-label={$_("search_filters.toggle_sort")}
-                >
-                  <svg
-                    class="w-4 h-4 text-gray-600 {sortOrder === 'desc'
-                      ? 'rotate-180'
-                      : ''}"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-                    ></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Clear Filters -->
-          {#if isSearchActive}
-            <div class="mt-4 flex items-center justify-between">
-              <div class="text-sm text-gray-600">
-                {$_("search_filters.results_count", {
-                  values: {
-                    displayed: formatNumberInText(
-                      displayedContents.length,
-                      $locale
-                    ),
-                    total: formatNumberInText(allContents.length, $locale),
-                  },
-                })}
-                {#if searchQuery}
-                  {$_("search_filters.results_for", {
-                    values: { query: searchQuery },
-                  })}
-                {/if}
-              </div>
-              <button
-                onclick={clearFilters}
-                class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                aria-label={$_("search_filters.clear_filters")}
-              >
-                <svg
-                  class="w-4 h-4 mr-1.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  ></path>
-                </svg>
-                {$_("search_filters.clear_filters")}
-              </button>
-            </div>
-          {/if}
-        </div>
-
-        <!-- Results -->
-        {#if displayedContents.length === 0 && isSearchActive}
-          <div class="text-center py-12">
+          <button
+            aria-label={`Create new folder`}
+            onclick={handleCreateFolder}
+            class="hover:bg-opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            style="background-color: #281f51;"
+            class:flex-row-reverse={$isRTL}
+          >
             <svg
-              class="mx-auto w-12 h-12 text-gray-300 mb-4"
+              class="w-4 h-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -793,199 +607,73 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.291-1.007-5.691-2.709M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                d="M12 4v16m8-8H4"
               ></path>
             </svg>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">
-              {$_("search_filters.no_results_title")}
-            </h3>
-            <p class="text-gray-500 mb-4">
-              {$_("search_filters.no_results_description")}
-            </p>
-            <button
-              onclick={clearFilters}
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              {$_("search_filters.clear_filters")}
-            </button>
-          </div>
-        {:else}
-          <div
-            class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-6"
-          >
-            {#each displayedContents as item}
-              <div
-                class="bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md cursor-pointer transition-all duration-200 p-4 group"
-                onclick={() => handleItemClick(item)}
-                role="button"
-                tabindex="0"
-                onkeydown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    handleItemClick(item);
-                  }
-                }}
-              >
-                <div
-                  class="flex items-start justify-between mb-3"
-                  class:flex-row-reverse={$isRTL}
-                >
-                  <div
-                    class="flex items-start space-x-3 flex-1 min-w-0"
-                    class:space-x-reverse={$isRTL}
-                    class:flex-row-reverse={$isRTL}
-                  >
-                    <div class="text-2xl">
-                      {getItemIcon(item)}
-                    </div>
-                    <div class="flex-1 min-w-0" class:text-right={$isRTL}>
-                      <h3 class="text-sm font-semibold text-gray-900 truncate">
-                        {getLocalizedDisplayName(item, $locale)}
-                      </h3>
-                      <p class="text-xs text-gray-500 mt-1">
-                        <span
-                          class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {getResourceTypeColor(
-                            item.resource_type
-                          )}"
-                        >
-                          {item.resource_type}
-                        </span>
-                      </p>
-                    </div>
-                    {#if item.resource_type === "folder"}
-                      <button
-                        onclick={(e) => {
-                          e.stopPropagation();
-                          handleEditFolder(item);
-                        }}
-                        class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                        aria-label="Edit folder"
-                        title="Edit folder"
-                      >
-                        <svg
-                          class="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          ></path>
-                        </svg>
-                      </button>
-                    {/if}
-                  </div>
-                  <button
-                    onclick={(e) => handleDeleteItem(item, e)}
-                    class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-all duration-200 p-1"
-                    aria-label={$_("admin_space.actions.delete_item")}
-                  >
-                    <svg
-                      class="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      ></path>
-                    </svg>
-                  </button>
-                </div>
-
-                <div class="space-y-2">
-                  <div
-                    class="flex items-center justify-between text-xs text-gray-500 mt-1"
-                  >
-                    {#if item.attributes?.owner_shortname}
-                      <div
-                        class="flex items-center gap-1.5"
-                        class:flex-row-reverse={$isRTL}
-                      >
-                        <div
-                          class="w-5 h-5 rounded-full flex items-center justify-center shadow-sm"
-                          style="background: #281f51;"
-                        >
-                          <span class="text-xs font-semibold text-white">
-                            {item.attributes.owner_shortname
-                              .charAt(0)
-                              .toUpperCase()}
-                          </span>
-                        </div>
-                        <span class="font-medium"
-                          >{item.attributes.owner_shortname}</span
-                        >
-                      </div>
-                    {/if}
-
-                    {#if item.attributes?.updated_at}
-                      <div
-                        class="flex items-center gap-1 text-sm"
-                        class:flex-row-reverse={$isRTL}
-                      >
-                        <svg
-                          class="w-3.5 h-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          ></path>
-                        </svg>
-                        <span>{formatDate(item.attributes.updated_at)}</span>
-                      </div>
-                    {/if}
-                  </div>
-
-                  {#if getLocalizedDescription(item, $locale) !== "No description available"}
-                    <p
-                      class="text-xs text-gray-600 line-clamp-2 leading-relaxed"
-                      class:text-right={$isRTL}
-                    >
-                      {getLocalizedDescription(item, $locale)}
-                    </p>
-                  {/if}
-
-                  {#if item.subpath && item.subpath !== "/"}
-                    <div class="flex items-center gap-1 mt-1">
-                      <svg
-                        class="w-3 h-3 text-blue-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                        ></path>
-                      </svg>
-                      <p
-                        class="text-xs text-blue-600 truncate"
-                        class:text-right={$isRTL}
-                      >
-                        {item.subpath}
-                      </p>
-                    </div>
-                  {/if}
-                </div>
-              </div>
-            {/each}
-          </div>
-        {/if}
+            {$_("admin_space.actions.create_folder")}
+          </button>
+        </div>
       </div>
-    {/if}
-  </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+      {#if isLoading}
+        <div class="flex justify-center py-16">
+          <Diamonds color="#3b82f6" size="60" unit="px" />
+        </div>
+      {:else if error}
+        <div class="text-center py-16" class:text-right={$isRTL}>
+          <div
+            class="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6"
+          >
+            <svg
+              class="w-12 h-12 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">
+            {$_("admin_space.error.title")}
+          </h3>
+          <p class="text-gray-600">{error}</p>
+        </div>
+      {:else if allContents.length === 0}
+        <div class="text-center py-16" class:text-right={$isRTL}>
+          <div
+            class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6"
+          >
+            <svg
+              class="w-12 h-12 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 13h6m-3-3v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              ></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">
+            {$_("admin_space.empty.title")}
+          </h3>
+          <p class="text-gray-600">
+            {$_("admin_space.empty.description")}
+          </p>
+        </div>
+      {:else}{/if}
+    </div>
+  {/if}
 </div>
 
 {#if showCreateFolderModal}
@@ -1390,5 +1078,113 @@
 
   .modal-content::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
+  }
+
+  /* Welcome Page Styles */
+  .welcome-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 64px);
+    padding: 2rem;
+  }
+
+  .welcome-content {
+    text-align: center;
+    max-width: 1200px;
+    width: 100%;
+  }
+
+  .welcome-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    border-radius: 50%;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+  }
+
+  .logo-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .welcome-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 1rem;
+  }
+
+  .welcome-text {
+    font-size: 1.125rem;
+    color: #6b7280;
+    margin-bottom: 3rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+  }
+
+  .feature-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+
+  .feature-icon {
+    width: 48px;
+    height: 48px;
+    color: #281f51;
+    margin: 0 auto 1rem;
+  }
+
+  .feature-card h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 0.5rem;
+  }
+
+  .feature-card p {
+    font-size: 0.9375rem;
+    color: #6b7280;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .welcome-title {
+      font-size: 1.875rem;
+    }
+
+    .welcome-text {
+      font-size: 1rem;
+    }
+
+    .features-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
   }
 </style>

@@ -110,7 +110,6 @@
       return;
     }
 
-    // Open modal immediately with loading state
     selectedCombinedOrderDetails = {
       ...order,
       individualOrders: [],
@@ -118,9 +117,7 @@
     };
     isModalOpen = true;
 
-    // Load individual orders in the background
     try {
-      // Fetch all seller folders
       const sellersResponse = await getSpaceContents(
         website.main_space,
         "orders",
@@ -133,12 +130,10 @@
       const individualOrders = [];
 
       if (sellersResponse?.records) {
-        // Filter to get only folders (sellers)
         const sellers = sellersResponse.records.filter(
           (r) => r.resource_type === "folder",
         );
 
-        // Parallelize seller order fetching for better performance
         const sellerPromises = sellers.map(async (seller) => {
           try {
             const sellerOrdersResponse = await getSpaceContents(
@@ -152,7 +147,6 @@
 
             const foundOrders = [];
             if (sellerOrdersResponse?.records) {
-              // Find orders that match the orders_shortnames
               for (const orderShortname of ordersShortnames) {
                 const orderRecord = sellerOrdersResponse.records.find(
                   (r) => r.shortname === orderShortname,
@@ -175,14 +169,12 @@
           }
         });
 
-        // Wait for all seller requests to complete in parallel
         const results = await Promise.all(sellerPromises);
         results.forEach((orders) => {
           individualOrders.push(...orders);
         });
       }
 
-      // Update modal with loaded orders
       selectedCombinedOrderDetails = {
         ...order,
         individualOrders,
@@ -210,7 +202,6 @@
     orderShortname: string,
     newState: string,
   ) {
-    // Reload the combined order to refresh the state
     if (selectedCombinedOrder) {
       await viewCombinedOrder(selectedCombinedOrder);
     }
@@ -239,7 +230,6 @@
     return statusClasses[status] || "bg-gray-100 text-gray-800";
   }
 
-  // Calculate stats
   let totalRevenue = $derived.by(() => {
     return filteredOrders.reduce((sum, order) => {
       const payload = order.attributes?.payload?.body;

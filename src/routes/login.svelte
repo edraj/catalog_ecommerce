@@ -57,11 +57,10 @@
       }
 
       const storedRoles = JSON.parse(localStorage.getItem("roles") || "[]");
-      if (
-        storedRoles.includes("super_admin") ||
-        storedRoles.includes("zm_admin")
-      ) {
+      if (storedRoles.includes("super_admin")) {
         $goto("/dashboard/admin");
+      } else if (storedRoles.includes("zm_admin")) {
+        $goto("/dashboard/admin/zainmart");
       } else {
         $goto("/seller");
       }
@@ -82,7 +81,6 @@
   }
 
   function goToForgotPassword() {
-    // TODO: Implement forgot password functionality
     console.log("Forgot password clicked");
   }
 </script>

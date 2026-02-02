@@ -259,7 +259,6 @@
         is_active: true,
       };
 
-      // Remove undefined fields from body
       if (!brandData.body.meta_title) delete brandData.body.meta_title;
       if (!brandData.body.meta_description)
         delete brandData.body.meta_description;
@@ -312,7 +311,6 @@
         is_active: true,
       };
 
-      // Remove undefined fields from body
       if (!brandData.body.meta_title) delete brandData.body.meta_title;
       if (!brandData.body.meta_description)
         delete brandData.body.meta_description;

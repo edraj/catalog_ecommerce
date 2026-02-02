@@ -149,26 +149,13 @@
               $goto("/");
             }
           }}
-          class="flex items-center space-x-3 group cursor-pointer bg-transparent border-none p-0"
+          class="flex items-center group cursor-pointer bg-transparent border-none p-0"
         >
-          <div
-            class="flex h-10 w-10 items-center justify-center rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105"
-            style="background: #281f51;"
-          >
-            <svg
-              class="h-6 w-6 text-white"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-              />
-            </svg>
-          </div>
-          <span
-            class="font-bold text-xl text-gray-900 sm:inline-block group-hover:text-blue-600 transition-colors duration-200"
-            >{$_("dashboard")}</span
-          >
+          <img
+            src="/assets/images/logo.svg"
+            alt="Logo"
+            class="h-14 w-14 group-hover:scale-105 transition-all duration-300"
+          />
         </button>
       </div>
 
