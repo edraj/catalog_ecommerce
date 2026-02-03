@@ -154,7 +154,7 @@
           <img
             src="/assets/images/logo.svg"
             alt="Logo"
-            class="h-14 w-14 group-hover:scale-105 transition-all duration-300"
+            class="h-28 w-28 group-hover:scale-105 transition-all duration-300"
           />
         </button>
       </div>

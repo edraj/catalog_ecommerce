@@ -131,8 +131,8 @@
     updateCurrentPath();
 
     const userRoles = $roles || [];
-    isZmAdmin =
-      userRoles.includes("zm_admin") && !userRoles.includes("super_admin");
+    isZmAdmin = true;
+    // userRoles.includes("zm_admin") && !userRoles.includes("super_admin");
   });
 
   $effect(() => {
@@ -158,11 +158,11 @@
   function isActive(featurePath: string): boolean {
     return currentPath === featurePath;
   }
+  console.log(isZmAdmin);
 </script>
 
 {#if isZmAdmin && spaceName}
   <div class="admin-layout" class:rtl={$isRTL}>
-    <!-- Sidebar -->\n
     <aside
       class="sidebar {isSidebarOpen ? 'open' : 'closed'}"
       class:rtl={$isRTL}
@@ -225,7 +225,6 @@
     </main>
   </div>
 {:else}
-  <!-- Default layout for super_admin or non-space-specific pages -->
   <slot />
 {/if}
 

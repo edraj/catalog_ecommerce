@@ -8,28 +8,13 @@
   import { Dmart } from "@edraj/tsdmart";
   import { website } from "@/config";
   import axios, { type AxiosInstance } from "axios";
+  import {
+    canAccessPath,
+    isPublicRoute,
+    getDefaultPathForRole,
+  } from "@/lib/roleAccess";
 
   $goto;
-
-  const publicRoutes = [
-    "/register",
-    "/contact",
-    "/home",
-    "/",
-    { path: "/catalogs", wildcard: true },
-  ];
-
-  function isPublicRoute(path) {
-    return publicRoutes.some((route) => {
-      if (typeof route === "string") {
-        return path === route;
-      }
-      if (route.wildcard) {
-        return path.startsWith(route.path);
-      }
-      return path === route.path;
-    });
-  }
 
   const dmartAxios: AxiosInstance = axios.create({
     baseURL: website.backend,
@@ -50,7 +35,7 @@
         $goto("/login");
       }
       return Promise.reject(error);
-    }
+    },
   );
 
   Dmart.setAxiosInstance(dmartAxios);
@@ -87,11 +72,32 @@
           const storedRoles = JSON.parse(localStorage.getItem("roles") || "[]");
           if (storedRoles.length > 0) {
             roles.set(storedRoles);
+            userRoles = storedRoles;
+          }
+        }
+
+        // Check role-based access control
+        if (userRoles && userRoles.length > 0) {
+          const hasAccess = canAccessPath(userRoles, currentPath);
+
+          if (!hasAccess) {
+            // Redirect to appropriate default page for user's role
+            const defaultPath = getDefaultPathForRole(userRoles);
+            console.warn(
+              `Access denied to ${currentPath}. Redirecting to ${defaultPath}`,
+            );
+            $goto(defaultPath);
+            return;
           }
         }
 
         if (currentPath === "/" || currentPath === "/login") {
-          $goto("/dashboard");
+          // Redirect to role-based default page
+          const defaultPath =
+            userRoles && userRoles.length > 0
+              ? getDefaultPathForRole(userRoles)
+              : "/dashboard";
+          $goto(defaultPath);
         }
       }
     } catch (error) {

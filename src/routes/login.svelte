@@ -9,6 +9,7 @@
   } from "flowbite-svelte-icons";
   import { loginBy, signin, roles } from "@/stores/user";
   import { getProfile } from "@/lib/dmart_services";
+  import { getDefaultPathForRole } from "@/lib/roleAccess";
 
   $goto;
   let identifier = "";
@@ -54,15 +55,13 @@
         const userRoles = profile.roles || profile.attributes.roles || [];
         roles.set(userRoles);
         localStorage.setItem("roles", JSON.stringify(userRoles));
-      }
 
-      const storedRoles = JSON.parse(localStorage.getItem("roles") || "[]");
-      if (storedRoles.includes("super_admin")) {
-        $goto("/dashboard/admin");
-      } else if (storedRoles.includes("zm_admin")) {
-        $goto("/dashboard/admin/zainmart");
+        // Redirect to role-specific default page
+        const defaultPath = getDefaultPathForRole(userRoles);
+        $goto(defaultPath);
       } else {
-        $goto("/seller");
+        // No roles found, redirect to default dashboard
+        $goto("/dashboard");
       }
     } catch (error) {
       isError = true;

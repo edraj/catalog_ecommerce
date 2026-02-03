@@ -3281,5 +3281,8 @@
   "admin.settings_collections": "Collections",
   "admin.settings_tiles": "Tiles",
   "admin.settings_widgets": "Widgets",
-  "admin.settings_payment_methods": "Payment Methods"
+  "admin.settings_payment_methods": "Payment Methods",
+  "access_denied": "Access Denied",
+  "unauthorized_access_message": "You don't have permission to access this page. Please contact your administrator if you believe this is an error.",
+  "go_to_home": "Go to Home"
 }
