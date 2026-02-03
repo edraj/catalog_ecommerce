@@ -93,6 +93,9 @@
 
 <div class="login-container">
   <div class="login-wrapper">
+    <!-- Decorative Pattern -->
+    <div class="dot-pattern"></div>
+
     <!-- Left Side: Login Form -->
     <div class="login-form-section">
       <div class="logo-section">
@@ -128,7 +131,7 @@
         <form onsubmit={handleSubmit} class="login-form">
           <div class="form-group">
             <label for="identifier" class="form-label" class:rtl={isRTL}>
-              {$_("YourEmail")} / Username *
+              {$_("YourEmail")} / Username <span class="required">*</span>
             </label>
             <div class="input-wrapper">
               <input
@@ -154,7 +157,7 @@
 
           <div class="form-group">
             <label for="password" class="form-label" class:rtl={isRTL}>
-              {$_("YourPassword")} *
+              {$_("YourPassword")} <span class="required"> *</span>
             </label>
             <div class="input-wrapper">
               <input
@@ -273,6 +276,18 @@
     width: 100%;
     gap: 0;
     min-height: 600px;
+    position: relative;
+  }
+
+  .dot-pattern {
+    position: absolute;
+    width: 430px;
+    height: 713px;
+    left: -28px;
+    top: calc(50% - 713px / 2 + 1px);
+    background-image: radial-gradient(circle, #e5e7eb 2px, transparent 2px);
+    background-size: 20px 20px;
+    z-index: 1;
   }
 
   .login-form-section {
@@ -285,7 +300,7 @@
     flex-direction: column;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
     position: relative;
-    z-index: 10;
+    z-index: 20;
     margin-right: -3rem;
   }
 
@@ -349,6 +364,10 @@
     font-size: 0.875rem;
     font-weight: 500;
     color: #2d3748;
+  }
+
+  .form-label .required {
+    color: #e53e3e;
   }
 
   .form-label.rtl {
@@ -548,7 +567,7 @@
 
   .signup-section {
     margin-top: 1.25rem;
-    text-align: center;
+    text-align: left;
     font-size: 0.875rem;
     color: #4a5568;
   }
