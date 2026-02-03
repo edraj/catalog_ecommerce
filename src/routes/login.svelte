@@ -268,24 +268,30 @@
 
   .login-wrapper {
     display: flex;
+    align-items: center;
     max-width: 1200px;
     width: 100%;
-    background: white;
-    border-radius: 24px;
-    overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    gap: 0;
     min-height: 600px;
   }
 
   .login-form-section {
-    flex: 1;
-    padding: 3rem 4rem;
+    flex: 0 0 auto;
+    width: 450px;
+    background: white;
+    border-radius: 24px;
+    padding: 2rem 3rem;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 10;
+    margin-right: -3rem;
   }
 
   .logo-section {
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
+    justify-items: center;
   }
 
   .logo-image {
@@ -304,7 +310,7 @@
     font-size: 1.5rem;
     font-weight: 600;
     color: #2d3748;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
   }
 
   .error-message {
@@ -330,7 +336,7 @@
   .login-form {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1rem;
   }
 
   .form-group {
@@ -541,7 +547,7 @@
   }
 
   .signup-section {
-    margin-top: 1.5rem;
+    margin-top: 1.25rem;
     text-align: center;
     font-size: 0.875rem;
     color: #4a5568;
@@ -578,6 +584,8 @@
     justify-content: center;
     padding: 3rem;
     position: relative;
+    border-radius: 24px;
+    min-height: 700px;
   }
 
   .illustration-content {
