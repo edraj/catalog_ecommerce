@@ -44,13 +44,16 @@
   let showCreateModal = $state(false);
   let showEditModal = $state(false);
   let showDeleteModal = $state(false);
-  let showDetailsModal = $state(false);
   let selectedProduct = $state(null);
   let selectedCategoryFilter = $state("all");
   let totalProductsCount = $state(0);
+  let expandedRows = $state(new Set());
+  let activeTab = $state("basic_info");
+  let activeLanguageTab = $state("english");
+  let searchQuery = $state("");
 
   let currentPage = $state(1);
-  let itemsPerPage = $state(10);
+  let itemsPerPage = $state(20);
 
   let productForm = $state({
     displayname_en: "",
@@ -140,6 +143,12 @@
           colors: colorsData?.attributes?.payload?.body?.options || [],
           storages: storagesData?.attributes?.payload?.body?.options || [],
         };
+
+        console.log("Loaded variations:", {
+          colorsCount: variations.colors.length,
+          colors: variations.colors,
+          storagesCount: variations.storages.length,
+        });
       }
     } catch (error) {
       console.error("Error loading variations:", error);
@@ -175,17 +184,20 @@
   async function loadProducts() {
     isLoading = true;
     try {
+      const offset = (currentPage - 1) * itemsPerPage;
       const response = await getSpaceContents(
         website.main_space,
         "products",
         "managed",
-        100,
-        0,
+        itemsPerPage,
+        offset,
         true,
       );
 
       if (response?.records) {
         products = response.records;
+        totalProductsCount =
+          response.attributes?.total || response.records.length;
       }
     } catch (error) {
       console.error("Error loading products:", error);
@@ -221,6 +233,8 @@
     showAllStorages = false;
     selectedImages = [];
     imagePreviews = [];
+    activeTab = "basic_info";
+    activeLanguageTab = "english";
     showCreateModal = true;
   }
 
@@ -284,16 +298,6 @@
 
   function closeDeleteModal() {
     showDeleteModal = false;
-    selectedProduct = null;
-  }
-
-  function openDetailsModal(product) {
-    selectedProduct = product;
-    showDetailsModal = true;
-  }
-
-  function closeDetailsModal() {
-    showDetailsModal = false;
     selectedProduct = null;
   }
 
@@ -580,34 +584,23 @@
     return new Date(dateString).toLocaleDateString($locale);
   }
 
-  const filteredProducts = $derived.by(() => {
-    if (selectedCategoryFilter === "all") {
-      return products;
-    }
-    return products.filter((p) => {
-      const categories = getProductCategories(p);
-      return categories.includes(selectedCategoryFilter);
-    });
-  });
-
-  let paginatedProducts = $derived.by(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredProducts.slice(startIndex, endIndex);
-  });
-
   let totalPages = $derived.by(() => {
-    if (selectedCategoryFilter !== "all") {
-      return Math.ceil(filteredProducts.length / itemsPerPage);
-    }
     return Math.ceil(totalProductsCount / itemsPerPage);
   });
 
   $effect(() => {
-    selectedCategoryFilter;
-    totalProductsCount = filteredProducts.length;
-    currentPage = 1;
+    loadProducts();
   });
+
+  function handleSearch() {
+    currentPage = 1;
+    loadProducts();
+  }
+
+  function handleCategoryFilterChange() {
+    currentPage = 1;
+    loadProducts();
+  }
 
   const filteredColors = $derived.by(() => {
     if (!colorSearchTerm) return variations.colors;
@@ -883,19 +876,67 @@
   function goToPage(page: number) {
     if (page >= 1 && page <= totalPages) {
       currentPage = page;
+      loadProducts();
     }
   }
 
   function nextPage() {
     if (currentPage < totalPages) {
       currentPage++;
+      loadProducts();
     }
   }
 
   function previousPage() {
     if (currentPage > 1) {
       currentPage--;
+      loadProducts();
     }
+  }
+
+  function toggleExpandRow(productShortname: string) {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(productShortname)) {
+      newExpanded.delete(productShortname);
+    } else {
+      newExpanded.add(productShortname);
+    }
+    expandedRows = newExpanded;
+  }
+
+  const filteredProducts = $derived.by(() => {
+    let filtered = products;
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((product) => {
+        const displayname = getLocalizedDisplayName(product).toLowerCase();
+        const shortname = product.shortname.toLowerCase();
+        return displayname.includes(query) || shortname.includes(query);
+      });
+    }
+
+    if (selectedCategoryFilter !== "all") {
+      filtered = filtered.filter((product) => {
+        const categories = getProductCategories(product);
+        return categories.includes(selectedCategoryFilter);
+      });
+    }
+
+    return filtered;
+  });
+
+  function stripHtmlTags(html: string): string {
+    if (!html) return "";
+
+    const temp = document.createElement("div");
+    temp.innerHTML = html;
+
+    let text = temp.textContent || temp.innerText || "";
+
+    text = text.replace(/\s+/g, " ").trim();
+
+    return text;
   }
 </script>
 
@@ -916,24 +957,46 @@
     </button>
   </div>
 
-  <div class="filters">
-    <label for="category-filter">
-      {$_("common.filter_by_category") || "Filter by Category"}:
-    </label>
-    <select
-      id="category-filter"
-      bind:value={selectedCategoryFilter}
-      class="filter-select"
-    >
-      <option value="all">
-        {$_("common.all_categories") || "All Categories"}
-      </option>
-      {#each categories as category}
-        <option value={category.shortname}>
-          {getLocalizedDisplayName(category)}
+  <div class="search-and-filters">
+    <div class="search-bar">
+      <input
+        type="text"
+        bind:value={searchQuery}
+        placeholder={$_("common.search") || "Search products..."}
+        class="search-input"
+        onkeydown={(e) => e.key === "Enter" && handleSearch()}
+      />
+      <button class="search-btn" onclick={handleSearch}>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path
+            fill-rule="evenodd"
+            d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <div class="filters">
+      <label for="category-filter">
+        {$_("common.filter_by_category") || "Filter by Category"}:
+      </label>
+      <select
+        id="category-filter"
+        bind:value={selectedCategoryFilter}
+        onchange={handleCategoryFilterChange}
+        class="filter-select"
+      >
+        <option value="all">
+          {$_("common.all_categories") || "All Categories"}
         </option>
-      {/each}
-    </select>
+        {#each categories as category}
+          <option value={category.shortname}>
+            {getLocalizedDisplayName(category)}
+          </option>
+        {/each}
+      </select>
+    </div>
   </div>
 
   {#if isLoading}
@@ -962,92 +1025,104 @@
       <table class="products-table">
         <thead>
           <tr>
-            <th class="col-thumbnail">{$_("common.image") || "Image"}</th>
-            <th class="col-name">{$_("common.name") || "Name"}</th>
-            <th class="col-shortname"
-              >{$_("common.shortname") || "Shortname"}</th
-            >
+            <th class="col-expand"></th>
+            <th class="col-product">{$_("common.product") || "Product"}</th>
             <th class="col-category"
-              >{$_("admin_dashboard.main_category") || "Main Category"}</th
+              >{$_("admin_dashboard.category") || "Category"}</th
             >
-            <th class="col-date">{$_("common.created_at") || "Created"}</th>
             <th class="col-status">{$_("common.status") || "Status"}</th>
             <th class="col-actions">{$_("common.actions") || "Actions"}</th>
           </tr>
         </thead>
         <tbody>
-          {#each paginatedProducts as product}
-            <tr class="product-row">
-              <td class="col-thumbnail">
-                {#if getProductThumbnail(product)}
-                  <div class="table-thumbnail">
-                    <img
-                      src={getProductThumbnail(product)}
-                      alt={getLocalizedDisplayName(product)}
-                      loading="lazy"
-                    />
-                    {#if getProductImages(product).length > 1}
-                      <span class="thumbnail-badge"
-                        >{getProductImages(product).length}</span
-                      >
-                    {/if}
-                  </div>
-                {:else}
-                  <div class="table-thumbnail-placeholder">
-                    <span>📷</span>
-                  </div>
-                {/if}
-              </td>
-              <td class="col-name">
-                <div class="product-name-cell">
-                  <span class="name-text"
-                    >{getLocalizedDisplayName(product)}</span
+          {#each products as product}
+            <tr
+              class="product-row"
+              class:expanded={expandedRows.has(product.shortname)}
+            >
+              <td class="col-expand">
+                <button
+                  class="expand-btn"
+                  onclick={() => toggleExpandRow(product.shortname)}
+                  aria-label="Expand row"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    class="expand-icon"
+                    class:rotated={expandedRows.has(product.shortname)}
                   >
-                </div>
+                    <path
+                      d="M5.5 11.5L8 9L10.5 11.5L11.5 10.5L8 7L4.5 10.5L5.5 11.5Z"
+                    />
+                  </svg>
+                </button>
               </td>
-              <td class="col-shortname">
-                <span class="shortname-text">{product.shortname}</span>
+              <td class="col-product">
+                <div class="product-cell">
+                  {#if getProductThumbnail(product)}
+                    <div class="product-image">
+                      <img
+                        src={getProductThumbnail(product)}
+                        alt={getLocalizedDisplayName(product)}
+                        loading="lazy"
+                      />
+                    </div>
+                  {:else}
+                    <div class="product-image-placeholder">
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path
+                          d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
+                        />
+                      </svg>
+                    </div>
+                  {/if}
+                  <div class="product-info">
+                    <span class="product-name"
+                      >{getLocalizedDisplayName(product)}</span
+                    >
+                    <span class="product-shortname">{product.shortname}</span>
+                  </div>
+                </div>
               </td>
               <td class="col-category">
                 {#if getProductMainCategory(product)}
-                  <span class="category-badge main">
+                  <span class="category-text">
                     {getCategoryName(getProductMainCategory(product))}
                   </span>
                 {:else}
                   <span class="text-muted">—</span>
                 {/if}
               </td>
-              <td class="col-date">
-                <span class="date-text">
-                  {formatDate(product.attributes?.created_at)}
-                </span>
-              </td>
               <td class="col-status">
                 <span
                   class="status-badge"
                   class:active={product.attributes?.is_active}
+                  class:inactive={!product.attributes?.is_active}
                 >
-                  {product.attributes?.is_active ? "Active" : "Inactive"}
+                  {product.attributes?.is_active
+                    ? $_("common.active") || "Active"
+                    : $_("common.inactive") || "Inactive"}
                 </span>
               </td>
               <td class="col-actions">
-                <div class="table-actions">
+                <div class="action-buttons">
                   <button
-                    class="btn-icon view"
-                    onclick={() => openDetailsModal(product)}
-                    title={$_("common.view_details") || "View Details"}
-                  >
-                    <EyeOutline size="sm" />
-                  </button>
-                  <button
-                    class="btn-icon edit"
+                    class="action-btn edit-btn"
                     onclick={() => openEditModal(product)}
                     title={$_("common.edit") || "Edit"}
                   >
                     <EditOutline size="sm" />
                   </button>
                   <button
-                    class="btn-icon delete"
+                    class="action-btn delete-btn"
                     onclick={() => openDeleteModal(product)}
                     title={$_("common.delete") || "Delete"}
                   >
@@ -1056,6 +1131,231 @@
                 </div>
               </td>
             </tr>
+            {#if expandedRows.has(product.shortname)}
+              <tr class="expanded-row">
+                <td colspan="5">
+                  <div class="expanded-content">
+                    {#if getProductImages(product).length > 0}
+                      <div class="product-images-gallery">
+                        {#each getProductImages(product) as image}
+                          <div class="gallery-image">
+                            <img
+                              src={Dmart.getAttachmentUrl({
+                                resource_type: ResourceType.media,
+                                space_name: website.main_space,
+                                subpath: product.subpath + "/",
+                                parent_shortname: product.shortname,
+                                shortname: image.attributes.payload.body,
+                                ext: null,
+                              })}
+                              alt="Product"
+                              loading="lazy"
+                            />
+                          </div>
+                        {/each}
+                      </div>
+                    {/if}
+
+                    <div class="product-main-info">
+                      <h2 class="product-title">
+                        {getLocalizedDisplayName(product)}
+                      </h2>
+                      <div class="product-description-section">
+                        <h3 class="section-label">
+                          {$_("admin_dashboard.details") || "Details"}
+                        </h3>
+                        <p class="product-description">
+                          {stripHtmlTags(
+                            $locale === "ar"
+                              ? product.attributes?.description?.ar
+                              : product.attributes?.description?.en,
+                          ) ||
+                            $_("admin_dashboard.no_description_available") ||
+                            "No description available"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <!-- Product Info Cards -->
+                    <div class="product-info-cards">
+                      <!-- Product State Card -->
+                      <div class="info-card">
+                        <div class="card-title">
+                          {$_("admin_dashboard.product_state") ||
+                            "Product state"}
+                        </div>
+                        <div class="card-value">
+                          <span
+                            class="state-badge"
+                            class:new={product.attributes?.is_active}
+                          >
+                            {#if product.attributes?.is_active}
+                              <CheckOutline size="xs" />
+                              {$_("admin_dashboard.new") || "New"}
+                            {:else}
+                              {$_("common.inactive") || "Inactive"}
+                            {/if}
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Colors Card -->
+                      {#if product.attributes?.payload?.body?.variation_options?.find((v) => v.variation_shortname === "colors")}
+                        {@const colorVariation =
+                          product.attributes.payload.body.variation_options.find(
+                            (v) => v.variation_shortname === "colors",
+                          )}
+                        {#if colorVariation?.values && colorVariation.values.length > 0}
+                          <div class="info-card">
+                            <div class="card-title">
+                              {$_("admin_dashboard.colors_label") || "Colors"}
+                            </div>
+                            <div class="card-value">
+                              <div class="color-dots">
+                                {#each colorVariation.values.slice(0, 5) as colorKey}
+                                  {@const color = variations.colors.find(
+                                    (c) => c.key === colorKey,
+                                  )}
+                                  {#if color}
+                                    {@const isHexColor =
+                                      color.value?.startsWith("#")}
+                                    {@const isImagePath =
+                                      color.value?.startsWith("/")}
+
+                                    {#if isHexColor}
+                                      <!-- Solid color circle -->
+                                      <div
+                                        class="color-dot"
+                                        style="background-color: {color.value};"
+                                        title={getOptionDisplayName(color)}
+                                      ></div>
+                                    {:else if isImagePath}
+                                      <!-- Image-based color -->
+                                      <div
+                                        class="color-dot image-color"
+                                        style="background-image: url('https://api.zainmart.com/public{color.value}'); background-size: cover;"
+                                        title={getOptionDisplayName(color)}
+                                      ></div>
+                                    {:else}
+                                      <span
+                                        class="color-text-label"
+                                        title={getOptionDisplayName(color)}
+                                      >
+                                        {getOptionDisplayName(color)}
+                                      </span>
+                                    {/if}
+                                  {:else}
+                                    <div
+                                      class="color-dot placeholder"
+                                      title={colorKey}
+                                    >
+                                      ?
+                                    </div>
+                                  {/if}
+                                {/each}
+                                {#if colorVariation.values.length > 5}
+                                  <span class="color-more"
+                                    >+{colorVariation.values.length - 5}</span
+                                  >
+                                {/if}
+                              </div>
+                            </div>
+                          </div>
+                        {/if}
+                      {/if}
+
+                      <!-- Brand Card -->
+                      <div class="info-card">
+                        <div class="card-title">
+                          {$_("admin_dashboard.brand_label") || "Brand"}
+                        </div>
+                        <div class="card-value">
+                          {product.attributes?.payload?.body?.brand_shortname ||
+                            "—"}
+                        </div>
+                      </div>
+
+                      <!-- Category Card -->
+                      <div class="info-card">
+                        <div class="card-title">
+                          {$_("admin_dashboard.category_label") || "Category"}
+                        </div>
+                        <div class="card-value">
+                          {#if getProductMainCategory(product)}
+                            {getCategoryName(getProductMainCategory(product))}
+                          {:else}
+                            —
+                          {/if}
+                        </div>
+                      </div>
+
+                      {#if product.attributes?.payload?.body?.category_specifications?.find( (s) => s.specification_shortname
+                            ?.toLowerCase()
+                            .includes("dimension"), )}
+                        {@const dimSpec =
+                          product.attributes.payload.body.category_specifications.find(
+                            (s) =>
+                              s.specification_shortname
+                                ?.toLowerCase()
+                                .includes("dimension"),
+                          )}
+                        <div class="info-card">
+                          <div class="card-title">
+                            {$_("admin_dashboard.dimensions_label") ||
+                              "Dimensions"}
+                          </div>
+                          <div class="card-value">
+                            {(dimSpec?.values || [dimSpec?.value]).join(", ")}
+                          </div>
+                        </div>
+                      {/if}
+
+                      {#if product.attributes?.payload?.body?.category_specifications?.find( (s) => s.specification_shortname
+                            ?.toLowerCase()
+                            .includes("weight"), )}
+                        {@const weightSpec =
+                          product.attributes.payload.body.category_specifications.find(
+                            (s) =>
+                              s.specification_shortname
+                                ?.toLowerCase()
+                                .includes("weight"),
+                          )}
+                        <div class="info-card">
+                          <div class="card-title">
+                            {$_("admin_dashboard.item_weight_label") ||
+                              "Item weight"}
+                          </div>
+                          <div class="card-value">
+                            {(weightSpec?.values || [weightSpec?.value]).join(
+                              ", ",
+                            )}
+                          </div>
+                        </div>
+                      {/if}
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="expanded-actions">
+                      <button
+                        class="action-btn-expanded edit"
+                        onclick={() => openEditModal(product)}
+                      >
+                        <EditOutline size="sm" />
+                        {$_("admin_dashboard.edit_product_button") ||
+                          "Edit product"}
+                      </button>
+                      <button
+                        class="action-btn-expanded delete"
+                        onclick={() => openDeleteModal(product)}
+                      >
+                        <TrashBinOutline size="sm" />
+                        {$_("admin_dashboard.delete_button") || "Delete"}
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {/if}
           {/each}
         </tbody>
       </table>
@@ -1123,8 +1423,12 @@
 
         <div class="pagination-info">
           <span
-            >{formatNumber(filteredProducts.length, $locale)}
-            {$_("total_items")}</span
+            >{$_("admin_dashboard.page") || "Page"}
+            {formatNumber(currentPage, $locale)}
+            {$_("common.of") || "of"}
+            {formatNumber(totalPages, $locale)}
+            | {formatNumber(totalProductsCount, $locale)}
+            {$_("admin_dashboard.total_items") || "total items"}</span
           >
         </div>
 
@@ -1146,244 +1450,461 @@
     class="modal-overlay"
     onclick={showCreateModal ? closeCreateModal : closeEditModal}
   >
-    <div class="modal-container large" onclick={(e) => e.stopPropagation()}>
+    <div
+      class="modal-container modal-large"
+      onclick={(e) => e.stopPropagation()}
+    >
       <div class="modal-header">
-        <h2>
+        <h2 class="modal-title">
           {showCreateModal
-            ? $_("admin_dashboard.create_product") || "Create Product"
+            ? $_("admin_dashboard.add_new_product") || "Add new product"
             : $_("admin_dashboard.edit_product") || "Edit Product"}
         </h2>
         <button
-          class="modal-close"
+          class="modal-close-btn"
           onclick={showCreateModal ? closeCreateModal : closeEditModal}
+          aria-label="Close"
         >
-          &times;
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+            />
+          </svg>
         </button>
       </div>
 
-      <div class="modal-body">
-        <!-- Basic Information -->
-        <div class="form-section">
-          <h3 class="section-title">
-            {$_("admin_dashboard.basic_information") || "Basic Information"}
-          </h3>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="displayname-en"
-                >{$_("admin_dashboard.display_name_en") ||
-                  "Display Name (English) *"}</label
-              >
-              <input
-                id="displayname-en"
-                type="text"
-                bind:value={productForm.displayname_en}
-                placeholder={$_("admin_dashboard.enter_product_name_en") ||
-                  "Enter product name in English"}
-                class="form-input"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="displayname-ar"
-                >{$_("admin_dashboard.display_name_ar") ||
-                  "Display Name (Arabic) *"}</label
-              >
-              <input
-                id="displayname-ar"
-                type="text"
-                bind:value={productForm.displayname_ar}
-                placeholder={$_("admin_dashboard.enter_product_name_ar") ||
-                  "أدخل اسم المنتج بالعربية"}
-                class="form-input"
-                dir="rtl"
-              />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="description-en"
-                >{$_("admin_dashboard.description_en") ||
-                  "Description (English)"}</label
-              >
-              <textarea
-                id="description-en"
-                bind:value={productForm.description_en}
-                placeholder={$_("admin_dashboard.enter_description_en") ||
-                  "Enter product description in English"}
-                class="form-textarea"
-                rows="3"
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="description-ar"
-                >{$_("admin_dashboard.description_ar") ||
-                  "Description (Arabic)"}</label
-              >
-              <textarea
-                id="description-ar"
-                bind:value={productForm.description_ar}
-                placeholder={$_("admin_dashboard.enter_description_ar") ||
-                  "أدخل وصف المنتج بالعربية"}
-                class="form-textarea"
-                rows="3"
-                dir="rtl"
-              ></textarea>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="unit">{$_("admin_dashboard.unit") || "Unit *"}</label>
-              <select
-                id="unit"
-                bind:value={productForm.unit}
-                class="form-input"
-              >
-                <option value="PC"
-                  >{$_("admin_dashboard.unit_pc") || "PC (Piece)"}</option
-                >
-                <option value="KG"
-                  >{$_("admin_dashboard.unit_kg") || "KG (Kilogram)"}</option
-                >
-                <option value="M"
-                  >{$_("admin_dashboard.unit_m") || "M (Meter)"}</option
-                >
-                <option value="L"
-                  >{$_("admin_dashboard.unit_l") || "L (Liter)"}</option
-                >
-                <option value="BOX"
-                  >{$_("admin_dashboard.unit_box") || "BOX"}</option
-                >
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="low-stock"
-                >{$_("admin_dashboard.low_stock_quantity") ||
-                  "Low Stock Quantity"}</label
-              >
-              <input
-                id="low-stock"
-                type="number"
-                min="0"
-                bind:value={productForm.low_stock_quantity}
-                class="form-input"
-              />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="boost-value"
-                >{$_("admin_dashboard.boost_value") || "Boost Value"}</label
-              >
-              <input
-                id="boost-value"
-                type="number"
-                min="0"
-                bind:value={productForm.boost_value}
-                placeholder="0"
-                class="form-input"
-              />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input type="checkbox" bind:checked={productForm.is_digital} />
-              <span
-                >{$_("admin_dashboard.digital_product") ||
-                  "Digital Product"}</span
-              >
-            </label>
-          </div>
+      <!-- Main Tabs -->
+      <div class="tabs-container">
+        <div class="tabs">
+          <button
+            class="tab-btn"
+            class:active={activeTab === "basic_info"}
+            onclick={() => (activeTab = "basic_info")}
+          >
+            {$_("admin_dashboard.basic_info") || "Basic info"}
+          </button>
+          <button
+            class="tab-btn"
+            class:active={activeTab === "categories"}
+            onclick={() => (activeTab = "categories")}
+          >
+            {$_("admin_dashboard.categories") || "Categories"}
+          </button>
+          <button
+            class="tab-btn"
+            class:active={activeTab === "variants"}
+            onclick={() => (activeTab = "variants")}
+          >
+            {$_("admin_dashboard.variants") || "Variants"}
+          </button>
+          <button
+            class="tab-btn"
+            class:active={activeTab === "meta_info"}
+            onclick={() => (activeTab = "meta_info")}
+          >
+            {$_("admin_dashboard.meta_info") || "Meta info"}
+          </button>
         </div>
+      </div>
 
-        <!-- Categories -->
-        <div class="form-section">
-          <h3 class="section-title">
-            {$_("admin_dashboard.categories") || "Categories *"}
-          </h3>
-          <p class="section-description">
-            {$_("admin_dashboard.categories_description") ||
-              "Select one or more categories. Mark one as main category."}
-          </p>
+      <div class="modal-body">
+        {#if activeTab === "basic_info"}
+          <div class="language-tabs">
+            <button
+              class="lang-tab"
+              class:active={activeLanguageTab === "arabic"}
+              onclick={() => (activeLanguageTab = "arabic")}
+            >
+              {$_("admin_dashboard.arabic") || "Arabic"}
+            </button>
+            <button
+              class="lang-tab"
+              class:active={activeLanguageTab === "english"}
+              onclick={() => (activeLanguageTab = "english")}
+            >
+              {$_("admin_dashboard.english") || "English"}
+            </button>
+          </div>
 
-          {#if isLoadingCategories}
-            <div class="loading-message">
-              {$_("admin_dashboard.loading_categories") ||
-                "Loading categories..."}
-            </div>
-          {:else if categories.length === 0}
-            <div class="warning-message">
-              <p>
-                {$_("admin_dashboard.no_categories_warning") ||
-                  "⚠️ No categories found. Please create categories first."}
-              </p>
-            </div>
-          {:else}
-            <div class="categories-selection">
-              {#each parentCategories as category}
-                <div class="category-item">
-                  <label class="category-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={productForm.categories.includes(
-                        category.shortname,
-                      )}
-                      onchange={() => toggleCategory(category.shortname)}
-                    />
-                    <span>{getLocalizedDisplayName(category)}</span>
-                  </label>
+          <div class="form-content">
+            {#if activeLanguageTab === "english"}
+              <div class="form-group">
+                <label for="product-name-en" class="form-label">
+                  {$_("admin_dashboard.product_name") || "Product name"}
+                </label>
+                <input
+                  id="product-name-en"
+                  type="text"
+                  bind:value={productForm.displayname_en}
+                  placeholder="e.g iMac Pro"
+                  class="form-input"
+                />
+              </div>
 
-                  {#if productForm.categories.includes(category.shortname)}
-                    <button
-                      type="button"
-                      class="btn-main-category"
-                      class:is-main={productForm.main_category ===
-                        category.shortname}
-                      onclick={() => setMainCategory(category.shortname)}
-                      title={$_("admin_dashboard.set_as_main_category") ||
-                        "Set as main category"}
+              <div class="form-group">
+                <label for="description-en" class="form-label">
+                  {$_("admin_dashboard.description") || "Description"}
+                </label>
+                <textarea
+                  id="description-en"
+                  bind:value={productForm.description_en}
+                  placeholder="Write description here ..."
+                  class="form-textarea"
+                  rows="5"
+                ></textarea>
+              </div>
+            {:else}
+              <div class="form-group">
+                <label for="product-name-ar" class="form-label">
+                  {$_("admin_dashboard.product_name") || "Product name"}
+                </label>
+                <input
+                  id="product-name-ar"
+                  type="text"
+                  bind:value={productForm.displayname_ar}
+                  placeholder="\u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062A\u062C"
+                  class="form-input"
+                  dir="rtl"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="description-ar" class="form-label">
+                  {$_("admin_dashboard.description") || "Description"}
+                </label>
+                <textarea
+                  id="description-ar"
+                  bind:value={productForm.description_ar}
+                  placeholder="\u0648\u0635\u0641 \u0627\u0644\u0645\u0646\u062A\u062C"
+                  class="form-textarea"
+                  rows="5"
+                  dir="rtl"
+                ></textarea>
+              </div>
+            {/if}
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="amount" class="form-label">
+                  {$_("admin_dashboard.amount") || "Amount"}
+                  <span class="required">*</span>
+                  <button type="button" class="help-icon" title="Help">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="currentColor"
                     >
-                      {#if productForm.main_category === category.shortname}
-                        <CheckOutline size="xs" />
-                        {$_("admin_dashboard.main") || "Main"}
-                      {:else}
-                        {$_("admin_dashboard.set_as_main") || "Set as Main"}
-                      {/if}
-                    </button>
-                  {/if}
+                      <circle
+                        cx="7"
+                        cy="7"
+                        r="6"
+                        stroke="currentColor"
+                        fill="none"
+                        stroke-width="1.5"
+                      />
+                      <text
+                        x="7"
+                        y="10"
+                        text-anchor="middle"
+                        font-size="10"
+                        font-weight="bold">?</text
+                      >
+                    </svg>
+                  </button>
+                </label>
+                <div class="input-with-select">
+                  <input
+                    id="amount"
+                    type="number"
+                    min="0"
+                    bind:value={productForm.low_stock_quantity}
+                    placeholder={$_(
+                      "admin_dashboard.low_stock_quantity_placeholder",
+                    ) || "Low Stock Quantity"}
+                    class="form-input"
+                  />
+                  <select bind:value={productForm.unit} class="unit-select">
+                    <option value="PC"
+                      >{$_("admin_dashboard.unit_select.unit") ||
+                        "Unit"}</option
+                    >
+                    <option value="KG"
+                      >{$_("admin_dashboard.unit_select.kg") || "KG"}</option
+                    >
+                    <option value="M"
+                      >{$_("admin_dashboard.unit_select.m") || "M"}</option
+                    >
+                    <option value="L"
+                      >{$_("admin_dashboard.unit_select.l") || "L"}</option
+                    >
+                    <option value="BOX"
+                      >{$_("admin_dashboard.unit_select.box") || "BOX"}</option
+                    >
+                  </select>
                 </div>
+              </div>
 
-                <!-- Sub-categories -->
-                {#each getSubCategories(category.shortname) as subCategory}
-                  <div class="category-item sub">
+              <div class="form-group">
+                <label for="boost-value" class="form-label">
+                  {$_("admin_dashboard.boost_value") || "Boost value"}
+                  <span class="required">*</span>
+                  <button type="button" class="help-icon" title="Help">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="currentColor"
+                    >
+                      <circle
+                        cx="7"
+                        cy="7"
+                        r="6"
+                        stroke="currentColor"
+                        fill="none"
+                        stroke-width="1.5"
+                      />
+                      <text
+                        x="7"
+                        y="10"
+                        text-anchor="middle"
+                        font-size="10"
+                        font-weight="bold">?</text
+                      >
+                    </svg>
+                  </button>
+                </label>
+                <div class="number-input-group">
+                  <button
+                    type="button"
+                    class="number-btn"
+                    onclick={() =>
+                      (productForm.boost_value = Math.max(
+                        0,
+                        productForm.boost_value - 1,
+                      ))}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M3 8h10"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </button>
+                  <input
+                    id="boost-value"
+                    type="number"
+                    min="0"
+                    bind:value={productForm.boost_value}
+                    class="form-input number-input"
+                  />
+                  <button
+                    type="button"
+                    class="number-btn"
+                    onclick={() =>
+                      (productForm.boost_value = productForm.boost_value + 1)}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M8 3v10M3 8h10"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-container">
+                <div class="toggle-switch">
+                  <input
+                    type="checkbox"
+                    bind:checked={productForm.is_digital}
+                  />
+                  <span class="toggle-slider"></span>
+                </div>
+                <div class="checkbox-label-text">
+                  <span class="label-title"
+                    >{$_("admin_dashboard.digital_product") ||
+                      "Digital product"}</span
+                  >
+                  <span class="label-description">
+                    {$_("admin_dashboard.digital_product_description") ||
+                      "Enable the option if the product is not a physical item."}
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label for="upload-file" class="form-label">
+                {$_("admin_dashboard.upload_file") || "Upload file"}
+                <span class="required">*</span>
+                <button type="button" class="help-icon" title="Help">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    fill="currentColor"
+                  >
+                    <circle
+                      cx="7"
+                      cy="7"
+                      r="6"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-width="1.5"
+                    />
+                    <text
+                      x="7"
+                      y="10"
+                      text-anchor="middle"
+                      font-size="10"
+                      font-weight="bold">?</text
+                    >
+                  </svg>
+                </button>
+              </label>
+              <div class="file-upload-area">
+                <input
+                  id="upload-file"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onchange={handleImageSelect}
+                  class="file-input-hidden"
+                />
+                <label for="upload-file" class="file-upload-label">
+                  <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 48 48"
+                    fill="currentColor"
+                    class="upload-icon"
+                  >
+                    <path
+                      d="M24 16v16m-8-8l8-8 8 8"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      fill="none"
+                      stroke-linecap="round"
+                    />
+                    <path
+                      d="M38 32v6a2 2 0 01-2 2H12a2 2 0 01-2-2v-6"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      fill="none"
+                    />
+                  </svg>
+                  <p class="upload-text">
+                    <span class="upload-action"
+                      >{$_("admin_dashboard.click_to_upload") ||
+                        "Click to upload"}</span
+                    >
+                    {$_("admin_dashboard.or_drag_and_drop") ||
+                      "or drag and drop"}
+                  </p>
+                </label>
+              </div>
+              {#if imagePreviews.length > 0}
+                <div class="image-previews-grid">
+                  {#each imagePreviews as preview, index}
+                    <div class="image-preview-card">
+                      <img src={preview} alt="Preview {index + 1}" />
+                      <button
+                        type="button"
+                        class="remove-preview-btn"
+                        onclick={() => removeImage(index)}
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="white"
+                        >
+                          <path
+                            d="M12 4L4 12M4 4l8 8"
+                            stroke="white"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      </button>
+                      {#if index === 0}
+                        <span class="preview-badge"
+                          >{$_("admin_dashboard.thumbnail") ||
+                            "Thumbnail"}</span
+                        >
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          </div>
+        {:else if activeTab === "categories"}
+          <div class="form-content">
+            <h3 class="section-title">
+              {$_("admin_dashboard.categories") || "Categories *"}
+            </h3>
+            <p class="section-description">
+              {$_("admin_dashboard.categories_description") ||
+                "Select one or more categories. Mark one as main category."}
+            </p>
+
+            {#if isLoadingCategories}
+              <div class="loading-message">
+                {$_("admin_dashboard.loading_categories") ||
+                  "Loading categories..."}
+              </div>
+            {:else if categories.length === 0}
+              <div class="warning-message">
+                <p>
+                  {$_("admin_dashboard.no_categories_warning") ||
+                    "⚠️ No categories found. Please create categories first."}
+                </p>
+              </div>
+            {:else}
+              <div class="categories-selection">
+                {#each parentCategories as category}
+                  <div class="category-item">
                     <label class="category-checkbox">
                       <input
                         type="checkbox"
                         checked={productForm.categories.includes(
-                          subCategory.shortname,
+                          category.shortname,
                         )}
-                        onchange={() => toggleCategory(subCategory.shortname)}
+                        onchange={() => toggleCategory(category.shortname)}
                       />
-                      <span>└ {getLocalizedDisplayName(subCategory)}</span>
+                      <span>{getLocalizedDisplayName(category)}</span>
                     </label>
 
-                    {#if productForm.categories.includes(subCategory.shortname)}
+                    {#if productForm.categories.includes(category.shortname)}
                       <button
                         type="button"
                         class="btn-main-category"
                         class:is-main={productForm.main_category ===
-                          subCategory.shortname}
-                        onclick={() => setMainCategory(subCategory.shortname)}
+                          category.shortname}
+                        onclick={() => setMainCategory(category.shortname)}
                         title={$_("admin_dashboard.set_as_main_category") ||
                           "Set as main category"}
                       >
-                        {#if productForm.main_category === subCategory.shortname}
+                        {#if productForm.main_category === category.shortname}
                           <CheckOutline size="xs" />
                           {$_("admin_dashboard.main") || "Main"}
                         {:else}
@@ -1392,332 +1913,284 @@
                       </button>
                     {/if}
                   </div>
+
+                  <!-- Sub-categories -->
+                  {#each getSubCategories(category.shortname) as subCategory}
+                    <div class="category-item sub">
+                      <label class="category-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={productForm.categories.includes(
+                            subCategory.shortname,
+                          )}
+                          onchange={() => toggleCategory(subCategory.shortname)}
+                        />
+                        <span>└ {getLocalizedDisplayName(subCategory)}</span>
+                      </label>
+
+                      {#if productForm.categories.includes(subCategory.shortname)}
+                        <button
+                          type="button"
+                          class="btn-main-category"
+                          class:is-main={productForm.main_category ===
+                            subCategory.shortname}
+                          onclick={() => setMainCategory(subCategory.shortname)}
+                          title={$_("admin_dashboard.set_as_main_category") ||
+                            "Set as main category"}
+                        >
+                          {#if productForm.main_category === subCategory.shortname}
+                            <CheckOutline size="xs" />
+                            {$_("admin_dashboard.main") || "Main"}
+                          {:else}
+                            {$_("admin_dashboard.set_as_main") || "Set as Main"}
+                          {/if}
+                        </button>
+                      {/if}
+                    </div>
+                  {/each}
                 {/each}
-              {/each}
-            </div>
-          {/if}
-        </div>
-
-        <!-- Variations -->
-        <div class="form-section">
-          <h3 class="section-title">
-            {$_("admin_dashboard.variations_optional") ||
-              "Variations (Optional)"}
-          </h3>
-
-          {#if variations.colors.length > 0}
-            <div class="variation-group">
-              <div class="variation-header">
-                <h4 class="variation-title">
-                  {$_("admin_dashboard.colors") || "Colors"}
-                </h4>
-                {#if variations.colors.length > INITIAL_VARIATION_DISPLAY}
-                  <input
-                    type="text"
-                    bind:value={colorSearchTerm}
-                    placeholder={$_("admin_dashboard.search_colors") ||
-                      "Search colors..."}
-                    class="variation-search"
-                  />
-                {/if}
               </div>
-              <div class="variation-options">
-                {#each displayedColors as color}
-                  <button
-                    type="button"
-                    class="variation-option color"
-                    class:selected={isVariationSelected("colors", color.key)}
-                    onclick={() => toggleVariationValue("colors", color.key)}
-                    title={color.name?.en || color.name?.ar}
-                  >
-                    <span
-                      class="color-swatch"
-                      style="background-color: {color.value}"
-                    ></span>
-                    <span class="color-name"
-                      >{color.name?.en || color.name?.ar}</span
+            {/if}
+          </div>
+        {:else if activeTab === "variants"}
+          <div class="form-content">
+            <h3 class="section-title">
+              {$_("admin_dashboard.variations_optional") ||
+                "Variations (Optional)"}
+            </h3>
+
+            {#if variations.colors.length > 0}
+              <div class="variation-group">
+                <div class="variation-header">
+                  <h4 class="variation-title">
+                    {$_("admin_dashboard.colors") || "Colors"}
+                  </h4>
+                  {#if variations.colors.length > INITIAL_VARIATION_DISPLAY}
+                    <input
+                      type="text"
+                      bind:value={colorSearchTerm}
+                      placeholder={$_("admin_dashboard.search_colors") ||
+                        "Search colors..."}
+                      class="variation-search"
+                    />
+                  {/if}
+                </div>
+                <div class="variation-options">
+                  {#each displayedColors as color}
+                    <button
+                      type="button"
+                      class="variation-option color"
+                      class:selected={isVariationSelected("colors", color.key)}
+                      onclick={() => toggleVariationValue("colors", color.key)}
+                      title={color.name?.en || color.name?.ar}
                     >
-                  </button>
-                {/each}
-              </div>
-              {#if filteredColors.length > INITIAL_VARIATION_DISPLAY}
-                <button
-                  type="button"
-                  class="show-more-btn"
-                  onclick={() => (showAllColors = !showAllColors)}
-                >
-                  {showAllColors
-                    ? $_("admin_dashboard.show_less") || "Show Less"
-                    : `${$_("admin_dashboard.show_more") || "Show More"} (${filteredColors.length - INITIAL_VARIATION_DISPLAY})`}
-                </button>
-              {/if}
-              {#if colorSearchTerm && filteredColors.length === 0}
-                <p class="no-results">
-                  {$_("admin_dashboard.no_colors_found") || "No colors found"}
-                </p>
-              {/if}
-            </div>
-          {/if}
-
-          {#if variations.storages.length > 0}
-            <div class="variation-group">
-              <div class="variation-header">
-                <h4 class="variation-title">
-                  {$_("admin_dashboard.storage") || "Storage"}
-                </h4>
-                {#if variations.storages.length > INITIAL_VARIATION_DISPLAY}
-                  <input
-                    type="text"
-                    bind:value={storageSearchTerm}
-                    placeholder={$_("admin_dashboard.search_storage") ||
-                      "Search storage..."}
-                    class="variation-search"
-                  />
-                {/if}
-              </div>
-              <div class="variation-options">
-                {#each displayedStorages as storage}
+                      <span
+                        class="color-swatch"
+                        style="background-color: {color.value}"
+                      ></span>
+                      <span class="color-name"
+                        >{color.name?.en || color.name?.ar}</span
+                      >
+                    </button>
+                  {/each}
+                </div>
+                {#if filteredColors.length > INITIAL_VARIATION_DISPLAY}
                   <button
                     type="button"
-                    class="variation-option"
-                    class:selected={isVariationSelected(
-                      "storages",
-                      storage.key,
-                    )}
-                    onclick={() =>
-                      toggleVariationValue("storages", storage.key)}
+                    class="show-more-btn"
+                    onclick={() => (showAllColors = !showAllColors)}
                   >
-                    {storage.name?.en || storage.name?.ar}
+                    {showAllColors
+                      ? $_("admin_dashboard.show_less") || "Show Less"
+                      : `${$_("admin_dashboard.show_more") || "Show More"} (${filteredColors.length - INITIAL_VARIATION_DISPLAY})`}
                   </button>
-                {/each}
+                {/if}
+                {#if colorSearchTerm && filteredColors.length === 0}
+                  <p class="no-results">
+                    {$_("admin_dashboard.no_colors_found") || "No colors found"}
+                  </p>
+                {/if}
               </div>
-              {#if filteredStorages.length > INITIAL_VARIATION_DISPLAY}
-                <button
-                  type="button"
-                  class="show-more-btn"
-                  onclick={() => (showAllStorages = !showAllStorages)}
-                >
-                  {showAllStorages
-                    ? $_("admin_dashboard.show_less") || "Show Less"
-                    : `${$_("admin_dashboard.show_more") || "Show More"} (${filteredStorages.length - INITIAL_VARIATION_DISPLAY})`}
-                </button>
-              {/if}
-              {#if storageSearchTerm && filteredStorages.length === 0}
-                <p class="no-results">
-                  {$_("admin_dashboard.no_storage_found") ||
-                    "No storage options found"}
+            {/if}
+
+            {#if variations.storages.length > 0}
+              <div class="variation-group">
+                <div class="variation-header">
+                  <h4 class="variation-title">
+                    {$_("admin_dashboard.storage") || "Storage"}
+                  </h4>
+                  {#if variations.storages.length > INITIAL_VARIATION_DISPLAY}
+                    <input
+                      type="text"
+                      bind:value={storageSearchTerm}
+                      placeholder={$_("admin_dashboard.search_storage") ||
+                        "Search storage..."}
+                      class="variation-search"
+                    />
+                  {/if}
+                </div>
+                <div class="variation-options">
+                  {#each displayedStorages as storage}
+                    <button
+                      type="button"
+                      class="variation-option"
+                      class:selected={isVariationSelected(
+                        "storages",
+                        storage.key,
+                      )}
+                      onclick={() =>
+                        toggleVariationValue("storages", storage.key)}
+                    >
+                      {storage.name?.en || storage.name?.ar}
+                    </button>
+                  {/each}
+                </div>
+                {#if filteredStorages.length > INITIAL_VARIATION_DISPLAY}
+                  <button
+                    type="button"
+                    class="show-more-btn"
+                    onclick={() => (showAllStorages = !showAllStorages)}
+                  >
+                    {showAllStorages
+                      ? $_("admin_dashboard.show_less") || "Show Less"
+                      : `${$_("admin_dashboard.show_more") || "Show More"} (${filteredStorages.length - INITIAL_VARIATION_DISPLAY})`}
+                  </button>
+                {/if}
+                {#if storageSearchTerm && filteredStorages.length === 0}
+                  <p class="no-results">
+                    {$_("admin_dashboard.no_storage_found") ||
+                      "No storage options found"}
+                  </p>
+                {/if}
+              </div>
+            {/if}
+
+            <h3 class="section-title" style="margin-top: 2rem;">
+              {$_("admin_dashboard.specifications_optional") ||
+                "Specifications (Optional)"}
+            </h3>
+            <p class="section-description">
+              {$_("admin_dashboard.specifications_select_description") ||
+                "Select specifications and their values based on the selected categories"}
+            </p>
+
+            {#if productForm.categories.length === 0}
+              <div class="info-message">
+                <p>
+                  {$_("admin_dashboard.select_category_first") ||
+                    "ℹ️ Please select at least one category to see available specifications"}
                 </p>
-              {/if}
-            </div>
-          {/if}
-        </div>
+              </div>
+            {:else if availableSpecifications.length === 0}
+              <div class="info-message">
+                <p>
+                  {$_("admin_dashboard.no_specifications_available") ||
+                    "ℹ️ No specifications available for the selected categories"}
+                </p>
+              </div>
+            {:else}
+              <div class="specifications-selection">
+                {#each availableSpecifications as spec}
+                  <div class="specification-item">
+                    <div class="spec-header">
+                      <label class="spec-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={isSpecificationSelected(spec.shortname)}
+                          onchange={() =>
+                            toggleProductSpecification(spec.shortname)}
+                        />
+                        <span class="spec-name"
+                          >{getSpecificationDisplayName(spec)}</span
+                        >
+                      </label>
+                    </div>
 
-        <!-- Specifications -->
-        <div class="form-section">
-          <h3 class="section-title">
-            {$_("admin_dashboard.specifications_optional") ||
-              "Specifications (Optional)"}
-          </h3>
-          <p class="section-description">
-            {$_("admin_dashboard.specifications_select_description") ||
-              "Select specifications and their values based on the selected categories"}
-          </p>
-
-          {#if productForm.categories.length === 0}
-            <div class="info-message">
-              <p>
-                {$_("admin_dashboard.select_category_first") ||
-                  "ℹ️ Please select at least one category to see available specifications"}
-              </p>
-            </div>
-          {:else if availableSpecifications.length === 0}
-            <div class="info-message">
-              <p>
-                {$_("admin_dashboard.no_specifications_available") ||
-                  "ℹ️ No specifications available for the selected categories"}
-              </p>
-            </div>
-          {:else}
-            <div class="specifications-selection">
-              {#each availableSpecifications as spec}
-                <div class="specification-item">
-                  <div class="spec-header">
-                    <label class="spec-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={isSpecificationSelected(spec.shortname)}
-                        onchange={() =>
-                          toggleProductSpecification(spec.shortname)}
-                      />
-                      <span class="spec-name"
-                        >{getSpecificationDisplayName(spec)}</span
-                      >
-                    </label>
-                  </div>
-
-                  {#if isSpecificationSelected(spec.shortname)}
-                    <div class="spec-values">
-                      <div class="spec-values-header">
-                        {$_("admin_dashboard.select_values") ||
-                          "Select Values:"}
-                      </div>
-                      <div class="spec-values-grid">
-                        {#each getSpecificationOptions(spec) as option}
-                          <label class="spec-value-checkbox">
-                            <input
-                              type="checkbox"
-                              checked={isSpecificationValueSelected(
-                                spec.shortname,
-                                option.key,
-                              )}
-                              onchange={() =>
-                                toggleSpecificationValue(
+                    {#if isSpecificationSelected(spec.shortname)}
+                      <div class="spec-values">
+                        <div class="spec-values-header">
+                          {$_("admin_dashboard.select_values") ||
+                            "Select Values:"}
+                        </div>
+                        <div class="spec-values-grid">
+                          {#each getSpecificationOptions(spec) as option}
+                            <label class="spec-value-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={isSpecificationValueSelected(
                                   spec.shortname,
                                   option.key,
                                 )}
-                            />
-                            <span>{getOptionDisplayName(option)}</span>
-                          </label>
-                        {/each}
+                                onchange={() =>
+                                  toggleSpecificationValue(
+                                    spec.shortname,
+                                    option.key,
+                                  )}
+                              />
+                              <span>{getOptionDisplayName(option)}</span>
+                            </label>
+                          {/each}
+                        </div>
                       </div>
-                    </div>
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
-
-        <!-- SEO Meta -->
-        <div class="form-section">
-          <h3 class="section-title">
-            {$_("admin_dashboard.seo_meta_information") ||
-              "SEO & Meta Information"}
-          </h3>
-
-          <div class="form-group">
-            <label for="meta-title"
-              >{$_("admin_dashboard.meta_title") || "Meta Title"}</label
-            >
-            <input
-              id="meta-title"
-              type="text"
-              bind:value={productForm.meta_title}
-              placeholder={$_("admin_dashboard.seo_meta_title_placeholder") ||
-                "SEO meta title"}
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="meta-description"
-              >{$_("admin_dashboard.meta_description") ||
-                "Meta Description"}</label
-            >
-            <textarea
-              id="meta-description"
-              bind:value={productForm.meta_description}
-              placeholder={$_(
-                "admin_dashboard.seo_meta_description_placeholder",
-              ) || "SEO meta description"}
-              class="form-textarea"
-              rows="2"
-            ></textarea>
-          </div>
-
-          <div class="form-group">
-            <label for="brand"
-              >{$_("admin_dashboard.brand_shortname") ||
-                "Brand Shortname"}</label
-            >
-            <input
-              id="brand"
-              type="text"
-              bind:value={productForm.brand_shortname}
-              placeholder={$_("admin_dashboard.brand_identifier") ||
-                "Brand identifier"}
-              class="form-input"
-            />
-          </div>
-        </div>
-
-        <!-- Product Images -->
-        <div class="form-section">
-          <h3 class="section-title">
-            {$_("admin_dashboard.product_images") || "Product Images"}
-          </h3>
-          <p class="section-description">
-            {$_("admin_dashboard.product_images_description") ||
-              "Upload product images. First image will be used as thumbnail."}
-          </p>
-
-          <div class="form-group">
-            <label for="product-images" class="file-upload-label">
-              <input
-                id="product-images"
-                type="file"
-                accept="image/*"
-                multiple
-                onchange={handleImageSelect}
-                class="file-input"
-              />
-              <span class="file-upload-button"
-                >{$_("admin_dashboard.choose_images") ||
-                  "📷 Choose Images"}</span
-              >
-            </label>
-          </div>
-
-          {#if imagePreviews.length > 0}
-            <div class="image-previews">
-              {#each imagePreviews as preview, index}
-                <div class="image-preview-item">
-                  <img src={preview} alt="Preview {index + 1}" />
-                  <button
-                    type="button"
-                    class="remove-image-btn"
-                    onclick={() => removeImage(index)}
-                    title={$_("admin_dashboard.remove_image") || "Remove image"}
-                  >
-                    ×
-                  </button>
-                  {#if index === 0}
-                    <span class="thumbnail-badge"
-                      >{$_("admin_dashboard.thumbnail") || "Thumbnail"}</span
-                    >
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          {/if}
-
-          {#if showEditModal && selectedProduct}
-            <div class="existing-images">
-              <h4>
-                {$_("admin_dashboard.existing_images") || "Existing Images"}
-              </h4>
-              <div class="image-previews">
-                {#each getProductImages(selectedProduct) as image}
-                  <div class="image-preview-item existing">
-                    <img
-                      src={Dmart.getAttachmentUrl({
-                        resource_type: ResourceType.media,
-                        space_name: website.main_space,
-                        subpath: selectedProduct.subpath + "/",
-                        parent_shortname: selectedProduct.shortname,
-                        shortname: image.attributes.payload.body,
-                        ext: null,
-                      })}
-                      alt={image.shortname}
-                      loading="lazy"
-                    />
-                    <span class="image-name">{image.shortname}</span>
+                    {/if}
                   </div>
                 {/each}
               </div>
+            {/if}
+          </div>
+        {:else if activeTab === "meta_info"}
+          <div class="form-content">
+            <h3 class="section-title">
+              {$_("admin_dashboard.seo_meta_information") ||
+                "SEO & Meta Information"}
+            </h3>
+
+            <div class="form-group">
+              <label for="meta-title"
+                >{$_("admin_dashboard.meta_title") || "Meta Title"}</label
+              >
+              <input
+                id="meta-title"
+                type="text"
+                bind:value={productForm.meta_title}
+                placeholder={$_("admin_dashboard.seo_meta_title_placeholder") ||
+                  "SEO meta title"}
+                class="form-input"
+              />
             </div>
-          {/if}
-        </div>
+
+            <div class="form-group">
+              <label for="meta-description"
+                >{$_("admin_dashboard.meta_description") ||
+                  "Meta Description"}</label
+              >
+              <textarea
+                id="meta-description"
+                bind:value={productForm.meta_description}
+                placeholder={$_(
+                  "admin_dashboard.seo_meta_description_placeholder",
+                ) || "SEO meta description"}
+                class="form-textarea"
+                rows="2"
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="brand"
+                >{$_("admin_dashboard.brand_shortname") ||
+                  "Brand Shortname"}</label
+              >
+              <input
+                id="brand"
+                type="text"
+                bind:value={productForm.brand_shortname}
+                placeholder={$_("admin_dashboard.brand_identifier") ||
+                  "Brand identifier"}
+                class="form-input"
+              />
+            </div>
+          </div>
+        {/if}
       </div>
 
       <div class="modal-footer">
@@ -1740,275 +2213,6 @@
               : $_("common.update") || "Update"}
           {/if}
         </button>
-      </div>
-    </div>
-  </div>
-{/if}
-
-<!-- Details Modal -->
-{#if showDetailsModal && selectedProduct}
-  <div class="modal-overlay" onclick={closeDetailsModal}>
-    <div class="modal-container large" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">
-        <h2>{$_("admin_dashboard.product_details") || "Product Details"}</h2>
-        <button class="modal-close" onclick={closeDetailsModal}>&times;</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="details-section">
-          <h3 class="details-title">
-            {$_("admin_dashboard.basic_information") || "Basic Information"}
-          </h3>
-          <div class="details-grid">
-            <div class="detail-item">
-              <span class="detail-label"
-                >{$_("admin_dashboard.display_name_en") ||
-                  "Display Name (EN)"}:</span
-              >
-              <span class="detail-value"
-                >{selectedProduct.attributes?.displayname?.en || "—"}</span
-              >
-            </div>
-            <div class="detail-item">
-              <span class="detail-label"
-                >{$_("admin_dashboard.display_name_ar") ||
-                  "Display Name (AR)"}:</span
-              >
-              <span class="detail-value" dir="rtl"
-                >{selectedProduct.attributes?.displayname?.ar || "—"}</span
-              >
-            </div>
-            <div class="detail-item">
-              <span class="detail-label"
-                >{$_("common.shortname") || "Shortname"}:</span
-              >
-              <span class="detail-value">{selectedProduct.shortname}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label"
-                >{$_("admin_dashboard.unit") || "Unit"}:</span
-              >
-              <span class="detail-value"
-                >{selectedProduct.attributes?.payload?.body?.unit || "—"}</span
-              >
-            </div>
-            <div class="detail-item full-width">
-              <span class="detail-label"
-                >{$_("admin_dashboard.description_en") ||
-                  "Description (EN)"}:</span
-              >
-              <span class="detail-value"
-                >{selectedProduct.attributes?.description?.en || "—"}</span
-              >
-            </div>
-            <div class="detail-item full-width">
-              <span class="detail-label"
-                >{$_("admin_dashboard.description_ar") ||
-                  "Description (AR)"}:</span
-              >
-              <span class="detail-value" dir="rtl"
-                >{selectedProduct.attributes?.description?.ar || "—"}</span
-              >
-            </div>
-          </div>
-        </div>
-
-        {#if getProductImages(selectedProduct).length > 0}
-          <div class="details-section">
-            <h3 class="details-title">
-              {$_("admin_dashboard.product_images") || "Product Images"}
-            </h3>
-            <div class="details-images">
-              {#each getProductImages(selectedProduct) as image}
-                <div class="details-image">
-                  <img
-                    src={Dmart.getAttachmentUrl({
-                      resource_type: ResourceType.media,
-                      space_name: website.main_space,
-                      subpath: selectedProduct.subpath + "/",
-                      parent_shortname: selectedProduct.shortname,
-                      shortname: image.attributes.payload.body,
-                      ext: null,
-                    })}
-                    alt={image.shortname}
-                    loading="lazy"
-                  />
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
-
-        {#if getProductCategories(selectedProduct).length > 0}
-          <div class="details-section">
-            <h3 class="details-title">
-              {$_("admin_dashboard.categories") || "Categories"}
-            </h3>
-            <div class="details-categories">
-              {#each getProductCategories(selectedProduct) as categoryId}
-                <span
-                  class="category-badge"
-                  class:main={categoryId ===
-                    getProductMainCategory(selectedProduct)}
-                >
-                  {getCategoryName(categoryId)}
-                  {#if categoryId === getProductMainCategory(selectedProduct)}
-                    <span class="badge-indicator"
-                      >({$_("admin_dashboard.main") || "Main"})</span
-                    >
-                  {/if}
-                </span>
-              {/each}
-            </div>
-          </div>
-        {/if}
-
-        {#if selectedProduct.attributes?.payload?.body?.variation_options?.length > 0}
-          <div class="details-section">
-            <h3 class="details-title">
-              {$_("admin_dashboard.variations") || "Variations"}
-            </h3>
-            <div class="details-variations">
-              {#each selectedProduct.attributes.payload.body.variation_options as variation}
-                <div class="variation-detail">
-                  <span class="variation-type"
-                    >{variation.variation_shortname}:</span
-                  >
-                  <span class="variation-values"
-                    >{variation.values.join(", ")}</span
-                  >
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
-
-        {#if selectedProduct.attributes?.payload?.body?.category_specifications?.length > 0}
-          <div class="details-section">
-            <h3 class="details-title">
-              {$_("admin_dashboard.specifications") || "Specifications"}
-            </h3>
-            <div class="details-specifications">
-              {#each selectedProduct.attributes.payload.body.category_specifications as spec}
-                <div class="spec-detail">
-                  <span class="spec-name">{spec.specification_shortname}:</span>
-                  <span class="spec-values"
-                    >{spec.values
-                      ? spec.values.join(", ")
-                      : spec.value || "—"}</span
-                  >
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
-
-        <div class="details-section">
-          <h3 class="details-title">
-            {$_("admin_dashboard.seo_meta_information") || "SEO & Meta"}
-          </h3>
-          <div class="details-grid">
-            <div class="detail-item full-width">
-              <span class="detail-label"
-                >{$_("admin_dashboard.meta_title") || "Meta Title"}:</span
-              >
-              <span class="detail-value"
-                >{selectedProduct.attributes?.payload?.body?.meta_title ||
-                  "—"}</span
-              >
-            </div>
-            <div class="detail-item full-width">
-              <span class="detail-label"
-                >{$_("admin_dashboard.meta_description") ||
-                  "Meta Description"}:</span
-              >
-              <span class="detail-value"
-                >{selectedProduct.attributes?.payload?.body?.meta_description ||
-                  "—"}</span
-              >
-            </div>
-            <div class="detail-item">
-              <span class="detail-label"
-                >{$_("admin_dashboard.brand_shortname") || "Brand"}:</span
-              >
-              <span class="detail-value"
-                >{selectedProduct.attributes?.payload?.body?.brand_shortname ||
-                  "—"}</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <div class="details-section">
-          <h3 class="details-title">{$_("common.metadata") || "Metadata"}</h3>
-          <div class="details-grid">
-            <div class="detail-item">
-              <span class="detail-label"
-                >{$_("common.created_at") || "Created"}:</span
-              >
-              <span class="detail-value"
-                >{formatDate(selectedProduct.attributes?.created_at)}</span
-              >
-            </div>
-            <div class="detail-item">
-              <span class="detail-label"
-                >{$_("common.updated_at") || "Updated"}:</span
-              >
-              <span class="detail-value"
-                >{formatDate(selectedProduct.attributes?.updated_at)}</span
-              >
-            </div>
-            <div class="detail-item">
-              <span class="detail-label"
-                >{$_("common.status") || "Status"}:</span
-              >
-              <span
-                class="status-badge"
-                class:active={selectedProduct.attributes?.is_active}
-              >
-                {selectedProduct.attributes?.is_active ? "Active" : "Inactive"}
-              </span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label"
-                >{$_("admin_dashboard.low_stock_quantity") ||
-                  "Low Stock"}:</span
-              >
-              <span class="detail-value"
-                >{selectedProduct.attributes?.payload?.body
-                  ?.low_stock_quantity || "—"}</span
-              >
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick={closeDetailsModal}>
-          {$_("common.close") || "Close"}
-        </button>
-        <div style="display: flex; gap: 0.5rem;">
-          <button
-            class="btn-primary"
-            onclick={() => {
-              closeDetailsModal();
-              openEditModal(selectedProduct);
-            }}
-          >
-            <EditOutline size="xs" />
-            {$_("common.edit") || "Edit"}
-          </button>
-          <button
-            class="btn-danger"
-            onclick={() => {
-              closeDetailsModal();
-              openDeleteModal(selectedProduct);
-            }}
-          >
-            <TrashBinOutline size="xs" />
-            {$_("common.delete") || "Delete"}
-          </button>
-        </div>
       </div>
     </div>
   </div>
