@@ -3231,5 +3231,52 @@
   "brands.delete_warning": "لا يمكن التراجع عن هذا الإجراء.",
   "access_denied": "الوصول مرفوض",
   "unauthorized_access_message": "ليس لديك صلاحية للوصول إلى هذه الصفحة. يرجى الاتصال بالمسؤول إذا كنت تعتقد أن هذا خطأ.",
-  "go_to_home": "الذهاب إلى الصفحة الرئيسية"
+  "go_to_home": "الذهاب إلى الصفحة الرئيسية",
+
+  "admin_dashboard": {
+    "zm_admin_welcome": {
+      "title": "مرحبًا بك في إدارة زين مارت",
+      "description": "استخدم الشريط الجانبي للتنقل عبر الأقسام المختلفة وإدارة محتوى زين مارت الخاص بك.",
+      "features": {
+        "manage_products_title": "إدارة المنتجات",
+        "manage_products_desc": "إضافة وتعديل وتنظيم كتالوج المنتجات الخاص بك",
+        "categories_brands_title": "الفئات والعلامات التجارية",
+        "categories_brands_desc": "تنظيم المنتجات في فئات وإدارة العلامات التجارية",
+        "process_orders_title": "معالجة الطلبات",
+        "process_orders_desc": "عرض وإدارة طلبات العملاء",
+        "configure_settings_title": "تكوين الإعدادات",
+        "configure_settings_desc": "تخصيص إعدادات وتفضيلات المتجر الخاص بك"
+      }
+    },
+    "filters": {
+      "all": "الكل",
+      "folder": "مجلد",
+      "content": "محتوى",
+      "post": "منشور",
+      "ticket": "تذكرة",
+      "user": "مستخدم",
+      "media": "وسائط",
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "sort": {
+      "name": "الاسم",
+      "created": "تاريخ الإنشاء",
+      "updated": "تاريخ التحديث",
+      "owner": "المالك"
+    }
+  },
+
+  "admin_space": {
+    "error": {
+      "failed_load_contents": "فشل في تحميل محتويات المجال",
+      "create_folder_failed": "فشل في إنشاء المجلد",
+      "create_folder_error": "خطأ في إنشاء المجلد",
+      "update_folder_failed": "فشل في تحديث المجلد",
+      "update_folder_error": "خطأ في تحديث المجلد"
+    },
+    "confirm": {
+      "delete_item": "هل أنت متأكد أنك تريد حذف \"{name}\"؟"
+    }
+  }
 }

@@ -49,24 +49,31 @@
         await signin(trimmedIdentifier, password);
       }
 
-      const profile = await getProfile();
+      try {
+        const profile = await getProfile();
 
-      if (profile?.roles || profile?.attributes?.roles) {
-        const userRoles = profile.roles || profile.attributes.roles || [];
-        roles.set(userRoles);
-        localStorage.setItem("roles", JSON.stringify(userRoles));
+        if (profile?.roles || profile?.attributes?.roles) {
+          const userRoles = profile.roles || profile.attributes.roles || [];
+          roles.set(userRoles);
+          localStorage.setItem("roles", JSON.stringify(userRoles));
 
-        // Redirect to role-specific default page
-        const defaultPath = getDefaultPathForRole(userRoles);
-        $goto(defaultPath);
-      } else {
-        // No roles found, redirect to default dashboard
-        $goto("/dashboard");
+          const defaultPath = getDefaultPathForRole(userRoles);
+          $goto(defaultPath, { space_name: "zainmart" });
+        } else {
+          $goto("/dashboard");
+        }
+      } catch (profileError) {
+        const storedRoles = JSON.parse(localStorage.getItem("roles") || "[]");
+        if (storedRoles.length > 0) {
+          const defaultPath = getDefaultPathForRole(storedRoles);
+          $goto(defaultPath, { space_name: "zainmart" });
+        } else {
+          $goto("/dashboard");
+        }
       }
     } catch (error) {
       isError = true;
       showError = true;
-    } finally {
       isSubmitting = false;
     }
   }

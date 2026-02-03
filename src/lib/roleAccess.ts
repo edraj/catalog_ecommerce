@@ -80,30 +80,21 @@ export function getDefaultPathForRole(userRoles: string[]): string {
     return "/login";
   }
 
-  // Super admin goes to dashboard
   if (userRoles.includes("super_admin")) {
     return "/dashboard/admin";
   }
 
-  // zm_admin goes to their admin section
   if (userRoles.includes("zm_admin")) {
-    return "/dashboard/admin/zainmart";
+    return "/dashboard/admin/[space_name]";
   }
 
-  // zm_seller goes to seller pages
   if (userRoles.includes("zm_seller")) {
     return "/seller";
   }
 
-  // Default fallback
   return "/dashboard";
 }
 
-/**
- * Check if the current path is accessible without authentication
- * @param path - The path to check
- * @returns true if path is public, false otherwise
- */
 export function isPublicRoute(path: string): boolean {
   const publicRoutes = [
     "/register",
@@ -117,13 +108,7 @@ export function isPublicRoute(path: string): boolean {
     "/unauthorized",
   ];
 
-  // Check exact matches
   if (publicRoutes.includes(path)) {
-    return true;
-  }
-
-  // Check wildcard routes
-  if (path.startsWith("/catalogs")) {
     return true;
   }
 

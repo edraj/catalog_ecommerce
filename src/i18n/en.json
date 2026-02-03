@@ -1860,6 +1860,20 @@
     "optional": "Optional"
   },
   "admin_dashboard": {
+    "zm_admin_welcome": {
+      "title": "Welcome to zainmart Admin",
+      "description": "Use the sidebar to navigate through different sections and manage your zainmart content.",
+      "features": {
+        "manage_products_title": "Manage Products",
+        "manage_products_desc": "Add, edit, and organize your product catalog",
+        "categories_brands_title": "Categories & Brands",
+        "categories_brands_desc": "Organize products into categories and manage brands",
+        "process_orders_title": "Process Orders",
+        "process_orders_desc": "View and manage customer orders",
+        "configure_settings_title": "Configure Settings",
+        "configure_settings_desc": "Customize your store settings and preferences"
+      }
+    },
     "delete_product": "Delete Product",
     "products": "Products Management",
     "products_description": "Manage your products with categories, variations, and specifications",
@@ -2091,6 +2105,8 @@
       "failed_load_contents": "Failed to load space contents",
       "create_folder_failed": "Failed to create folder",
       "create_folder_error": "Error creating folder",
+      "update_folder_failed": "Failed to update folder",
+      "update_folder_error": "Error updating folder",
       "create_schema_failed": "Failed to create schema",
       "create_workflow_failed": "Failed to create workflow",
       "create_workflow_error": "Error creating workflow",

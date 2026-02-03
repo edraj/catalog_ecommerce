@@ -457,16 +457,15 @@
         <div class="welcome-logo">
           <img
             src="/assets/images/logo.svg"
-            alt="{spaceName.charAt(0).toUpperCase() + spaceName.slice(1)} Logo"
+            alt="zaintmart Logo"
             class="logo-image"
           />
         </div>
         <h1 class="welcome-title">
-          Welcome to {spaceName.charAt(0).toUpperCase() + spaceName.slice(1)} Admin
+          {$_("admin_dashboard.zm_admin_welcome.title")}
         </h1>
         <p class="welcome-text">
-          Use the sidebar to navigate through different sections and manage your {spaceName}
-          content.
+          {$_("admin_dashboard.zm_admin_welcome.description")}
         </p>
         <div class="features-grid">
           <div class="feature-card">
@@ -483,8 +482,16 @@
                 d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
               />
             </svg>
-            <h3>Manage Products</h3>
-            <p>Add, edit, and organize your product catalog</p>
+            <h3>
+              {$_(
+                "admin_dashboard.zm_admin_welcome.features.manage_products_title",
+              )}
+            </h3>
+            <p>
+              {$_(
+                "admin_dashboard.zm_admin_welcome.features.manage_products_desc",
+              )}
+            </p>
           </div>
           <div class="feature-card">
             <svg
@@ -500,8 +507,16 @@
                 d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
               />
             </svg>
-            <h3>Categories & Brands</h3>
-            <p>Organize products into categories and manage brands</p>
+            <h3>
+              {$_(
+                "admin_dashboard.zm_admin_welcome.features.categories_brands_title",
+              )}
+            </h3>
+            <p>
+              {$_(
+                "admin_dashboard.zm_admin_welcome.features.categories_brands_desc",
+              )}
+            </p>
           </div>
           <div class="feature-card">
             <svg
@@ -517,8 +532,16 @@
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
               />
             </svg>
-            <h3>Process Orders</h3>
-            <p>View and manage customer orders</p>
+            <h3>
+              {$_(
+                "admin_dashboard.zm_admin_welcome.features.process_orders_title",
+              )}
+            </h3>
+            <p>
+              {$_(
+                "admin_dashboard.zm_admin_welcome.features.process_orders_desc",
+              )}
+            </p>
           </div>
           <div class="feature-card">
             <svg
@@ -540,8 +563,16 @@
                 d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
-            <h3>Configure Settings</h3>
-            <p>Customize your store settings and preferences</p>
+            <h3>
+              {$_(
+                "admin_dashboard.zm_admin_welcome.features.configure_settings_title",
+              )}
+            </h3>
+            <p>
+              {$_(
+                "admin_dashboard.zm_admin_welcome.features.configure_settings_desc",
+              )}
+            </p>
           </div>
         </div>
       </div>
