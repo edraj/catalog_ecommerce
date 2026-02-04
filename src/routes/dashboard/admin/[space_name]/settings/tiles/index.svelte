@@ -38,6 +38,7 @@
     region: "hero_region",
     url: "",
     backgroundColor: "#ffffff",
+    font_color: "#000000",
     card_type: "withMessage",
     collection_shortname: "",
     is_active: true,
@@ -138,6 +139,7 @@
       region: body.region || "hero_region",
       url: body.url || "",
       backgroundColor: body.style?.backgroundColor || "#ffffff",
+      font_color: body.font_color || "#000000",
       card_type: body.card_type || "withMessage",
       collection_shortname: body.collection_shortname || "",
       is_active: tile.attributes.is_active !== false,
@@ -182,6 +184,7 @@
       region: "hero_region",
       url: "",
       backgroundColor: "#ffffff",
+      font_color: "#000000",
       card_type: "withMessage",
       collection_shortname: "",
       is_active: true,
@@ -215,6 +218,7 @@
         shape: tileForm.shape,
         region: tileForm.region,
         collection_shortname: tileForm.collection_shortname,
+        font_color: tileForm.font_color,
         style: {
           backgroundColor: tileForm.backgroundColor,
         },
@@ -283,6 +287,7 @@
       const body: any = {
         shape: tileForm.shape,
         region: tileForm.region,
+        font_color: tileForm.font_color,
         style: {
           backgroundColor: tileForm.backgroundColor,
         },
@@ -648,6 +653,15 @@
           </div>
 
           <div class="form-group">
+            <label for="font_color">Font Color</label>
+            <input
+              id="font_color"
+              type="color"
+              bind:value={tileForm.font_color}
+            />
+          </div>
+
+          <div class="form-group">
             <label for="shape">Shape *</label>
             <select id="shape" bind:value={tileForm.shape}>
               {#each shapes as shape}
@@ -815,6 +829,16 @@
                   style="background-color: {body.style?.backgroundColor}"
                 ></span>
                 {body.style?.backgroundColor || "N/A"}
+              </span>
+            </div>
+            <div class="detail-row">
+              <strong>Font Color:</strong>
+              <span>
+                <span
+                  class="color-preview"
+                  style="background-color: {body.font_color}"
+                ></span>
+                {body.font_color || "N/A"}
               </span>
             </div>
             <div class="detail-row">
