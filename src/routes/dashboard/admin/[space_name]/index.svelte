@@ -109,8 +109,7 @@
     actualSubpath = $params.subpath || "/";
 
     const userRoles = $roles || [];
-    isZmAdmin =
-      userRoles.includes("zm_admin") && !userRoles.includes("super_admin");
+    isZmAdmin = userRoles.includes("zm_admin");
 
     if (!isZmAdmin) {
       await loadContents();
@@ -451,7 +450,6 @@
 
 <div class="min-h-screen bg-gray-50" class:rtl={$isRTL}>
   {#if isZmAdmin}
-    <!-- Welcome Dashboard for zm_admin -->
     <div class="welcome-container">
       <div class="welcome-content">
         <div class="welcome-logo">

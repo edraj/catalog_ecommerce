@@ -3,7 +3,8 @@
   import { goto, params, url } from "@roxi/routify";
   import { _, locale } from "@/i18n";
   import { derived } from "svelte/store";
-  import { roles } from "@/stores/user";
+  import { roles, user } from "@/stores/user";
+  import { authToken } from "@/stores/auth";
 
   $goto;
   $url;
@@ -131,8 +132,8 @@
     updateCurrentPath();
 
     const userRoles = $roles || [];
-    isZmAdmin = true;
-    // userRoles.includes("zm_admin") && !userRoles.includes("super_admin");
+    isZmAdmin =
+      userRoles.includes("zm_admin") && !userRoles.includes("super_admin");
   });
 
   $effect(() => {
@@ -158,24 +159,87 @@
   function isActive(featurePath: string): boolean {
     return currentPath === featurePath;
   }
-  console.log(isZmAdmin);
+
+  function logout() {
+    authToken.set("");
+    user.set({ signedin: false, locale: "en" as any });
+    roles.set([]);
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      localStorage.removeItem("roles");
+    }
+    $goto("/login");
+  }
 </script>
 
-{#if isZmAdmin && spaceName}
-  <div class="admin-layout" class:rtl={$isRTL}>
-    <aside
-      class="sidebar {isSidebarOpen ? 'open' : 'closed'}"
-      class:rtl={$isRTL}
-    >
-      <!-- Sidebar Header -->
-      <div class="sidebar-header">
-        <button
-          onclick={toggleSidebar}
-          class="menu-toggle"
-          aria-label={$_("sidebar.toggle_menu")}
+<div class="admin-layout" class:rtl={$isRTL}>
+  <aside class="sidebar {isSidebarOpen ? 'open' : 'closed'}" class:rtl={$isRTL}>
+    <!-- Sidebar Header -->
+    <div class="sidebar-header">
+      <button
+        onclick={toggleSidebar}
+        class="menu-toggle"
+        aria-label={$_("sidebar.toggle_menu")}
+      >
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
         >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16M4 18h16"
+          />
+        </svg>
+      </button>
+      {#if isSidebarOpen}
+        <div class="sidebar-title">
+          <div class="profile-avatar">
+            <svg class="w-full h-full" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fill-rule="evenodd"
+                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <div class="profile-info">
+            <h2>
+              {$user?.localized_displayname || $user?.shortname || "User"}
+            </h2>
+          </div>
+        </div>
+      {/if}
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar-nav">
+      {#each adminFeatures as feature}
+        {@const active = isActive(feature.path)}
+        <button
+          onclick={() => navigateTo(feature.path)}
+          class="nav-item"
+          class:active
+          class:rtl={$isRTL}
+        >
+          <span class="nav-icon" aria-hidden="true">
+            {@html feature.icon}
+          </span>
+          <span class="nav-label">{$_(feature.i18nKey)}</span>
+        </button>
+      {/each}
+    </nav>
+
+    <!-- Logout Button -->
+    <div class="sidebar-footer">
+      <button onclick={logout} class="nav-item logout-btn" class:rtl={$isRTL}>
+        <span class="nav-icon" aria-hidden="true">
           <svg
-            class="w-6 h-6"
+            class="w-5 h-5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -184,49 +248,20 @@
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="M4 6h16M4 12h16M4 18h16"
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
             />
           </svg>
-        </button>
-        {#if isSidebarOpen}
-          <div class="sidebar-title">
-            <img
-              src="/assets/images/logo.svg"
-              alt="Logo"
-              class="sidebar-logo"
-            />
-            <h2>{$_("sidebar.admin_panel")}</h2>
-          </div>
-        {/if}
-      </div>
+        </span>
+        <span class="nav-label">{$_("sidebar.logout") || "Logout"}</span>
+      </button>
+    </div>
+  </aside>
 
-      <!-- Sidebar Navigation -->
-      <nav class="sidebar-nav">
-        {#each adminFeatures as feature}
-          {@const active = isActive(feature.path)}
-          <button
-            onclick={() => navigateTo(feature.path)}
-            class="nav-item"
-            class:active
-            class:rtl={$isRTL}
-          >
-            <span class="nav-icon" aria-hidden="true">
-              {@html feature.icon}
-            </span>
-            <span class="nav-label">{$_(feature.i18nKey)}</span>
-          </button>
-        {/each}
-      </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main-content" class:sidebar-closed={!isSidebarOpen}>
-      <slot />
-    </main>
-  </div>
-{:else}
-  <slot />
-{/if}
+  <!-- Main Content -->
+  <main class="main-content" class:sidebar-closed={!isSidebarOpen}>
+    <slot />
+  </main>
+</div>
 
 <style>
   .admin-layout {
@@ -302,15 +337,27 @@
     min-width: 0;
   }
 
-  .sidebar-logo {
-    height: 32px;
-    width: auto;
+  .profile-avatar {
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3c307f 0%, #5a4a9f 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    padding: 8px;
   }
 
-  .sidebar-title h2 {
-    font-size: 1.125rem;
-    font-weight: 700;
+  .profile-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .profile-info h2 {
+    font-size: 0.95rem;
+    font-weight: 600;
     color: #111827;
     margin: 0;
     overflow: hidden;
@@ -358,9 +405,13 @@
   }
 
   .nav-item.active {
-    background: linear-gradient(135deg, #281f51 0%, #3d2f6d 100%);
-    color: white;
-    box-shadow: 0 4px 12px rgba(40, 31, 81, 0.15);
+    background: transparent;
+    color: #3c307f;
+    font-weight: 600;
+  }
+
+  .nav-item.active .nav-icon {
+    color: #3c307f;
   }
 
   .nav-icon {
@@ -418,6 +469,26 @@
 
   .sidebar-nav::-webkit-scrollbar-thumb:hover {
     background: #9ca3af;
+  }
+
+  /* Sidebar Footer */
+  .sidebar-footer {
+    padding: 1rem 0;
+    border-top: 1px solid #e5e7eb;
+    margin-top: auto;
+  }
+
+  .logout-btn {
+    margin: 0 0.5rem;
+  }
+
+  .logout-btn:hover {
+    background: #fef2f2;
+    color: #dc2626;
+  }
+
+  .logout-btn:hover .nav-icon {
+    color: #dc2626;
   }
 
   /* Responsive Design */
