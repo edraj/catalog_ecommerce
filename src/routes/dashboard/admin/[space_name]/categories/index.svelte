@@ -19,26 +19,16 @@
     PlusOutline,
     EditOutline,
     TrashBinOutline,
+    InfoCircleOutline,
   } from "flowbite-svelte-icons";
   import { getLocalizedDisplayName, formatDate } from "@/lib/utils/adminUtils";
   import {
-    getCategoryParentId,
-    getParentCategoryName,
     isParentCategory,
     getSubCategories,
     getEntityContent,
-    buildEntityPayload,
-    countSubCategories,
   } from "@/lib/utils/entityUtils";
-  import { validateCategoryForm } from "@/lib/utils/validationUtils";
   import { formatNumber } from "@/lib/helpers";
-  import {
-    Button,
-    IconButton,
-    LoadingSpinner,
-    EmptyState,
-    Pagination,
-  } from "@/components/ui";
+
   import {
     CreateCategoryModal,
     EditCategoryModal,
@@ -60,12 +50,16 @@
   let showCreateModal = $state(false);
   let showEditModal = $state(false);
   let showDeleteModal = $state(false);
+  let showDetailsModal = $state(false);
   let selectedCategory = $state(null);
+  let selectedCategoryForDetails = $state(null);
   let selectedParentFilter = $state("all");
   let expandedCategories = $state(new Set());
   let editFormData = $state<CategoryFormData | undefined>(undefined);
   let totalCategoriesCount = $state(0);
   let allCategoriesCache = $state([]);
+  let searchTerm = $state("");
+  let openDropdownId = $state<string | null>(null);
 
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
@@ -83,15 +77,16 @@
         website.main_space,
         "categories",
         "managed",
-        itemsPerPage,
-        offset,
+        1000,
+        0,
         true,
       );
 
       if (response?.records) {
-        categories = response.records;
+        allCategoriesCache = response.records;
         totalCategoriesCount =
           response.attributes?.total || response.records.length;
+        updateFilteredCategories();
       }
     } catch (error) {
       console.error("Error loading categories:", error);
@@ -101,24 +96,34 @@
     }
   }
 
-  async function loadAllCategoriesForFiltering() {
-    try {
-      const response = await getSpaceContents(
-        website.main_space,
-        "categories",
-        "managed",
-        100,
-        0,
-        true,
-      );
+  function updateFilteredCategories() {
+    let filtered = allCategoriesCache;
 
-      if (response?.records) {
-        allCategoriesCache = response.records;
-      }
-    } catch (error) {
-      console.error("Error loading categories for filtering:", error);
-      errorToastMessage("Failed to load categories");
+    if (selectedParentFilter === "root") {
+      filtered = filtered.filter((c) => isParentCategory(c));
+    } else if (selectedParentFilter !== "all") {
+      filtered = getSubCategories(selectedParentFilter, allCategoriesCache);
+    } else {
+      filtered = filtered.filter((c) => isParentCategory(c));
     }
+
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((cat) => {
+        const displayname = getLocalizedDisplayName(cat, $locale).toLowerCase();
+        const shortname = cat.shortname?.toLowerCase() || "";
+        const description = (
+          cat.attributes?.payload?.body?.meta_description || ""
+        ).toLowerCase();
+        return (
+          displayname.includes(term) ||
+          shortname.includes(term) ||
+          description.includes(term)
+        );
+      });
+    }
+
+    categories = filtered;
   }
 
   async function loadSpecifications() {
@@ -176,6 +181,38 @@
   function closeDeleteModal() {
     showDeleteModal = false;
     selectedCategory = null;
+  }
+
+  function openDetailsModal(category) {
+    selectedCategoryForDetails = category;
+    showDetailsModal = true;
+  }
+
+  function closeDetailsModal() {
+    showDetailsModal = false;
+    selectedCategoryForDetails = null;
+  }
+
+  function getCategoryLevel(category) {
+    return category.attributes?.payload?.body?.level ?? 0;
+  }
+
+  function getCategoryOrder(category) {
+    return category.attributes?.payload?.body?.order ?? 0;
+  }
+
+  function getCategorySpecifications(category) {
+    return category.attributes?.payload?.body?.specification_shortnames || [];
+  }
+
+  function getLevelColor(level: number): string {
+    const colors = {
+      0: "#3b82f6",
+      1: "#10b981",
+      2: "#f59e0b",
+      3: "#8b5cf6",
+    };
+    return colors[level] || "#6b7280";
   }
 
   async function handleCreateCategory(formData: CategoryFormData) {
@@ -296,236 +333,449 @@
   }
 
   const parentCategories = $derived.by(() => {
-    const source =
-      selectedParentFilter === "all" || selectedParentFilter === "root"
-        ? categories
-        : allCategoriesCache;
-    return source.filter((c) => isParentCategory(c));
+    return allCategoriesCache.filter((c) => isParentCategory(c));
   });
 
-  const filteredCategories = $derived.by(() => {
-    if (selectedParentFilter === "all" || selectedParentFilter === "root") {
-      return parentCategories;
-    } else {
-      return getSubCategories(selectedParentFilter, allCategoriesCache);
-    }
+  const activeCategories = $derived.by(() => {
+    return allCategoriesCache.filter((c) => c.attributes?.is_active === true);
+  });
+
+  const inactiveCategories = $derived.by(() => {
+    return allCategoriesCache.filter((c) => c.attributes?.is_active !== true);
   });
 
   let paginatedCategories = $derived.by(() => {
-    if (selectedParentFilter !== "all" && selectedParentFilter !== "root") {
-      return filteredCategories;
-    }
-    return categories;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return categories.slice(startIndex, endIndex);
   });
 
   let totalPages = $derived.by(() => {
-    if (selectedParentFilter !== "all" && selectedParentFilter !== "root") {
-      return Math.ceil(filteredCategories.length / itemsPerPage);
-    }
-    return Math.ceil(totalCategoriesCount / itemsPerPage);
+    return Math.ceil(categories.length / itemsPerPage);
   });
 
   function handlePageChange(page: number) {
-    currentPage = page;
-    if (selectedParentFilter === "all" || selectedParentFilter === "root") {
-      loadCategories();
+    if (page >= 1 && page <= totalPages) {
+      currentPage = page;
     }
   }
 
+  function handleSearchOrFilterChange() {
+    currentPage = 1;
+    updateFilteredCategories();
+  }
+
+  function toggleDropdown(shortname: string) {
+    openDropdownId = openDropdownId === shortname ? null : shortname;
+  }
+
+  function closeDropdown() {
+    openDropdownId = null;
+  }
+
   $effect(() => {
-    if (selectedParentFilter !== "all" && selectedParentFilter !== "root") {
-      if (allCategoriesCache.length === 0) {
-        loadAllCategoriesForFiltering();
-      }
-      currentPage = 1;
-    } else {
-      loadCategories();
+    if (allCategoriesCache.length > 0) {
+      handleSearchOrFilterChange();
     }
   });
 </script>
 
 <div class="categories-page" class:rtl={$isRTL}>
-  <div class="container">
-    <div class="header">
-      <div class="header-content">
-        <h1 class="page-title">
-          {$_("admin_dashboard.categories") || "Categories"}
-        </h1>
-        <p class="page-description">
-          {$_("admin_dashboard.categories_description") ||
-            "Manage your product categories"}
-        </p>
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #dbeafe;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+          />
+        </svg>
       </div>
-      <Button variant="primary" onclick={openCreateModal}>
-        <PlusOutline size="sm" />
-        <span>{$_("admin_dashboard.create_category") || "New Category"}</span>
-      </Button>
+      <div class="stat-content">
+        <p class="stat-title">
+          {$_("admin_dashboard.total_categories") || "Total Categories"}
+        </p>
+        <h3 class="stat-value">
+          {formatNumber(allCategoriesCache.length, $locale)}
+        </h3>
+      </div>
     </div>
 
-    {#if !isLoading && categories.length > 0}
-      <div class="filters">
-        <label for="parent-filter"
-          >{$_("common.filter_by_parent") || "Filter by Parent"}:</label
-        >
-        <select
-          id="parent-filter"
-          bind:value={selectedParentFilter}
-          class="filter-select"
-        >
-          <option value="all"
-            >{$_("common.all_categories") || "All Categories"}</option
-          >
-          <option value="root"
-            >{$_("common.parent_categories_only") ||
-              "Parent Categories Only"}</option
-          >
-          {#each parentCategories as parent}
-            <option value={parent.shortname}
-              >{getLocalizedDisplayName(parent)} ({$_(
-                "common.sub_categories",
-              ) || "Sub-categories"})</option
-            >
-          {/each}
-        </select>
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #d1fae5;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
       </div>
-    {/if}
+      <div class="stat-content">
+        <p class="stat-title">
+          {$_("admin_dashboard.active_categories") || "Active Categories"}
+        </p>
+        <h3 class="stat-value">
+          {formatNumber(activeCategories.length, $locale)}
+        </h3>
+      </div>
+    </div>
 
-    {#if isLoading}
-      <LoadingSpinner message={$_("common.loading") || "Loading..."} />
-    {:else if categories.length === 0}
-      <EmptyState
-        icon="📂"
-        title={$_("admin_dashboard.no_categories") || "No categories yet"}
-        description="Create your first category to get started"
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #fee2e2;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <p class="stat-title">
+          {$_("admin_dashboard.inactive_categories") || "Inactive Categories"}
+        </p>
+        <h3 class="stat-value">
+          {formatNumber(inactiveCategories.length, $locale)}
+        </h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="search-and-filters">
+    <div class="search-bar">
+      <input
+        type="text"
+        bind:value={searchTerm}
+        oninput={handleSearchOrFilterChange}
+        placeholder={$_("admin_dashboard.search_categories") ||
+          "Search categories..."}
+        class="search-input"
+        class:rtl={$isRTL}
+      />
+      <button class="search-btn" aria-label={$_("common.search") || "Search"}>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <div class="filter-dropdown">
+      <select
+        bind:value={selectedParentFilter}
+        onchange={handleSearchOrFilterChange}
+        class="filter-select"
       >
-        {#snippet action()}
-          <Button variant="primary" onclick={openCreateModal}>
-            <PlusOutline size="sm" />
-            {$_("admin_dashboard.create_first_category") || "Create Category"}
-          </Button>
-        {/snippet}
-      </EmptyState>
-    {:else}
-      <div class="categories-list">
-        <div class="list-header">
-          <div class="list-col col-name">Name</div>
-          <div class="list-col col-description">Description</div>
-          <div class="list-col col-date">Created</div>
-          <div class="list-col col-actions">Actions</div>
-        </div>
-        {#each paginatedCategories as category}
-          {@const subCategories = getSubCategories(
-            category.shortname,
-            categories,
-          )}
-          {@const hasSubCategories = subCategories.length > 0}
-          {@const expanded = isExpanded(category.shortname)}
+        <option value="all"
+          >{$_("common.all_categories") || "All Categories"}</option
+        >
+        <option value="root"
+          >{$_("common.parent_categories_only") ||
+            "Parent Categories Only"}</option
+        >
+        {#each parentCategories as parent}
+          <option value={parent.shortname}>
+            {getLocalizedDisplayName(parent, $locale)} ({formatNumber(
+              getSubCategories(parent.shortname, categories).length,
+              $locale,
+            )})
+          </option>
+        {/each}
+      </select>
+    </div>
 
-          <!-- Parent Category Row -->
-          <div
-            class="list-row"
-            class:has-children={hasSubCategories}
-            class:sub-category={!isParentCategory(category)}
-          >
-            <div class="list-col col-name">
-              <div class="name-content">
+    <button class="btn-create" onclick={openCreateModal}>
+      <PlusOutline size="sm" />
+      <span>{$_("admin_dashboard.create_category") || "Create Category"}</span>
+    </button>
+  </div>
+
+  {#if isLoading}
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>{$_("common.loading") || "Loading..."}</p>
+    </div>
+  {:else if allCategoriesCache.length === 0}
+    <div class="empty-state">
+      <div class="empty-icon">📂</div>
+      <h3>{$_("admin_dashboard.no_categories") || "No categories found"}</h3>
+      <p>
+        {$_("admin_dashboard.create_first_category_desc") ||
+          "Create your first category to get started"}
+      </p>
+      <button class="btn-create-large" onclick={openCreateModal}>
+        <PlusOutline size="sm" />
+        <span
+          >{$_("admin_dashboard.create_first_category") ||
+            "Create First Category"}</span
+        >
+      </button>
+    </div>
+  {:else if categories.length === 0}
+    <div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <h3>{$_("common.no_results") || "No results found"}</h3>
+      <p>
+        {$_("common.try_different_search") || "Try adjusting your search terms"}
+      </p>
+    </div>
+  {:else}
+    <div class="categories-table-container">
+      <table class="categories-table">
+        <thead>
+          <tr>
+            <th class="col-expand"></th>
+            <th class="col-category">{$_("common.category") || "Category"}</th>
+            <th class="col-level">{$_("common.level") || "Level"}</th>
+            <th class="col-description"
+              >{$_("common.description") || "Description"}</th
+            >
+            <th class="col-status">{$_("common.status") || "Status"}</th>
+            <th class="col-created">{$_("common.created") || "Created"}</th>
+            <th class="col-actions">{$_("common.actions") || "Actions"}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each paginatedCategories as category}
+            {@const subCategories = getSubCategories(
+              category.shortname,
+              categories,
+            )}
+            {@const hasSubCategories = subCategories.length > 0}
+            {@const expanded = isExpanded(category.shortname)}
+
+            <!-- Parent Category Row -->
+            <tr
+              class="category-row"
+              class:expanded
+              class:has-children={hasSubCategories}
+            >
+              <td class="col-expand">
                 {#if hasSubCategories}
                   <button
-                    class="expand-button"
+                    class="expand-btn"
                     onclick={() => toggleCategory(category.shortname)}
-                    title={expanded ? "Collapse" : "Expand"}
+                    title={expanded
+                      ? $_("common.collapse") || "Collapse"
+                      : $_("common.expand") || "Expand"}
                   >
-                    <span class="expand-icon" class:expanded>▶</span>
+                    <svg
+                      class="expand-icon"
+                      class:rotated={expanded}
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
                   </button>
-                {:else if !isParentCategory(category)}
-                  <span class="sub-category-icon">↳</span>
                 {/if}
-                <div class="name-wrapper">
-                  <span class="category-name"
-                    >{getLocalizedDisplayName(category, $locale)}</span
-                  >
-                  <span class="category-shortname">{category.shortname}</span>
-                </div>
-                {#if hasSubCategories}
-                  <span class="sub-count-badge">{subCategories.length}</span>
-                {/if}
-              </div>
-            </div>
-            <div class="list-col col-description">
-              {category.attributes?.payload.body.description ||
-                "No description"}
-            </div>
-            <div class="list-col col-date">
-              {formatDate(category.attributes?.created_at, $locale)}
-            </div>
-            <div class="list-col col-actions">
-              <IconButton onclick={() => openEditModal(category)} title="Edit">
-                <EditOutline size="sm" />
-              </IconButton>
-              <IconButton
-                variant="delete"
-                onclick={() => openDeleteModal(category)}
-                title="Delete"
-              >
-                <TrashBinOutline size="sm" />
-              </IconButton>
-            </div>
-          </div>
-
-          <!-- Sub-Categories (Collapsible) -->
-          {#if hasSubCategories && expanded}
-            {#each subCategories as subCategory}
-              <div class="list-row sub-category">
-                <div class="list-col col-name">
-                  <div class="name-content">
-                    <span class="sub-category-icon">↳</span>
-                    <div class="name-wrapper">
-                      <span class="category-name"
-                        >{getLocalizedDisplayName(subCategory, $locale)}</span
-                      >
-                      <span class="category-shortname"
-                        >{subCategory.shortname}</span
-                      >
-                    </div>
+              </td>
+              <td class="col-category">
+                <div class="category-cell">
+                  <div class="category-info">
+                    <span class="category-name">
+                      {getLocalizedDisplayName(category, $locale)}
+                    </span>
+                    <span class="category-shortname">{category.shortname}</span>
                   </div>
+                  {#if hasSubCategories}
+                    <span class="sub-count-badge"
+                      >{formatNumber(subCategories.length, $locale)}</span
+                    >
+                  {/if}
                 </div>
-                <div class="list-col col-description">
-                  {subCategory.attributes?.payload.body.content.description ||
-                    "No description"}
-                </div>
-                <div class="list-col col-date">
-                  {formatDate(subCategory.attributes?.created_at, $locale)}
-                </div>
-                <div class="list-col col-actions">
-                  <IconButton
-                    onclick={() => openEditModal(subCategory)}
-                    title="Edit"
+              </td>
+              <td class="col-level">
+                <span
+                  class="level-badge"
+                  style="background-color: {getLevelColor(
+                    getCategoryLevel(category),
+                  )}15; color: {getLevelColor(getCategoryLevel(category))};"
+                >
+                  L{getCategoryLevel(category)}
+                </span>
+              </td>
+              <td class="col-description">
+                <span class="description-text">
+                  {category.attributes?.payload?.body?.description ||
+                    $_("admin_dashboard.no_description_available") ||
+                    "No description available"}
+                </span>
+              </td>
+              <td class="col-status">
+                {#if category.attributes?.is_active}
+                  <span class="status-badge active"
+                    >{$_("common.active") || "Active"}</span
+                  >
+                {:else}
+                  <span class="status-badge inactive"
+                    >{$_("common.inactive") || "Inactive"}</span
+                  >
+                {/if}
+              </td>
+              <td class="col-created">
+                <span class="date-text"
+                  >{formatDate(category.attributes?.created_at, $locale)}</span
+                >
+              </td>
+              <td class="col-actions">
+                <div class="actions-cell">
+                  <button
+                    class="action-btn info"
+                    onclick={() => openDetailsModal(category)}
+                    title={$_("common.details") || "Details"}
+                  >
+                    <InfoCircleOutline size="sm" />
+                  </button>
+                  <button
+                    class="action-btn"
+                    onclick={() => openEditModal(category)}
+                    title={$_("common.edit") || "Edit"}
                   >
                     <EditOutline size="sm" />
-                  </IconButton>
-                  <IconButton
-                    variant="delete"
-                    onclick={() => openDeleteModal(subCategory)}
-                    title="Delete"
+                  </button>
+                  <button
+                    class="action-btn delete"
+                    onclick={() => openDeleteModal(category)}
+                    title={$_("common.delete") || "Delete"}
                   >
                     <TrashBinOutline size="sm" />
-                  </IconButton>
+                  </button>
                 </div>
-              </div>
-            {/each}
-          {/if}
-        {/each}
-      </div>
+              </td>
+            </tr>
 
-      <Pagination
-        {currentPage}
-        {totalPages}
-        totalItems={filteredCategories.length}
-        {itemsPerPage}
-        onPageChange={handlePageChange}
-      />
+            <!-- Sub-Categories Rows (Expanded) -->
+            {#if hasSubCategories && expanded}
+              {#each subCategories as subCategory}
+                <tr class="category-row sub-category">
+                  <td class="col-expand"></td>
+                  <td class="col-category">
+                    <div class="category-cell sub">
+                      <span class="sub-category-icon">↳</span>
+                      <div class="category-info">
+                        <span class="category-name">
+                          {getLocalizedDisplayName(subCategory, $locale)}
+                        </span>
+                        <span class="category-shortname"
+                          >{subCategory.shortname}</span
+                        >
+                      </div>
+                    </div>
+                  </td>
+                  <td class="col-level">
+                    <span
+                      class="level-badge"
+                      style="background-color: {getLevelColor(
+                        getCategoryLevel(subCategory),
+                      )}15; color: {getLevelColor(
+                        getCategoryLevel(subCategory),
+                      )};"
+                    >
+                      L{getCategoryLevel(subCategory)}
+                    </span>
+                  </td>
+                  <td class="col-description">
+                    <span class="description-text">
+                      {subCategory.attributes?.payload?.body?.description ||
+                        $_("admin_dashboard.no_description_available") ||
+                        "No description available"}
+                    </span>
+                  </td>
+                  <td class="col-status">
+                    {#if subCategory.attributes?.is_active}
+                      <span class="status-badge active"
+                        >{$_("common.active") || "Active"}</span
+                      >
+                    {:else}
+                      <span class="status-badge inactive"
+                        >{$_("common.inactive") || "Inactive"}</span
+                      >
+                    {/if}
+                  </td>
+                  <td class="col-created">
+                    <span class="date-text"
+                      >{formatDate(
+                        subCategory.attributes?.created_at,
+                        $locale,
+                      )}</span
+                    >
+                  </td>
+                  <td class="col-actions">
+                    <div class="actions-cell">
+                      <button
+                        class="action-btn info"
+                        onclick={() => openDetailsModal(subCategory)}
+                        title={$_("common.details") || "Details"}
+                      >
+                        <InfoCircleOutline size="sm" />
+                      </button>
+                      <button
+                        class="action-btn"
+                        onclick={() => openEditModal(subCategory)}
+                        title={$_("common.edit") || "Edit"}
+                      >
+                        <EditOutline size="sm" />
+                      </button>
+                      <button
+                        class="action-btn delete"
+                        onclick={() => openDeleteModal(subCategory)}
+                        title={$_("common.delete") || "Delete"}
+                      >
+                        <TrashBinOutline size="sm" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              {/each}
+            {/if}
+          {/each}
+        </tbody>
+      </table>
+    </div>
+
+    {#if totalPages > 1}
+      <div class="pagination">
+        <div class="pagination-info">
+          {$_("common.page") || "Page"}
+          {currentPage}
+          {$_("common.of") || "of"}
+          {totalPages}
+        </div>
+        <div class="pagination-pages">
+          {#each Array.from({ length: totalPages }, (_, i) => i + 1) as page}
+            {#if page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)}
+              <button
+                class="page-btn"
+                class:active={page === currentPage}
+                onclick={() => handlePageChange(page)}
+              >
+                {page}
+              </button>
+            {:else if page === currentPage - 2 || page === currentPage + 2}
+              <span class="page-ellipsis">...</span>
+            {/if}
+          {/each}
+        </div>
+      </div>
     {/if}
-  </div>
+  {/if}
 </div>
 
 <!-- Modal Components -->
@@ -553,3 +803,205 @@
   onConfirm={handleDeleteCategory}
   category={selectedCategory}
 />
+
+<!-- Category Details Modal -->
+{#if showDetailsModal && selectedCategoryForDetails}
+  <div
+    class="modal-overlay"
+    onclick={closeDetailsModal}
+    onkeydown={(e) => e.key === "Escape" && closeDetailsModal()}
+    role="button"
+    tabindex="0"
+    aria-label="Close modal"
+  >
+    <div
+      class="modal-content details-modal"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-labelledby="modal-title"
+      tabindex="-1"
+    >
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-title">
+          {$_("common.category_details") || "Category Details"}
+        </h2>
+        <button
+          class="modal-close"
+          onclick={closeDetailsModal}
+          aria-label={$_("common.close") || "Close"}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body details-content">
+        <div class="detail-section">
+          <h3 class="detail-section-title">
+            {$_("common.basic_info") || "Basic Information"}
+          </h3>
+
+          <div class="detail-row">
+            <span class="detail-label">{$_("common.name") || "Name"}:</span>
+            <span class="detail-value"
+              >{getLocalizedDisplayName(
+                selectedCategoryForDetails,
+                $locale,
+              )}</span
+            >
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label"
+              >{$_("common.shortname") || "Shortname"}:</span
+            >
+            <span class="detail-value mono"
+              >{selectedCategoryForDetails.shortname}</span
+            >
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label"
+              >{$_("common.description") || "Description"}:</span
+            >
+            <span class="detail-value">
+              {selectedCategoryForDetails.attributes?.payload?.body
+                ?.meta_description ||
+                $_("admin_dashboard.no_description_available") ||
+                "No description available"}
+            </span>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h3 class="detail-section-title">
+            {$_("common.hierarchy") || "Hierarchy"}
+          </h3>
+
+          <div class="detail-row">
+            <span class="detail-label">{$_("common.level") || "Level"}:</span>
+            <span class="detail-value">
+              <span
+                class="level-badge"
+                style="background-color: {getLevelColor(
+                  getCategoryLevel(selectedCategoryForDetails),
+                )}15; color: {getLevelColor(
+                  getCategoryLevel(selectedCategoryForDetails),
+                )};"
+              >
+                Level {getCategoryLevel(selectedCategoryForDetails)}
+              </span>
+            </span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">{$_("common.order") || "Order"}:</span>
+            <span class="detail-value"
+              >{getCategoryOrder(selectedCategoryForDetails)}</span
+            >
+          </div>
+
+          {#if selectedCategoryForDetails.attributes?.payload?.body?.parent_category_shortname}
+            <div class="detail-row">
+              <span class="detail-label"
+                >{$_("common.parent_category") || "Parent Category"}:</span
+              >
+              <span class="detail-value mono"
+                >{selectedCategoryForDetails.attributes.payload.body
+                  .parent_category_shortname}</span
+              >
+            </div>
+          {/if}
+        </div>
+
+        <div class="detail-section">
+          <h3 class="detail-section-title">
+            {$_("common.specifications") || "Specifications"}
+          </h3>
+
+          {#if getCategorySpecifications(selectedCategoryForDetails).length > 0}
+            <div class="specifications-list">
+              {#each getCategorySpecifications(selectedCategoryForDetails) as spec}
+                <span class="specification-chip">{spec}</span>
+              {/each}
+            </div>
+          {:else}
+            <p class="empty-text">
+              {$_("common.no_specifications") || "No specifications assigned"}
+            </p>
+          {/if}
+        </div>
+
+        <div class="detail-section">
+          <h3 class="detail-section-title">
+            {$_("common.metadata") || "Metadata"}
+          </h3>
+
+          <div class="detail-row">
+            <span class="detail-label">{$_("common.status") || "Status"}:</span>
+            <span class="detail-value">
+              {#if selectedCategoryForDetails.attributes?.is_active}
+                <span class="status-badge active"
+                  >{$_("common.active") || "Active"}</span
+                >
+              {:else}
+                <span class="status-badge inactive"
+                  >{$_("common.inactive") || "Inactive"}</span
+                >
+              {/if}
+            </span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label"
+              >{$_("common.created") || "Created"}:</span
+            >
+            <span class="detail-value"
+              >{formatDate(
+                selectedCategoryForDetails.attributes?.created_at,
+                $locale,
+              )}</span
+            >
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label"
+              >{$_("common.updated") || "Updated"}:</span
+            >
+            <span class="detail-value"
+              >{formatDate(
+                selectedCategoryForDetails.attributes?.updated_at,
+                $locale,
+              )}</span
+            >
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">{$_("common.owner") || "Owner"}:</span>
+            <span class="detail-value mono"
+              >{selectedCategoryForDetails.attributes?.owner_shortname ||
+                "N/A"}</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick={closeDetailsModal}>
+          {$_("common.close") || "Close"}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}

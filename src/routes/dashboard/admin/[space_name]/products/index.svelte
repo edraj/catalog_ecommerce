@@ -202,7 +202,6 @@
         totalProductsCount =
           response.attributes?.total || response.records.length;
 
-        // Calculate stats
         totalActiveProducts = products.filter(
           (p) => p.attributes?.is_active !== false,
         ).length;

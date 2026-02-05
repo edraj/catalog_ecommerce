@@ -653,14 +653,12 @@
 
     {#if totalPages > 1}
       <div class="pagination">
-        <button
-          class="page-btn"
-          onclick={previousPage}
-          disabled={currentPage === 1}
-        >
-          ← {$_("common.previous") || "Previous"}
-        </button>
-
+        <div class="pagination-info">
+          {$_("common.page") || "Page"}
+          {currentPage}
+          {$_("common.of") || "of"}
+          {totalPages}
+        </div>
         <div class="pagination-pages">
           {#each Array.from({ length: totalPages }, (_, i) => i + 1) as page}
             {#if page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)}
@@ -676,21 +674,6 @@
             {/if}
           {/each}
         </div>
-
-        <div class="pagination-info">
-          {$_("common.page") || "Page"}
-          {currentPage}
-          {$_("common.of") || "of"}
-          {totalPages}
-        </div>
-
-        <button
-          class="page-btn"
-          onclick={nextPage}
-          disabled={currentPage === totalPages}
-        >
-          {$_("common.next") || "Next"} →
-        </button>
       </div>
     {/if}
   {/if}
