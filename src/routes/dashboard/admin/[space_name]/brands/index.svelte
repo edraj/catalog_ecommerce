@@ -361,6 +361,24 @@
     }
   }
 
+  function nextPage() {
+    if (currentPage < totalPages) {
+      currentPage++;
+      if (!searchTerm && topBrandsFilter === "all") {
+        loadBrands();
+      }
+    }
+  }
+
+  function previousPage() {
+    if (currentPage > 1) {
+      currentPage--;
+      if (!searchTerm && topBrandsFilter === "all") {
+        loadBrands();
+      }
+    }
+  }
+
   $effect(() => {
     if (searchTerm || topBrandsFilter !== "all") {
       if (allBrandsCache.length === 0) {
@@ -374,160 +392,190 @@
   });
 </script>
 
-<div class="admin-container">
-  <div class="admin-content">
-    <!-- Header -->
-    <div class="admin-header">
-      <div class="header-left">
-        <div class="header-icon-wrapper">
-          <svg class="header-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"
-            />
-          </svg>
-        </div>
-        <div>
-          <h1 class="admin-title" class:rtl={$isRTL}>
-            {$_("brands.title") || "Brands Management"}
-          </h1>
-          <p class="admin-subtitle" class:rtl={$isRTL}>
-            {$_("brands.subtitle") || "Manage product brands and manufacturers"}
-          </p>
-        </div>
+<div class="brands-page" class:rtl={$isRTL}>
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #dbeafe;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"
+          />
+        </svg>
       </div>
-      <button class="create-button" onclick={openCreateModal}>
-        <PlusOutline class="button-icon" />
-        <span>{$_("brands.create_brand") || "Create Brand"}</span>
-      </button>
-    </div>
-
-    <!-- Filters -->
-    <div class="filters-section">
-      <div class="search-bar">
-        <SearchOutline class="search-icon" />
-        <input
-          type="text"
-          bind:value={searchTerm}
-          placeholder={$_("brands.search_placeholder") || "Search brands..."}
-          class="search-input"
-          class:rtl={$isRTL}
-        />
-      </div>
-
-      <div class="filters-group">
-        <select
-          bind:value={topBrandsFilter}
-          class="filter-select"
-          class:rtl={$isRTL}
-        >
-          <option value="all">{$_("brands.all_brands") || "All Brands"}</option>
-          <option value="top">{$_("brands.top_brands") || "Top Brands"}</option>
-          <option value="regular"
-            >{$_("brands.regular_brands") || "Regular Brands"}</option
-          >
-        </select>
-      </div>
-    </div>
-
-    <!-- Stats -->
-    {#if !isLoading}
-      <div class="stats-bar">
-        <div class="stat-item">
-          <span class="stat-label">{$_("brands.total") || "Total"}:</span>
-          <span class="stat-value"
-            >{searchTerm || topBrandsFilter !== "all"
+      <div class="stat-content">
+        <p class="stat-title">{$_("brands.total") || "Total Brands"}</p>
+        <h3 class="stat-value">
+          {formatNumber(
+            searchTerm || topBrandsFilter !== "all"
               ? allBrandsCache.length
-              : totalBrandsCount}</span
-          >
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">{$_("brands.showing") || "Showing"}:</span>
-          <span class="stat-value"
-            >{searchTerm || topBrandsFilter !== "all"
+              : totalBrandsCount,
+            $locale,
+          )}
+        </h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #d1fae5;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <p class="stat-title">{$_("brands.top_brands") || "Top Brands"}</p>
+        <h3 class="stat-value">
+          {formatNumber(
+            (searchTerm || topBrandsFilter !== "all"
+              ? allBrandsCache
+              : brands
+            ).filter((b) => b.attributes?.payload?.body?.top === true).length,
+            $locale,
+          )}
+        </h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #fef3c7;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M7 7h10v10H7z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <p class="stat-title">{$_("brands.regular") || "Regular Brands"}</p>
+        <h3 class="stat-value">
+          {formatNumber(
+            (searchTerm || topBrandsFilter !== "all"
+              ? allBrandsCache
+              : brands
+            ).filter((b) => b.attributes?.payload?.body?.top !== true).length,
+            $locale,
+          )}
+        </h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #e0e7ff;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <p class="stat-title">{$_("brands.showing") || "Showing"}</p>
+        <h3 class="stat-value">
+          {formatNumber(
+            searchTerm || topBrandsFilter !== "all"
               ? filteredBrands.length
               : Math.min(
                   itemsPerPage,
                   totalBrandsCount - (currentPage - 1) * itemsPerPage,
-                )}</span
-          >
-        </div>
-        <div class="stat-item">
-          <span class="stat-label"
-            >{$_("brands.top_brands") || "Top Brands"}:</span
-          >
-          <span class="stat-value"
-            >{(searchTerm || topBrandsFilter !== "all"
-              ? allBrandsCache
-              : brands
-            ).filter((b) => b.attributes?.payload?.body?.top === true)
-              .length}</span
-          >
-        </div>
-      </div>
-    {/if}
-
-    <!-- Content -->
-    {#if isLoading}
-      <div class="loading-state">
-        <div class="loading-spinner"></div>
-        <p class="loading-text">
-          {$_("brands.loading") || "Loading brands..."}
-        </p>
-      </div>
-    {:else if paginatedBrands.length === 0 && !searchTerm && topBrandsFilter === "all"}
-      <div class="empty-state">
-        <svg
-          class="empty-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"
-          />
-        </svg>
-        <h3 class="empty-title">
-          {$_("brands.no_brands") || "No brands found"}
+                ),
+            $locale,
+          )}
         </h3>
-        <p class="empty-description">
-          {$_("brands.no_brands_description") ||
-            "Create your first brand to get started"}
-        </p>
-        <button class="create-button-large" onclick={openCreateModal}>
-          <PlusOutline class="button-icon" />
-          <span
-            >{$_("brands.create_first_brand") ||
-              "Create Your First Brand"}</span
-          >
-        </button>
       </div>
-    {:else}
-      <div class="list-container">
-        <div class="list-header">
-          <div class="list-header-cell name-cell">
-            {$_("brands.name") || "Brand Name"}
-          </div>
-          <div class="list-header-cell description-cell">
-            {$_("brands.description") || "Description"}
-          </div>
-          <div class="list-header-cell status-cell">
-            {$_("brands.status") || "Status"}
-          </div>
-          <div class="list-header-cell date-cell">
-            {$_("brands.created") || "Created"}
-          </div>
-          <div class="list-header-cell actions-cell">
-            {$_("brands.actions") || "Actions"}
-          </div>
-        </div>
+    </div>
+  </div>
 
-        <div class="list-body">
+  <!-- Search and Filters -->
+  <div class="search-and-filters">
+    <div class="search-bar">
+      <input
+        type="text"
+        bind:value={searchTerm}
+        placeholder={$_("brands.search_placeholder") || "Search brands..."}
+        class="search-input"
+        class:rtl={$isRTL}
+      />
+      <button class="search-btn">
+        <SearchOutline size="sm" />
+      </button>
+    </div>
+
+    <div class="filters">
+      <select
+        bind:value={topBrandsFilter}
+        class="filter-select"
+        class:rtl={$isRTL}
+      >
+        <option value="all">{$_("brands.all_brands") || "All Brands"}</option>
+        <option value="top">{$_("brands.top_brands") || "Top Brands"}</option>
+        <option value="regular"
+          >{$_("brands.regular_brands") || "Regular Brands"}</option
+        >
+      </select>
+    </div>
+
+    <button class="btn-create" onclick={openCreateModal}>
+      <PlusOutline size="sm" />
+      <span>{$_("brands.create_brand") || "Create Brand"}</span>
+    </button>
+  </div>
+
+  <!-- Content -->
+  {#if isLoading}
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>{$_("brands.loading") || "Loading brands..."}</p>
+    </div>
+  {:else if paginatedBrands.length === 0 && !searchTerm && topBrandsFilter === "all"}
+    <div class="empty-state">
+      <div class="empty-icon">🏷️</div>
+      <h3>{$_("brands.no_brands") || "No brands found"}</h3>
+      <p>
+        {$_("brands.no_brands_description") ||
+          "Create your first brand to get started"}
+      </p>
+      <button class="btn-create-large" onclick={openCreateModal}>
+        <PlusOutline size="sm" />
+        <span
+          >{$_("brands.create_first_brand") || "Create Your First Brand"}</span
+        >
+      </button>
+    </div>
+  {:else}
+    <div class="brands-table-container">
+      <table class="brands-table">
+        <thead>
+          <tr>
+            <th>{$_("brands.name") || "Brand Name"}</th>
+            <th>{$_("brands.description") || "Description"}</th>
+            <th>{$_("brands.status") || "Status"}</th>
+            <th>{$_("brands.boost") || "Boost"}</th>
+            <th>{$_("brands.created") || "Created"}</th>
+            <th>{$_("brands.actions") || "Actions"}</th>
+          </tr>
+        </thead>
+        <tbody>
           {#each paginatedBrands as brand (brand.shortname)}
-            <div class="list-row">
-              <div class="list-cell name-cell">
+            <tr class="brand-row">
+              <td>
                 <div class="brand-info">
                   <div class="brand-icon">
                     {getLocalizedDisplayName(brand, $locale)
@@ -541,17 +589,15 @@
                     <div class="brand-shortname">{brand.shortname}</div>
                   </div>
                 </div>
-              </div>
-
-              <div class="list-cell description-cell">
+              </td>
+              <td>
                 <p class="brand-description" class:rtl={$isRTL}>
                   {brand.attributes?.description?.[$locale] ||
                     brand.attributes?.description?.en ||
                     "-"}
                 </p>
-              </div>
-
-              <div class="list-cell status-cell">
+              </td>
+              <td>
                 {#if brand.attributes?.payload?.body?.top === true}
                   <span class="status-badge top">
                     <svg
@@ -570,48 +616,84 @@
                     {$_("brands.regular") || "Regular"}
                   </span>
                 {/if}
-              </div>
-
-              <div class="list-cell date-cell">
-                <span class="date-text">
-                  {formatDate(brand.attributes.created_at)}
-                </span>
-              </div>
-
-              <div class="list-cell actions-cell">
+              </td>
+              <td>
+                <span class="boost-value"
+                  >{brand.attributes?.payload?.body?.boost_value || 0}</span
+                >
+              </td>
+              <td>
+                <span class="date-text"
+                  >{formatDate(brand.attributes.created_at)}</span
+                >
+              </td>
+              <td>
                 <div class="actions-group">
                   <button
                     class="action-button edit"
                     onclick={() => openEditModal(brand)}
                     title={$_("brands.edit") || "Edit"}
                   >
-                    <EditOutline />
+                    <EditOutline size="sm" />
                   </button>
                   <button
                     class="action-button delete"
                     onclick={() => openDeleteModal(brand)}
                     title={$_("brands.delete") || "Delete"}
                   >
-                    <TrashBinOutline />
+                    <TrashBinOutline size="sm" />
                   </button>
                 </div>
-              </div>
-            </div>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
+
+    {#if totalPages > 1}
+      <div class="pagination">
+        <button
+          class="page-btn"
+          onclick={previousPage}
+          disabled={currentPage === 1}
+        >
+          ← {$_("common.previous") || "Previous"}
+        </button>
+
+        <div class="pagination-pages">
+          {#each Array.from({ length: totalPages }, (_, i) => i + 1) as page}
+            {#if page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)}
+              <button
+                class="page-btn"
+                class:active={page === currentPage}
+                onclick={() => handlePageChange(page)}
+              >
+                {page}
+              </button>
+            {:else if page === currentPage - 2 || page === currentPage + 2}
+              <span class="page-ellipsis">...</span>
+            {/if}
           {/each}
         </div>
-      </div>
 
-      <Pagination
-        {currentPage}
-        {totalPages}
-        totalItems={searchTerm || topBrandsFilter !== "all"
-          ? filteredBrands.length
-          : totalBrandsCount}
-        {itemsPerPage}
-        onPageChange={handlePageChange}
-      />
+        <div class="pagination-info">
+          {$_("common.page") || "Page"}
+          {currentPage}
+          {$_("common.of") || "of"}
+          {totalPages}
+        </div>
+
+        <button
+          class="page-btn"
+          onclick={nextPage}
+          disabled={currentPage === totalPages}
+        >
+          {$_("common.next") || "Next"} →
+        </button>
+      </div>
     {/if}
-  </div>
+  {/if}
 </div>
 
 <!-- Create Modal -->
