@@ -52,18 +52,30 @@
   let selectedSpecification = $state(null);
   let editFormData = $state<SpecificationFormData | undefined>(undefined);
   let totalSpecificationsCount = $state(0);
+  let searchTerm = $state("");
+  let openDropdownId = $state<string | null>(null);
 
   let currentPage = $state(1);
-  let itemsPerPage = $state(10);
+  let itemsPerPage = $state(12);
+
+  let filteredSpecifications = $derived.by(() => {
+    if (!searchTerm.trim()) return specifications;
+    const term = searchTerm.toLowerCase();
+    return specifications.filter((spec) => {
+      const displayname = getLocalizedDisplayName(spec, $locale).toLowerCase();
+      const shortname = spec.shortname?.toLowerCase() || "";
+      return displayname.includes(term) || shortname.includes(term);
+    });
+  });
 
   let paginatedSpecifications = $derived.by(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return specifications.slice(startIndex, endIndex);
+    return filteredSpecifications.slice(startIndex, endIndex);
   });
 
   let totalPages = $derived.by(() => {
-    return Math.ceil(specifications.length / itemsPerPage);
+    return Math.ceil(filteredSpecifications.length / itemsPerPage);
   });
 
   onMount(async () => {
@@ -316,66 +328,239 @@
       currentPage--;
     }
   }
+
+  function toggleDropdown(shortname: string) {
+    openDropdownId = openDropdownId === shortname ? null : shortname;
+  }
+
+  function closeDropdown() {
+    openDropdownId = null;
+  }
+
+  $effect(() => {
+    currentPage = 1;
+  });
 </script>
 
 <div class="specifications-page" class:rtl={$isRTL}>
-  <div class="header">
-    <div class="header-content">
-      <h1 class="page-title">
-        {$_("admin_dashboard.specifications") || "Specifications Management"}
-      </h1>
-      <p class="page-description">
-        {$_("admin_dashboard.specifications_description") ||
-          "Manage product specifications and their available options"}
-      </p>
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #dbeafe;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <p class="stat-title">
+          {$_("admin_dashboard.total_specifications") || "Total Specifications"}
+        </p>
+        <h3 class="stat-value">
+          {formatNumber(specifications.length, $locale)}
+        </h3>
+      </div>
     </div>
-    <Button variant="primary" onclick={openCreateModal}>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #d1fae5;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <p class="stat-title">
+          {$_("admin_dashboard.with_options") || "With Options"}
+        </p>
+        <h3 class="stat-value">
+          {formatNumber(
+            specifications.filter((s) => getSpecificationOptions(s).length > 0)
+              .length,
+            $locale,
+          )}
+        </h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #fef3c7;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <p class="stat-title">
+          {$_("admin_dashboard.total_options") || "Total Options"}
+        </p>
+        <h3 class="stat-value">
+          {formatNumber(
+            specifications.reduce(
+              (sum, s) => sum + getSpecificationOptions(s).length,
+              0,
+            ),
+            $locale,
+          )}
+        </h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #e0e7ff;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <p class="stat-title">{$_("common.showing") || "Showing"}</p>
+        <h3 class="stat-value">
+          {formatNumber(paginatedSpecifications.length, $locale)}
+        </h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="search-and-filters">
+    <div class="search-bar">
+      <input
+        type="text"
+        bind:value={searchTerm}
+        placeholder={$_("admin_dashboard.search_specifications") ||
+          "Search specifications..."}
+        class="search-input"
+        class:rtl={$isRTL}
+      />
+      <button class="search-btn">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <button class="btn-create" onclick={openCreateModal}>
       <PlusOutline size="sm" />
       <span
         >{$_("admin_dashboard.create_specification") ||
           "Create Specification"}</span
       >
-    </Button>
+    </button>
   </div>
 
   {#if isLoading}
-    <LoadingSpinner message={$_("common.loading") || "Loading..."} />
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>{$_("common.loading") || "Loading..."}</p>
+    </div>
   {:else if specifications.length === 0}
-    <EmptyState
-      icon="📋"
-      title={$_("admin_dashboard.no_specifications") ||
-        "No specifications found"}
-      description="Create your first specification to get started"
-    >
-      {#snippet action()}
-        <Button variant="primary" onclick={openCreateModal}>
-          {$_("admin_dashboard.create_first_specification") ||
-            "Create First Specification"}
-        </Button>
-      {/snippet}
-    </EmptyState>
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <h3>
+        {$_("admin_dashboard.no_specifications") || "No specifications found"}
+      </h3>
+      <p>
+        {$_("admin_dashboard.create_first_specification_desc") ||
+          "Create your first specification to get started"}
+      </p>
+      <button class="btn-create-large" onclick={openCreateModal}>
+        <PlusOutline size="sm" />
+        <span
+          >{$_("admin_dashboard.create_first_specification") ||
+            "Create First Specification"}</span
+        >
+      </button>
+    </div>
+  {:else if filteredSpecifications.length === 0}
+    <div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <h3>{$_("common.no_results") || "No results found"}</h3>
+      <p>
+        {$_("common.try_different_search") || "Try adjusting your search terms"}
+      </p>
+    </div>
   {:else}
     <div class="specifications-grid">
       {#each paginatedSpecifications as specification}
         <div class="specification-card">
           <div class="specification-header">
-            <h3 class="specification-name">
-              {getLocalizedDisplayName(specification, $locale)}
-            </h3>
+            <div class="header-left">
+              <h3 class="specification-name">
+                {getLocalizedDisplayName(specification, $locale)}
+              </h3>
+              {#if specification.attributes?.is_active}
+                <span class="status-badge active">
+                  {$_("common.active") || "Active"}
+                </span>
+              {:else}
+                <span class="status-badge inactive">
+                  {$_("common.inactive") || "Inactive"}
+                </span>
+              {/if}
+            </div>
             <div class="specification-actions">
-              <IconButton
-                onclick={() => openEditModal(specification)}
-                title="Edit"
+              <button
+                class="settings-btn"
+                onclick={() => toggleDropdown(specification.shortname)}
+                title={$_("common.settings") || "Settings"}
               >
-                <EditOutline size="sm" />
-              </IconButton>
-              <IconButton
-                variant="delete"
-                onclick={() => openDeleteModal(specification)}
-                title="Delete"
-              >
-                <TrashBinOutline size="sm" />
-              </IconButton>
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path
+                    d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+                  />
+                </svg>
+              </button>
+              {#if openDropdownId === specification.shortname}
+                <div class="dropdown-menu">
+                  <button
+                    class="dropdown-item"
+                    onclick={() => {
+                      closeDropdown();
+                      openEditModal(specification);
+                    }}
+                  >
+                    <EditOutline size="sm" />
+                    <span>{$_("common.edit") || "Edit"}</span>
+                  </button>
+                  <button
+                    class="dropdown-item delete"
+                    onclick={() => {
+                      closeDropdown();
+                      openDeleteModal(specification);
+                    }}
+                  >
+                    <TrashBinOutline size="sm" />
+                    <span>{$_("common.delete") || "Delete"}</span>
+                  </button>
+                </div>
+              {/if}
             </div>
           </div>
           <div class="specification-options">
@@ -399,9 +584,11 @@
             {/if}
           </div>
           <div class="specification-meta">
-            <span class="meta-item">Shortname: {specification.shortname}</span>
             <span class="meta-item"
-              >Created: {formatDate(
+              >{$_("common.shortname") || "Shortname"}: {specification.shortname}</span
+            >
+            <span class="meta-item"
+              >{$_("common.created") || "Created"}: {formatDate(
                 specification.attributes?.created_at,
                 $locale,
               )}</span
@@ -414,76 +601,42 @@
     {#if totalPages > 1}
       <div class="pagination">
         <button
-          class="btn btn-secondary btn-small"
+          class="page-btn"
           onclick={previousPage}
           disabled={currentPage === 1}
         >
-          {$_("previous")}
+          ← {$_("common.previous") || "Previous"}
         </button>
 
         <div class="pagination-pages">
-          {#if totalPages <= 7}
-            {#each Array(totalPages) as _, index}
+          {#each Array.from({ length: totalPages }, (_, i) => i + 1) as page}
+            {#if page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)}
               <button
                 class="page-btn"
-                class:active={currentPage === index + 1}
-                onclick={() => goToPage(index + 1)}
+                class:active={page === currentPage}
+                onclick={() => goToPage(page)}
               >
-                {formatNumber(index + 1, $locale)}
+                {page}
               </button>
-            {/each}
-          {:else}
-            <button
-              class="page-btn"
-              class:active={currentPage === 1}
-              onclick={() => goToPage(1)}
-            >
-              {formatNumber(1, $locale)}
-            </button>
-
-            {#if currentPage > 3}
+            {:else if page === currentPage - 2 || page === currentPage + 2}
               <span class="page-ellipsis">...</span>
             {/if}
-
-            {#each Array(totalPages) as _, index}
-              {#if index + 1 > 1 && index + 1 < totalPages && Math.abs(currentPage - (index + 1)) <= 1}
-                <button
-                  class="page-btn"
-                  class:active={currentPage === index + 1}
-                  onclick={() => goToPage(index + 1)}
-                >
-                  {formatNumber(index + 1, $locale)}
-                </button>
-              {/if}
-            {/each}
-
-            {#if currentPage < totalPages - 2}
-              <span class="page-ellipsis">...</span>
-            {/if}
-
-            <button
-              class="page-btn"
-              class:active={currentPage === totalPages}
-              onclick={() => goToPage(totalPages)}
-            >
-              {formatNumber(totalPages, $locale)}
-            </button>
-          {/if}
+          {/each}
         </div>
 
         <div class="pagination-info">
-          <span
-            >{formatNumber(totalSpecificationsCount, $locale)}
-            {$_("total_items")}</span
-          >
+          {$_("common.page") || "Page"}
+          {currentPage}
+          {$_("common.of") || "of"}
+          {totalPages}
         </div>
 
         <button
-          class="btn btn-secondary btn-small"
+          class="page-btn"
           onclick={nextPage}
           disabled={currentPage === totalPages}
         >
-          {$_("next")}
+          {$_("common.next") || "Next"} →
         </button>
       </div>
     {/if}
@@ -511,101 +664,3 @@
   onConfirm={handleDeleteSpecification}
   specification={selectedSpecification}
 />
-
-<style>
-  .pagination {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    border-top: 1px solid #e5e7eb;
-    margin-top: 16px;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .pagination-pages {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
-  }
-
-  .page-btn {
-    min-width: 36px;
-    height: 36px;
-    padding: 0 8px;
-    border: 1px solid #d1d5db;
-    background: white;
-    color: #374151;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .page-btn:hover:not(.active) {
-    background: #f3f4f6;
-    border-color: #9ca3af;
-  }
-
-  .page-btn.active {
-    background: #3b82f6;
-    color: white;
-    border-color: #3b82f6;
-    font-weight: 600;
-  }
-
-  .page-ellipsis {
-    padding: 0 8px;
-    color: #9ca3af;
-    font-weight: 600;
-  }
-
-  .pagination-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #6b7280;
-    font-size: 14px;
-    white-space: nowrap;
-  }
-
-  .btn {
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .btn-small {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-
-  .btn-secondary {
-    background: #f3f4f6;
-    color: #374151;
-    border: 1px solid #d1d5db;
-  }
-
-  .btn-secondary:hover:not(:disabled) {
-    background: #e5e7eb;
-  }
-</style>
