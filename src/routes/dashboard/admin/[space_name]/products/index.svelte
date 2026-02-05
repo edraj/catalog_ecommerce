@@ -51,6 +51,9 @@
   let activeTab = $state("basic_info");
   let activeLanguageTab = $state("english");
   let searchQuery = $state("");
+  let totalActiveProducts = $state(0);
+  let totalInactiveProducts = $state(0);
+  let lowStockCount = $state(0);
 
   let currentPage = $state(1);
   let itemsPerPage = $state(20);
@@ -198,6 +201,16 @@
         products = response.records;
         totalProductsCount =
           response.attributes?.total || response.records.length;
+
+        // Calculate stats
+        totalActiveProducts = products.filter(
+          (p) => p.attributes?.is_active !== false,
+        ).length;
+        totalInactiveProducts = products.length - totalActiveProducts;
+        lowStockCount = products.filter((p) => {
+          const content = p.attributes?.payload?.body;
+          return content?.low_stock_quantity > 0;
+        }).length;
       }
     } catch (error) {
       console.error("Error loading products:", error);
@@ -941,20 +954,107 @@
 </script>
 
 <div class="products-page" class:rtl={$isRTL}>
-  <div class="header">
-    <div class="header-content">
-      <h1 class="page-title">
-        {$_("admin_dashboard.products") || "Products Management"}
-      </h1>
-      <p class="page-description">
-        {$_("admin_dashboard.products_description") ||
-          "Manage your products with categories, variations, and specifications"}
-      </p>
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #dbeafe;">
+        <svg
+          class="w-6 h-6"
+          style="color: #3b82f6;"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title">
+          {$_("admin_dashboard.total_products") || "Total Products"}
+        </h3>
+        <p class="stat-value">{formatNumber(totalProductsCount, $locale)}</p>
+      </div>
     </div>
-    <button class="btn-create" onclick={openCreateModal}>
-      <PlusOutline size="sm" />
-      <span>{$_("admin_dashboard.create_product") || "Create Product"}</span>
-    </button>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #d1fae5;">
+        <svg
+          class="w-6 h-6"
+          style="color: #10b981;"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title">
+          {$_("admin_dashboard.active_products") || "Active Products"}
+        </h3>
+        <p class="stat-value">{formatNumber(totalActiveProducts, $locale)}</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #fee2e2;">
+        <svg
+          class="w-6 h-6"
+          style="color: #ef4444;"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title">
+          {$_("admin_dashboard.inactive_products") || "Inactive Products"}
+        </h3>
+        <p class="stat-value">{formatNumber(totalInactiveProducts, $locale)}</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background: #fef3c7;">
+        <svg
+          class="w-6 h-6"
+          style="color: #f59e0b;"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title">
+          {$_("admin_dashboard.low_stock") || "Low Stock"}
+        </h3>
+        <p class="stat-value">{formatNumber(lowStockCount, $locale)}</p>
+      </div>
+    </div>
   </div>
 
   <div class="search-and-filters">
@@ -978,9 +1078,6 @@
     </div>
 
     <div class="filters">
-      <label for="category-filter">
-        {$_("common.filter_by_category") || "Filter by Category"}:
-      </label>
       <select
         id="category-filter"
         bind:value={selectedCategoryFilter}
@@ -997,6 +1094,11 @@
         {/each}
       </select>
     </div>
+
+    <button class="btn-create" onclick={openCreateModal}>
+      <PlusOutline size="sm" />
+      <span>{$_("admin_dashboard.create_product") || "Create Product"}</span>
+    </button>
   </div>
 
   {#if isLoading}
@@ -1030,6 +1132,7 @@
             <th class="col-category"
               >{$_("admin_dashboard.category") || "Category"}</th
             >
+            <th class="col-tags">{$_("admin_dashboard.tags") || "Tags"}</th>
             <th class="col-status">{$_("common.status") || "Status"}</th>
             <th class="col-actions">{$_("common.actions") || "Actions"}</th>
           </tr>
@@ -1101,6 +1204,22 @@
                   <span class="text-muted">—</span>
                 {/if}
               </td>
+              <td class="col-tags">
+                {#if product.attributes?.tags && product.attributes.tags.length > 0}
+                  <div class="tags-preview">
+                    {#each product.attributes.tags.slice(0, 2) as tag}
+                      <span class="tag-badge">{tag}</span>
+                    {/each}
+                    {#if product.attributes.tags.length > 2}
+                      <span class="tag-more"
+                        >+{product.attributes.tags.length - 2}</span
+                      >
+                    {/if}
+                  </div>
+                {:else}
+                  <span class="text-muted">—</span>
+                {/if}
+              </td>
               <td class="col-status">
                 <span
                   class="status-badge"
@@ -1133,7 +1252,7 @@
             </tr>
             {#if expandedRows.has(product.shortname)}
               <tr class="expanded-row">
-                <td colspan="5">
+                <td colspan="6">
                   <div class="expanded-content">
                     {#if getProductImages(product).length > 0}
                       <div class="product-images-gallery">
@@ -1363,13 +1482,18 @@
 
     {#if totalPages > 1}
       <div class="pagination">
-        <button
-          class="btn btn-secondary btn-small"
-          onclick={previousPage}
-          disabled={currentPage === 1}
-        >
-          {$_("previous")}
-        </button>
+        <div class="pagination-info">
+          {$_("common.showing") || "Showing"}
+          {formatNumber((currentPage - 1) * itemsPerPage + 1, $locale)}
+          -
+          {formatNumber(
+            Math.min(currentPage * itemsPerPage, totalProductsCount),
+            $locale,
+          )}
+          {$_("common.of") || "of"}
+          {formatNumber(totalProductsCount, $locale)}
+          {$_("common.products") || "products"}
+        </div>
 
         <div class="pagination-pages">
           {#if totalPages <= 7}
@@ -1420,25 +1544,6 @@
             </button>
           {/if}
         </div>
-
-        <div class="pagination-info">
-          <span
-            >{$_("admin_dashboard.page") || "Page"}
-            {formatNumber(currentPage, $locale)}
-            {$_("common.of") || "of"}
-            {formatNumber(totalPages, $locale)}
-            | {formatNumber(totalProductsCount, $locale)}
-            {$_("admin_dashboard.total_items") || "total items"}</span
-          >
-        </div>
-
-        <button
-          class="btn btn-secondary btn-small"
-          onclick={nextPage}
-          disabled={currentPage === totalPages}
-        >
-          {$_("next")}
-        </button>
       </div>
     {/if}
   {/if}
@@ -2264,8 +2369,7 @@
     padding: 20px;
     border-top: 1px solid #e5e7eb;
     margin-top: 16px;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 20px;
   }
 
   .pagination-pages {
@@ -2311,36 +2415,10 @@
   }
 
   .pagination-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
     color: #6b7280;
     font-size: 14px;
     white-space: nowrap;
-  }
-
-  .btn {
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .btn-small {
-    padding: 6px 12px;
-    font-size: 12px;
+    font-weight: 500;
   }
 
   .btn-secondary {
@@ -2351,5 +2429,195 @@
 
   .btn-secondary:hover:not(:disabled) {
     background: #e5e7eb;
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .stat-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .stat-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b7280;
+    margin: 0 0 4px 0;
+  }
+
+  .stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+  }
+
+  /* Search and Filters */
+  .search-and-filters {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding: 0 20px 20px 20px;
+    flex-wrap: wrap;
+  }
+
+  .search-bar {
+    flex: 1;
+    min-width: 250px;
+    position: relative;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 10px 40px 10px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: #3c307f;
+    box-shadow: 0 0 0 3px rgba(60, 48, 127, 0.1);
+  }
+
+  .search-btn {
+    position: absolute;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .search-btn:hover {
+    color: #3c307f;
+    background: #f3f4f6;
+  }
+
+  .filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .filter-select {
+    padding: 10px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 180px;
+  }
+
+  .filter-select:focus {
+    outline: none;
+    border-color: #3c307f;
+    box-shadow: 0 0 0 3px rgba(60, 48, 127, 0.1);
+  }
+
+  .btn-create {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #3c307f;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .btn-create:hover {
+    background: #2d1f5f;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(60, 48, 127, 0.3);
+  }
+
+  .products-page {
+    background: #f9fafb;
+    min-height: 100vh;
+  }
+
+  /* Tags Styles */
+  .tags-preview {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .tag-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background: #f3f4f6;
+    color: #374151;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tag-more {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #e5e7eb;
+    color: #6b7280;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
   }
 </style>
