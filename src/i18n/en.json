@@ -666,6 +666,7 @@
 
   "admin": "Admin",
   "admin.seller_products": "Seller Products",
+  "admin.add_discount": "Add Discount",
   "admin.add_shipping_rule": "Add Shipping Rule",
   "admin.individual_orders": "Individual Orders",
   "admin.combined_order_details": "Combined Order Details",

@@ -6,12 +6,18 @@
   } from "@/lib/toasts_messages";
   import { _, locale } from "@/i18n";
   import { derived } from "svelte/store";
-  import { getSpaceContents } from "@/lib/dmart_services";
+  import {
+    getSpaceContents,
+    createEntity,
+    updateEntity,
+  } from "@/lib/dmart_services";
   import { getLocalizedDisplayName } from "@/lib/utils/sellerUtils";
   import { formatNumber } from "@/lib/helpers";
   import { Pagination } from "@/components/ui";
+  import { ResourceType } from "@edraj/tsdmart";
   import "./index.css";
   import { website } from "@/config";
+  import DiscountModal from "@/components/modals/DiscountModal.svelte";
 
   let sellers = $state([]);
   let selectedSeller = $state("");
@@ -23,6 +29,22 @@
   let typeFilter = $state("all");
   let discountTypeFilter = $state("all");
   let totalDiscountsCount = $state(0);
+  let showFilters = $state(false);
+
+  let showDiscountModal = $state(false);
+  let discountForm = $state({
+    type: "",
+    typeShortname: "",
+    value: "",
+    discountType: "percentage",
+    validFrom: "",
+    validTo: "",
+  });
+  let brands = $state([]);
+  let discountCategories = $state([]);
+  let isLoadingBrands = $state(false);
+  let isLoadingDiscountCategories = $state(false);
+  let isSavingDiscount = $state(false);
 
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
@@ -48,7 +70,7 @@
 
     if (discountTypeFilter !== "all") {
       filtered = filtered.filter(
-        (item) => item.discount_type === discountTypeFilter
+        (item) => item.discount_type === discountTypeFilter,
       );
     }
 
@@ -74,7 +96,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   function getSellerDisplayName(seller: any): string {
@@ -82,9 +104,114 @@
     return getLocalizedDisplayName(seller, $locale);
   }
 
+  function getItemDisplayName(item: any): string {
+    return getLocalizedDisplayName(item, $locale);
+  }
+
+  function getGlobalDisplayName(): string {
+    return $_("admin.global_admin") || "Global (Admin)";
+  }
+
+  function resolveDiscountItems(record: any) {
+    const directItems = record?.attributes?.payload?.body?.items;
+    if (Array.isArray(directItems)) {
+      return directItems;
+    }
+
+    const nestedItems =
+      record?.attributes?.payload?.body?.payload?.body?.items || [];
+    if (Array.isArray(nestedItems)) {
+      return nestedItems;
+    }
+
+    return [];
+  }
+
+  function buildDiscountItems(
+    records: any[],
+    sellerShortname: string,
+    sellerDisplayname: string,
+  ) {
+    const items = [];
+
+    for (const record of records) {
+      const bodyItems = resolveDiscountItems(record);
+
+      if (bodyItems.length > 0) {
+        const processedItems = bodyItems.map((item) => ({
+          ...item,
+          seller_shortname: sellerShortname,
+          seller_displayname: sellerDisplayname,
+          record_shortname: record.shortname,
+        }));
+        items.push(...processedItems);
+      } else {
+        const body = record.attributes?.payload?.body;
+        if (body?.type && body?.type_shortname) {
+          items.push({
+            type: body.type,
+            type_shortname: body.type_shortname,
+            discount_type: body.value ? "percentage" : "amount",
+            discount_value: body.value || 0,
+            validity: body.validity,
+            states: [],
+            seller_shortname: sellerShortname,
+            seller_displayname: sellerDisplayname,
+            record_shortname: record.shortname,
+          });
+        }
+      }
+    }
+
+    return items;
+  }
+
   onMount(async () => {
-    await loadSellers();
+    await Promise.all([loadSellers(), loadBrands(), loadDiscountCategories()]);
   });
+
+  async function loadBrands() {
+    isLoadingBrands = true;
+    try {
+      const response = await getSpaceContents(
+        website.main_space,
+        "brands",
+        "managed",
+        1000,
+        0,
+        true,
+      );
+      if (response?.records) {
+        brands = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading brands:", error);
+    } finally {
+      isLoadingBrands = false;
+    }
+  }
+
+  async function loadDiscountCategories() {
+    isLoadingDiscountCategories = true;
+    try {
+      const response = await getSpaceContents(
+        website.main_space,
+        "categories",
+        "managed",
+        100,
+        0,
+        true,
+      );
+
+      if (response?.records) {
+        discountCategories = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading categories:", error);
+    } finally {
+      isLoadingDiscountCategories = false;
+    }
+  }
 
   async function loadSellers() {
     isLoadingSellers = true;
@@ -95,12 +222,12 @@
         "managed",
         1000,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
         sellers = response.records.filter(
-          (record) => record.resource_type === "folder"
+          (record) => record.resource_type === "folder",
         );
       }
     } catch (error) {
@@ -116,10 +243,58 @@
       discounts = [];
     }
 
+    if (selectedSeller === "global") {
+      isLoadingDiscounts = true;
+      try {
+        const response = await getSpaceContents(
+          website.main_space,
+          "discounts/global",
+          "managed",
+          100,
+          0,
+          true,
+        );
+
+        if (response?.records) {
+          discounts = buildDiscountItems(
+            response.records,
+            "global",
+            getGlobalDisplayName(),
+          );
+        } else {
+          discounts = [];
+        }
+      } catch (error) {
+        console.error("Error loading global discounts:", error);
+        errorToastMessage("Error loading discounts");
+      } finally {
+        isLoadingDiscounts = false;
+      }
+      return;
+    }
+
     if (selectedSeller === "all") {
       isLoadingDiscounts = true;
       try {
         const allDiscounts = [];
+
+        const globalResponse = await getSpaceContents(
+          website.main_space,
+          "discounts/global",
+          "managed",
+          100,
+          0,
+          true,
+        ).catch(() => null);
+        if (globalResponse?.records) {
+          allDiscounts.push(
+            ...buildDiscountItems(
+              globalResponse.records,
+              "global",
+              getGlobalDisplayName(),
+            ),
+          );
+        }
 
         for (const seller of sellers) {
           try {
@@ -129,40 +304,22 @@
               "managed",
               100,
               0,
-              true
+              true,
             );
 
             if (response?.records) {
-              for (const record of response.records) {
-                const body = record.attributes?.payload?.body;
-
-                if (body?.items && Array.isArray(body.items)) {
-                  const processedItems = body.items.map((item) => ({
-                    ...item,
-                    seller_shortname: seller.shortname,
-                    seller_displayname: getSellerDisplayName(seller),
-                    record_shortname: record.shortname,
-                  }));
-                  allDiscounts.push(...processedItems);
-                } else if (body?.type && body?.type_shortname) {
-                  allDiscounts.push({
-                    type: body.type,
-                    type_shortname: body.type_shortname,
-                    discount_type: body.value ? "percentage" : "amount",
-                    discount_value: body.value || 0,
-                    validity: body.validity,
-                    states: [],
-                    seller_shortname: seller.shortname,
-                    seller_displayname: getSellerDisplayName(seller),
-                    record_shortname: record.shortname,
-                  });
-                }
-              }
+              allDiscounts.push(
+                ...buildDiscountItems(
+                  response.records,
+                  seller.shortname,
+                  getSellerDisplayName(seller),
+                ),
+              );
             }
           } catch (error) {
             console.error(
               `Error loading discounts for ${seller.shortname}:`,
-              error
+              error,
             );
           }
         }
@@ -185,41 +342,19 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
-      const processedDiscounts = [];
-
       if (response?.records) {
-        for (const record of response.records) {
-          const body = record.attributes?.payload?.body;
-          const seller = sellers.find((s) => s.shortname === selectedSeller);
-
-          if (body?.items && Array.isArray(body.items)) {
-            const processedItems = body.items.map((item) => ({
-              ...item,
-              seller_shortname: selectedSeller,
-              seller_displayname: getSellerDisplayName(seller),
-              record_shortname: record.shortname,
-            }));
-            processedDiscounts.push(...processedItems);
-          } else if (body?.type && body?.type_shortname) {
-            processedDiscounts.push({
-              type: body.type,
-              type_shortname: body.type_shortname,
-              discount_type: body.value ? "percentage" : "amount",
-              discount_value: body.value || 0,
-              validity: body.validity,
-              states: [],
-              seller_shortname: selectedSeller,
-              seller_displayname: getSellerDisplayName(seller),
-              record_shortname: record.shortname,
-            });
-          }
-        }
+        const seller = sellers.find((s) => s.shortname === selectedSeller);
+        discounts = buildDiscountItems(
+          response.records,
+          selectedSeller,
+          getSellerDisplayName(seller),
+        );
+      } else {
+        discounts = [];
       }
-
-      discounts = processedDiscounts;
     } catch (error) {
       console.error("Error loading discounts:", error);
       errorToastMessage("Error loading discounts");
@@ -265,7 +400,144 @@
   function handlePageChange(page: number) {
     currentPage = page;
   }
+
+  function toggleFilters(event: Event) {
+    event.stopPropagation();
+    showFilters = !showFilters;
+  }
+
+  function closeFilters() {
+    if (showFilters) {
+      showFilters = false;
+    }
+  }
+
+  function handleFiltersPanelClick(event: Event) {
+    event.stopPropagation();
+  }
+
+  function openDiscountModal() {
+    showDiscountModal = true;
+    discountForm = {
+      type: "",
+      typeShortname: "",
+      value: "",
+      discountType: "percentage",
+      validFrom: "",
+      validTo: "",
+    };
+  }
+
+  function closeDiscountModal() {
+    showDiscountModal = false;
+  }
+
+  async function submitDiscount() {
+    if (
+      !discountForm.value ||
+      !discountForm.validFrom ||
+      !discountForm.validTo
+    ) {
+      errorToastMessage("Please fill in all required fields");
+      return;
+    }
+
+    if (discountForm.type && !discountForm.typeShortname) {
+      errorToastMessage("Please select a specific category or brand");
+      return;
+    }
+
+    try {
+      isSavingDiscount = true;
+
+      const itemKey = `discount_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
+      const discountItem = {
+        key: itemKey,
+        type: discountForm.type || null,
+        type_shortname: discountForm.typeShortname || null,
+        states: [],
+        validity: {
+          from: discountForm.validFrom,
+          to: discountForm.validTo,
+        },
+        discount_type: discountForm.discountType,
+        discount_value: parseFloat(discountForm.value),
+      };
+
+      const response = await getSpaceContents(
+        website.main_space,
+        "/discounts/global",
+        "managed",
+        100,
+        0,
+        true,
+      );
+
+      const configEntry =
+        response?.records?.find((r) => r.resource_type === "content") ||
+        response?.records?.[0];
+
+      const currentItems = configEntry ? resolveDiscountItems(configEntry) : [];
+      const updatedItems = [...currentItems, discountItem];
+
+      if (configEntry) {
+        await updateEntity(
+          configEntry.shortname,
+          website.main_space,
+          "/discounts/global",
+          ResourceType.content,
+          {
+            displayname_en: "Configuration",
+            displayname_ar: null,
+            displayname_ku: null,
+            body: {
+              items: updatedItems,
+              seller_shortname: "global",
+            },
+            tags: [],
+            is_active: true,
+          },
+          "",
+          "",
+        );
+      } else {
+        await createEntity(
+          {
+            shortname: "config",
+            displayname_en: "Configuration",
+            displayname_ar: null,
+            displayname_ku: null,
+            body: {
+              items: [discountItem],
+              seller_shortname: "global",
+            },
+            tags: [],
+            is_active: true,
+          },
+          website.main_space,
+          "/discounts/global",
+          ResourceType.content,
+          "",
+          "",
+        );
+      }
+
+      successToastMessage("Discount created successfully!");
+      closeDiscountModal();
+      await loadSellerDiscounts(true);
+    } catch (error) {
+      console.error("Error creating discount:", error);
+      errorToastMessage("Failed to create discount");
+    } finally {
+      isSavingDiscount = false;
+    }
+  }
 </script>
+
+<svelte:window onclick={closeFilters} />
 
 <div class="admin-page-container">
   <div class="admin-page-content">
@@ -285,95 +557,147 @@
     </div>
 
     <!-- Filters -->
-    <div class="filters-section">
-      <div class="filters-group">
-        <label for="seller-filter">
-          <svg
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            style="width: 18px; height: 18px;"
-          >
-            <path
-              d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"
-            />
-          </svg>
-          {$_("admin.select_seller") || "Select Seller"}
-        </label>
-        <select id="seller-filter" bind:value={selectedSeller}>
-          <option value=""
-            >{$_("admin.choose_seller") || "Choose a seller..."}</option
-          >
-          <option value="all">{$_("admin.all_sellers") || "All Sellers"}</option
-          >
-          {#each sellers as seller}
-            <option value={seller.shortname}>
-              {getSellerDisplayName(seller)}
-            </option>
-          {/each}
-        </select>
-      </div>
-
+    <div class="search-and-filters">
       <div class="search-bar">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor">
-          <circle cx="8" cy="8" r="5" stroke-width="2" />
-          <path d="M12 12l4 4" stroke-width="2" stroke-linecap="round" />
-        </svg>
         <input
           type="text"
           bind:value={searchTerm}
           placeholder={$_("admin.search_discounts") || "Search discounts..."}
+          class="search-input"
         />
-      </div>
-
-      <div class="filters-group">
-        <label for="type-filter">
-          <svg
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            style="width: 18px; height: 18px;"
-          >
+        <button
+          type="button"
+          class="search-btn"
+          aria-label={$_("admin.search_discounts") || "Search discounts..."}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
             <path
               fill-rule="evenodd"
-              d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
               clip-rule="evenodd"
             />
           </svg>
-          {$_("admin.discount_target") || "Target Type"}
-        </label>
-        <select id="type-filter" bind:value={typeFilter}>
-          <option value="all">{$_("admin.all_types") || "All Types"}</option>
-          <option value="brand">{$_("admin.brand") || "Brand"}</option>
-          <option value="category">{$_("admin.category") || "Category"}</option>
-        </select>
+        </button>
       </div>
 
-      <div class="filters-group">
-        <label for="discount-type-filter">
-          <svg
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            style="width: 18px; height: 18px;"
+      <div class="filters-left">
+        <div class="filters-dropdown">
+          <button
+            type="button"
+            class="filters-trigger"
+            aria-haspopup="true"
+            aria-expanded={showFilters}
+            onclick={toggleFilters}
           >
-            <path
-              d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"
-            />
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          {$_("admin.discount_type") || "Discount Type"}
-        </label>
-        <select id="discount-type-filter" bind:value={discountTypeFilter}>
-          <option value="all"
-            >{$_("admin.all_discount_types") || "All Discount Types"}</option
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm2 6a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm3 5a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"
+              />
+            </svg>
+            {$_("common.filters") || "Filters"}
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fill-rule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </button>
+
+          {#if showFilters}
+            <div class="filters-panel" onclick={handleFiltersPanelClick}>
+              <div class="filter-group">
+                <label class="filter-label" for="seller-filter">
+                  {$_("admin.select_seller") || "Select Seller"}
+                </label>
+                <select
+                  id="seller-filter"
+                  bind:value={selectedSeller}
+                  class="filter-select"
+                >
+                  <option value=""
+                    >{$_("admin.choose_seller") || "Choose a seller..."}</option
+                  >
+                  <option value="global">
+                    {$_("admin.global_admin") || "Global (Admin)"}
+                  </option>
+                  <option value="all">
+                    {$_("admin.all_sellers") || "All Sellers"}
+                  </option>
+                  {#each sellers as seller}
+                    <option value={seller.shortname}>
+                      {getSellerDisplayName(seller)}
+                    </option>
+                  {/each}
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label class="filter-label" for="type-filter">
+                  {$_("admin.discount_target") || "Target Type"}
+                </label>
+                <select
+                  id="type-filter"
+                  bind:value={typeFilter}
+                  class="filter-select"
+                >
+                  <option value="all"
+                    >{$_("admin.all_types") || "All Types"}</option
+                  >
+                  <option value="brand">{$_("admin.brand") || "Brand"}</option>
+                  <option value="category"
+                    >{$_("admin.category") || "Category"}</option
+                  >
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label class="filter-label" for="discount-type-filter">
+                  {$_("admin.discount_type") || "Discount Type"}
+                </label>
+                <select
+                  id="discount-type-filter"
+                  bind:value={discountTypeFilter}
+                  class="filter-select"
+                >
+                  <option value="all">
+                    {$_("admin.all_discount_types") || "All Discount Types"}
+                  </option>
+                  <option value="percentage">
+                    {$_("admin.percentage") || "Percentage"}
+                  </option>
+                  <option value="amount">
+                    {$_("admin.amount") || "Fixed Amount"}
+                  </option>
+                </select>
+              </div>
+            </div>
+          {/if}
+        </div>
+
+        {#if selectedSeller === "global"}
+          <button
+            class="btn-add-discount"
+            type="button"
+            onclick={openDiscountModal}
           >
-          <option value="percentage"
-            >{$_("admin.percentage") || "Percentage"}</option
-          >
-          <option value="amount">{$_("admin.amount") || "Fixed Amount"}</option>
-        </select>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            {$_("admin.add_discount") || "Add Discount"}
+          </button>
+        {/if}
       </div>
     </div>
 
@@ -430,9 +754,11 @@
           {$_("admin.discounts") || "discounts"}
           {#if selectedSeller !== "all"}
             from <strong
-              >{getSellerDisplayName(
-                sellers.find((s) => s.shortname === selectedSeller)
-              )}</strong
+              >{selectedSeller === "global"
+                ? getGlobalDisplayName()
+                : getSellerDisplayName(
+                    sellers.find((s) => s.shortname === selectedSeller),
+                  )}</strong
             >
           {/if}
         </p>
@@ -567,3 +893,17 @@
     {/if}
   </div>
 </div>
+
+<DiscountModal
+  bind:show={showDiscountModal}
+  isRTL={$isRTL}
+  bind:discountForm
+  {brands}
+  categories={discountCategories}
+  {isLoadingBrands}
+  isLoadingCategories={isLoadingDiscountCategories}
+  onClose={closeDiscountModal}
+  onSubmit={submitDiscount}
+  getLocalizedDisplayName={getItemDisplayName}
+  isEditMode={false}
+/>
