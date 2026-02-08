@@ -18,6 +18,7 @@
   import "./index.css";
   import { website } from "@/config";
   import DiscountModal from "@/components/modals/DiscountModal.svelte";
+  import { DeleteDiscountModal } from "@/components/modals";
 
   let sellers = $state([]);
   let selectedSeller = $state("");
@@ -32,6 +33,9 @@
   let showFilters = $state(false);
 
   let showDiscountModal = $state(false);
+  let showEditDiscountModal = $state(false);
+  let showDeleteDiscountModal = $state(false);
+  let selectedDiscount = $state(null);
   let discountForm = $state({
     type: "",
     typeShortname: "",
@@ -108,20 +112,10 @@
     return getLocalizedDisplayName(item, $locale);
   }
 
-  function getGlobalDisplayName(): string {
-    return $_("admin.global_admin") || "Global (Admin)";
-  }
-
   function resolveDiscountItems(record: any) {
     const directItems = record?.attributes?.payload?.body?.items;
     if (Array.isArray(directItems)) {
       return directItems;
-    }
-
-    const nestedItems =
-      record?.attributes?.payload?.body?.payload?.body?.items || [];
-    if (Array.isArray(nestedItems)) {
-      return nestedItems;
     }
 
     return [];
@@ -138,17 +132,20 @@
       const bodyItems = resolveDiscountItems(record);
 
       if (bodyItems.length > 0) {
-        const processedItems = bodyItems.map((item) => ({
+        const processedItems = bodyItems.map((item, index) => ({
           ...item,
           seller_shortname: sellerShortname,
           seller_displayname: sellerDisplayname,
           record_shortname: record.shortname,
+          item_key: item.key || `${record.shortname}-${index}`,
+          item_source: "items",
         }));
         items.push(...processedItems);
       } else {
         const body = record.attributes?.payload?.body;
         if (body?.type && body?.type_shortname) {
           items.push({
+            key: record.shortname,
             type: body.type,
             type_shortname: body.type_shortname,
             discount_type: body.value ? "percentage" : "amount",
@@ -158,6 +155,8 @@
             seller_shortname: sellerShortname,
             seller_displayname: sellerDisplayname,
             record_shortname: record.shortname,
+            item_key: record.shortname,
+            item_source: "record",
           });
         }
       }
@@ -243,58 +242,10 @@
       discounts = [];
     }
 
-    if (selectedSeller === "global") {
-      isLoadingDiscounts = true;
-      try {
-        const response = await getSpaceContents(
-          website.main_space,
-          "discounts/global",
-          "managed",
-          100,
-          0,
-          true,
-        );
-
-        if (response?.records) {
-          discounts = buildDiscountItems(
-            response.records,
-            "global",
-            getGlobalDisplayName(),
-          );
-        } else {
-          discounts = [];
-        }
-      } catch (error) {
-        console.error("Error loading global discounts:", error);
-        errorToastMessage("Error loading discounts");
-      } finally {
-        isLoadingDiscounts = false;
-      }
-      return;
-    }
-
     if (selectedSeller === "all") {
       isLoadingDiscounts = true;
       try {
         const allDiscounts = [];
-
-        const globalResponse = await getSpaceContents(
-          website.main_space,
-          "discounts/global",
-          "managed",
-          100,
-          0,
-          true,
-        ).catch(() => null);
-        if (globalResponse?.records) {
-          allDiscounts.push(
-            ...buildDiscountItems(
-              globalResponse.records,
-              "global",
-              getGlobalDisplayName(),
-            ),
-          );
-        }
 
         for (const seller of sellers) {
           try {
@@ -428,8 +379,78 @@
     };
   }
 
+  function openEditDiscountModal(discount: any) {
+    selectedDiscount = discount;
+    discountForm = {
+      type: discount.type || "",
+      typeShortname: discount.type_shortname || "",
+      value: discount.discount_value?.toString() || "",
+      discountType: discount.discount_type || "percentage",
+      validFrom: discount.validity?.from || "",
+      validTo: discount.validity?.to || "",
+    };
+    showEditDiscountModal = true;
+  }
+
+  function closeEditDiscountModal() {
+    showEditDiscountModal = false;
+    selectedDiscount = null;
+  }
+
+  function openDeleteDiscountModal(discount: any) {
+    selectedDiscount = discount;
+    showDeleteDiscountModal = true;
+  }
+
+  function closeDeleteDiscountModal() {
+    showDeleteDiscountModal = false;
+    selectedDiscount = null;
+  }
+
   function closeDiscountModal() {
     showDiscountModal = false;
+  }
+
+  function normalizeDiscountItems(record: any) {
+    const items = resolveDiscountItems(record);
+    if (items.length > 0) {
+      return items.map((item, index) => ({
+        ...item,
+        key: item.key || `${record.shortname}-${index}`,
+      }));
+    }
+
+    const body = record.attributes?.payload?.body || {};
+    if (body?.type && body?.type_shortname) {
+      return [
+        {
+          key: record.shortname,
+          type: body.type,
+          type_shortname: body.type_shortname,
+          discount_type: body.value ? "percentage" : "amount",
+          discount_value: body.value || 0,
+          validity: body.validity,
+          states: [],
+        },
+      ];
+    }
+
+    return [];
+  }
+
+  function buildDiscountItemFromForm(itemKey: string) {
+    return {
+      key: itemKey,
+      type: discountForm.type || null,
+      type_shortname: discountForm.typeShortname || null,
+      states: [],
+      validity: {
+        from: discountForm.validFrom,
+        to: discountForm.validTo,
+      },
+      discount_type: discountForm.discountType,
+      discount_value: parseFloat(discountForm.value),
+    };
   }
 
   async function submitDiscount() {
@@ -447,6 +468,11 @@
       return;
     }
 
+    if (!selectedSeller || selectedSeller === "all") {
+      errorToastMessage("Select a seller to add discounts");
+      return;
+    }
+
     try {
       isSavingDiscount = true;
 
@@ -454,22 +480,11 @@
         .toString(36)
         .substr(2, 9)}`;
 
-      const discountItem = {
-        key: itemKey,
-        type: discountForm.type || null,
-        type_shortname: discountForm.typeShortname || null,
-        states: [],
-        validity: {
-          from: discountForm.validFrom,
-          to: discountForm.validTo,
-        },
-        discount_type: discountForm.discountType,
-        discount_value: parseFloat(discountForm.value),
-      };
+      const discountItem = buildDiscountItemFromForm(itemKey);
 
       const response = await getSpaceContents(
         website.main_space,
-        "/discounts/global",
+        `/discounts/${selectedSeller}`,
         "managed",
         100,
         0,
@@ -480,14 +495,16 @@
         response?.records?.find((r) => r.resource_type === "content") ||
         response?.records?.[0];
 
-      const currentItems = configEntry ? resolveDiscountItems(configEntry) : [];
+      const currentItems = configEntry
+        ? normalizeDiscountItems(configEntry)
+        : [];
       const updatedItems = [...currentItems, discountItem];
 
       if (configEntry) {
         await updateEntity(
           configEntry.shortname,
           website.main_space,
-          "/discounts/global",
+          `/discounts/${selectedSeller}`,
           ResourceType.content,
           {
             displayname_en: "Configuration",
@@ -495,7 +512,7 @@
             displayname_ku: null,
             body: {
               items: updatedItems,
-              seller_shortname: "global",
+              seller_shortname: selectedSeller,
             },
             tags: [],
             is_active: true,
@@ -512,13 +529,13 @@
             displayname_ku: null,
             body: {
               items: [discountItem],
-              seller_shortname: "global",
+              seller_shortname: selectedSeller,
             },
             tags: [],
             is_active: true,
           },
           website.main_space,
-          "/discounts/global",
+          `/discounts/${selectedSeller}`,
           ResourceType.content,
           "",
           "",
@@ -531,6 +548,152 @@
     } catch (error) {
       console.error("Error creating discount:", error);
       errorToastMessage("Failed to create discount");
+    } finally {
+      isSavingDiscount = false;
+    }
+  }
+
+  async function submitUpdateDiscount() {
+    if (!selectedDiscount) return;
+
+    if (
+      !discountForm.value ||
+      !discountForm.validFrom ||
+      !discountForm.validTo
+    ) {
+      errorToastMessage("Please fill in all required fields");
+      return;
+    }
+
+    if (discountForm.type && !discountForm.typeShortname) {
+      errorToastMessage("Please select a specific category or brand");
+      return;
+    }
+
+    if (!selectedSeller || selectedSeller === "all") {
+      errorToastMessage("Select a seller to edit discounts");
+      return;
+    }
+
+    try {
+      isSavingDiscount = true;
+
+      const response = await getSpaceContents(
+        website.main_space,
+        `/discounts/${selectedSeller}`,
+        "managed",
+        100,
+        0,
+        true,
+      );
+
+      const configEntry =
+        response?.records?.find(
+          (r) => r.shortname === selectedDiscount.record_shortname,
+        ) || response?.records?.[0];
+
+      if (!configEntry) {
+        errorToastMessage("Discount configuration not found");
+        return;
+      }
+
+      const items = normalizeDiscountItems(configEntry);
+      const itemKey = selectedDiscount.item_key || selectedDiscount.key;
+      const nextItems = items.map((item) =>
+        item.key === itemKey ? buildDiscountItemFromForm(itemKey) : item,
+      );
+
+      await updateEntity(
+        configEntry.shortname,
+        website.main_space,
+        `/discounts/${selectedSeller}`,
+        ResourceType.content,
+        {
+          displayname_en: "Configuration",
+          displayname_ar: null,
+          displayname_ku: null,
+          body: {
+            items: nextItems,
+            seller_shortname: selectedSeller,
+          },
+          tags: [],
+          is_active: true,
+        },
+        "",
+        "",
+      );
+
+      successToastMessage("Discount updated successfully!");
+      closeEditDiscountModal();
+      await loadSellerDiscounts(true);
+    } catch (error) {
+      console.error("Error updating discount:", error);
+      errorToastMessage("Failed to update discount");
+    } finally {
+      isSavingDiscount = false;
+    }
+  }
+
+  async function handleDeleteDiscount() {
+    if (!selectedDiscount) return;
+
+    if (!selectedSeller || selectedSeller === "all") {
+      errorToastMessage("Select a seller to delete discounts");
+      return;
+    }
+
+    try {
+      isSavingDiscount = true;
+
+      const response = await getSpaceContents(
+        website.main_space,
+        `/discounts/${selectedSeller}`,
+        "managed",
+        100,
+        0,
+        true,
+      );
+
+      const configEntry =
+        response?.records?.find(
+          (r) => r.shortname === selectedDiscount.record_shortname,
+        ) || response?.records?.[0];
+
+      if (!configEntry) {
+        errorToastMessage("Discount configuration not found");
+        return;
+      }
+
+      const items = normalizeDiscountItems(configEntry);
+      const itemKey = selectedDiscount.item_key || selectedDiscount.key;
+      const nextItems = items.filter((item) => item.key !== itemKey);
+
+      await updateEntity(
+        configEntry.shortname,
+        website.main_space,
+        `/discounts/${selectedSeller}`,
+        ResourceType.content,
+        {
+          displayname_en: "Configuration",
+          displayname_ar: null,
+          displayname_ku: null,
+          body: {
+            items: nextItems,
+            seller_shortname: selectedSeller,
+          },
+          tags: [],
+          is_active: true,
+        },
+        "",
+        "",
+      );
+
+      successToastMessage("Discount deleted successfully!");
+      closeDeleteDiscountModal();
+      await loadSellerDiscounts(true);
+    } catch (error) {
+      console.error("Error deleting discount:", error);
+      errorToastMessage("Failed to delete discount");
     } finally {
       isSavingDiscount = false;
     }
@@ -618,9 +781,6 @@
                   <option value=""
                     >{$_("admin.choose_seller") || "Choose a seller..."}</option
                   >
-                  <option value="global">
-                    {$_("admin.global_admin") || "Global (Admin)"}
-                  </option>
                   <option value="all">
                     {$_("admin.all_sellers") || "All Sellers"}
                   </option>
@@ -675,7 +835,7 @@
           {/if}
         </div>
 
-        {#if selectedSeller === "global"}
+        {#if selectedSeller && selectedSeller !== "all"}
           <button
             class="btn-add-discount"
             type="button"
@@ -754,11 +914,9 @@
           {$_("admin.discounts") || "discounts"}
           {#if selectedSeller !== "all"}
             from <strong
-              >{selectedSeller === "global"
-                ? getGlobalDisplayName()
-                : getSellerDisplayName(
-                    sellers.find((s) => s.shortname === selectedSeller),
-                  )}</strong
+              >{getSellerDisplayName(
+                sellers.find((s) => s.shortname === selectedSeller),
+              )}</strong
             >
           {/if}
         </p>
@@ -775,6 +933,7 @@
               <th>{$_("admin.discount_value") || "Value"}</th>
               <th>{$_("admin.validity_period") || "Validity Period"}</th>
               <th>{$_("common.status") || "Status"}</th>
+              <th>{$_("common.actions") || "Actions"}</th>
             </tr>
           </thead>
           <tbody>
@@ -877,6 +1036,28 @@
                     {/if}
                   </div>
                 </td>
+                <td>
+                  {#if selectedSeller && selectedSeller !== "all"}
+                    <div class="action-buttons">
+                      <button
+                        type="button"
+                        class="action-btn edit"
+                        onclick={() => openEditDiscountModal(discount)}
+                      >
+                        {$_("common.edit") || "Edit"}
+                      </button>
+                      <button
+                        type="button"
+                        class="action-btn delete"
+                        onclick={() => openDeleteDiscountModal(discount)}
+                      >
+                        {$_("common.delete") || "Delete"}
+                      </button>
+                    </div>
+                  {:else}
+                    <span class="empty-text">-</span>
+                  {/if}
+                </td>
               </tr>
             {/each}
           </tbody>
@@ -907,3 +1088,59 @@
   getLocalizedDisplayName={getItemDisplayName}
   isEditMode={false}
 />
+
+<DiscountModal
+  bind:show={showEditDiscountModal}
+  isRTL={$isRTL}
+  bind:discountForm
+  {brands}
+  categories={discountCategories}
+  {isLoadingBrands}
+  isLoadingCategories={isLoadingDiscountCategories}
+  onClose={closeEditDiscountModal}
+  onSubmit={submitUpdateDiscount}
+  getLocalizedDisplayName={getItemDisplayName}
+  isEditMode={true}
+/>
+
+<DeleteDiscountModal
+  bind:show={showDeleteDiscountModal}
+  onClose={closeDeleteDiscountModal}
+  onConfirm={handleDeleteDiscount}
+  discount={selectedDiscount}
+/>
+
+<style>
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .action-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #374151;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .action-btn:hover {
+    border-color: #9ca3af;
+    background: #f9fafb;
+  }
+
+  .action-btn.edit {
+    color: #1d4ed8;
+    border-color: rgba(29, 78, 216, 0.35);
+  }
+
+  .action-btn.delete {
+    color: #dc2626;
+    border-color: rgba(220, 38, 38, 0.35);
+  }
+</style>

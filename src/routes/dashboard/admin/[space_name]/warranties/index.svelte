@@ -6,13 +6,19 @@
   } from "@/lib/toasts_messages";
   import { _, locale } from "@/i18n";
   import { derived } from "svelte/store";
-  import { getSpaceContents, createEntity } from "@/lib/dmart_services";
+  import {
+    getSpaceContents,
+    createEntity,
+    updateEntity,
+    deleteEntity,
+  } from "@/lib/dmart_services";
   import { getLocalizedDisplayName } from "@/lib/utils/sellerUtils";
   import { formatNumber } from "@/lib/helpers";
   import { ResourceType } from "@edraj/tsdmart";
   import "./index.css";
   import { website } from "@/config";
   import WarrantyModal from "@/components/modals/WarrantyModal.svelte";
+  import { DeleteWarrantyModal } from "@/components/modals";
 
   let sellers = $state([]);
   let selectedSeller = $state("");
@@ -26,6 +32,9 @@
   let totalWarrantiesCount = $state(0);
 
   let showCreateModal = $state(false);
+  let showEditModal = $state(false);
+  let showDeleteModal = $state(false);
+  let selectedWarranty = $state(null);
   let showFilters = $state(false);
   let warrantyForm = $state({
     displaynameEn: "",
@@ -116,8 +125,6 @@
 
   onMount(async () => {
     await Promise.all([loadSellers(), loadBrands()]);
-    // Load all warranties on page load
-    await loadSellerWarranties(true);
   });
 
   async function loadBrands() {
@@ -171,31 +178,7 @@
       warranties = [];
     }
 
-    if (selectedSeller === "global") {
-      isLoadingWarranties = true;
-      try {
-        const response = await getSpaceContents(
-          website.main_space,
-          "warranties/global",
-          "managed",
-          1000,
-          0,
-          true,
-        );
-
-        if (response?.records) {
-          warranties = response.records.map((record) => ({
-            ...record,
-            seller_shortname: "global",
-            seller_displayname: $_("admin.global_admin") || "Global (Admin)",
-          }));
-        }
-      } catch (error) {
-        console.error("Error loading global warranties:", error);
-        errorToastMessage("Error loading global warranties");
-      } finally {
-        isLoadingWarranties = false;
-      }
+    if (!selectedSeller) {
       return;
     }
 
@@ -203,23 +186,6 @@
       isLoadingWarranties = true;
       try {
         const allWarranties = [];
-
-        const globalResponse = await getSpaceContents(
-          website.main_space,
-          "warranties/global",
-          "managed",
-          1000,
-          0,
-          true,
-        ).catch(() => null);
-        if (globalResponse?.records) {
-          const processed = globalResponse.records.map((record) => ({
-            ...record,
-            seller_shortname: "global",
-            seller_displayname: $_("admin.global_admin") || "Global (Admin)",
-          }));
-          allWarranties.push(...processed);
-        }
 
         for (const seller of sellers) {
           try {
@@ -348,8 +314,42 @@
     showCreateModal = true;
   }
 
+  function openEditModal(warranty: any) {
+    selectedWarranty = warranty;
+    const displayname = warranty.attributes?.displayname || {};
+    const description = warranty.attributes?.description || {};
+    const body = warranty.attributes?.payload?.body || {};
+
+    warrantyForm = {
+      displaynameEn: displayname.en || "",
+      displaynameAr: displayname.ar || "",
+      displaynameKu: displayname.ku || "",
+      descriptionEn: description.en || "",
+      descriptionAr: description.ar || "",
+      descriptionKu: description.ku || "",
+      isGlobal: body.is_global !== false,
+      brandShortname: body.brand_shortname || "",
+    };
+    showEditModal = true;
+  }
+
   function closeCreateModal() {
     showCreateModal = false;
+  }
+
+  function closeEditModal() {
+    showEditModal = false;
+    selectedWarranty = null;
+  }
+
+  function openDeleteModal(warranty: any) {
+    selectedWarranty = warranty;
+    showDeleteModal = true;
+  }
+
+  function closeDeleteModal() {
+    showDeleteModal = false;
+    selectedWarranty = null;
   }
 
   function toggleFilters(event: Event) {
@@ -373,6 +373,16 @@
       return;
     }
 
+    if (!warrantyForm.isGlobal && !warrantyForm.brandShortname) {
+      errorToastMessage("Please select a brand for brand-specific warranty");
+      return;
+    }
+
+    if (!selectedSeller || selectedSeller === "all") {
+      errorToastMessage("Select a seller to create a warranty");
+      return;
+    }
+
     try {
       isLoadingWarranties = true;
       const warrantyData = {
@@ -383,8 +393,10 @@
         description_ar: warrantyForm.descriptionAr || null,
         description_ku: warrantyForm.descriptionKu || null,
         body: {
-          is_global: true,
-          brand_shortname: null,
+          is_global: warrantyForm.isGlobal,
+          brand_shortname: warrantyForm.isGlobal
+            ? null
+            : warrantyForm.brandShortname,
         },
         tags: [],
         is_active: true,
@@ -393,12 +405,14 @@
       await createEntity(
         warrantyData,
         website.main_space,
-        "warranties/global",
+        `warranties/${selectedSeller}`,
         ResourceType.content,
         "",
         "",
       );
+
       successToastMessage("Warranty created successfully!");
+
       closeCreateModal();
       await loadSellerWarranties(true);
     } catch (error) {
@@ -406,6 +420,79 @@
       errorToastMessage("Failed to create warranty");
     } finally {
       isLoadingWarranties = false;
+    }
+  }
+
+  async function submitUpdateWarranty() {
+    if (!selectedWarranty) return;
+
+    if (!warrantyForm.displaynameEn || !warrantyForm.descriptionEn) {
+      errorToastMessage("Please fill in English name and description");
+      return;
+    }
+
+    if (!warrantyForm.isGlobal && !warrantyForm.brandShortname) {
+      errorToastMessage("Please select a brand for brand-specific warranty");
+      return;
+    }
+
+    try {
+      isLoadingWarranties = true;
+      const warrantyData = {
+        displayname_en: warrantyForm.displaynameEn,
+        displayname_ar: warrantyForm.displaynameAr || null,
+        displayname_ku: warrantyForm.displaynameKu || null,
+        description_en: warrantyForm.descriptionEn,
+        description_ar: warrantyForm.descriptionAr || null,
+        description_ku: warrantyForm.descriptionKu || null,
+        body: {
+          is_global: warrantyForm.isGlobal,
+          brand_shortname: warrantyForm.isGlobal
+            ? null
+            : warrantyForm.brandShortname,
+        },
+        tags: selectedWarranty.attributes?.tags || [],
+        is_active: selectedWarranty.attributes?.is_active ?? true,
+      };
+
+      await updateEntity(
+        selectedWarranty.shortname,
+        website.main_space,
+        selectedWarranty.subpath,
+        selectedWarranty.resource_type,
+        warrantyData,
+        "",
+        "",
+      );
+
+      successToastMessage("Warranty updated successfully!");
+      closeEditModal();
+      await loadSellerWarranties(true);
+    } catch (error) {
+      console.error("Error updating warranty:", error);
+      errorToastMessage("Failed to update warranty");
+    } finally {
+      isLoadingWarranties = false;
+    }
+  }
+
+  async function handleDeleteWarranty() {
+    if (!selectedWarranty) return;
+
+    try {
+      await deleteEntity(
+        selectedWarranty.shortname,
+        website.main_space,
+        selectedWarranty.subpath,
+        selectedWarranty.resource_type,
+      );
+
+      successToastMessage("Warranty deleted successfully!");
+      closeDeleteModal();
+      await loadSellerWarranties(true);
+    } catch (error) {
+      console.error("Error deleting warranty:", error);
+      errorToastMessage("Failed to delete warranty");
     }
   }
 </script>
@@ -590,9 +677,6 @@
                 <option value="all">
                   {$_("admin.all_sellers") || "All Sellers"}
                 </option>
-                <option value="global">
-                  {$_("admin.global_admin") || "Global (Admin)"}
-                </option>
                 {#each sellers as seller}
                   <option value={seller.shortname}>
                     {getSellerDisplayName(seller)}
@@ -644,7 +728,7 @@
         {/if}
       </div>
 
-      {#if selectedSeller === "global" || selectedSeller === "all"}
+      {#if selectedSeller && selectedSeller !== "all"}
         <button
           type="button"
           class="btn-create-warranty"
@@ -674,11 +758,11 @@
       <div class="empty-icon">🛡️</div>
       <h3>
         {$_("admin.select_seller_prompt") ||
-          "Select a seller or Global (Admin) to view warranties"}
+          "Select a seller to view warranties"}
       </h3>
       <p>
         {$_("admin.select_seller_hint_warranties") ||
-          "Choose a seller or Global (Admin) from the dropdown above"}
+          "Choose a seller from the dropdown above"}
       </p>
     </div>
   {:else if isLoadingWarranties}
@@ -707,6 +791,7 @@
             <th>{$_("admin.warranty_terms") || "Terms"}</th>
             <th>{$_("common.status") || "Status"}</th>
             <th>{$_("admin.created") || "Created"}</th>
+            <th>{$_("common.actions") || "Actions"}</th>
           </tr>
         </thead>
         <tbody>
@@ -786,6 +871,24 @@
               <td>
                 <div class="date-display">
                   {formatDate(warranty.attributes?.created_at)}
+                </div>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button
+                    type="button"
+                    class="action-btn edit"
+                    onclick={() => openEditModal(warranty)}
+                  >
+                    {$_("common.edit") || "Edit"}
+                  </button>
+                  <button
+                    type="button"
+                    class="action-btn delete"
+                    onclick={() => openDeleteModal(warranty)}
+                  >
+                    {$_("common.delete") || "Delete"}
+                  </button>
                 </div>
               </td>
             </tr>
@@ -875,6 +978,26 @@
   isEditMode={false}
 />
 
+<WarrantyModal
+  bind:show={showEditModal}
+  isRTL={$isRTL}
+  bind:warrantyForm
+  {brands}
+  {isLoadingBrands}
+  onClose={closeEditModal}
+  onSubmit={submitUpdateWarranty}
+  getLocalizedDisplayName={getItemDisplayName}
+  isEditMode={true}
+/>
+
+<DeleteWarrantyModal
+  bind:show={showDeleteModal}
+  onClose={closeDeleteModal}
+  onConfirm={handleDeleteWarranty}
+  warranty={selectedWarranty}
+  getDisplayName={getItemDisplayName}
+/>
+
 <style>
   .pagination {
     display: flex;
@@ -958,5 +1081,38 @@
   .btn-create-icon {
     width: 1.25rem;
     height: 1.25rem;
+  }
+
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .action-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #374151;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .action-btn:hover {
+    border-color: #9ca3af;
+    background: #f9fafb;
+  }
+
+  .action-btn.edit {
+    color: #1d4ed8;
+    border-color: rgba(29, 78, 216, 0.35);
+  }
+
+  .action-btn.delete {
+    color: #dc2626;
+    border-color: rgba(220, 38, 38, 0.35);
   }
 </style>

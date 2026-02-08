@@ -18,8 +18,6 @@
   let isSidebarOpen = $state(true);
   let isZmAdmin = $state(false);
 
-  // Derive currentPath from activeRoute so sidebar highlights update in sync with navigation.
-  // (Using window.location or $url was one step behind because the layout's fragment doesn't change.)
   $effect(() => {
     const route = $activeRoute;
     const pathname = route?.sourceUrl?.pathname ?? route?.url ?? "";

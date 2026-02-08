@@ -31,7 +31,7 @@
 
   let shippingConfig = $state(null);
   let showShippingItemModal = $state(false);
-  let editingShippingItemIndex = $state(null);
+  let editingShippingItemIndex = $state<number | null>(null);
   let showFilters = $state(false);
   let shippingItemForm = $state({
     states: [],
@@ -106,20 +106,10 @@
     return getLocalizedDisplayName(seller, $locale);
   }
 
-  function getGlobalDisplayName(): string {
-    return $_("admin.global_admin") || "Global (Admin)";
-  }
-
   function resolveShippingItems(record: any) {
     const directItems = record?.attributes?.payload?.body?.items;
     if (Array.isArray(directItems)) {
       return directItems;
-    }
-
-    const nestedItems =
-      record?.attributes?.payload?.body?.payload?.body?.items || [];
-    if (Array.isArray(nestedItems)) {
-      return nestedItems;
     }
 
     return [];
@@ -136,7 +126,7 @@
       const items = resolveShippingItems(record);
 
       if (items.length > 0) {
-        for (const item of items) {
+        for (const [itemIndex, item] of items.entries()) {
           if (item.settings && Array.isArray(item.settings)) {
             for (const setting of item.settings) {
               options.push({
@@ -145,6 +135,7 @@
                 seller_shortname: sellerShortname,
                 seller_displayname: sellerDisplayname,
                 record_shortname: record.shortname,
+                item_index: itemIndex,
               });
             }
           }
@@ -155,31 +146,18 @@
     return options;
   }
 
-  function ensureShippingConfigBody() {
-    if (!shippingConfig) {
-      shippingConfig = {
-        attributes: {
-          payload: {
-            body: {
-              items: [],
-            },
-          },
-        },
-      };
-      return;
+  function ensureShippingConfigBody(config: any) {
+    if (!config.attributes) {
+      config.attributes = { payload: { body: { items: [] } } };
     }
-
-    if (!shippingConfig.attributes) {
-      shippingConfig.attributes = { payload: { body: { items: [] } } };
+    if (!config.attributes.payload) {
+      config.attributes.payload = { body: { items: [] } };
     }
-    if (!shippingConfig.attributes.payload) {
-      shippingConfig.attributes.payload = { body: { items: [] } };
+    if (!config.attributes.payload.body) {
+      config.attributes.payload.body = { items: [] };
     }
-    if (!shippingConfig.attributes.payload.body) {
-      shippingConfig.attributes.payload.body = { items: [] };
-    }
-    if (!shippingConfig.attributes.payload.body.items) {
-      shippingConfig.attributes.payload.body.items = [];
+    if (!config.attributes.payload.body.items) {
+      config.attributes.payload.body.items = [];
     }
   }
 
@@ -217,41 +195,8 @@
       shippingOptions = [];
     }
 
-    if (selectedSeller !== "global") {
+    if (!selectedSeller) {
       shippingConfig = null;
-    }
-
-    if (selectedSeller === "global") {
-      isLoadingShipping = true;
-      try {
-        const response = await getSpaceContents(
-          website.main_space,
-          "shipping/global",
-          "managed",
-          100,
-          0,
-          true,
-        );
-
-        if (response?.records && response.records.length > 0) {
-          shippingConfig = response.records[0];
-          shippingOptions = buildShippingOptions(
-            response.records,
-            "global",
-            getGlobalDisplayName(),
-          );
-        } else {
-          shippingConfig = {
-            attributes: { payload: { body: { items: [] } } },
-          };
-          shippingOptions = [];
-        }
-      } catch (error) {
-        console.error("Error loading global shipping options:", error);
-        errorToastMessage("Error loading shipping options");
-      } finally {
-        isLoadingShipping = false;
-      }
       return;
     }
 
@@ -259,24 +204,6 @@
       isLoadingShipping = true;
       try {
         const allShippingOptions = [];
-
-        const globalResponse = await getSpaceContents(
-          website.main_space,
-          "shipping/global",
-          "managed",
-          100,
-          0,
-          true,
-        ).catch(() => null);
-        if (globalResponse?.records) {
-          allShippingOptions.push(
-            ...buildShippingOptions(
-              globalResponse.records,
-              "global",
-              getGlobalDisplayName(),
-            ),
-          );
-        }
 
         for (const seller of sellers) {
           try {
@@ -330,6 +257,9 @@
       const processedShipping = [];
 
       if (response?.records) {
+        shippingConfig = response.records[0] || {
+          attributes: { payload: { body: { items: [] } } },
+        };
         const seller = sellers.find((s) => s.shortname === selectedSeller);
         processedShipping.push(
           ...buildShippingOptions(
@@ -338,6 +268,8 @@
             getSellerDisplayName(seller),
           ),
         );
+      } else {
+        shippingConfig = { attributes: { payload: { body: { items: [] } } } };
       }
 
       shippingOptions = processedShipping;
@@ -397,24 +329,44 @@
     event.stopPropagation();
   }
 
-  async function saveGlobalShippingConfig() {
-    ensureShippingConfigBody();
+  async function loadSellerShippingConfig(sellerShortname: string) {
+    const response = await getSpaceContents(
+      website.main_space,
+      `shipping/${sellerShortname}`,
+      "managed",
+      100,
+      0,
+      true,
+    );
+
+    if (response?.records && response.records.length > 0) {
+      return response.records[0];
+    }
+
+    return { attributes: { payload: { body: { items: [] } } } };
+  }
+
+  async function saveShippingConfigForSeller(
+    sellerShortname: string,
+    config: any,
+  ) {
+    ensureShippingConfigBody(config);
 
     const configData = {
       displayname_en: "Configuration",
       displayname_ar: null,
       displayname_ku: null,
-      body: shippingConfig.attributes.payload.body,
+      body: config.attributes.payload.body,
       tags: [],
       is_active: true,
     };
 
-    if (shippingConfig?.uuid) {
+    if (config?.uuid) {
       await updateEntity(
-        shippingConfig.shortname,
+        config.shortname,
         website.main_space,
-        "shipping/global",
-        shippingConfig.resource_type,
+        `shipping/${sellerShortname}`,
+        config.resource_type,
         configData,
         "",
         "",
@@ -423,7 +375,7 @@
       await createEntity(
         configData,
         website.main_space,
-        "shipping/global",
+        `shipping/${sellerShortname}`,
         ResourceType.content,
         "",
         "",
@@ -431,11 +383,16 @@
     }
   }
 
-  function openShippingItemModal(itemIndex = null) {
+  function openShippingItemModal(itemIndex: number | null = null) {
+    if (!shippingConfig || selectedSeller === "all") {
+      errorToastMessage("Select a seller to manage shipping options");
+      return;
+    }
+
     editingShippingItemIndex = itemIndex;
     showShippingItemModal = true;
 
-    ensureShippingConfigBody();
+    ensureShippingConfigBody(shippingConfig);
 
     if (itemIndex !== null) {
       const item = shippingConfig.attributes.payload.body.items[itemIndex];
@@ -478,6 +435,11 @@
       return;
     }
 
+    if (!selectedSeller || selectedSeller === "all") {
+      errorToastMessage("Select a seller to manage shipping options");
+      return;
+    }
+
     try {
       isSavingShipping = true;
 
@@ -495,7 +457,7 @@
         })),
       };
 
-      ensureShippingConfigBody();
+      ensureShippingConfigBody(shippingConfig);
 
       if (editingShippingItemIndex !== null) {
         shippingConfig.attributes.payload.body.items[editingShippingItemIndex] =
@@ -504,8 +466,9 @@
         shippingConfig.attributes.payload.body.items.push(newItem);
       }
 
-      await saveGlobalShippingConfig();
+      await saveShippingConfigForSeller(selectedSeller, shippingConfig);
       successToastMessage("Shipping options saved successfully!");
+
       closeShippingItemModal();
       await loadSellerShipping(true);
     } catch (error) {
@@ -517,16 +480,21 @@
   }
 
   async function deleteShippingItem(itemIndex: number) {
+    if (!shippingConfig || !selectedSeller || selectedSeller === "all") {
+      errorToastMessage("Select a seller to manage shipping options");
+      return;
+    }
+
     try {
       isSavingShipping = true;
 
-      ensureShippingConfigBody();
+      ensureShippingConfigBody(shippingConfig);
       shippingConfig.attributes.payload.body.items =
         shippingConfig.attributes.payload.body.items.filter(
-          (_, i) => i !== itemIndex,
+          (_: any, i: number) => i !== itemIndex,
         );
 
-      await saveGlobalShippingConfig();
+      await saveShippingConfigForSeller(selectedSeller, shippingConfig);
       successToastMessage("Shipping option deleted successfully!");
       await loadSellerShipping(true);
     } catch (error) {
@@ -554,7 +522,7 @@
               "View and manage shipping configurations from all sellers"}
           </p>
         </div>
-        {#if selectedSeller === "global"}
+        {#if selectedSeller && selectedSeller !== "all"}
           <div class="header-actions">
             <button
               class="btn-add-shipping"
@@ -640,9 +608,6 @@
                   <option value=""
                     >{$_("admin.choose_seller") || "Choose a seller..."}</option
                   >
-                  <option value="global">
-                    {$_("admin.global_admin") || "Global (Admin)"}
-                  </option>
                   <option value="all">
                     {$_("admin.all_sellers") || "All Sellers"}
                   </option>
@@ -737,7 +702,7 @@
           {$_("admin.no_shipping_hint") ||
             "This seller has no shipping configurations yet"}
         </p>
-        {#if selectedSeller === "global"}
+        {#if selectedSeller && selectedSeller !== "all"}
           <button
             class="btn-add-shipping"
             type="button"
@@ -788,6 +753,7 @@
               <th>{$_("admin.shipping_cost") || "Shipping Cost"}</th>
               <th>{$_("admin.minimum_order") || "Min. Order"}</th>
               <th>{$_("common.status") || "Status"}</th>
+              <th>{$_("common.actions") || "Actions"}</th>
             </tr>
           </thead>
           <tbody>
@@ -896,6 +862,28 @@
                       {$_("admin.inactive") || "Inactive"}
                     {/if}
                   </div>
+                </td>
+                <td>
+                  {#if selectedSeller && selectedSeller !== "all"}
+                    <div class="action-buttons">
+                      <button
+                        type="button"
+                        class="action-btn edit"
+                        onclick={() => openShippingItemModal(option.item_index)}
+                      >
+                        {$_("common.edit") || "Edit"}
+                      </button>
+                      <button
+                        type="button"
+                        class="action-btn delete"
+                        onclick={() => deleteShippingItem(option.item_index)}
+                      >
+                        {$_("common.delete") || "Delete"}
+                      </button>
+                    </div>
+                  {:else}
+                    <span class="empty-text">-</span>
+                  {/if}
                 </td>
               </tr>
             {/each}
@@ -1086,5 +1074,38 @@
 
   .btn-secondary:hover:not(:disabled) {
     background: #e5e7eb;
+  }
+
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .action-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #374151;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .action-btn:hover {
+    border-color: #9ca3af;
+    background: #f9fafb;
+  }
+
+  .action-btn.edit {
+    color: #1d4ed8;
+    border-color: rgba(29, 78, 216, 0.35);
+  }
+
+  .action-btn.delete {
+    color: #dc2626;
+    border-color: rgba(220, 38, 38, 0.35);
   }
 </style>

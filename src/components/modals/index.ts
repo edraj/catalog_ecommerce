@@ -16,6 +16,8 @@ export { default as DeleteOptionModal } from "./DeleteOptionModal.svelte";
 
 // Warranty Modals
 export { default as WarrantyModal } from "./WarrantyModal.svelte";
+export { default as DeleteWarrantyModal } from "./DeleteWarrantyModal.svelte";
 
 // Discount Modals
 export { default as DiscountModal } from "./DiscountModal.svelte";
+export { default as DeleteDiscountModal } from "./DeleteDiscountModal.svelte";
