@@ -211,6 +211,9 @@
             <h2>
               {$user?.localized_displayname || $user?.shortname || "User"}
             </h2>
+            <h4 class="text-xs text-gray-500">
+              {$roles[0]}
+            </h4>
           </div>
         </div>
       {/if}
