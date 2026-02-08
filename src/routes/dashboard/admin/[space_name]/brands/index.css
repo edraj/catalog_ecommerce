@@ -102,7 +102,7 @@
 
 .search-input {
   flex: 1;
-  padding: 10px 16px;
+  padding: 10px 10px 10px 35px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 14px;
@@ -125,8 +125,7 @@
   align-items: center;
   justify-content: center;
   padding: 10px 16px;
-  background: #3c307f;
-  color: white;
+  left: 20px;
   border: none;
   border-radius: 8px;
   cursor: pointer;

@@ -60,17 +60,84 @@
   gap: 16px;
   padding: 0 20px 20px 20px;
   flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.filters-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filters-dropdown {
+  position: relative;
+}
+
+.filters-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filters-trigger:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.filters-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 320px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.warranties-page.rtl .filters-panel {
+  left: auto;
+  right: 0;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
 }
 
 .search-bar {
-  flex: 1;
-  min-width: 250px;
+  flex: 0 1 360px;
+  min-width: 220px;
   position: relative;
 }
 
 .search-input {
   width: 100%;
-  padding: 10px 40px 10px 16px;
+  padding: 10px 10px 10px 40px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 14px;
@@ -85,8 +152,8 @@
 
 .search-btn {
   position: absolute;
-  right: 8px;
   top: 50%;
+  left: 8px;
   transform: translateY(-50%);
   background: none;
   border: none;
@@ -105,12 +172,6 @@
   background: #f3f4f6;
 }
 
-.filters {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .filter-select {
   padding: 10px 16px;
   border: 1px solid #d1d5db;
@@ -119,7 +180,8 @@
   background: white;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 180px;
+  width: 100%;
+  min-width: 0;
 }
 
 .filter-select:focus {
@@ -375,4 +437,19 @@
 
 [dir="rtl"] .search-bar input {
   padding: 0.625rem 3rem 0.625rem 1rem;
+}
+
+@media (max-width: 768px) {
+  .search-and-filters {
+    align-items: stretch;
+  }
+
+  .search-bar {
+    flex: 1 1 100%;
+    margin-left: 0;
+  }
+
+  .filters-panel {
+    min-width: 260px;
+  }
 }

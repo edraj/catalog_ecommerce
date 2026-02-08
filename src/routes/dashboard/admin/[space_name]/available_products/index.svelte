@@ -9,7 +9,6 @@
   import { getSpaceContents, updateEntity } from "@/lib/dmart_services";
   import { getLocalizedDisplayName } from "@/lib/utils/sellerUtils";
   import { formatNumber } from "@/lib/helpers";
-  import { Pagination } from "@/components/ui";
   import "./index.css";
   import { website } from "@/config";
 
@@ -26,7 +25,7 @@
   let totalProductsCount = $state(0);
 
   let currentPage = $state(1);
-  let itemsPerPage = $state(10);
+  let itemsPerPage = 20;
 
   let filteredProducts = $derived.by(() => {
     let filtered = [...products];
@@ -36,7 +35,7 @@
       filtered = filtered.filter((item) => {
         const displayName = getItemDisplayName(item).toLowerCase();
         const productName = getProductName(
-          item.attributes?.payload?.body?.product_shortname || ""
+          item.attributes?.payload?.body?.product_shortname || "",
         ).toLowerCase();
         return (
           displayName.includes(searchLower) || productName.includes(searchLower)
@@ -46,7 +45,7 @@
 
     if (statusFilter !== "all") {
       filtered = filtered.filter(
-        (item) => item.attributes?.state === statusFilter
+        (item) => item.attributes?.state === statusFilter,
       );
     }
 
@@ -54,22 +53,70 @@
   });
 
   let paginatedProducts = $derived.by(() => {
-    if (searchTerm || statusFilter !== "all") {
-      return filteredProducts;
-    }
-    return products;
+    const source =
+      searchTerm || statusFilter !== "all" ? filteredProducts : products;
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return source.slice(start, end);
   });
 
   let totalPages = $derived.by(() => {
     if (searchTerm || statusFilter !== "all") {
-      return Math.ceil(filteredProducts.length / itemsPerPage);
+      return Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
     }
-    return Math.ceil(totalProductsCount / itemsPerPage);
+    return Math.max(1, Math.ceil(totalProductsCount / itemsPerPage));
+  });
+
+  let paginationStart = $derived.by(() => {
+    const total =
+      searchTerm || statusFilter !== "all"
+        ? filteredProducts.length
+        : totalProductsCount;
+    return total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  });
+
+  let paginationEnd = $derived.by(() => {
+    const total =
+      searchTerm || statusFilter !== "all"
+        ? filteredProducts.length
+        : totalProductsCount;
+    return Math.min(currentPage * itemsPerPage, total);
+  });
+
+  let totalDisplayCount = $derived.by(() => {
+    return searchTerm || statusFilter !== "all"
+      ? filteredProducts.length
+      : totalProductsCount;
+  });
+
+  let visiblePageNumbers = $derived.by(() => {
+    const total = totalPages;
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    const cur = currentPage;
+    const pages: (number | "ellipsis")[] = [];
+    if (cur <= 3) {
+      for (let i = 1; i <= 5; i++) pages.push(i);
+      pages.push("ellipsis");
+      pages.push(total);
+    } else if (cur >= total - 2) {
+      pages.push(1);
+      pages.push("ellipsis");
+      for (let i = total - 4; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      pages.push("ellipsis");
+      for (let i = cur - 1; i <= cur + 1; i++) pages.push(i);
+      pages.push("ellipsis");
+      pages.push(total);
+    }
+    return pages;
   });
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   function getItemDisplayName(item: any): string {
@@ -89,12 +136,12 @@
         "managed",
         1000,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
         sellers = response.records.filter(
-          (record) => record.resource_type === "folder"
+          (record) => record.resource_type === "folder",
         );
       }
     } catch (error) {
@@ -113,7 +160,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
       if (response?.records) {
         allVariations = response.records;
@@ -131,7 +178,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
       if (response?.records) {
         productsMap = new Map(response.records.map((p) => [p.shortname, p]));
@@ -159,7 +206,7 @@
               "managed",
               itemsPerPage,
               offset,
-              true
+              true,
             );
 
             if (response?.records) {
@@ -171,7 +218,7 @@
           } catch (error) {
             console.error(
               `Error loading products for ${seller.shortname}:`,
-              error
+              error,
             );
           }
         }
@@ -185,7 +232,7 @@
           "managed",
           itemsPerPage,
           offset,
-          true
+          true,
         );
 
         if (response?.records) {
@@ -204,10 +251,10 @@
 
   function resolveOptionKey(
     optionKey: string,
-    variationShortname: string
+    variationShortname: string,
   ): string {
     const variation = allVariations.find(
-      (v) => v.shortname === variationShortname
+      (v) => v.shortname === variationShortname,
     );
     if (!variation) return optionKey;
 
@@ -248,12 +295,12 @@
         item.resource_type,
         updatedAttributes,
         "",
-        ""
+        "",
       );
 
       successToastMessage(`Product status updated to ${newStatus}`);
       const productIndex = products.findIndex(
-        (p) => p.shortname === item.shortname
+        (p) => p.shortname === item.shortname,
       );
       if (productIndex !== -1) {
         products[productIndex] = {
@@ -267,10 +314,28 @@
     }
   }
 
-  function handlePageChange(page: number) {
+  function goToPage(page: number) {
     currentPage = page;
     if (!searchTerm && statusFilter === "all") {
       loadSellerProducts();
+    }
+  }
+
+  function nextPage() {
+    if (currentPage < totalPages) {
+      currentPage++;
+      if (!searchTerm && statusFilter === "all") {
+        loadSellerProducts();
+      }
+    }
+  }
+
+  function previousPage() {
+    if (currentPage > 1) {
+      currentPage--;
+      if (!searchTerm && statusFilter === "all") {
+        loadSellerProducts();
+      }
     }
   }
 
@@ -423,7 +488,7 @@
             <strong
               >{Math.min(
                 itemsPerPage,
-                totalProductsCount - (currentPage - 1) * itemsPerPage
+                totalProductsCount - (currentPage - 1) * itemsPerPage,
               )}</strong
             >
             {$_("admin.of") || "of"}
@@ -433,7 +498,7 @@
           {#if selectedSeller !== "all"}
             from <strong
               >{getSellerDisplayName(
-                sellers.find((s) => s.shortname === selectedSeller)
+                sellers.find((s) => s.shortname === selectedSeller),
               )}</strong
             >
           {/if}
@@ -460,23 +525,23 @@
               {@const variants = body?.variants || []}
               {@const totalStock = variants.reduce(
                 (sum, v) => sum + (v.qty || 0),
-                0
+                0,
               )}
               {@const priceRange =
                 variants.length > 0
                   ? {
                       min: Math.min(
-                        ...variants.map((v) => v.retail_price || 0)
+                        ...variants.map((v) => v.retail_price || 0),
                       ),
                       max: Math.max(
-                        ...variants.map((v) => v.retail_price || 0)
+                        ...variants.map((v) => v.retail_price || 0),
                       ),
                     }
                   : { min: 0, max: 0 }}
               {@const state = item.attributes?.state || "pending"}
               {@const sellerShortname = item.subpath.split("/")[1]}
               {@const seller = sellers.find(
-                (s) => s.shortname === sellerShortname
+                (s) => s.shortname === sellerShortname,
               )}
               <tr class="item-row">
                 <td>
@@ -507,7 +572,7 @@
                           {#each variant.options || [] as option}
                             {resolveOptionKey(
                               option.key,
-                              option.variation_shortname
+                              option.variation_shortname,
                             )}
                           {/each}
                         </span>
@@ -630,15 +695,75 @@
         </table>
       </div>
 
-      <Pagination
-        {currentPage}
-        {totalPages}
-        totalItems={searchTerm || statusFilter !== "all"
-          ? filteredProducts.length
-          : totalProductsCount}
-        {itemsPerPage}
-        onPageChange={handlePageChange}
-      />
+      <!-- Pagination -->
+      <div class="pagination">
+        <p class="pagination-text">
+          Showing {paginationStart}-{paginationEnd} of {totalDisplayCount}
+        </p>
+        <div class="pagination-controls">
+          <button
+            type="button"
+            class="pagination-segment pagination-arrow"
+            onclick={previousPage}
+            disabled={currentPage === 1}
+            aria-label="Previous page"
+          >
+            <svg
+              class="pagination-arrow-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+          {#each visiblePageNumbers as segment}
+            {#if segment === "ellipsis"}
+              <span
+                class="pagination-segment pagination-ellipsis"
+                aria-hidden="true">…</span
+              >
+            {:else}
+              <button
+                type="button"
+                class="pagination-segment pagination-num"
+                class:active={currentPage === segment}
+                onclick={() => goToPage(segment)}
+                aria-label="Page {segment}"
+                aria-current={currentPage === segment ? "page" : undefined}
+              >
+                {segment}
+              </button>
+            {/if}
+          {/each}
+          <button
+            type="button"
+            class="pagination-segment pagination-arrow"
+            onclick={nextPage}
+            disabled={currentPage === totalPages}
+            aria-label="Next page"
+          >
+            <svg
+              class="pagination-arrow-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
     {/if}
   </div>
 </div>

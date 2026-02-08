@@ -13,3 +13,6 @@ export { default as DeleteSpecificationModal } from "./DeleteSpecificationModal.
 export { default as AddOptionModal } from "./AddOptionModal.svelte";
 export { default as EditOptionModal } from "./EditOptionModal.svelte";
 export { default as DeleteOptionModal } from "./DeleteOptionModal.svelte";
+
+// Warranty Modals
+export { default as WarrantyModal } from "./WarrantyModal.svelte";

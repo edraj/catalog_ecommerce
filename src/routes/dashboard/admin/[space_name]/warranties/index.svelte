@@ -6,11 +6,13 @@
   } from "@/lib/toasts_messages";
   import { _, locale } from "@/i18n";
   import { derived } from "svelte/store";
-  import { getSpaceContents } from "@/lib/dmart_services";
+  import { getSpaceContents, createEntity } from "@/lib/dmart_services";
   import { getLocalizedDisplayName } from "@/lib/utils/sellerUtils";
   import { formatNumber } from "@/lib/helpers";
+  import { ResourceType } from "@edraj/tsdmart";
   import "./index.css";
   import { website } from "@/config";
+  import WarrantyModal from "@/components/modals/WarrantyModal.svelte";
 
   let sellers = $state([]);
   let selectedSeller = $state("");
@@ -22,6 +24,21 @@
   let statusFilter = $state("all");
   let scopeFilter = $state("all");
   let totalWarrantiesCount = $state(0);
+
+  let showCreateModal = $state(false);
+  let showFilters = $state(false);
+  let warrantyForm = $state({
+    displaynameEn: "",
+    displaynameAr: "",
+    displaynameKu: "",
+    descriptionEn: "",
+    descriptionAr: "",
+    descriptionKu: "",
+    isGlobal: true,
+    brandShortname: "",
+  });
+  let brands = $state([]);
+  let isLoadingBrands = $state(false);
 
   let currentPage = $state(1);
   let itemsPerPage = $state(20);
@@ -98,8 +115,31 @@
   }
 
   onMount(async () => {
-    await loadSellers();
+    await Promise.all([loadSellers(), loadBrands()]);
+    // Load all warranties on page load
+    await loadSellerWarranties(true);
   });
+
+  async function loadBrands() {
+    isLoadingBrands = true;
+    try {
+      const response = await getSpaceContents(
+        website.main_space,
+        "brands",
+        "managed",
+        1000,
+        0,
+        true,
+      );
+      if (response?.records) {
+        brands = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading brands:", error);
+    } finally {
+      isLoadingBrands = false;
+    }
+  }
 
   async function loadSellers() {
     isLoadingSellers = true;
@@ -131,10 +171,55 @@
       warranties = [];
     }
 
+    if (selectedSeller === "global") {
+      isLoadingWarranties = true;
+      try {
+        const response = await getSpaceContents(
+          website.main_space,
+          "warranties/global",
+          "managed",
+          1000,
+          0,
+          true,
+        );
+
+        if (response?.records) {
+          warranties = response.records.map((record) => ({
+            ...record,
+            seller_shortname: "global",
+            seller_displayname: $_("admin.global_admin") || "Global (Admin)",
+          }));
+        }
+      } catch (error) {
+        console.error("Error loading global warranties:", error);
+        errorToastMessage("Error loading global warranties");
+      } finally {
+        isLoadingWarranties = false;
+      }
+      return;
+    }
+
     if (selectedSeller === "all") {
       isLoadingWarranties = true;
       try {
         const allWarranties = [];
+
+        const globalResponse = await getSpaceContents(
+          website.main_space,
+          "warranties/global",
+          "managed",
+          1000,
+          0,
+          true,
+        ).catch(() => null);
+        if (globalResponse?.records) {
+          const processed = globalResponse.records.map((record) => ({
+            ...record,
+            seller_shortname: "global",
+            seller_displayname: $_("admin.global_admin") || "Global (Admin)",
+          }));
+          allWarranties.push(...processed);
+        }
 
         for (const seller of sellers) {
           try {
@@ -248,7 +333,84 @@
       currentPage--;
     }
   }
+
+  function openCreateModal() {
+    warrantyForm = {
+      displaynameEn: "",
+      displaynameAr: "",
+      displaynameKu: "",
+      descriptionEn: "",
+      descriptionAr: "",
+      descriptionKu: "",
+      isGlobal: true,
+      brandShortname: "",
+    };
+    showCreateModal = true;
+  }
+
+  function closeCreateModal() {
+    showCreateModal = false;
+  }
+
+  function toggleFilters(event: Event) {
+    event.stopPropagation();
+    showFilters = !showFilters;
+  }
+
+  function closeFilters() {
+    if (showFilters) {
+      showFilters = false;
+    }
+  }
+
+  function handleFiltersPanelClick(event: Event) {
+    event.stopPropagation();
+  }
+
+  async function submitCreateWarranty() {
+    if (!warrantyForm.displaynameEn || !warrantyForm.descriptionEn) {
+      errorToastMessage("Please fill in English name and description");
+      return;
+    }
+
+    try {
+      isLoadingWarranties = true;
+      const warrantyData = {
+        displayname_en: warrantyForm.displaynameEn,
+        displayname_ar: warrantyForm.displaynameAr || null,
+        displayname_ku: warrantyForm.displaynameKu || null,
+        description_en: warrantyForm.descriptionEn,
+        description_ar: warrantyForm.descriptionAr || null,
+        description_ku: warrantyForm.descriptionKu || null,
+        body: {
+          is_global: true,
+          brand_shortname: null,
+        },
+        tags: [],
+        is_active: true,
+      };
+
+      await createEntity(
+        warrantyData,
+        website.main_space,
+        "warranties/global",
+        ResourceType.content,
+        "",
+        "",
+      );
+      successToastMessage("Warranty created successfully!");
+      closeCreateModal();
+      await loadSellerWarranties(true);
+    } catch (error) {
+      console.error("Error creating warranty:", error);
+      errorToastMessage("Failed to create warranty");
+    } finally {
+      isLoadingWarranties = false;
+    }
+  }
 </script>
+
+<svelte:window onclick={closeFilters} />
 
 <div class="warranties-page" class:rtl={$isRTL}>
   <!-- Stats Cards -->
@@ -366,42 +528,6 @@
   </div>
 
   <div class="search-and-filters">
-    <div class="filters">
-      <select
-        id="seller-filter"
-        bind:value={selectedSeller}
-        class="filter-select"
-      >
-        <option value=""
-          >{$_("admin.choose_seller") || "Choose a seller..."}</option
-        >
-        <option value="all">{$_("admin.all_sellers") || "All Sellers"}</option>
-        {#each sellers as seller}
-          <option value={seller.shortname}>
-            {getSellerDisplayName(seller)}
-          </option>
-        {/each}
-      </select>
-
-      <select
-        id="status-filter"
-        bind:value={statusFilter}
-        class="filter-select"
-      >
-        <option value="all">{$_("admin.all_status") || "All Status"}</option>
-        <option value="active">{$_("admin.active") || "Active"}</option>
-        <option value="inactive">{$_("admin.inactive") || "Inactive"}</option>
-      </select>
-
-      <select id="scope-filter" bind:value={scopeFilter} class="filter-select">
-        <option value="all">{$_("admin.all_scopes") || "All Scopes"}</option>
-        <option value="global">{$_("admin.global") || "Global"}</option>
-        <option value="brand"
-          >{$_("admin.brand_specific") || "Brand Specific"}</option
-        >
-      </select>
-    </div>
-
     <div class="search-bar">
       <input
         type="text"
@@ -409,7 +535,11 @@
         placeholder={$_("admin.search_warranties") || "Search warranties..."}
         class="search-input"
       />
-      <button class="search-btn">
+      <button
+        type="button"
+        class="search-btn"
+        aria-label={$_("admin.search_warranties") || "Search warranties"}
+      >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
           <path
             fill-rule="evenodd"
@@ -418,6 +548,118 @@
           />
         </svg>
       </button>
+    </div>
+    <div class="filters-left">
+      <div class="filters-dropdown">
+        <button
+          type="button"
+          class="filters-trigger"
+          aria-haspopup="true"
+          aria-expanded={showFilters}
+          onclick={toggleFilters}
+        >
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm2 6a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm3 5a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"
+            />
+          </svg>
+          {$_("common.filters") || "Filters"}
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fill-rule="evenodd"
+              d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+
+        {#if showFilters}
+          <div class="filters-panel" onclick={handleFiltersPanelClick}>
+            <div class="filter-group">
+              <label class="filter-label" for="seller-filter">
+                {$_("admin.seller") || "Seller"}
+              </label>
+              <select
+                id="seller-filter"
+                bind:value={selectedSeller}
+                class="filter-select"
+              >
+                <option value=""
+                  >{$_("admin.choose_seller") || "Choose a seller..."}</option
+                >
+                <option value="all">
+                  {$_("admin.all_sellers") || "All Sellers"}
+                </option>
+                <option value="global">
+                  {$_("admin.global_admin") || "Global (Admin)"}
+                </option>
+                {#each sellers as seller}
+                  <option value={seller.shortname}>
+                    {getSellerDisplayName(seller)}
+                  </option>
+                {/each}
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label" for="status-filter">
+                {$_("common.status") || "Status"}
+              </label>
+              <select
+                id="status-filter"
+                bind:value={statusFilter}
+                class="filter-select"
+              >
+                <option value="all">
+                  {$_("admin.all_status") || "All Status"}
+                </option>
+                <option value="active">{$_("admin.active") || "Active"}</option>
+                <option value="inactive">
+                  {$_("admin.inactive") || "Inactive"}
+                </option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label" for="scope-filter">
+                {$_("admin.warranty_scope") || "Scope"}
+              </label>
+              <select
+                id="scope-filter"
+                bind:value={scopeFilter}
+                class="filter-select"
+              >
+                <option value="all">
+                  {$_("admin.all_scopes") || "All Scopes"}
+                </option>
+                <option value="global">
+                  {$_("admin.global") || "Global"}
+                </option>
+                <option value="brand">
+                  {$_("admin.brand_specific") || "Brand Specific"}
+                </option>
+              </select>
+            </div>
+          </div>
+        {/if}
+      </div>
+
+      {#if selectedSeller === "global" || selectedSeller === "all"}
+        <button
+          type="button"
+          class="btn-create-warranty"
+          onclick={openCreateModal}
+        >
+          <svg viewBox="0 0 20 20" fill="currentColor" class="btn-create-icon">
+            <path
+              fill-rule="evenodd"
+              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          {$_("admin.create_warranty") || "Create warranty"}
+        </button>
+      {/if}
     </div>
   </div>
 
@@ -432,11 +674,11 @@
       <div class="empty-icon">🛡️</div>
       <h3>
         {$_("admin.select_seller_prompt") ||
-          "Select a seller to view their warranties"}
+          "Select a seller or Global (Admin) to view warranties"}
       </h3>
       <p>
         {$_("admin.select_seller_hint_warranties") ||
-          "Choose a seller from the dropdown above"}
+          "Choose a seller or Global (Admin) from the dropdown above"}
       </p>
     </div>
   {:else if isLoadingWarranties}
@@ -621,6 +863,18 @@
   {/if}
 </div>
 
+<WarrantyModal
+  bind:show={showCreateModal}
+  isRTL={$isRTL}
+  bind:warrantyForm
+  {brands}
+  {isLoadingBrands}
+  onClose={closeCreateModal}
+  onSubmit={submitCreateWarranty}
+  getLocalizedDisplayName={getItemDisplayName}
+  isEditMode={false}
+/>
+
 <style>
   .pagination {
     display: flex;
@@ -679,5 +933,30 @@
     font-size: 14px;
     white-space: nowrap;
     font-weight: 500;
+  }
+
+  .btn-create-warranty {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: #3c307f;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-create-warranty:hover {
+    background: #2f2567;
+    transform: translateY(-1px);
+  }
+
+  .btn-create-icon {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 </style>
