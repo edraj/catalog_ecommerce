@@ -164,20 +164,45 @@
         {#if $user.signedin}
           <SearchBar />
 
-          <!-- Menu Dropdown -->
+          <!-- Menu Dropdown (pill-shaped: name + bell + hamburger) -->
           <div class="relative menu-container">
             <button
               onclick={toggleMenu}
-              class="nav-icon-btn menu-trigger"
+              class="dropdown-trigger-pill menu-trigger"
               aria-label="Menu"
               title="Menu"
               aria-expanded={isMenuOpen}
             >
+              <span class="dropdown-trigger-label">
+                {(website.main_space || website.display_name || "Menu").replace(
+                  /^\w/,
+                  (c) => c.toUpperCase()
+                )}
+              </span>
+              <span class="dropdown-trigger-icon-wrap" aria-hidden="true">
+                <svg
+                  class="dropdown-trigger-icon"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+                {#if $newNotificationType}
+                  <span class="dropdown-trigger-notification-dot"></span>
+                {/if}
+              </span>
               <svg
-                class="nav-icon"
+                class="dropdown-trigger-icon"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path
                   stroke-linecap="round"
@@ -186,11 +211,6 @@
                   d="M4 6h16M4 12h16M4 18h16"
                 />
               </svg>
-              {#if $newNotificationType}
-                <span
-                  class="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 border-2 border-white animate-pulse"
-                ></span>
-              {/if}
             </button>
 
             {#if isMenuOpen}
@@ -643,6 +663,76 @@
 </header>
 
 <style>
+  /* Pill-shaped dropdown trigger (name + bell + hamburger) */
+  .dropdown-trigger-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 1rem 0.5rem 1.25rem;
+    border-radius: 9999px;
+    background: #f3f4f6;
+    border: 1px solid rgba(229, 231, 235, 0.8);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: #374151;
+    position: relative;
+  }
+
+  .dropdown-trigger-pill:hover {
+    background: #e5e7eb;
+    border-color: rgba(209, 213, 219, 0.9);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  }
+
+  .dropdown-trigger-pill:active {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .menu-trigger[aria-expanded="true"].dropdown-trigger-pill {
+    background: #e5e7eb;
+    border-color: rgba(209, 213, 219, 0.95);
+  }
+
+  .dropdown-trigger-label {
+    white-space: nowrap;
+    font-family: inherit;
+  }
+
+  .dropdown-trigger-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dropdown-trigger-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #4b5563;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+  }
+
+  .dropdown-trigger-pill:hover .dropdown-trigger-icon {
+    color: #374151;
+  }
+
+  .dropdown-trigger-notification-dot {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #ef4444;
+    border: 2px solid #f3f4f6;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
   .nav-icon-btn {
     display: flex;
     align-items: center;
@@ -671,20 +761,11 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
-  .menu-trigger[aria-expanded="true"] {
-    background: rgba(59, 130, 246, 0.1);
-    border-color: rgba(59, 130, 246, 0.3);
-  }
-
   .nav-icon {
     width: 1.25rem;
     height: 1.25rem;
     color: #6b7280;
     transition: color 0.2s ease;
-  }
-
-  .nav-icon-btn:hover .nav-icon {
-    color: #374151;
   }
 
   .dropdown-menu {
@@ -967,6 +1048,17 @@
   }
 
   @media (max-width: 640px) {
+    .dropdown-trigger-pill {
+      padding: 0.4rem 0.75rem 0.4rem 1rem;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .dropdown-trigger-icon {
+      width: 1.125rem;
+      height: 1.125rem;
+    }
+
     .nav-icon-btn {
       width: 2.5rem;
       height: 2.5rem;
@@ -1007,6 +1099,13 @@
 
   .animate-pulse {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .dropdown-trigger-pill:focus {
+    outline: none;
+    box-shadow:
+      0 0 0 2px white,
+      0 0 0 4px rgba(59, 130, 246, 0.4);
   }
 
   .nav-icon-btn:focus {

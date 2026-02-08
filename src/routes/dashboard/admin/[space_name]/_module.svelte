@@ -1,13 +1,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { goto, params, url } from "@roxi/routify";
+  import { goto, params, activeRoute } from "@roxi/routify";
   import { _, locale } from "@/i18n";
   import { derived } from "svelte/store";
   import { roles, user } from "@/stores/user";
   import { authToken } from "@/stores/auth";
 
   $goto;
-  $url;
 
   const isRTL = derived(
     locale,
@@ -18,6 +17,15 @@
   let currentPath = $state("");
   let isSidebarOpen = $state(true);
   let isZmAdmin = $state(false);
+
+  // Derive currentPath from activeRoute so sidebar highlights update in sync with navigation.
+  // (Using window.location or $url was one step behind because the layout's fragment doesn't change.)
+  $effect(() => {
+    const route = $activeRoute;
+    const pathname = route?.sourceUrl?.pathname ?? route?.url ?? "";
+    const match = pathname.match(/\/dashboard\/admin\/[^/]+\/([^/]+)/);
+    currentPath = match ? match[1] : "";
+  });
 
   const adminFeatures = [
     {
@@ -129,24 +137,11 @@
 
   onMount(() => {
     spaceName = $params.space_name || "";
-    updateCurrentPath();
 
     const userRoles = $roles || [];
     isZmAdmin =
       userRoles.includes("zm_admin") && !userRoles.includes("super_admin");
   });
-
-  $effect(() => {
-    if ($url) {
-      updateCurrentPath();
-    }
-  });
-
-  function updateCurrentPath() {
-    const path = window.location.pathname;
-    const match = path.match(/\/dashboard\/admin\/[^/]+\/([^/]+)/);
-    currentPath = match ? match[1] : "";
-  }
 
   function navigateTo(featurePath: string) {
     $goto(`/dashboard/admin/[space_name]/${featurePath}`);

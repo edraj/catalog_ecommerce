@@ -441,7 +441,23 @@
 
   <!-- Search and Filters -->
   <div class="search-and-filters">
-    <div class="search-bar">
+    <div class="search-bar search-bar--icon-left">
+      <span class="search-icon">
+        <svg
+          viewBox="0 0 16 16"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15 15l-4-4m2-5a5 5 0 11-10 0 5 5 0 0110 0z"
+          />
+        </svg>
+      </span>
       <input
         type="text"
         bind:value={searchTerm}
@@ -449,22 +465,37 @@
           "Search specifications..."}
         class="search-input"
         class:rtl={$isRTL}
+        style="padding-left: 32px;"
       />
-      <button class="search-btn">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
-      </button>
     </div>
+    <style>
+      .search-bar--icon-left {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .search-bar--icon-left .search-icon {
+        position: absolute;
+        left: 10px;
+        color: #9ca3af;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        height: 100%;
+        z-index: 2;
+      }
+      .rtl .search-bar--icon-left .search-icon {
+        left: auto;
+        right: 10px;
+      }
+      .search-bar--icon-left .search-input {
+        padding-left: 32px;
+      }
+      .rtl .search-bar--icon-left .search-input {
+        padding-left: 0;
+        padding-right: 32px;
+      }
+    </style>
 
     <button class="btn-create" onclick={openCreateModal}>
       <PlusOutline size="sm" />

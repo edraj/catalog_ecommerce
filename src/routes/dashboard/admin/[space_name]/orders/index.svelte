@@ -17,10 +17,10 @@
   let filteredOrders = $state([]);
   let loading = $state(false);
   let error = $state("");
-  let totalOrders = 0;
+  let totalOrders = $state(0);
 
   let currentPage = $state(1);
-  let itemsPerPage = 15;
+  let itemsPerPage = 20;
 
   let selectedPaymentStatus = $state("all");
   let searchQuery = $state("");
@@ -50,7 +50,7 @@
       const response = await getCombinedOrders(
         website.main_space,
         undefined,
-        1000,
+        itemsPerPage,
         offset,
       );
 
@@ -251,7 +251,41 @@
   });
 
   let totalPages = $derived.by(() => {
-    return Math.ceil(totalOrders / itemsPerPage);
+    return Math.max(1, Math.ceil(totalOrders / itemsPerPage));
+  });
+
+  let paginationStart = $derived.by(() => {
+    return totalOrders === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  });
+
+  let paginationEnd = $derived.by(() => {
+    return Math.min(currentPage * itemsPerPage, totalOrders);
+  });
+
+  /** Page numbers to show in the pagination bar (numbers or "ellipsis") */
+  let visiblePageNumbers = $derived.by(() => {
+    const total = totalPages;
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    const cur = currentPage;
+    const pages: (number | "ellipsis")[] = [];
+    if (cur <= 3) {
+      for (let i = 1; i <= 5; i++) pages.push(i);
+      pages.push("ellipsis");
+      pages.push(total);
+    } else if (cur >= total - 2) {
+      pages.push(1);
+      pages.push("ellipsis");
+      for (let i = total - 4; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      pages.push("ellipsis");
+      for (let i = cur - 1; i <= cur + 1; i++) pages.push(i);
+      pages.push("ellipsis");
+      pages.push(total);
+    }
+    return pages;
   });
 
   function goToPage(page: number) {
@@ -486,23 +520,49 @@
 
     <!-- Pagination -->
     <div class="pagination">
-      <button
-        class="btn-page"
-        onclick={previousPage}
-        disabled={currentPage === 1}
-      >
-        Previous
-      </button>
-      <span class="page-info">
-        Page {currentPage} of {totalPages}
-      </span>
-      <button
-        class="btn-page"
-        onclick={nextPage}
-        disabled={currentPage === totalPages}
-      >
-        Next
-      </button>
+      <p class="pagination-text">
+        Showing {paginationStart}-{paginationEnd} of {totalOrders}
+      </p>
+      <div class="pagination-controls">
+        <button
+          type="button"
+          class="pagination-segment pagination-arrow"
+          onclick={previousPage}
+          disabled={currentPage === 1}
+          aria-label="Previous page"
+        >
+          <svg class="pagination-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        {#each visiblePageNumbers as segment}
+          {#if segment === "ellipsis"}
+            <span class="pagination-segment pagination-ellipsis" aria-hidden="true">…</span>
+          {:else}
+            <button
+              type="button"
+              class="pagination-segment pagination-num"
+              class:active={currentPage === segment}
+              onclick={() => goToPage(segment)}
+              aria-label="Page {segment}"
+              aria-current={currentPage === segment ? "page" : undefined}
+            >
+              {segment}
+            </button>
+          {/if}
+        {/each}
+        <button
+          type="button"
+          class="pagination-segment pagination-arrow"
+          onclick={nextPage}
+          disabled={currentPage === totalPages}
+          aria-label="Next page"
+        >
+          <svg class="pagination-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
     </div>
   {/if}
 </div>
