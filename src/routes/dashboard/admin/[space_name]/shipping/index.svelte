@@ -163,6 +163,10 @@
 
   onMount(async () => {
     await loadSellers();
+    if (!selectedSeller) {
+      selectedSeller = "all";
+      await loadSellerShipping(true);
+    }
   });
 
   async function loadSellers() {
@@ -575,6 +579,28 @@
       </div>
 
       <div class="filters-left">
+        <div class="seller-select">
+          <label class="filter-label" for="seller-filter">
+            {$_("admin.select_seller") || "Select Seller"}
+          </label>
+          <select
+            id="seller-filter"
+            bind:value={selectedSeller}
+            class="filter-select"
+          >
+            <option value="">
+              {$_("admin.choose_seller") || "Choose a seller..."}
+            </option>
+            <option value="all">
+              {$_("admin.all_sellers") || "All Sellers"}
+            </option>
+            {#each sellers as seller}
+              <option value={seller.shortname}>
+                {getSellerDisplayName(seller)}
+              </option>
+            {/each}
+          </select>
+        </div>
         <div class="filters-dropdown">
           <button
             type="button"
@@ -600,25 +626,6 @@
 
           {#if showFilters}
             <div class="filters-panel" onclick={handleFiltersPanelClick}>
-              <div class="filter-group">
-                <label class="filter-label" for="seller-filter">
-                  {$_("admin.select_seller") || "Select Seller"}
-                </label>
-                <select id="seller-filter" bind:value={selectedSeller}>
-                  <option value=""
-                    >{$_("admin.choose_seller") || "Choose a seller..."}</option
-                  >
-                  <option value="all">
-                    {$_("admin.all_sellers") || "All Sellers"}
-                  </option>
-                  {#each sellers as seller}
-                    <option value={seller.shortname}>
-                      {getSellerDisplayName(seller)}
-                    </option>
-                  {/each}
-                </select>
-              </div>
-
               <div class="filter-group">
                 <label class="filter-label" for="type-filter">
                   {$_("admin.shipping_type") || "Type"}

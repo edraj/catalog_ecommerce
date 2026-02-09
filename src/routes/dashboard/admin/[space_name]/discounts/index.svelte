@@ -31,6 +31,8 @@
   let discountTypeFilter = $state("all");
   let totalDiscountsCount = $state(0);
   let showFilters = $state(false);
+  let lastLoadKey = $state("");
+  let didWarnAllSellersLimit = $state(false);
 
   let showDiscountModal = $state(false);
   let showEditDiscountModal = $state(false);
@@ -88,7 +90,8 @@
   });
 
   let totalPages = $derived.by(() => {
-    return Math.ceil(filteredDiscounts.length / itemsPerPage);
+    const totalItems = totalDiscountsCount || filteredDiscounts.length;
+    return Math.ceil(totalItems / itemsPerPage);
   });
 
   $effect(() => {
@@ -163,6 +166,23 @@
     }
 
     return items;
+  }
+
+  async function getSpaceContentsWithTimeout(
+    space: string,
+    path: string,
+    mode: string,
+    limit: number,
+    offset: number,
+    includeMeta: boolean,
+    timeoutMs: number,
+  ) {
+    return Promise.race([
+      getSpaceContents(space, path, mode, limit, offset, includeMeta),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Request timeout")), timeoutMs),
+      ),
+    ]);
   }
 
   onMount(async () => {
@@ -242,40 +262,98 @@
       discounts = [];
     }
 
+    if (!selectedSeller) {
+      totalDiscountsCount = 0;
+      return;
+    }
+
+    const limit = itemsPerPage;
+    const offset = (currentPage - 1) * itemsPerPage;
+    const requestTimeoutMs = 10000;
+    const maxSellersPerPage = 20;
+
     if (selectedSeller === "all") {
       isLoadingDiscounts = true;
       try {
-        const allDiscounts = [];
+        const pageItems = [];
+        let remainingOffset = offset;
+        const sellersToScan = sellers.slice(0, maxSellersPerPage);
 
-        for (const seller of sellers) {
-          try {
-            const response = await getSpaceContents(
-              website.main_space,
-              `discounts/${seller.shortname}`,
-              "managed",
-              100,
-              0,
-              true,
-            );
+        if (!didWarnAllSellersLimit && sellers.length > maxSellersPerPage) {
+          didWarnAllSellersLimit = true;
+          console.warn(
+            "All sellers view is capped per page. Narrow the seller filter for full results.",
+          );
+        }
 
-            if (response?.records) {
-              allDiscounts.push(
-                ...buildDiscountItems(
-                  response.records,
-                  seller.shortname,
-                  getSellerDisplayName(seller),
-                ),
+        for (const seller of sellersToScan) {
+          if (pageItems.length >= limit) {
+            break;
+          }
+
+          let sellerOffset = 0;
+
+          while (pageItems.length < limit) {
+            let response;
+
+            try {
+              response = await getSpaceContentsWithTimeout(
+                website.main_space,
+                `discounts/${seller.shortname}`,
+                "managed",
+                limit,
+                sellerOffset,
+                true,
+                requestTimeoutMs,
               );
+            } catch (error) {
+              console.error(
+                `Error loading discounts for ${seller.shortname}:`,
+                error,
+              );
+              break;
             }
-          } catch (error) {
-            console.error(
-              `Error loading discounts for ${seller.shortname}:`,
-              error,
+
+            const records = response?.records || [];
+            if (records.length === 0) {
+              break;
+            }
+
+            if (remainingOffset >= records.length) {
+              remainingOffset -= records.length;
+              sellerOffset += records.length;
+              if (records.length < limit) {
+                break;
+              }
+              continue;
+            }
+
+            const usableRecords = records.slice(remainingOffset);
+            remainingOffset = 0;
+
+            const processed = buildDiscountItems(
+              usableRecords,
+              seller.shortname,
+              getSellerDisplayName(seller),
             );
+
+            const availableSlots = limit - pageItems.length;
+            pageItems.push(...processed.slice(0, availableSlots));
+
+            if (pageItems.length >= limit) {
+              break;
+            }
+
+            sellerOffset += records.length;
+            if (records.length < limit) {
+              break;
+            }
           }
         }
 
-        discounts = allDiscounts;
+        discounts = pageItems;
+        totalDiscountsCount =
+          offset + pageItems.length + (pageItems.length === limit ? 1 : 0);
       } catch (error) {
         console.error("Error loading discounts:", error);
         errorToastMessage("Error loading discounts");
@@ -287,13 +365,14 @@
 
     isLoadingDiscounts = true;
     try {
-      const response = await getSpaceContents(
+      const response = await getSpaceContentsWithTimeout(
         website.main_space,
         `discounts/${selectedSeller}`,
         "managed",
-        100,
-        0,
+        limit,
+        offset,
         true,
+        requestTimeoutMs,
       );
 
       if (response?.records) {
@@ -306,6 +385,11 @@
       } else {
         discounts = [];
       }
+
+      totalDiscountsCount =
+        offset +
+        (response?.records?.length || 0) +
+        (response?.records?.length === limit ? 1 : 0);
     } catch (error) {
       console.error("Error loading discounts:", error);
       errorToastMessage("Error loading discounts");
@@ -315,10 +399,29 @@
   }
 
   $effect(() => {
-    if (selectedSeller && selectedSeller !== previousSeller) {
-      previousSeller = selectedSeller;
-      loadSellerDiscounts(true);
+    if (!selectedSeller) {
+      discounts = [];
+      totalDiscountsCount = 0;
+      lastLoadKey = "";
+      previousSeller = "";
+      return;
     }
+
+    if (selectedSeller !== previousSeller) {
+      previousSeller = selectedSeller;
+      if (currentPage !== 1) {
+        currentPage = 1;
+        return;
+      }
+    }
+
+    const loadKey = `${selectedSeller}-${currentPage}-${itemsPerPage}`;
+    if (loadKey === lastLoadKey) {
+      return;
+    }
+
+    lastLoadKey = loadKey;
+    loadSellerDiscounts(true);
   });
 
   function formatDate(dateString: string): string {
@@ -744,6 +847,28 @@
       </div>
 
       <div class="filters-left">
+        <div class="seller-select">
+          <label class="filter-label" for="seller-filter">
+            {$_("admin.select_seller") || "Select Seller"}
+          </label>
+          <select
+            id="seller-filter"
+            bind:value={selectedSeller}
+            class="filter-select"
+          >
+            <option value="">
+              {$_("admin.choose_seller") || "Choose a seller..."}
+            </option>
+            <option value="all">
+              {$_("admin.all_sellers") || "All Sellers"}
+            </option>
+            {#each sellers as seller}
+              <option value={seller.shortname}>
+                {getSellerDisplayName(seller)}
+              </option>
+            {/each}
+          </select>
+        </div>
         <div class="filters-dropdown">
           <button
             type="button"
@@ -769,29 +894,6 @@
 
           {#if showFilters}
             <div class="filters-panel" onclick={handleFiltersPanelClick}>
-              <div class="filter-group">
-                <label class="filter-label" for="seller-filter">
-                  {$_("admin.select_seller") || "Select Seller"}
-                </label>
-                <select
-                  id="seller-filter"
-                  bind:value={selectedSeller}
-                  class="filter-select"
-                >
-                  <option value=""
-                    >{$_("admin.choose_seller") || "Choose a seller..."}</option
-                  >
-                  <option value="all">
-                    {$_("admin.all_sellers") || "All Sellers"}
-                  </option>
-                  {#each sellers as seller}
-                    <option value={seller.shortname}>
-                      {getSellerDisplayName(seller)}
-                    </option>
-                  {/each}
-                </select>
-              </div>
-
               <div class="filter-group">
                 <label class="filter-label" for="type-filter">
                   {$_("admin.discount_target") || "Target Type"}
@@ -937,7 +1039,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each paginatedDiscounts as discount (discount.key || discount.record_shortname)}
+            {#each paginatedDiscounts as discount (discount.seller_shortname + "-" + (discount.item_key || discount.key || discount.record_shortname))}
               {@const isActiveNow = isActive(discount.validity)}
               {@const isExpiredNow = isExpired(discount.validity?.to)}
               <tr class="item-row">
@@ -1067,7 +1169,7 @@
       <Pagination
         {currentPage}
         {totalPages}
-        totalItems={filteredDiscounts.length}
+        totalItems={totalDiscountsCount || filteredDiscounts.length}
         {itemsPerPage}
         onPageChange={handlePageChange}
       />

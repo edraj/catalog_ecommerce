@@ -19,8 +19,8 @@
   let orders = [];
   let filteredOrders = $state([]);
   let loading = $state(false);
-  let itemsPerPage = 15;
-  let totalOrders = 0;
+  let itemsPerPage = $state(20);
+  let totalOrders = $state(0);
   let error = $state("");
   let currentPage = $state(1);
 
@@ -35,7 +35,7 @@
   let orderPayment: any = $state(null);
   let combinedOrderDetails: any = $state(null);
 
-  let sellerShortname = "";
+  let sellerShortname = $state("");
   let initialized = false;
 
   $effect(() => {
@@ -275,7 +275,7 @@
     return statusClasses[status] || "bg-gray-100 text-gray-800";
   }
 
-  let totalPages = 0;
+  let totalPages = $state(0);
   $effect(() => {
     totalPages = Math.ceil(totalOrders / itemsPerPage);
   });
@@ -324,7 +324,7 @@
         <select
           id="state-filter"
           bind:value={selectedState}
-          on:change={() => {
+          onchange={() => {
             currentPage = 1;
             loadOrders();
           }}
@@ -369,7 +369,7 @@
       <div class="filter-group">
         <button
           class="btn-reset"
-          on:click={() => {
+          onclick={() => {
             selectedState = "all";
             selectedPaymentStatus = "all";
             searchQuery = "";
@@ -391,7 +391,7 @@
   {:else if error}
     <div class="error-message">
       <p>{error}</p>
-      <button class="btn-retry" on:click={loadOrders}>Retry</button>
+      <button class="btn-retry" onclick={loadOrders}>Retry</button>
     </div>
   {:else if filteredOrders.length === 0}
     <div class="empty-state">
@@ -420,7 +420,7 @@
           {#each filteredOrders as order (order.shortname)}
             {@const payload = order.attributes?.payload?.body}
             {@const total = calculateOrderTotal(order)}
-            <tr class="clickable-row" on:click={() => viewOrderDetails(order)}>
+            <tr class="clickable-row" onclick={() => viewOrderDetails(order)}>
               <td>
                 <div class="order-code">
                   <strong>{payload?.order_code || "N/A"}</strong>
@@ -461,12 +461,12 @@
               <td>
                 <small>{formatDate(order.attributes.created_at)}</small>
               </td>
-              <td on:click={(e) => e.stopPropagation()}>
+              <td onclick={(e) => e.stopPropagation()}>
                 <div class="action-buttons">
                   <select
                     class="state-select"
                     value={order.attributes.state}
-                    on:change={(e) =>
+                    onchange={(e) =>
                       handleStateChange(order, e.currentTarget.value)}
                   >
                     {#each orderStates.slice(1) as state}
@@ -485,7 +485,7 @@
     <div class="pagination">
       <button
         class="btn-page"
-        on:click={previousPage}
+        onclick={previousPage}
         disabled={currentPage === 1}
       >
         Previous
@@ -495,7 +495,7 @@
       </span>
       <button
         class="btn-page"
-        on:click={nextPage}
+        onclick={nextPage}
         disabled={currentPage === totalPages}
       >
         Next
@@ -509,9 +509,10 @@
     order={selectedOrder}
     payment={orderPayment}
     combinedOrder={combinedOrderDetails}
+    {sellerShortname}
     on:close={closeOrderDetails}
-    on:stateChange={async (e) => {
-      await handleStateChange(selectedOrder, e.detail);
+    on:stateChange={async () => {
+      await loadOrders();
       closeOrderDetails();
     }}
   />

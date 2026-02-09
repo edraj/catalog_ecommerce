@@ -19,12 +19,12 @@
   import { Pagination } from "@/components/ui";
   import { formatNumber } from "@/lib/helpers";
 
-  let activeTab = $state<"all" | "global">("all");
+  let activeTab = $state<"all" | "global">("global");
   let allCoupons = $state<any[]>([]);
   let globalCoupons = $state<any[]>([]);
   let filteredCoupons = $state<any[]>([]);
   let loading = $state(false);
-  let selectedFilter = $state("");
+  let selectedFilter = $state("all");
   let searchQuery = $state("");
   let totalCouponsCount = $state(0);
   let allCouponsTotal = $state(0);
@@ -162,15 +162,73 @@
       let coupons = [];
       let total = 0;
 
-      if (!selectedFilter || selectedFilter === "all") {
-        filteredCoupons = [];
-        totalCouponsCount = 0;
-        allCoupons = [];
-        allCouponsTotal = 0;
-        return;
-      }
+      if (selectedFilter === "all") {
+        const sellers = getUniqueSellers();
+        const pageItems = [];
+        let remainingOffset = offset;
 
-      if (selectedFilter && selectedFilter !== "all") {
+        for (const seller of sellers) {
+          if (pageItems.length >= limit) {
+            break;
+          }
+
+          let sellerOffset = 0;
+
+          while (pageItems.length < limit) {
+            let response;
+            try {
+              response = await getSpaceContents(
+                website.main_space,
+                `coupons/${seller.shortname}`,
+                "managed",
+                limit,
+                sellerOffset,
+                false,
+              );
+            } catch (error) {
+              console.error(
+                `Error loading coupons for ${seller.shortname}:`,
+                error,
+              );
+              break;
+            }
+
+            const records = response?.records || [];
+            if (records.length === 0) {
+              break;
+            }
+
+            if (remainingOffset >= records.length) {
+              remainingOffset -= records.length;
+              sellerOffset += records.length;
+              if (records.length < limit) {
+                break;
+              }
+              continue;
+            }
+
+            const usableRecords = records.slice(remainingOffset);
+            remainingOffset = 0;
+
+            const processed = mapCoupons(usableRecords, seller.shortname);
+            const availableSlots = limit - pageItems.length;
+            pageItems.push(...processed.slice(0, availableSlots));
+
+            if (pageItems.length >= limit) {
+              break;
+            }
+
+            sellerOffset += records.length;
+            if (records.length < limit) {
+              break;
+            }
+          }
+        }
+
+        coupons = pageItems;
+        total =
+          offset + pageItems.length + (pageItems.length === limit ? 1 : 0);
+      } else if (selectedFilter) {
         const response = await getSpaceContents(
           website.main_space,
           `coupons/${selectedFilter}`,
@@ -184,6 +242,12 @@
           ? mapCoupons(response.records, selectedFilter)
           : [];
         total = response?.attributes?.total ?? response?.records?.length ?? 0;
+      } else {
+        filteredCoupons = [];
+        totalCouponsCount = 0;
+        allCoupons = [];
+        allCouponsTotal = 0;
+        return;
       }
 
       allCoupons = coupons;
@@ -220,6 +284,8 @@
     selectedFilter;
     if (activeTab === "global") {
       selectedFilter = "";
+    } else if (!selectedFilter) {
+      selectedFilter = "all";
     }
   });
 
@@ -436,6 +502,9 @@
 
   function handleScopeChange() {
     currentPage = 1;
+    if (activeTab === "all" && !selectedFilter) {
+      selectedFilter = "all";
+    }
     loadCouponsPage();
   }
 
@@ -551,6 +620,7 @@
                 on:change={handleSellerChange}
               >
                 <option value="" disabled>Select a seller</option>
+                <option value="all">All Sellers</option>
                 {#each getUniqueSellers() as seller}
                   <option value={seller.shortname}>
                     {seller.displayname}
