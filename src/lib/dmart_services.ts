@@ -200,6 +200,7 @@ export async function getEntity(
   if (!cleanSubpath || cleanSubpath === "/") {
     cleanSubpath = "__root__";
   }
+  console.log("getEntity() = ", spaceName, subpath);
 
   try {
     return await Dmart.retrieveEntry(
@@ -3529,10 +3530,16 @@ export async function getCombinedOrderDetails(
   combinedOrderShortname: string,
 ): Promise<any | null> {
   try {
+    console.log(
+      "getCombinedOrderDetails() = ",
+      spaceName,
+      combinedOrderShortname,
+    );
+
     const response = await getEntity(
       combinedOrderShortname,
       spaceName,
-      "combined_orders",
+      "/combined_orders",
       ResourceType.content,
       "managed",
       true,

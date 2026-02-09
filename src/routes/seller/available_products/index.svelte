@@ -86,6 +86,10 @@
 
   let showDeleteModal = $state(false);
   let itemToDelete = $state(null);
+  let showDetailsModal = $state(false);
+  let detailsItem = $state(null);
+  let isEditMode = $state(false);
+  let editingItem = $state(null);
 
   const isRTL = derived(
     locale,
@@ -265,24 +269,118 @@
     }, 800);
   }
 
-  function viewItem(item) {
-    sessionStorage.setItem("seller_previous_folder", "available_products");
-    $goto("/seller/[shortname]/[resource_type]", {
-      subpath: item.subpath.replace(/^\//, ""),
-      shortname: item.shortname,
-      resource_type: item.resource_type,
-    });
+  function openDetailsModal(item) {
+    detailsItem = item;
+    showDetailsModal = true;
   }
 
-  function editItem(item) {
-    $goto("/seller/[shortname]/[resource_type]/edit", {
-      subpath: item.subpath.replace(/^\//, ""),
-      shortname: item.shortname,
-      resource_type: item.resource_type,
+  function closeDetailsModal() {
+    showDetailsModal = false;
+    detailsItem = null;
+  }
+
+  function viewItem(item) {
+    openDetailsModal(item);
+  }
+
+  async function openEditItemModal(item) {
+    const body = item.attributes?.payload?.body || {};
+
+    isEditMode = true;
+    editingItem = item;
+    showAddItemModal = true;
+
+    productVariants = [];
+    selectedVariants = [];
+    generatedCombinations = [];
+    combinationPrices = {};
+
+    selectedCategory = "";
+    selectedProduct = body.product_shortname || "";
+    selectedWarranty = body.warranty_shortname || "";
+    selectedCommissionCategory = body.commission_category || "";
+    availabilityForm = {
+      hasFastDelivery: body.has_fast_delivery || false,
+      hasFreeShipping: body.has_free_shipping || false,
+      estShippingFrom: body.est_shipping_days?.from || 1,
+      estShippingTo: body.est_shipping_days?.to || 5,
+    };
+
+    const product = selectedProduct ? productsMap.get(selectedProduct) : null;
+    products = product ? [product] : [];
+    filteredProducts = product ? [product] : [];
+
+    if (selectedProduct) {
+      await loadSpecifications(selectedProduct);
+    }
+
+    const savedVariants = body.variants || [];
+    const optionKeys = savedVariants
+      .flatMap((variant) => (variant.options || []).map((opt) => opt.key))
+      .filter(Boolean);
+
+    if (optionKeys.length === 0 && savedVariants.length > 0) {
+      selectedVariants = ["none"];
+      const saved = savedVariants[0];
+      productVariants = [
+        {
+          key: "none",
+          sku: saved.sku || "",
+          qty: saved.qty || 0,
+          retailPrice: saved.retail_price || 0,
+          name: "No Variation",
+          type: "none",
+        } as any,
+      ];
+      return;
+    }
+
+    if (productVariants.length === 0 && optionKeys.length > 0) {
+      productVariants = optionKeys.map((key) => {
+        const saved = savedVariants.find(
+          (entry) =>
+            entry.key === key ||
+            (entry.options || []).some((opt) => opt.key === key),
+        );
+
+        return {
+          key,
+          type: "storage",
+          shortname: key,
+          name: key,
+          qty: saved?.qty || 0,
+          retailPrice: saved?.retail_price || 0,
+          sku: saved?.sku || "",
+          discount: saved?.discount || { type: "amount", value: 0 },
+        } as any;
+      });
+    }
+
+    selectedVariants = Array.from(new Set(optionKeys));
+    productVariants = productVariants.map((variant) => {
+      const saved = savedVariants.find(
+        (entry) =>
+          entry.key === variant.key ||
+          (entry.options || []).some((opt) => opt.key === variant.key),
+      );
+
+      if (!saved) {
+        return variant;
+      }
+
+      return {
+        ...variant,
+        sku: saved.sku || "",
+        qty: saved.qty || 0,
+        retailPrice: saved.retail_price || 0,
+        discount: saved.discount || variant.discount,
+      };
     });
   }
 
   function createItem() {
+    isEditMode = false;
+    editingItem = null;
     showAddItemModal = true;
     loadProducts();
   }
@@ -428,6 +526,8 @@
 
   function closeModal() {
     showAddItemModal = false;
+    isEditMode = false;
+    editingItem = null;
     selectedCategory = "";
     selectedProduct = "";
     categories = [];
@@ -518,18 +618,37 @@
         workflow_shortname: "availability",
       };
 
-      await createEntity(
-        availabilityData,
-        website.main_space,
-        `/available_products/${$user.shortname}`,
-        ResourceType.ticket,
-        "availability",
-        "",
-      );
+      if (isEditMode && editingItem) {
+        await updateEntity(
+          editingItem.shortname,
+          website.main_space,
+          editingItem.subpath,
+          editingItem.resource_type,
+          {
+            ...availabilityData,
+            tags: editingItem.attributes?.tags || availabilityData.tags,
+          },
+          editingItem.attributes?.workflow_shortname || "availability",
+          editingItem.attributes?.payload?.schema_shortname || "",
+        );
 
-      successToastMessage(
-        `Product availability with ${variants.length} variant(s) added successfully!`,
-      );
+        successToastMessage(
+          `Product availability with ${variants.length} variant(s) updated successfully!`,
+        );
+      } else {
+        await createEntity(
+          availabilityData,
+          website.main_space,
+          `/available_products/${$user.shortname}`,
+          ResourceType.ticket,
+          "availability",
+          "",
+        );
+
+        successToastMessage(
+          `Product availability with ${variants.length} variant(s) added successfully!`,
+        );
+      }
       closeModal();
       await loadFolderContents();
     } catch (error) {
@@ -566,9 +685,6 @@
       successToastMessage("Product deleted successfully!");
       closeDeleteModal();
       await loadFolderContents();
-    } catch (error) {
-      console.error("Error deleting product:", error);
-      errorToastMessage("Failed to delete product");
     } finally {
       isLoading = false;
     }
@@ -870,7 +986,7 @@
                       class="btn-icon"
                       onclick={(e) => {
                         e.stopPropagation();
-                        editItem(item);
+                        openEditItemModal(item);
                       }}
                       title={$_("common.edit")}
                     >
@@ -917,10 +1033,132 @@
   </div>
 </div>
 
+{#if showDetailsModal && detailsItem}
+  {@const body = detailsItem.attributes?.payload?.body || {}}
+  {@const variants = body.variants || []}
+  <div class="details-modal-overlay" onclick={closeDetailsModal}>
+    <div class="details-modal" onclick={(e) => e.stopPropagation()}>
+      <div class="details-modal-header">
+        <div>
+          <h2 class="details-title">{getItemDisplayName(detailsItem)}</h2>
+          <p class="details-subtitle">
+            {getProductName(body.product_shortname || "-")}
+          </p>
+        </div>
+        <button class="details-close" onclick={closeDetailsModal}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="details-modal-body">
+        <div class="details-grid">
+          <div class="details-card">
+            <h4>Product</h4>
+            <p>{body.product_shortname || "-"}</p>
+          </div>
+          <div class="details-card">
+            <h4>Warranty</h4>
+            <p>{body.warranty_shortname || "-"}</p>
+          </div>
+          <div class="details-card">
+            <h4>Commission</h4>
+            <p>{body.commission_category || "-"}</p>
+          </div>
+          <div class="details-card">
+            <h4>Shipping</h4>
+            <p>
+              {body.has_fast_delivery ? "Fast" : "Standard"} / {body.has_free_shipping
+                ? "Free"
+                : "Paid"}
+            </p>
+            <p>
+              {body.est_shipping_days?.from || 1} -
+              {body.est_shipping_days?.to || 5}
+              {$_("seller_dashboard.days") || "days"}
+            </p>
+          </div>
+          <div class="details-card">
+            <h4>Status</h4>
+            <p>{detailsItem.attributes?.state || "-"}</p>
+          </div>
+          <div class="details-card">
+            <h4>Updated</h4>
+            <p>{formatDate(detailsItem.attributes?.updated_at)}</p>
+          </div>
+        </div>
+
+        <div class="details-section">
+          <h3>Variants</h3>
+          {#if variants.length === 0}
+            <p class="details-empty">No variants available.</p>
+          {:else}
+            <div class="details-table">
+              <div class="details-row details-head">
+                <span>SKU</span>
+                <span>Qty</span>
+                <span>Price</span>
+              </div>
+              {#each variants as variant}
+                <div class="details-row">
+                  <span>{variant.sku || "-"}</span>
+                  <span>{variant.qty ?? 0}</span>
+                  <span>{variant.retail_price ?? 0}</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <div class="details-modal-footer">
+        <button class="btn-secondary" onclick={closeDetailsModal}>
+          {$_("common.close") || "Close"}
+        </button>
+        <button
+          class="btn-secondary"
+          onclick={() => {
+            closeDetailsModal();
+            openEditItemModal(detailsItem);
+          }}
+        >
+          {$_("common.edit") || "Edit"}
+        </button>
+        <button
+          class="btn-danger"
+          onclick={() => {
+            closeDetailsModal();
+            openDeleteModal(detailsItem);
+          }}
+        >
+          {$_("common.delete") || "Delete"}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <!-- Add Product Modal -->
 <AddProductModal
   bind:show={showAddItemModal}
   isRTL={$isRTL}
+  {isEditMode}
+  disableProductSelection={isEditMode}
+  modalTitle={isEditMode
+    ? $_("seller_dashboard.edit_product_item") || "Edit Product Availability"
+    : $_("seller_dashboard.add_product_item") || "Add Product to Store"}
+  modalSubtitle={isEditMode
+    ? "Update pricing and stock for this product"
+    : "Search and select products to add to your inventory"}
+  submitLabel={isEditMode
+    ? $_("common.update") || "Update"
+    : $_("seller_dashboard.add_items") || "Add Items"}
   bind:productSearchTerm
   {filteredProducts}
   {isLoadingProducts}
@@ -954,3 +1192,177 @@
   onClose={closeDeleteModal}
   onConfirm={confirmDelete}
 />
+
+<style>
+  .details-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9998;
+    padding: 1.5rem;
+  }
+
+  .details-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 960px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+    overflow: hidden;
+  }
+
+  .details-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f8fafc;
+  }
+
+  .details-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .details-subtitle {
+    margin: 0.25rem 0 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+  }
+
+  .details-close {
+    border: none;
+    background: #e2e8f0;
+    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .details-close:hover {
+    background: #cbd5f5;
+  }
+
+  .details-close svg {
+    width: 18px;
+    height: 18px;
+    stroke: #334155;
+  }
+
+  .details-modal-body {
+    padding: 1.5rem 2rem;
+    overflow-y: auto;
+  }
+
+  .details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .details-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+  }
+
+  .details-card h4 {
+    margin: 0;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+  }
+
+  .details-card p {
+    margin: 0.5rem 0 0;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .details-section h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+    color: #111827;
+  }
+
+  .details-table {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .details-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    background: #f8fafc;
+  }
+
+  .details-row.details-head {
+    background: #e2e8f0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #475569;
+  }
+
+  .details-empty {
+    color: #6b7280;
+  }
+
+  .details-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 2rem 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    background: #f8fafc;
+  }
+
+  .btn-secondary {
+    background: #f3f4f6;
+    color: #111827;
+    border: 1px solid #d1d5db;
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-danger {
+    background: #dc2626;
+    color: #ffffff;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background: #e5e7eb;
+  }
+
+  .btn-danger:hover {
+    background: #b91c1c;
+  }
+</style>

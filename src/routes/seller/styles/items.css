@@ -36,6 +36,7 @@
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  width: 100%;
   border: 1px solid #e2e8f0;
 }
 
@@ -43,6 +44,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+  table-layout: fixed;
 }
 
 .items-table thead {
@@ -60,7 +62,8 @@
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .th-type {
@@ -104,6 +107,7 @@
 .items-table tbody td {
   padding: 1.25rem 1.25rem;
   vertical-align: middle;
+  word-break: break-word;
 }
 
 /* Type Cell */

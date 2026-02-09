@@ -4,6 +4,11 @@
   type Props = {
     show: boolean;
     isRTL: boolean;
+    isEditMode?: boolean;
+    modalTitle?: string;
+    modalSubtitle?: string;
+    submitLabel?: string;
+    disableProductSelection?: boolean;
     productSearchTerm: string;
     filteredProducts: any[];
     isLoadingProducts: boolean;
@@ -29,6 +34,11 @@
   let {
     show = $bindable(),
     isRTL,
+    isEditMode = false,
+    modalTitle,
+    modalSubtitle,
+    submitLabel,
+    disableProductSelection = false,
     productSearchTerm = $bindable(),
     filteredProducts,
     isLoadingProducts,
@@ -70,11 +80,13 @@
           </div>
           <div>
             <h2 class="modal-title">
-              {$_("seller_dashboard.add_product_item") ||
+              {modalTitle ||
+                $_("seller_dashboard.add_product_item") ||
                 "Add Product to Store"}
             </h2>
             <p class="modal-subtitle">
-              Search and select products to add to your inventory
+              {modalSubtitle ||
+                "Search and select products to add to your inventory"}
             </p>
           </div>
         </div>
@@ -92,224 +104,266 @@
 
       <!-- Body -->
       <div class="modern-modal-body">
-        <!-- Search Section -->
-        <div class="search-section">
-          <div class="search-wrapper">
-            {#if isSearching}
-              <div class="search-icon spinner-icon">
-                <div class="spinner-small"></div>
-              </div>
-            {:else}
-              <svg
-                class="search-icon"
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-              >
-                <circle cx="8" cy="8" r="5" stroke-width="2" />
-                <path d="M12 12l4 4" stroke-width="2" stroke-linecap="round" />
-              </svg>
-            {/if}
-            <input
-              type="text"
-              bind:value={productSearchTerm}
-              oninput={onFilterProducts}
-              placeholder={$_("seller_dashboard.search_placeholder") ||
-                "Search by product name..."}
-              class="search-input"
-              class:rtl={isRTL}
-            />
-            {#if productSearchTerm && !isSearching}
-              <button
-                class="clear-search"
-                onclick={() => {
-                  productSearchTerm = "";
-                  onFilterProducts();
-                }}
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor">
+        {#if isEditMode}
+          {@const selectedProductItem = filteredProducts.find(
+            (product) => product.shortname === selectedProduct,
+          )}
+          <div class="selected-product-summary">
+            <div class="summary-content">
+              <div class="summary-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path
-                    d="M10 8.586L6.707 5.293a1 1 0 00-1.414 1.414L8.586 10l-3.293 3.293a1 1 0 101.414 1.414L10 11.414l3.293 3.293a1 1 0 001.414-1.414L11.414 10l3.293-3.293a1 1 0 00-1.414-1.414L10 8.586z"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
                   />
                 </svg>
-              </button>
-            {/if}
-          </div>
-          {#if filteredProducts.length > 0}
-            <div class="results-count">
-              <svg
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                style="width: 16px; height: 16px;"
-              >
-                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                <path
-                  fill-rule="evenodd"
-                  d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-              {filteredProducts.length}
-              {filteredProducts.length === 1 ? "product" : "products"} found
+              </div>
+              <div>
+                <p class="summary-label">Selected product</p>
+                <p class="summary-name">
+                  {selectedProductItem
+                    ? getLocalizedDisplayName(selectedProductItem)
+                    : selectedProduct}
+                </p>
+                <p class="summary-shortname">{selectedProduct || "-"}</p>
+              </div>
             </div>
-          {/if}
-        </div>
-
-        <!-- Product List -->
-        {#if isLoadingProducts}
-          <div class="loading-state">
-            <div class="spinner"></div>
-            <p>{$_("seller_dashboard.loading") || "Loading products..."}</p>
-          </div>
-        {:else if filteredProducts.length === 0}
-          <div class="empty-state-card">
-            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor">
-              <rect
-                x="8"
-                y="8"
-                width="32"
-                height="32"
-                rx="4"
-                stroke-width="2"
-              />
-              <path
-                d="M16 24h16M24 16v16"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
-            <p class="empty-message">
-              {$_("seller_dashboard.no_products_found") || "No products found"}
-            </p>
-            <p class="empty-hint">Try adjusting your search terms</p>
           </div>
         {:else}
-          <div class="products-table-container">
-            <table class="products-table">
-              <thead>
-                <tr>
-                  <th style="width: 50px;"></th>
-                  <th
-                    >{$_("seller_dashboard.product_name") || "Product Name"}</th
-                  >
-                  <th style="width: 200px;"
-                    >{$_("seller_dashboard.product_id") || "Product ID"}</th
-                  >
-                  <th style="width: 150px;"
-                    >{$_("common.category") || "Category"}</th
-                  >
-                </tr>
-              </thead>
-              <tbody>
-                {#each filteredProducts as product}
-                  <tr
-                    class="product-row"
-                    class:selected={selectedProduct === product.shortname}
-                    onclick={() => {
-                      selectedProduct = product.shortname;
-                      onProductChange();
-                    }}
-                  >
-                    <td class="radio-cell">
-                      <div class="radio-wrapper">
-                        <input
-                          type="radio"
-                          name="product-select"
-                          checked={selectedProduct === product.shortname}
-                          onchange={() => {
-                            selectedProduct = product.shortname;
-                            onProductChange();
-                          }}
-                        />
-                        <div class="radio-custom"></div>
-                      </div>
-                    </td>
-                    <td class="product-name-cell">
-                      <div class="product-name-content">
-                        <div class="product-icon-small">
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                            />
-                          </svg>
-                        </div>
-                        <span class="product-name-text"
-                          >{getLocalizedDisplayName(product)}</span
-                        >
-                      </div>
-                    </td>
-                    <td class="product-id-cell">
-                      <code class="product-id-code">{product.shortname}</code>
-                    </td>
-                    <td class="product-category-cell">
-                      <span class="category-badge">
-                        {product.attributes?.payload?.body?.category ||
-                          "General"}
-                      </span>
-                    </td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
+          <!-- Search Section -->
+          <div class="search-section">
+            <div class="search-wrapper">
+              {#if isSearching}
+                <div class="search-icon spinner-icon">
+                  <div class="spinner-small"></div>
+                </div>
+              {:else}
+                <svg
+                  class="search-icon"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <circle cx="8" cy="8" r="5" stroke-width="2" />
+                  <path
+                    d="M12 12l4 4"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              {/if}
+              <input
+                type="text"
+                bind:value={productSearchTerm}
+                oninput={onFilterProducts}
+                placeholder={$_("seller_dashboard.search_placeholder") ||
+                  "Search by product name..."}
+                class="search-input"
+                class:rtl={isRTL}
+              />
+              {#if productSearchTerm && !isSearching}
+                <button
+                  class="clear-search"
+                  onclick={() => {
+                    productSearchTerm = "";
+                    onFilterProducts();
+                  }}
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path
+                      d="M10 8.586L6.707 5.293a1 1 0 00-1.414 1.414L8.586 10l-3.293 3.293a1 1 0 101.414 1.414L10 11.414l3.293 3.293a1 1 0 001.414-1.414L11.414 10l3.293-3.293a1 1 0 00-1.414-1.414L10 8.586z"
+                    />
+                  </svg>
+                </button>
+              {/if}
+            </div>
+            {#if filteredProducts.length > 0}
+              <div class="results-count">
+                <svg
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  style="width: 16px; height: 16px;"
+                >
+                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                  <path
+                    fill-rule="evenodd"
+                    d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                {filteredProducts.length}
+                {filteredProducts.length === 1 ? "product" : "products"} found
+              </div>
+            {/if}
           </div>
 
-          <!-- Pagination -->
-          {#if totalPages > 1 && !isSearching}
-            <div class="pagination-container">
-              <button
-                class="pagination-btn"
-                onclick={() => onPageChange(currentPage - 1)}
-                disabled={currentPage === 1 || isLoadingProducts}
-                title={$_("common.previous") || "Previous"}
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fill-rule="evenodd"
-                    d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </button>
-
-              <div class="pagination-numbers">
-                {#each Array.from({ length: totalPages }, (_, i) => i + 1) as pageNum}
-                  {#if pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)}
-                    <button
-                      class="pagination-number"
-                      class:active={pageNum === currentPage}
-                      onclick={() => onPageChange(pageNum)}
-                      disabled={isLoadingProducts}
-                    >
-                      {pageNum}
-                    </button>
-                  {:else if pageNum === currentPage - 2 || pageNum === currentPage + 2}
-                    <span class="pagination-ellipsis">...</span>
-                  {/if}
-                {/each}
-              </div>
-
-              <button
-                class="pagination-btn"
-                onclick={() => onPageChange(currentPage + 1)}
-                disabled={currentPage === totalPages || isLoadingProducts}
-                title={$_("common.next") || "Next"}
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fill-rule="evenodd"
-                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </button>
+          <!-- Product List -->
+          {#if isLoadingProducts}
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <p>{$_("seller_dashboard.loading") || "Loading products..."}</p>
             </div>
+          {:else if filteredProducts.length === 0}
+            <div class="empty-state-card">
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor">
+                <rect
+                  x="8"
+                  y="8"
+                  width="32"
+                  height="32"
+                  rx="4"
+                  stroke-width="2"
+                />
+                <path
+                  d="M16 24h16M24 16v16"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <p class="empty-message">
+                {$_("seller_dashboard.no_products_found") ||
+                  "No products found"}
+              </p>
+              <p class="empty-hint">Try adjusting your search terms</p>
+            </div>
+          {:else}
+            <div class="products-table-container">
+              <table class="products-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;"></th>
+                    <th
+                      >{$_("seller_dashboard.product_name") ||
+                        "Product Name"}</th
+                    >
+                    <th style="width: 200px;"
+                      >{$_("seller_dashboard.product_id") || "Product ID"}</th
+                    >
+                    <th style="width: 150px;"
+                      >{$_("common.category") || "Category"}</th
+                    >
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each filteredProducts as product}
+                    <tr
+                      class="product-row"
+                      class:selected={selectedProduct === product.shortname}
+                      onclick={() => {
+                        if (disableProductSelection) {
+                          return;
+                        }
+                        selectedProduct = product.shortname;
+                        onProductChange();
+                      }}
+                    >
+                      <td class="radio-cell">
+                        <div class="radio-wrapper">
+                          <input
+                            type="radio"
+                            name="product-select"
+                            checked={selectedProduct === product.shortname}
+                            onchange={() => {
+                              if (disableProductSelection) {
+                                return;
+                              }
+                              selectedProduct = product.shortname;
+                              onProductChange();
+                            }}
+                            disabled={disableProductSelection}
+                          />
+                          <div class="radio-custom"></div>
+                        </div>
+                      </td>
+                      <td class="product-name-cell">
+                        <div class="product-name-content">
+                          <div class="product-icon-small">
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                              />
+                            </svg>
+                          </div>
+                          <span class="product-name-text"
+                            >{getLocalizedDisplayName(product)}</span
+                          >
+                        </div>
+                      </td>
+                      <td class="product-id-cell">
+                        <code class="product-id-code">{product.shortname}</code>
+                      </td>
+                      <td class="product-category-cell">
+                        <span class="category-badge">
+                          {product.attributes?.payload?.body?.category ||
+                            "General"}
+                        </span>
+                      </td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            {#if totalPages > 1 && !isSearching}
+              <div class="pagination-container">
+                <button
+                  class="pagination-btn"
+                  onclick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || isLoadingProducts}
+                  title={$_("common.previous") || "Previous"}
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path
+                      fill-rule="evenodd"
+                      d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+
+                <div class="pagination-numbers">
+                  {#each Array.from({ length: totalPages }, (_, i) => i + 1) as pageNum}
+                    {#if pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)}
+                      <button
+                        class="pagination-number"
+                        class:active={pageNum === currentPage}
+                        onclick={() => onPageChange(pageNum)}
+                        disabled={isLoadingProducts}
+                      >
+                        {pageNum}
+                      </button>
+                    {:else if pageNum === currentPage - 2 || pageNum === currentPage + 2}
+                      <span class="pagination-ellipsis">...</span>
+                    {/if}
+                  {/each}
+                </div>
+
+                <button
+                  class="pagination-btn"
+                  onclick={() => onPageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages || isLoadingProducts}
+                  title={$_("common.next") || "Next"}
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path
+                      fill-rule="evenodd"
+                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
+            {/if}
           {/if}
         {/if}
 
@@ -646,7 +700,7 @@
               d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
             />
           </svg>
-          {$_("seller_dashboard.add_items") || "Add Items"}
+          {submitLabel || $_("seller_dashboard.add_items") || "Add Items"}
         </button>
       </div>
     </div>
@@ -977,6 +1031,59 @@
     border-top-color: #281f51;
     border-radius: 50%;
     animation: spin 0.6s linear infinite;
+  }
+
+  .selected-product-summary {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: #f9fafb;
+    margin-bottom: 2rem;
+  }
+
+  .summary-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .summary-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #281f51 0%, #3d2f6a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .summary-icon svg {
+    width: 20px;
+    height: 20px;
+    stroke: white;
+    stroke-width: 2;
+  }
+
+  .summary-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  .summary-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0.25rem 0 0;
+  }
+
+  .summary-shortname {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin: 0.25rem 0 0;
   }
 
   .spinner-icon {
