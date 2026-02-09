@@ -13,7 +13,7 @@
   import { website } from "@/config";
   import OrderDetailsModal from "./OrderDetailsModal.svelte";
 
-  let combinedOrders = [];
+  let combinedOrders = $state([]);
   let filteredOrders = $state([]);
   let loading = $state(false);
   let error = $state("");
@@ -23,6 +23,12 @@
   let itemsPerPage = 20;
 
   let selectedPaymentStatus = $state("all");
+  let selectedOrderStatus = $state("all");
+  let selectedSeller = $state("all");
+  let selectedGovernorate = $state("all");
+  let selectedBnpl = $state("all");
+  let dateFrom = $state("");
+  let dateTo = $state("");
   let searchQuery = $state("");
 
   let isModalOpen = $state(false);
@@ -35,6 +41,12 @@
     { value: "completed", label: "Completed" },
     { value: "nopaid", label: "Not Paid" },
     { value: "failed", label: "Failed" },
+  ];
+
+  const bnplFilterOptions = [
+    { value: "all", label: "All" },
+    { value: "bnpl", label: "BNPL" },
+    { value: "non_bnpl", label: "Non-BNPL" },
   ];
 
   onMount(() => {
@@ -74,6 +86,47 @@
       const orderPayload = order.attributes?.payload?.body;
       if (!orderPayload) return false;
 
+      const orderStatus = getCombinedOrderStatus(order);
+      if (
+        selectedOrderStatus !== "all" &&
+        orderStatus !== selectedOrderStatus
+      ) {
+        return false;
+      }
+
+      const sellers = getCombinedOrderSellers(order);
+      if (selectedSeller !== "all" && !sellers.includes(selectedSeller)) {
+        return false;
+      }
+
+      const governorate = getCombinedOrderGovernorate(order);
+      if (
+        selectedGovernorate !== "all" &&
+        governorate !== selectedGovernorate
+      ) {
+        return false;
+      }
+
+      if (selectedBnpl !== "all") {
+        const isBnpl = isBnplOrder(orderPayload);
+        if (selectedBnpl === "bnpl" && !isBnpl) return false;
+        if (selectedBnpl === "non_bnpl" && isBnpl) return false;
+      }
+
+      if (dateFrom || dateTo) {
+        const createdAt = order.attributes?.created_at;
+        if (!createdAt) return false;
+        const createdDate = new Date(createdAt);
+        if (dateFrom) {
+          const start = new Date(`${dateFrom}T00:00:00`);
+          if (createdDate < start) return false;
+        }
+        if (dateTo) {
+          const end = new Date(`${dateTo}T23:59:59.999`);
+          if (createdDate > end) return false;
+        }
+      }
+
       if (
         selectedPaymentStatus !== "all" &&
         orderPayload.payment_status !== selectedPaymentStatus
@@ -89,8 +142,16 @@
         const matchesUserShortname = orderPayload.user_shortname
           ?.toLowerCase()
           .includes(query);
+        const matchesPhone = [
+          orderPayload.phone,
+          orderPayload.user_phone,
+          orderPayload.phone_number,
+          orderPayload.customer_phone,
+        ]
+          .filter(Boolean)
+          .some((value) => value.toString().toLowerCase().includes(query));
 
-        if (!matchesOrderId && !matchesUserShortname) {
+        if (!matchesOrderId && !matchesUserShortname && !matchesPhone) {
           return false;
         }
       }
@@ -230,6 +291,105 @@
     return statusClasses[status] || "bg-gray-100 text-gray-800";
   }
 
+  function getCombinedOrderStatus(order: any): string {
+    return (
+      order.attributes?.state ||
+      order.attributes?.payload?.body?.order_status ||
+      order.attributes?.payload?.body?.state ||
+      ""
+    );
+  }
+
+  function getCombinedOrderSellers(order: any): string[] {
+    const payload = order.attributes?.payload?.body || {};
+    const possibleLists = [
+      payload.sellers,
+      payload.seller_shortnames,
+      payload.sellers_shortnames,
+    ];
+    const list = possibleLists.find((value) => Array.isArray(value));
+    const directSeller = payload.seller_shortname || payload.seller;
+    if (list && list.length > 0) {
+      return list.map((value) => value?.toString()).filter(Boolean);
+    }
+    return directSeller ? [directSeller.toString()] : [];
+  }
+
+  function getCombinedOrderGovernorate(order: any): string {
+    const payload = order.attributes?.payload?.body || {};
+    return (
+      payload.governorate ||
+      payload.governrate ||
+      payload.governorate_name ||
+      ""
+    );
+  }
+
+  function isBnplOrder(payload: any): boolean {
+    return payload?.payment_type?.toString().toLowerCase() === "bnpl";
+  }
+
+  function isSameDayDelivery(payload: any): boolean {
+    const shipping = payload?.shipping || {};
+    const shippingType =
+      shipping?.type || payload?.shipping_type || payload?.shippingType || "";
+    return shippingType.toString().toLowerCase() === "ssd";
+  }
+
+  function escapeCsvValue(value: unknown): string {
+    if (value === null || value === undefined) return "";
+    const stringValue = String(value);
+    if (/[",\n]/.test(stringValue)) {
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+    return stringValue;
+  }
+
+  function downloadOrdersCsv() {
+    const header = [
+      "combined_order_id",
+      "order_shortname",
+      "customer_shortname",
+      "customer_phone",
+      "payment_status",
+      "payment_type",
+      "total_amount",
+      "order_from",
+      "created_at",
+    ];
+    const rows = filteredOrders.map((order) => {
+      const payload = order.attributes?.payload?.body || {};
+      return [
+        payload.combined_order_id || order.shortname,
+        order.shortname,
+        payload.user_shortname || "",
+        payload.phone ||
+          payload.user_phone ||
+          payload.phone_number ||
+          payload.customer_phone ||
+          "",
+        payload.payment_status || "",
+        payload.payment_type || "",
+        payload.total_amount || 0,
+        payload.order_from || "",
+        order.attributes?.created_at || "",
+      ].map(escapeCsvValue);
+    });
+
+    const csvContent = [header, ...rows].map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `combined_orders_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   let totalRevenue = $derived.by(() => {
     return filteredOrders.reduce((sum, order) => {
       const payload = order.attributes?.payload?.body;
@@ -260,6 +420,32 @@
 
   let paginationEnd = $derived.by(() => {
     return Math.min(currentPage * itemsPerPage, totalOrders);
+  });
+
+  let availableOrderStatuses = $derived.by(() => {
+    const statuses = new Set<string>();
+    combinedOrders.forEach((order) => {
+      const status = getCombinedOrderStatus(order);
+      if (status) statuses.add(status);
+    });
+    return ["all", ...Array.from(statuses)];
+  });
+
+  let availableSellers = $derived.by(() => {
+    const sellers = new Set<string>();
+    combinedOrders.forEach((order) => {
+      getCombinedOrderSellers(order).forEach((seller) => sellers.add(seller));
+    });
+    return ["all", ...Array.from(sellers)];
+  });
+
+  let availableGovernorates = $derived.by(() => {
+    const governorates = new Set<string>();
+    combinedOrders.forEach((order) => {
+      const governorate = getCombinedOrderGovernorate(order);
+      if (governorate) governorates.add(governorate);
+    });
+    return ["all", ...Array.from(governorates)];
   });
 
   /** Page numbers to show in the pagination bar (numbers or "ellipsis") */
@@ -309,6 +495,12 @@
 
   $effect(() => {
     selectedPaymentStatus;
+    selectedOrderStatus;
+    selectedSeller;
+    selectedGovernorate;
+    selectedBnpl;
+    dateFrom;
+    dateTo;
     searchQuery;
     if (combinedOrders.length > 0) {
       applyFilters();
@@ -400,11 +592,63 @@
       </div>
 
       <div class="filter-group">
+        <label for="order-status-filter">Order Status</label>
+        <select id="order-status-filter" bind:value={selectedOrderStatus}>
+          {#each availableOrderStatuses as status}
+            <option value={status}>
+              {status === "all" ? "All Statuses" : status}
+            </option>
+          {/each}
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="seller-filter">Seller</label>
+        <select id="seller-filter" bind:value={selectedSeller}>
+          {#each availableSellers as seller}
+            <option value={seller}>
+              {seller === "all" ? "All Sellers" : seller}
+            </option>
+          {/each}
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="governorate-filter">Governorate</label>
+        <select id="governorate-filter" bind:value={selectedGovernorate}>
+          {#each availableGovernorates as governorate}
+            <option value={governorate}>
+              {governorate === "all" ? "All Governorates" : governorate}
+            </option>
+          {/each}
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="bnpl-filter">BNPL</label>
+        <select id="bnpl-filter" bind:value={selectedBnpl}>
+          {#each bnplFilterOptions as option}
+            <option value={option.value}>{option.label}</option>
+          {/each}
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="date-from">Date From</label>
+        <input id="date-from" type="date" bind:value={dateFrom} />
+      </div>
+
+      <div class="filter-group">
+        <label for="date-to">Date To</label>
+        <input id="date-to" type="date" bind:value={dateTo} />
+      </div>
+
+      <div class="filter-group">
         <label for="search">Search</label>
         <input
           id="search"
           type="text"
-          placeholder="Order ID, customer username..."
+          placeholder="Order ID, username, phone..."
           bind:value={searchQuery}
         />
       </div>
@@ -414,10 +658,22 @@
           class="btn-reset"
           onclick={() => {
             selectedPaymentStatus = "all";
+            selectedOrderStatus = "all";
+            selectedSeller = "all";
+            selectedGovernorate = "all";
+            selectedBnpl = "all";
+            dateFrom = "";
+            dateTo = "";
             searchQuery = "";
           }}
         >
           Reset Filters
+        </button>
+      </div>
+
+      <div class="filter-group">
+        <button class="btn-download" onclick={downloadOrdersCsv}>
+          Download CSV
         </button>
       </div>
     </div>
@@ -466,6 +722,14 @@
                   <strong
                     >#{payload?.combined_order_id || order.shortname}</strong
                   >
+                  <div class="order-badges">
+                    {#if isBnplOrder(payload)}
+                      <span class="badge badge-bnpl">BNPL</span>
+                    {/if}
+                    {#if isSameDayDelivery(payload)}
+                      <span class="badge badge-ssd">SSD</span>
+                    {/if}
+                  </div>
                 </div>
               </td>
               <td>
@@ -531,13 +795,26 @@
           disabled={currentPage === 1}
           aria-label="Previous page"
         >
-          <svg class="pagination-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          <svg
+            class="pagination-arrow-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </button>
         {#each visiblePageNumbers as segment}
           {#if segment === "ellipsis"}
-            <span class="pagination-segment pagination-ellipsis" aria-hidden="true">…</span>
+            <span
+              class="pagination-segment pagination-ellipsis"
+              aria-hidden="true">…</span
+            >
           {:else}
             <button
               type="button"
@@ -558,8 +835,18 @@
           disabled={currentPage === totalPages}
           aria-label="Next page"
         >
-          <svg class="pagination-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          <svg
+            class="pagination-arrow-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </button>
       </div>

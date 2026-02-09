@@ -1186,6 +1186,44 @@ export async function getSpaceContents(
   return response;
 }
 
+export async function getVariationOptionsByShortname(
+  spaceName: string,
+  variationShortname: string,
+): Promise<{ displayname: any; options: any[] }> {
+  try {
+    const response = await getSpaceContents(
+      spaceName,
+      "variations",
+      "managed",
+      200,
+      0,
+      true,
+    );
+
+    const variation = response?.records?.find(
+      (record) => record.shortname === variationShortname,
+    );
+
+    const payloadBody = variation?.attributes?.payload?.body;
+    const displayname = variation?.attributes?.displayname || {};
+    if (!payloadBody) return { displayname, options: [] };
+
+    if (typeof payloadBody === "string") {
+      try {
+        const parsed = JSON.parse(payloadBody);
+        return { displayname, options: parsed?.options || [] };
+      } catch {
+        return { displayname, options: [] };
+      }
+    }
+
+    return { displayname, options: payloadBody.options || [] };
+  } catch (error) {
+    console.error("Error fetching variation options:", error);
+    return { displayname: {}, options: [] };
+  }
+}
+
 export async function getRelatedContents(
   spaceName: string,
   subpath = "/",
@@ -1346,6 +1384,40 @@ export async function createComment(
             content_type: ContentType.json,
             body: {
               state: "commented",
+              body: comment,
+              parent_comment_id: parentCommentId || null,
+            },
+          },
+        },
+      },
+    ],
+  };
+  const response: ActionResponse = await Dmart.request(data);
+  return response.status == "success" && response.records.length > 0;
+}
+
+export async function createOrderComment(
+  spaceName: string,
+  sellerShortname: string,
+  orderShortname: string,
+  comment: string,
+  state: string = "commented",
+  parentCommentId?: string,
+) {
+  const data: ActionRequest = {
+    space_name: spaceName,
+    request_type: RequestType.create,
+    records: [
+      {
+        resource_type: ResourceType.comment,
+        shortname: "auto",
+        subpath: `orders/${sellerShortname}/${orderShortname}`,
+        attributes: {
+          is_active: true,
+          payload: {
+            content_type: ContentType.json,
+            body: {
+              state,
               body: comment,
               parent_comment_id: parentCommentId || null,
             },
@@ -3278,6 +3350,7 @@ export async function getOrderDetails(
   spaceName: string,
   sellerShortname: string,
   orderShortname: string,
+  retrieveAttachments: boolean = false,
 ): Promise<any | null> {
   try {
     const response = await getEntity(
@@ -3287,7 +3360,7 @@ export async function getOrderDetails(
       ResourceType.ticket,
       "managed",
       true,
-      false,
+      retrieveAttachments,
     );
     return response;
   } catch (error) {
@@ -3342,6 +3415,69 @@ export async function updateOrderState(
     return response.status === "success";
   } catch (error) {
     console.error("Error updating order state:", error);
+    return false;
+  }
+}
+
+export async function progressOrderTicket(
+  spaceName: string,
+  sellerShortname: string,
+  orderShortname: string,
+  action: string,
+  additionalData?: any,
+): Promise<boolean> {
+  try {
+    if (additionalData && Object.keys(additionalData).length > 0) {
+      const currentOrder = await getOrderDetails(
+        spaceName,
+        sellerShortname,
+        orderShortname,
+      );
+
+      if (!currentOrder) {
+        return false;
+      }
+
+      const currentPayload = currentOrder.attributes?.payload?.body || {};
+      const updatedPayload = {
+        ...currentPayload,
+        ...additionalData,
+      };
+
+      const updateRequest: ActionRequest = {
+        space_name: spaceName,
+        request_type: RequestType.update,
+        records: [
+          {
+            resource_type: ResourceType.ticket,
+            shortname: orderShortname,
+            subpath: `orders/${sellerShortname}`,
+            attributes: {
+              payload: {
+                content_type: "json",
+                body: updatedPayload,
+              },
+            },
+          },
+        ],
+      };
+
+      const updateResponse: ActionResponse = await Dmart.request(updateRequest);
+      if (updateResponse.status !== "success") {
+        return false;
+      }
+    }
+
+    const progressResponse = await Dmart.progressTicket({
+      space_name: spaceName,
+      subpath: `orders/${sellerShortname}`,
+      shortname: orderShortname,
+      action,
+    });
+
+    return progressResponse.status === "success";
+  } catch (error) {
+    console.error("Error progressing order ticket:", error);
     return false;
   }
 }
