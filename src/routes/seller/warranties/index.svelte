@@ -287,7 +287,7 @@
             Manage warranty policies
           </p>
         </div>
-        <button class="btn-primary" onclick={openWarrantyModal}>
+        <!-- <button class="btn-primary" onclick={openWarrantyModal}>
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor">
             <path
               d="M10 5v10M5 10h10"
@@ -296,7 +296,7 @@
             />
           </svg>
           {$_("seller_dashboard.add_warranty")}
-        </button>
+        </button> -->
       </div>
     </div>
 
@@ -330,10 +330,10 @@
           />
         </svg>
         <h3>{$_("seller_dashboard.no_warranties")}</h3>
-        <p>{$_("seller_dashboard.add_first_warranty")}</p>
+        <!-- <p>{$_("seller_dashboard.add_first_warranty")}</p>
         <button class="btn-primary" onclick={openWarrantyModal}>
-          {$_("seller_dashboard.add_warranty")}
-        </button>
+          {$_("seller_dashboard.add_warranty")} 
+        </button> -->
       </div>
     {:else}
       <div class="items-stats">

@@ -57,7 +57,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   function getItemDisplayName(item: any): string {
@@ -78,7 +78,7 @@
         "managed",
         1000,
         0,
-        true
+        true,
       );
 
       if (response?.records) {
@@ -102,7 +102,7 @@
         "managed",
         1000,
         0,
-        true
+        true,
       );
       if (response?.records) {
         brands = response.records;
@@ -201,7 +201,7 @@
         `/coupons/${$user.shortname}`,
         ResourceType.content,
         "",
-        ""
+        "",
       );
 
       successToastMessage("Coupon created successfully!");
@@ -295,7 +295,7 @@
         itemToEdit.resource_type,
         updateData,
         "",
-        ""
+        "",
       );
 
       successToastMessage("Coupon updated successfully!");
@@ -329,7 +329,7 @@
         itemToDelete.shortname,
         itemToDelete.space_name,
         itemToDelete.subpath,
-        itemToDelete.resource_type
+        itemToDelete.resource_type,
       );
 
       successToastMessage("Coupon deleted successfully!");
@@ -372,7 +372,7 @@
             Manage your coupon codes
           </p>
         </div>
-        <button class="btn-primary" onclick={openCouponModal}>
+        <!-- <button class="btn-primary" onclick={openCouponModal}>
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor">
             <path
               d="M10 5v10M5 10h10"
@@ -381,7 +381,7 @@
             />
           </svg>
           {$_("seller_dashboard.add_coupon")}
-        </button>
+        </button> -->
       </div>
     </div>
 
@@ -420,10 +420,10 @@
           />
         </svg>
         <h3>{$_("seller_dashboard.no_coupons")}</h3>
-        <p>{$_("seller_dashboard.add_first_coupon")}</p>
+        <!-- <p>{$_("seller_dashboard.add_first_coupon")}</p>
         <button class="btn-primary" onclick={openCouponModal}>
           {$_("seller_dashboard.add_coupon")}
-        </button>
+        </button> -->
       </div>
     {:else}
       <div class="items-stats">
@@ -468,7 +468,7 @@
                 <td>
                   <div class="product-info">
                     {formatDate(content.validity?.from)} - {formatDate(
-                      content.validity?.to
+                      content.validity?.to,
                     )}
                   </div>
                 </td>

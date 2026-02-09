@@ -79,7 +79,7 @@
     <h2 class="section-title">
       {$_("seller_dashboard.shipping_configuration")}
     </h2>
-    <button class="add-button" onclick={() => onOpenItemModal()}>
+    <!-- <button class="add-button" onclick={() => onOpenItemModal()}>
       <svg
         width="16"
         height="16"
@@ -95,13 +95,13 @@
         />
       </svg>
       {$_("seller_dashboard.add_shipping_rule")}
-    </button>
+    </button> -->
   </div>
 
   {#if items.length === 0}
     <div class="empty-message">
       <p>{$_("seller_dashboard.no_shipping_configured")}</p>
-      <p class="empty-hint">{$_("seller_dashboard.click_add_to_configure")}</p>
+      <!-- <p class="empty-hint">{$_("seller_dashboard.click_add_to_configure")}</p> -->
     </div>
   {:else}
     <!-- Default/Base Shipping Rules -->

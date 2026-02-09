@@ -394,7 +394,7 @@
             Manage product and category discounts
           </p>
         </div>
-        <button class="btn-primary" onclick={openDiscountModal}>
+        <!-- <button class="btn-primary" onclick={openDiscountModal}>
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor">
             <path
               d="M10 5v10M5 10h10"
@@ -403,7 +403,7 @@
             />
           </svg>
           {$_("seller_dashboard.add_discount")}
-        </button>
+        </button> -->
       </div>
     </div>
 
@@ -435,10 +435,10 @@
           <path d="M24 16v8l4 4" stroke-width="2" stroke-linecap="round" />
         </svg>
         <h3>{$_("seller_dashboard.no_discounts")}</h3>
-        <p>{$_("seller_dashboard.add_first_discount")}</p>
+        <!-- <p>{$_("seller_dashboard.add_first_discount")}</p>
         <button class="btn-primary" onclick={openDiscountModal}>
           {$_("seller_dashboard.add_discount")}
-        </button>
+        </button> -->
       </div>
     {:else}
       <div class="items-stats">
