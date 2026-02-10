@@ -1,12 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { _ } from "svelte-i18n";
-  import {
-    getSellerOrders,
-    updateOrderState,
-    getCombinedOrderDetails,
-    getPaymentByCombinedOrder,
-  } from "@/lib/dmart_services";
+  import { getSellerOrders, updateOrderState } from "@/lib/dmart_services";
   import type { Order } from "@/lib/types";
   import OrderDetailsModal from "@/components/modals/OrderDetailsModal.svelte";
   import {
@@ -27,13 +22,14 @@
   let selectedState = $state("all");
   let selectedPaymentStatus = $state("all");
   let searchQuery = $state("");
+  let phoneFilter = $state("");
+  let governorateFilter = $state("");
   let dateFrom = $state("");
   let dateTo = $state("");
+  let searchDebounce = $state<ReturnType<typeof setTimeout> | null>(null);
 
   let showOrderDetails = $state(false);
   let selectedOrder = $state(null);
-  let orderPayment: any = $state(null);
-  let combinedOrderDetails: any = $state(null);
 
   let sellerShortname = $state("");
   let initialized = false;
@@ -51,21 +47,34 @@
     { value: "pending", label: "Pending" },
     { value: "confirmed", label: "Confirmed" },
     { value: "processing", label: "Processing" },
-    { value: "shipped", label: "Shipped" },
-    { value: "out_for_delivery", label: "Out for Delivery" },
-    { value: "confirm_delivery", label: "Confirm Delivery" },
     { value: "delivered", label: "Delivered" },
-    { value: "cancelled", label: "Cancelled" },
-    { value: "returned", label: "Returned" },
+    { value: "delivery_confirmed", label: "Delivery Confirmed" },
+    { value: "issue_reported", label: "Issue Reported" },
+    { value: "refund_pending", label: "Refund Pending" },
+    { value: "refunded", label: "Refunded" },
+    { value: "resolved", label: "Resolved" },
+    { value: "cancel", label: "Customer Cancelled" },
+    { value: "customer_cancelled", label: "Customer Cancel" },
   ];
 
   const paymentStatuses = [
     { value: "all", label: "All Payment Status" },
     { value: "pending", label: "Pending" },
     { value: "completed", label: "Completed" },
+    { value: "unpaid", label: "Unpaid" },
     { value: "nopaid", label: "Not Paid" },
     { value: "failed", label: "Failed" },
   ];
+
+  function scheduleLoadOrders() {
+    if (searchDebounce) {
+      clearTimeout(searchDebounce);
+    }
+    searchDebounce = setTimeout(() => {
+      currentPage = 1;
+      loadOrders();
+    }, 400);
+  }
 
   async function loadOrders() {
     if (!sellerShortname) {
@@ -80,6 +89,11 @@
     try {
       const offset = (currentPage - 1) * itemsPerPage;
       const stateFilter = selectedState !== "all" ? selectedState : undefined;
+      const paymentFilter =
+        selectedPaymentStatus !== "all" ? selectedPaymentStatus : undefined;
+      const phoneValue = phoneFilter.trim() || undefined;
+      const governorateValue = governorateFilter.trim() || undefined;
+      const searchValue = searchQuery.trim() || undefined;
 
       const response = await getSellerOrders(
         website.main_space,
@@ -87,6 +101,10 @@
         itemsPerPage,
         offset,
         stateFilter,
+        paymentFilter,
+        phoneValue,
+        governorateValue,
+        searchValue,
       );
 
       if (response.status === "success") {
@@ -140,12 +158,14 @@
       }
 
       if (dateFrom) {
+        if (!order.attributes?.created_at) return false;
         const orderDate = new Date(order.attributes.created_at);
         const fromDate = new Date(dateFrom);
         if (orderDate < fromDate) return false;
       }
 
       if (dateTo) {
+        if (!order.attributes?.created_at) return false;
         const orderDate = new Date(order.attributes.created_at);
         const toDate = new Date(dateTo);
         toDate.setHours(23, 59, 59);
@@ -190,25 +210,6 @@
     loading = true;
 
     try {
-      const combinedOrderId =
-        order.attributes?.payload?.body?.combined_order_id?.toString();
-
-      if (!combinedOrderId) {
-        errorToastMessage("Order data is incomplete");
-        loading = false;
-        return;
-      }
-
-      combinedOrderDetails = await getCombinedOrderDetails(
-        website.main_space,
-        combinedOrderId,
-      );
-
-      orderPayment = await getPaymentByCombinedOrder(
-        website.main_space,
-        combinedOrderId,
-      );
-
       showOrderDetails = true;
     } catch (e) {
       errorToastMessage("Failed to load order details");
@@ -221,8 +222,6 @@
   function closeOrderDetails() {
     showOrderDetails = false;
     selectedOrder = null;
-    orderPayment = null;
-    combinedOrderDetails = null;
   }
 
   function formatDate(dateString: string): string {
@@ -337,7 +336,14 @@
 
       <div class="filter-group">
         <label for="payment-filter">Payment Status</label>
-        <select id="payment-filter" bind:value={selectedPaymentStatus}>
+        <select
+          id="payment-filter"
+          bind:value={selectedPaymentStatus}
+          onchange={() => {
+            currentPage = 1;
+            loadOrders();
+          }}
+        >
           {#each paymentStatuses as status}
             <option value={status.value}>{status.label}</option>
           {/each}
@@ -351,11 +357,34 @@
           type="text"
           placeholder="Order code, customer, phone..."
           bind:value={searchQuery}
+          oninput={scheduleLoadOrders}
         />
       </div>
     </div>
 
     <div class="filters-row">
+      <div class="filter-group">
+        <label for="phone-filter">Phone</label>
+        <input
+          id="phone-filter"
+          type="text"
+          placeholder="9647..."
+          bind:value={phoneFilter}
+          oninput={scheduleLoadOrders}
+        />
+      </div>
+
+      <div class="filter-group">
+        <label for="governorate-filter">Governorate</label>
+        <input
+          id="governorate-filter"
+          type="text"
+          placeholder="Baghdad"
+          bind:value={governorateFilter}
+          oninput={scheduleLoadOrders}
+        />
+      </div>
+
       <div class="filter-group">
         <label for="date-from">Date From</label>
         <input id="date-from" type="date" bind:value={dateFrom} />
@@ -373,8 +402,12 @@
             selectedState = "all";
             selectedPaymentStatus = "all";
             searchQuery = "";
+            phoneFilter = "";
+            governorateFilter = "";
             dateFrom = "";
             dateTo = "";
+            currentPage = 1;
+            loadOrders();
           }}
         >
           Reset Filters
@@ -413,7 +446,6 @@
             <th>Payment</th>
             <th>State</th>
             <th>Date</th>
-            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -454,18 +486,22 @@
                 </div>
               </td>
               <td>
-                <span class="badge {getStateClass(order.attributes.state)}">
-                  {order.attributes.state}
+                <span
+                  class="badge {getStateClass(
+                    order.attributes?.state || 'pending',
+                  )}"
+                >
+                  {order.attributes?.state || "pending"}
                 </span>
               </td>
               <td>
-                <small>{formatDate(order.attributes.created_at)}</small>
+                <small>{formatDate(order.attributes?.created_at)}</small>
               </td>
-              <td onclick={(e) => e.stopPropagation()}>
+              <!-- <td onclick={(e) => e.stopPropagation()}>
                 <div class="action-buttons">
                   <select
                     class="state-select"
-                    value={order.attributes.state}
+                    value={order.attributes?.state || "pending"}
                     onchange={(e) =>
                       handleStateChange(order, e.currentTarget.value)}
                   >
@@ -474,7 +510,7 @@
                     {/each}
                   </select>
                 </div>
-              </td>
+              </td> -->
             </tr>
           {/each}
         </tbody>
@@ -507,8 +543,6 @@
 {#if showOrderDetails && selectedOrder}
   <OrderDetailsModal
     order={selectedOrder}
-    payment={orderPayment}
-    combinedOrder={combinedOrderDetails}
     {sellerShortname}
     on:close={closeOrderDetails}
     on:stateChange={async () => {

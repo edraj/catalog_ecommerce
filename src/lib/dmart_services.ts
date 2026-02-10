@@ -200,7 +200,6 @@ export async function getEntity(
   if (!cleanSubpath || cleanSubpath === "/") {
     cleanSubpath = "__root__";
   }
-  console.log("getEntity() = ", spaceName, subpath);
 
   try {
     return await Dmart.retrieveEntry(
@@ -3324,11 +3323,34 @@ export async function getSellerOrders(
   limit: number = 100,
   offset: number = 0,
   state?: string,
+  paymentStatus?: string,
+  phone?: string,
+  governorate?: string,
+  searchQuery?: string,
 ): Promise<ApiQueryResponse> {
-  let search = "@resource_type:ticket";
+  const searchParts: string[] = ["@resource_type:ticket"];
+
   if (state) {
-    search += ` @state:${state}`;
+    searchParts.push(`@state:${state}`);
   }
+  if (paymentStatus) {
+    searchParts.push(
+      `@payload.body.payment_status:${formatSearchValue(paymentStatus)}`,
+    );
+  }
+  if (phone) {
+    searchParts.push(`@payload.body.user.phone:${formatSearchValue(phone)}`);
+  }
+  if (governorate) {
+    searchParts.push(
+      `@payload.body.user.state:${formatSearchValue(governorate)}`,
+    );
+  }
+  if (searchQuery) {
+    searchParts.push(formatSearchValue(searchQuery));
+  }
+
+  const search = searchParts.join(" ").trim();
 
   const query: QueryRequest = {
     type: QueryType.search,
@@ -3345,6 +3367,15 @@ export async function getSellerOrders(
   };
 
   return await Dmart.query(query, "managed");
+}
+
+function formatSearchValue(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/\s/.test(trimmed)) {
+    return `"${trimmed.replace(/"/g, '\\"')}"`;
+  }
+  return trimmed;
 }
 
 export async function getOrderDetails(
@@ -3530,12 +3561,6 @@ export async function getCombinedOrderDetails(
   combinedOrderShortname: string,
 ): Promise<any | null> {
   try {
-    console.log(
-      "getCombinedOrderDetails() = ",
-      spaceName,
-      combinedOrderShortname,
-    );
-
     const response = await getEntity(
       combinedOrderShortname,
       spaceName,

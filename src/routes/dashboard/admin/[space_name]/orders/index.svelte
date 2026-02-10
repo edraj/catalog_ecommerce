@@ -18,6 +18,7 @@
   let loading = $state(false);
   let error = $state("");
   let totalOrders = $state(0);
+  let combinedOrderSuborders = $state(new Map());
 
   let currentPage = $state(1);
   let itemsPerPage = 20;
@@ -30,6 +31,7 @@
   let dateFrom = $state("");
   let dateTo = $state("");
   let searchQuery = $state("");
+  let phoneQuery = $state("");
 
   let isModalOpen = $state(false);
   let selectedCombinedOrder = $state(null);
@@ -58,21 +60,11 @@
     error = "";
 
     try {
-      const offset = (currentPage - 1) * itemsPerPage;
-      const response = await getCombinedOrders(
-        website.main_space,
-        undefined,
-        itemsPerPage,
-        offset,
-      );
-
-      if (response.status === "success") {
-        combinedOrders = response.records || [];
-        totalOrders = response.attributes?.total || 0;
-        applyFilters();
-      } else {
-        error = "Failed to load orders";
-      }
+      const allOrders = await fetchAllCombinedOrders();
+      combinedOrders = allOrders;
+      totalOrders = combinedOrders.length;
+      await loadSubordersForCombinedOrders(combinedOrders);
+      applyFilters();
     } catch (e) {
       error = "An error occurred while loading orders";
       console.error(e);
@@ -81,17 +73,131 @@
     }
   }
 
+  async function fetchAllCombinedOrders(): Promise<any[]> {
+    const pageSize = 200;
+    let offset = 0;
+    let total = 0;
+    const allOrders: any[] = [];
+
+    while (true) {
+      const response = await getCombinedOrders(
+        website.main_space,
+        undefined,
+        pageSize,
+        offset,
+      );
+
+      if (response.status !== "success") {
+        error = "Failed to load orders";
+        break;
+      }
+
+      const records = response.records || [];
+      allOrders.push(...records);
+      total = response.attributes?.total || allOrders.length;
+      offset += pageSize;
+
+      if (records.length === 0 || allOrders.length >= total) {
+        break;
+      }
+    }
+
+    return allOrders;
+  }
+
+  async function loadSubordersForCombinedOrders(orders: any[]) {
+    const shortnameToCombinedKeys = new Map();
+    orders.forEach((order) => {
+      const payload = order.attributes?.payload?.body || {};
+      const orderShortnames = payload.orders_shortnames || [];
+      const combinedKey = getCombinedOrderKey(order);
+      orderShortnames.forEach((shortname: string) => {
+        const existing = shortnameToCombinedKeys.get(shortname) || [];
+        existing.push(combinedKey);
+        shortnameToCombinedKeys.set(shortname, existing);
+      });
+    });
+
+    if (shortnameToCombinedKeys.size === 0) {
+      combinedOrderSuborders = new Map();
+      return;
+    }
+
+    const subordersMap = new Map();
+
+    try {
+      const sellersResponse = await getSpaceContents(
+        website.main_space,
+        "orders",
+        "managed",
+        1000,
+        0,
+        false,
+      );
+
+      if (sellersResponse?.records) {
+        const sellers = sellersResponse.records.filter(
+          (record) => record.resource_type === "folder",
+        );
+
+        const sellerPromises = sellers.map(async (seller) => {
+          try {
+            const sellerOrdersResponse = await getSpaceContents(
+              website.main_space,
+              `orders/${seller.shortname}`,
+              "managed",
+              1000,
+              0,
+              true,
+            );
+
+            if (!sellerOrdersResponse?.records) return;
+
+            sellerOrdersResponse.records.forEach((orderRecord) => {
+              const combinedKeys = shortnameToCombinedKeys.get(
+                orderRecord.shortname,
+              );
+              if (!combinedKeys) return;
+              combinedKeys.forEach((combinedKey: string) => {
+                const list = subordersMap.get(combinedKey) || [];
+                list.push({
+                  ...orderRecord,
+                  seller_shortname: seller.shortname,
+                });
+                subordersMap.set(combinedKey, list);
+              });
+            });
+          } catch (err) {
+            console.error(
+              `Error loading orders for seller ${seller.shortname}:`,
+              err,
+            );
+          }
+        });
+
+        await Promise.all(sellerPromises);
+      }
+    } catch (err) {
+      console.error("Error loading suborders for combined orders:", err);
+    }
+
+    combinedOrderSuborders = subordersMap;
+  }
+
   function applyFilters() {
     filteredOrders = combinedOrders.filter((order) => {
       const orderPayload = order.attributes?.payload?.body;
       if (!orderPayload) return false;
 
-      const orderStatus = getCombinedOrderStatus(order);
-      if (
-        selectedOrderStatus !== "all" &&
-        orderStatus !== selectedOrderStatus
-      ) {
-        return false;
+      const combinedKey = getCombinedOrderKey(order);
+      const suborders = combinedOrderSuborders.get(combinedKey) || [];
+
+      if (selectedOrderStatus !== "all") {
+        const hasMatchingStatus = suborders.some(
+          (suborder) =>
+            getOrderStatusFromSuborder(suborder) === selectedOrderStatus,
+        );
+        if (!hasMatchingStatus) return false;
       }
 
       const sellers = getCombinedOrderSellers(order);
@@ -108,7 +214,7 @@
       }
 
       if (selectedBnpl !== "all") {
-        const isBnpl = isBnplOrder(orderPayload);
+        const isBnpl = isCombinedOrderBnpl(order);
         if (selectedBnpl === "bnpl" && !isBnpl) return false;
         if (selectedBnpl === "non_bnpl" && isBnpl) return false;
       }
@@ -134,6 +240,21 @@
         return false;
       }
 
+      if (phoneQuery) {
+        const query = phoneQuery.toLowerCase();
+        const combinedPhoneMatches = getCombinedOrderPhones(order).some(
+          (value) => value.toLowerCase().includes(query),
+        );
+        const suborderPhoneMatches = suborders.some((suborder) =>
+          getOrderPhones(suborder).some((value) =>
+            value.toLowerCase().includes(query),
+          ),
+        );
+        if (!combinedPhoneMatches && !suborderPhoneMatches) {
+          return false;
+        }
+      }
+
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesOrderId = orderPayload.combined_order_id
@@ -142,16 +263,38 @@
         const matchesUserShortname = orderPayload.user_shortname
           ?.toLowerCase()
           .includes(query);
-        const matchesPhone = [
-          orderPayload.phone,
-          orderPayload.user_phone,
-          orderPayload.phone_number,
-          orderPayload.customer_phone,
-        ]
-          .filter(Boolean)
-          .some((value) => value.toString().toLowerCase().includes(query));
+        const matchesPhone = getCombinedOrderPhones(order).some((value) =>
+          value.toLowerCase().includes(query),
+        );
+        const matchesSuborders = suborders.some((suborder) => {
+          const subPayload = suborder.attributes?.payload?.body || {};
+          const subUserShortname = subPayload.user?.shortname || "";
+          const subOrderCode = subPayload.order_code || "";
+          const subMatchOrderId = suborder.shortname
+            ?.toString()
+            .includes(query);
+          const subMatchUser = subUserShortname
+            .toString()
+            .toLowerCase()
+            .includes(query);
+          const subMatchCode = subOrderCode
+            .toString()
+            .toLowerCase()
+            .includes(query);
+          const subMatchPhone = getOrderPhones(suborder).some((value) =>
+            value.toLowerCase().includes(query),
+          );
+          return (
+            subMatchOrderId || subMatchUser || subMatchCode || subMatchPhone
+          );
+        });
 
-        if (!matchesOrderId && !matchesUserShortname && !matchesPhone) {
+        if (
+          !matchesOrderId &&
+          !matchesUserShortname &&
+          !matchesPhone &&
+          !matchesSuborders
+        ) {
           return false;
         }
       }
@@ -301,6 +444,14 @@
   }
 
   function getCombinedOrderSellers(order: any): string[] {
+    const combinedKey = getCombinedOrderKey(order);
+    const suborders = combinedOrderSuborders.get(combinedKey) || [];
+    if (suborders.length > 0) {
+      return suborders
+        .map((suborder) => getOrderSellerShortname(suborder))
+        .filter(Boolean);
+    }
+
     const payload = order.attributes?.payload?.body || {};
     const possibleLists = [
       payload.sellers,
@@ -316,6 +467,15 @@
   }
 
   function getCombinedOrderGovernorate(order: any): string {
+    const combinedKey = getCombinedOrderKey(order);
+    const suborders = combinedOrderSuborders.get(combinedKey) || [];
+    const suborderGovernorates = suborders
+      .map((suborder) => getOrderGovernorate(suborder))
+      .filter(Boolean);
+    if (suborderGovernorates.length > 0) {
+      return suborderGovernorates[0];
+    }
+
     const payload = order.attributes?.payload?.body || {};
     return (
       payload.governorate ||
@@ -326,7 +486,73 @@
   }
 
   function isBnplOrder(payload: any): boolean {
-    return payload?.payment_type?.toString().toLowerCase() === "bnpl";
+    const info = payload?.info?.toString().toLowerCase() || "";
+    const paymentType = payload?.payment_type?.toString().toLowerCase() || "";
+    return paymentType === "bnpl" || info.includes("bnpl");
+  }
+
+  function isCombinedOrderBnpl(order: any): boolean {
+    const payload = order.attributes?.payload?.body || {};
+    if (isBnplOrder(payload)) return true;
+    const combinedKey = getCombinedOrderKey(order);
+    const suborders = combinedOrderSuborders.get(combinedKey) || [];
+    return suborders.some((suborder) =>
+      isBnplOrder(suborder.attributes?.payload?.body),
+    );
+  }
+
+  function getCombinedOrderKey(order: any): string {
+    const payload = order.attributes?.payload?.body || {};
+    return (payload.combined_order_id || order.shortname).toString();
+  }
+
+  function getOrderStatusFromSuborder(order: any): string {
+    return (
+      order.attributes?.state ||
+      order.attributes?.payload?.body?.order_status ||
+      order.attributes?.payload?.body?.state ||
+      ""
+    );
+  }
+
+  function getOrderSellerShortname(order: any): string {
+    if (order.seller_shortname) return order.seller_shortname.toString();
+    if (order.attributes?.seller_shortname) {
+      return order.attributes.seller_shortname.toString();
+    }
+    const subpath = order.subpath || "";
+    const segments = subpath.split("/");
+    return segments[1] || "";
+  }
+
+  function getOrderGovernorate(order: any): string {
+    const payload = order.attributes?.payload?.body || {};
+    return payload.user?.state || payload.user?.address || "";
+  }
+
+  function getCombinedOrderPhones(order: any): string[] {
+    const payload = order.attributes?.payload?.body || {};
+    return [
+      payload.phone,
+      payload.user_phone,
+      payload.phone_number,
+      payload.customer_phone,
+    ]
+      .filter(Boolean)
+      .map((value) => value.toString());
+  }
+
+  function getOrderPhones(order: any): string[] {
+    const payload = order.attributes?.payload?.body || {};
+    return [
+      payload.phone,
+      payload.user_phone,
+      payload.phone_number,
+      payload.customer_phone,
+      payload.user?.phone,
+    ]
+      .filter(Boolean)
+      .map((value) => value.toString());
   }
 
   function isSameDayDelivery(payload: any): boolean {
@@ -410,23 +636,41 @@
     return totalRevenue / filteredOrders.length;
   });
 
+  let filteredTotal = $derived.by(() => {
+    return filteredOrders.length;
+  });
+
   let totalPages = $derived.by(() => {
-    return Math.max(1, Math.ceil(totalOrders / itemsPerPage));
+    return Math.max(1, Math.ceil(filteredTotal / itemsPerPage));
   });
 
   let paginationStart = $derived.by(() => {
-    return totalOrders === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    return filteredTotal === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   });
 
   let paginationEnd = $derived.by(() => {
-    return Math.min(currentPage * itemsPerPage, totalOrders);
+    return Math.min(currentPage * itemsPerPage, filteredTotal);
+  });
+
+  let paginatedOrders = $derived.by(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredOrders.slice(start, start + itemsPerPage);
   });
 
   let availableOrderStatuses = $derived.by(() => {
     const statuses = new Set<string>();
     combinedOrders.forEach((order) => {
-      const status = getCombinedOrderStatus(order);
-      if (status) statuses.add(status);
+      const combinedKey = getCombinedOrderKey(order);
+      const suborders = combinedOrderSuborders.get(combinedKey) || [];
+      if (suborders.length > 0) {
+        suborders.forEach((suborder) => {
+          const status = getOrderStatusFromSuborder(suborder);
+          if (status) statuses.add(status);
+        });
+      } else {
+        const status = getCombinedOrderStatus(order);
+        if (status) statuses.add(status);
+      }
     });
     return ["all", ...Array.from(statuses)];
   });
@@ -476,20 +720,17 @@
 
   function goToPage(page: number) {
     currentPage = page;
-    loadCombinedOrders();
   }
 
   function nextPage() {
     if (currentPage < totalPages) {
       currentPage++;
-      loadCombinedOrders();
     }
   }
 
   function previousPage() {
     if (currentPage > 1) {
       currentPage--;
-      loadCombinedOrders();
     }
   }
 
@@ -502,8 +743,15 @@
     dateFrom;
     dateTo;
     searchQuery;
+    phoneQuery;
     if (combinedOrders.length > 0) {
       applyFilters();
+    }
+  });
+
+  $effect(() => {
+    if (currentPage > totalPages) {
+      currentPage = totalPages;
     }
   });
 </script>
@@ -654,6 +902,16 @@
       </div>
 
       <div class="filter-group">
+        <label for="phone">Phone</label>
+        <input
+          id="phone"
+          type="text"
+          placeholder="Customer phone"
+          bind:value={phoneQuery}
+        />
+      </div>
+
+      <div class="filter-group">
         <button
           class="btn-reset"
           onclick={() => {
@@ -665,6 +923,7 @@
             dateFrom = "";
             dateTo = "";
             searchQuery = "";
+            phoneQuery = "";
           }}
         >
           Reset Filters
@@ -713,7 +972,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each filteredOrders as order (order.shortname)}
+          {#each paginatedOrders as order (order.shortname)}
             {@const payload = order.attributes?.payload?.body}
             {@const ordersCount = payload?.orders_shortnames?.length || 0}
             <tr class="clickable-row" onclick={() => viewCombinedOrder(order)}>
@@ -723,7 +982,7 @@
                     >#{payload?.combined_order_id || order.shortname}</strong
                   >
                   <div class="order-badges">
-                    {#if isBnplOrder(payload)}
+                    {#if isCombinedOrderBnpl(order)}
                       <span class="badge badge-bnpl">BNPL</span>
                     {/if}
                     {#if isSameDayDelivery(payload)}
@@ -785,7 +1044,7 @@
     <!-- Pagination -->
     <div class="pagination">
       <p class="pagination-text">
-        Showing {paginationStart}-{paginationEnd} of {totalOrders}
+        Showing {paginationStart}-{paginationEnd} of {filteredTotal}
       </p>
       <div class="pagination-controls">
         <button
