@@ -472,21 +472,6 @@
 </script>
 
 <div class="min-h-screen bg-gray-50" class:rtl={$isRTL}>
-  <div class="bg-white border-b border-gray-200">
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
-      <div class="text-center">
-        <h1 class="text-4xl font-bold text-gray-900 mb-4">
-          {$_("admin_dashboard.title")}
-        </h1>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-          {$_("admin_dashboard.welcome", {
-            values: { name: $user.localized_displayname },
-          })}
-        </p>
-      </div>
-    </div>
-  </div>
-
   <div class="container mx-auto px-4 py-8 max-w-7xl">
     {#if isLoading}
       <div class="flex justify-center py-16">
@@ -564,28 +549,29 @@
       </div>
     {:else}
       <div class="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200  px-2 py-6">
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <div
-                class="w-12 h-12 bg-purple-100 mx-4 rounded-lg flex items-center justify-center"
+                class="bg-icon mx-4 rounded-lg flex items-center justify-center"
               >
                 <svg
-                  class="w-5 h-5 text-purple-600"
+                  width="36"
+                  height="36"
+                  viewBox="0 0 36 36"
                   fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                  ></path>
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746ZM10.2033 7.5L7.86992 18H11.1624C11.7452 18.0015 12.3148 18.1735 12.8011 18.4948C13.2873 18.8161 13.6689 19.2727 13.8988 19.8082C14.2443 20.6086 14.8166 21.2904 15.5449 21.7696C16.2739 22.2492 17.1274 22.5048 18 22.5048C18.8726 22.5048 19.7261 22.2492 20.4551 21.7696C21.1837 21.2903 21.7561 20.608 22.1016 19.8072C22.3316 19.2721 22.713 18.8159 23.1989 18.4948C23.6852 18.1735 24.2548 18.0015 24.8376 18L24.8415 18L28.1301 18L25.7967 7.5H10.2033ZM28.5 21H24.8543C24.2766 22.3368 23.3205 23.4755 22.1038 24.2759C20.8853 25.0776 19.4586 25.5048 18 25.5048C16.5414 25.5048 15.1147 25.0776 13.8962 24.2759C12.6795 23.4755 11.7234 22.3368 11.1457 21H7.5V28.5H28.5V21ZM12 10.5C12 9.67157 12.6716 9 13.5 9H22.5C23.3284 9 24 9.67157 24 10.5C24 11.3284 23.3284 12 22.5 12H13.5C12.6716 12 12 11.3284 12 10.5ZM10.5 15C10.5 14.1716 11.1716 13.5 12 13.5H24C24.8284 13.5 25.5 14.1716 25.5 15C25.5 15.8284 24.8284 16.5 24 16.5H12C11.1716 16.5 10.5 15.8284 10.5 15Z"
+                    fill="#3C307F"
+                  />
                 </svg>
               </div>
             </div>
-            <div class="ml-6" class:mr-6={$isRTL} class:ml-0={$isRTL}>
+            <div class="ml-2" class:mr-6={$isRTL} class:ml-0={$isRTL}>
               <p class="text-sm font-medium text-gray-500">
                 {$_("admin_dashboard.stats.total_spaces")}
               </p>
@@ -596,28 +582,29 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200  px-2 py-6">
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <div
-                class="w-12 h-12 bg-green-100 mx-4 rounded-lg flex items-center justify-center"
+                class="bg-icon mx-4 rounded-lg flex items-center justify-center"
               >
                 <svg
-                  class="w-5 h-5 text-green-600"
+                  width="36"
+                  height="36"
+                  viewBox="0 0 36 36"
                   fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  ></path>
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M18 6C11.3726 6 6 11.3726 6 18C6 24.6274 11.3726 30 18 30C24.6274 30 30 24.6274 30 18C30 11.3726 24.6274 6 18 6ZM3 18C3 9.71573 9.71573 3 18 3C26.2843 3 33 9.71573 33 18C33 26.2843 26.2843 33 18 33C9.71573 33 3 26.2843 3 18ZM23.5607 13.9393C24.1464 14.5251 24.1464 15.4749 23.5607 16.0607L17.5607 22.0607C16.9749 22.6464 16.0251 22.6464 15.4393 22.0607L11.6893 18.3107C11.1036 17.7249 11.1036 16.7751 11.6893 16.1893C12.2751 15.6036 13.2249 15.6036 13.8107 16.1893L16.5 18.8787L21.4393 13.9393C22.0251 13.3536 22.9749 13.3536 23.5607 13.9393Z"
+                    fill="#3C307F"
+                  />
                 </svg>
               </div>
             </div>
-            <div class="ml-6" class:mr-6={$isRTL} class:ml-0={$isRTL}>
+            <div class="ml-2" class:mr-6={$isRTL} class:ml-0={$isRTL}>
               <p class="text-sm font-medium text-gray-500">
                 {$_("admin_dashboard.stats.active_spaces")}
               </p>
@@ -631,28 +618,29 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200  px-2 py-6">
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <div
-                class="w-12 h-12 bg-blue-100 rounded-lg mx-4 flex items-center justify-center"
+                class="bg-icon w-12 h-12 rounded-lg mx-4 flex items-center justify-center"
               >
                 <svg
-                  class="w-5 h-5 text-blue-600"
+                  width="36"
+                  height="36"
+                  viewBox="0 0 36 36"
                   fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                  ></path>
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M13.5 9C11.8431 9 10.5 10.3431 10.5 12C10.5 13.6569 11.8431 15 13.5 15C15.1569 15 16.5 13.6569 16.5 12C16.5 10.3431 15.1569 9 13.5 9ZM7.5 12C7.5 8.68629 10.1863 6 13.5 6C16.8137 6 19.5 8.68629 19.5 12C19.5 15.3137 16.8137 18 13.5 18C10.1863 18 7.5 15.3137 7.5 12ZM25.5 15V16.689C26.0505 16.8307 26.5705 17.0486 27.0479 17.3307L28.2426 16.1361L30.3639 18.2574L29.1693 19.452C29.4514 19.9295 29.6693 20.4495 29.811 21L31.5 21.0001L31.4999 24.0001L29.811 24C29.6693 24.5506 29.4514 25.0705 29.1693 25.548L30.364 26.7426L28.2426 28.864L27.048 27.6693C26.5705 27.9514 26.0505 28.1693 25.5 28.311V30H22.5V28.311C21.9495 28.1693 21.4295 27.9514 20.952 27.6693L19.7574 28.8639L17.636 26.7426L18.8307 25.5479C18.5486 25.0705 18.3307 24.5506 18.189 24.0001L16.5001 24.0002L16.4999 21.0002L18.189 21.0001C18.3307 20.4495 18.5486 19.9295 18.8307 19.452L17.636 18.2574L19.7574 16.136L20.952 17.3307C21.4295 17.0486 21.9495 16.8307 22.5 16.689V15H25.5ZM21.8745 24.6171C21.8773 24.6199 21.8801 24.6227 21.8829 24.6255C22.4254 25.1659 23.1737 25.5 24 25.5C25.6569 25.5 27 24.1569 27 22.5C27 21.6771 26.6687 20.9316 26.1322 20.3896L26.1104 20.3678C25.5684 19.8313 24.8229 19.5 24 19.5C22.3431 19.5 21 20.8431 21 22.5C21 23.3263 21.3341 24.0746 21.8745 24.6171ZM10.5 22.5C8.84315 22.5 7.5 23.8431 7.5 25.5V27H16.5V30H7.5C5.84315 30 4.5 28.6569 4.5 27V25.5C4.5 22.1863 7.18629 19.5 10.5 19.5H15V22.5H10.5Z"
+                    fill="#3C307F"
+                  />
                 </svg>
               </div>
             </div>
-            <div class="ml-6" class:mr-6={$isRTL} class:ml-0={$isRTL}>
+            <div class="ml-2" class:mr-6={$isRTL} class:ml-0={$isRTL}>
               <p class="text-sm font-medium text-gray-500">
                 {$_("admin_dashboard.stats.admin_access")}
               </p>
@@ -663,28 +651,29 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 px-2 py-6">
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <div
-                class="w-12 h-12 bg-orange-100 mx-4 rounded-lg flex items-center justify-center"
+                class="bg-icon mx-4 rounded-lg flex items-center justify-center"
               >
                 <svg
-                  class="w-5 h-5 text-orange-600"
+                  width="36"
+                  height="36"
+                  viewBox="0 0 36 36"
                   fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  ></path>
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M18 9C16.3431 9 15 10.3431 15 12C15 13.6569 16.3431 15 18 15C19.6569 15 21 13.6569 21 12C21 10.3431 19.6569 9 18 9ZM12 12C12 8.68629 14.6863 6 18 6C21.3137 6 24 8.68629 24 12C24 15.3137 21.3137 18 18 18C14.6863 18 12 15.3137 12 12ZM15 22.5C13.3431 22.5 12 23.8431 12 25.5V27H24V25.5C24 23.8431 22.6569 22.5 21 22.5H15ZM9 25.5C9 22.1863 11.6863 19.5 15 19.5H21C24.3137 19.5 27 22.1863 27 25.5V27C27 28.6569 25.6569 30 24 30H12C10.3431 30 9 28.6569 9 27V25.5Z"
+                    fill="#3C307F"
+                  />
                 </svg>
               </div>
             </div>
-            <div class="ml-6" class:mr-6={$isRTL} class:ml-0={$isRTL}>
+            <div class="ml-2" class:mr-6={$isRTL} class:ml-0={$isRTL}>
               <p class="text-sm font-medium text-gray-500">
                 {$_("admin_dashboard.stats.role")}
               </p>
@@ -1700,7 +1689,11 @@
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
-
+  .bg-icon {
+    background-color: #f4f5fe;
+    height: 70px;
+    width: 70px;
+  }
   @keyframes fadeIn {
     from {
       opacity: 0;
