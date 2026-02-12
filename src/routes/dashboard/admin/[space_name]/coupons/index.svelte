@@ -508,7 +508,7 @@
     loadCouponsPage();
   }
 
-   let isFiltersOpen = $state(false);
+  let isFiltersOpen = $state(false);
   let isActionsOpen = $state(false);
 
   function closeAllDropdowns() {
@@ -545,7 +545,13 @@
   let openActionsFor = $state<string | null>(null);
 
   function getRowId(item: any) {
-    return String(item.uuid ?? item.id ?? item.shortname ?? item.attributes?.id ?? crypto.randomUUID());
+    return String(
+      item.uuid ??
+        item.id ??
+        item.shortname ??
+        item.attributes?.id ??
+        crypto.randomUUID(),
+    );
   }
 
   function toggleTableActions(item: any) {
@@ -581,164 +587,206 @@
     </div>
   </div>
 
- <div class="flex flex-col md:flex-row md:items-end justify-between bg-white rounded-t-xl gap-3 w-full p-6">
-  <!-- LEFT: SEARCH -->
-  <div>
-    <div class="relative w-[256px]">
-      <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-        <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-          <path
-            fill-rule="evenodd"
-            d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-            clip-rule="evenodd"
-          />
-        </svg>
-      </div>
+  <div
+    class="flex flex-col md:flex-row md:items-end justify-between bg-white rounded-t-xl gap-3 w-full p-6"
+  >
+    <!-- LEFT: SEARCH -->
+    <div>
+      <div class="relative w-[256px]">
+        <div
+          class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none"
+        >
+          <svg
+            class="w-4 h-4 text-gray-400"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
 
-      <input
-        id="search"
-        type="text"
-        bind:value={searchQuery}
-        placeholder="Search by code or seller..."
-        class="w-full h-9 pl-9 pr-3 py-2
+        <input
+          id="search"
+          type="text"
+          bind:value={searchQuery}
+          placeholder="Search by code or seller..."
+          class="w-full h-9 pl-9 pr-3 py-2
           bg-[#F9FAFB]
           border border-[#E5E7EB]
           rounded-[12px]
           shadow-[0px_1px_0.5px_0.05px_#1D293D05]
           text-sm
           focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-      />
+        />
+      </div>
     </div>
-  </div>
 
-  <!-- RIGHT: FILTERS + ACTIONS + CREATE -->
-  <div class="flex flex-wrap items-end justify-end gap-3">
-    <!-- FILTERS DROPDOWN -->
-    <div class="relative">
-      <button
-        type="button"
-        onclick={toggleFilters}
-        class="h-9 inline-flex items-center justify-between
+    <!-- RIGHT: FILTERS + ACTIONS + CREATE -->
+    <div class="flex flex-wrap items-end justify-end gap-3">
+      <!-- FILTERS DROPDOWN -->
+      <div class="relative">
+        <button
+          type="button"
+          onclick={toggleFilters}
+          class="h-9 inline-flex items-center justify-between
           px-3 py-2 min-w-[160px]
           bg-[#F9FAFB] border border-[#E5E7EB]
           rounded-[12px]
           shadow-[0px_1px_0.5px_0.05px_#1D293D05]
           text-sm text-gray-700 hover:bg-gray-50"
-        aria-haspopup="true"
-        aria-expanded={isFiltersOpen}
-      >
-        <span class="truncate inline-flex items-center gap-2">
-          {$_("common.filters") || "Filters"}
-          {#if activeFiltersCount() > 0}
-            <span class="inline-flex items-center justify-center px-2 h-5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-              {activeFiltersCount()}
-            </span>
-          {/if}
-        </span>
-
-        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {#if isFiltersOpen}
-        <div class="absolute right-0 z-20 mt-2 w-[320px] rounded-[12px] border border-gray-200 bg-white shadow-lg p-3">
-          <div class="grid grid-cols-1 gap-3">
-            <!-- Scope -->
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1" for="scope-filter">
-                Scope
-              </label>
-              <select
-                id="scope-filter"
-                bind:value={activeTab}
-                class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
-                onchange={() => {
-                  handleScopeChange();
-                }}
+          aria-haspopup="true"
+          aria-expanded={isFiltersOpen}
+        >
+          <span class="truncate inline-flex items-center gap-2">
+            {$_("common.filters") || "Filters"}
+            {#if activeFiltersCount() > 0}
+              <span
+                class="inline-flex items-center justify-center px-2 h-5 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
               >
-                <option value="all">Seller Coupons</option>
-                <option value="global">Global Coupons</option>
-              </select>
+                {activeFiltersCount()}
+              </span>
+            {/if}
+          </span>
+
+          <svg
+            class="w-4 h-4 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+
+        {#if isFiltersOpen}
+          <div
+            class="absolute right-0 z-20 mt-2 w-[320px] rounded-[12px] border border-gray-200 bg-white shadow-lg p-3"
+          >
+            <div class="grid grid-cols-1 gap-3">
+              <!-- Scope -->
+              <div>
+                <label
+                  class="block text-xs font-medium text-gray-600 mb-1"
+                  for="scope-filter"
+                >
+                  Scope
+                </label>
+                <select
+                  id="scope-filter"
+                  bind:value={activeTab}
+                  class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
+                  onchange={() => {
+                    handleScopeChange();
+                  }}
+                >
+                  <option value="all">Seller Coupons</option>
+                  <option value="global">Global Coupons</option>
+                </select>
+              </div>
+
+              <!-- Seller -->
+              <div>
+                <label
+                  class="block text-xs font-medium text-gray-600 mb-1"
+                  for="seller-filter"
+                >
+                  Filter by Seller
+                </label>
+                <select
+                  id="seller-filter"
+                  bind:value={selectedFilter}
+                  class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm disabled:opacity-60"
+                  disabled={activeTab === "global"}
+                  onchange={() => {
+                    handleSellerChange();
+                  }}
+                >
+                  <option value="" disabled>Select a seller</option>
+                  <option value="all">All Sellers</option>
+                  {#each getUniqueSellers() as seller}
+                    <option value={seller.shortname}
+                      >{seller.displayname}</option
+                    >
+                  {/each}
+                </select>
+              </div>
             </div>
 
-            <!-- Seller -->
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1" for="seller-filter">
-                Filter by Seller
-              </label>
-              <select
-                id="seller-filter"
-                bind:value={selectedFilter}
-                class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm disabled:opacity-60"
-                disabled={activeTab === "global"}
-                onchange={() => {
-                  handleSellerChange();
+            <div
+              class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100"
+            >
+              <button
+                type="button"
+                onclick={() => {
+                  resetFilters();
                 }}
-              >
-                <option value="" disabled>Select a seller</option>
-                <option value="all">All Sellers</option>
-                {#each getUniqueSellers() as seller}
-                  <option value={seller.shortname}>{seller.displayname}</option>
-                {/each}
-              </select>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-            <button
-              type="button"
-              onclick={() => {
-                resetFilters();
-              }}
-              class="h-9 inline-flex items-center justify-center
+                class="h-9 inline-flex items-center justify-center
                 px-3 py-2
                 bg-[#F9FAFB] text-gray-700 text-sm font-medium
                 border border-[#E5E7EB]
                 rounded-[12px]
                 hover:bg-gray-50 transition-colors"
-            >
-              Reset
-            </button>
+              >
+                Reset
+              </button>
 
-            <button
-              type="button"
-              onclick={() => {
-                isFiltersOpen = false;
-              }}
-              class="h-9 inline-flex items-center justify-center
+              <button
+                type="button"
+                onclick={() => {
+                  isFiltersOpen = false;
+                }}
+                class="h-9 inline-flex items-center justify-center
                 px-3 py-2
                 bg-[#3C307F] text-white text-sm font-medium
                 rounded-[12px]
                 hover:bg-[#2f2666] transition-colors"
-            >
-              Apply
-            </button>
+              >
+                Apply
+              </button>
+            </div>
           </div>
-        </div>
-      {/if}
-    </div>
+        {/if}
+      </div>
 
-    <!-- CREATE COUPON -->
-    <button
-      type="button"
-      onclick={openCreateModal}
-      class="inline-flex items-center justify-center
+      <!-- CREATE COUPON -->
+      <button
+        type="button"
+        onclick={openCreateModal}
+        class="inline-flex items-center justify-center
         h-9 px-3 py-2
         bg-[#3C307F] text-white text-sm font-medium
         rounded-[12px]
         shadow-[0px_1px_0.5px_0.05px_#1D293D05]
         hover:bg-[#2f2666]
         transition-colors duration-200"
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-      </svg>
-      <span class="ml-2">Create Coupon</span>
-    </button>
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 4v16m8-8H4"
+          />
+        </svg>
+        <span class="ml-2">Create Coupon</span>
+      </button>
+    </div>
   </div>
-</div>
-
 
   <!-- Coupons Table -->
   {#if loading}
@@ -758,208 +806,375 @@
   {:else}
     <div class="table-container">
       <table class="coupons-table w-full">
-  <thead class="bg-gray-50 border-b border-gray-200">
-    <tr>
-      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
-      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seller</th>
-      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
-      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valid From</th>
-      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valid To</th>
-      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
-      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-    </tr>
-  </thead>
-
-  <tbody class="bg-white">
-    {#each paginatedCoupons as coupon}
-      <tr class="hover:bg-gray-50 transition-colors duration-200">
-        <!-- Code main cell -->
-        <td class="px-6 py-4">
-          <div class="flex items-center gap-2.5">
-            <div
-              class="shrink-0 rounded-full flex items-center justify-center"
-              style="width:44px;height:44px;padding:10px 5px;background:#F3F4F6;"
-              aria-hidden="true"
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >Code</th
             >
-              <span style="font-weight:500;font-size:14px;line-height:14px;color:#101828;">
-                {(coupon.attributes?.payload?.body?.code || "C").charAt(0).toUpperCase()}
-              </span>
-            </div>
-
-            <div class="min-w-0">
-              <div
-                class="truncate"
-                style="font-weight:500;font-size:16px;line-height:16px;color:#101828;"
-                title={coupon.attributes?.payload?.body?.code || "N/A"}
-              >
-                {coupon.attributes?.payload?.body?.code || "N/A"}
-              </div>
-
-              <div
-                class="truncate mt-1"
-                style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;"
-              >
-                {coupon.isGlobal ? "Global coupon" : "Seller coupon"}
-              </div>
-            </div>
-          </div>
-        </td>
-
-        <!-- Type pill -->
-        <td class="px-6 py-4">
-          <span
-            class="inline-flex items-center rounded-sm border px-2 py-0.5"
-            style="height:20px;background:#EEF6FF;border-color:#BEDBFF;"
-          >
-            <span style="font-weight:500;font-size:12px;line-height:16px;color:#1C398E;">
-              {coupon.attributes?.payload?.body?.discount_type === "percentage" ? "%" : "$"}
-            </span>
-          </span>
-        </td>
-
-        <!-- Seller -->
-        <td class="px-6 py-4">
-          <span style="font-weight:500;font-size:14px;line-height:14px;color:#101828;">
-            {coupon.folderDisplayname || "-"}
-          </span>
-        </td>
-
-        <!-- Discount -->
-        <td class="px-6 py-4">
-          <div style="font-weight:500;font-size:14px;line-height:14px;color:#101828;">
-            {#if coupon.attributes?.payload?.body?.discount_type === "percentage"}
-              {coupon.attributes?.payload?.body?.discount_value ?? 0}%
-            {:else}
-              ${coupon.attributes?.payload?.body?.discount_value ?? 0}
-            {/if}
-
-            {#if coupon.attributes?.payload?.body?.maximum_amount}
-              <span class="ml-2" style="font-weight:400;color:#4A5565;">
-                (max: ${coupon.attributes.payload.body.maximum_amount})
-              </span>
-            {/if}
-          </div>
-        </td>
-
-        <!-- Valid From -->
-        <td class="px-6 py-4">
-          <div
-            class="inline-flex items-center gap-2"
-            style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z" fill="#6A7282"/>
-</svg>
-
-            <span>{formatDateDMY(coupon.attributes?.payload?.body?.validity?.from)}</span>
-          </div>
-        </td>
-
-        <!-- Valid To -->
-        <td class="px-6 py-4">
-          <div
-            class="inline-flex items-center gap-2"
-            style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z" fill="#6A7282"/>
-</svg>
-
-            <span>{formatDateDMY(coupon.attributes?.payload?.body?.validity?.to)}</span>
-          </div>
-        </td>
-
-        <!-- Usage -->
-        <td class="px-6 py-4">
-          <span style="font-weight:500;font-size:14px;line-height:14px;color:#101828;">
-            {coupon.attributes?.payload?.body?.usage_count || 0} / {coupon.attributes?.payload?.body?.maximum_uses || "∞"}
-          </span>
-        </td>
-
-        <!-- Status pill -->
-        <td class="px-6 py-4">
-          {#if coupon.attributes?.is_active}
-            <span
-              class="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5"
-              style="height:20px;background:#ECFDF5;border-color:#A4F4CF;"
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >Type</th
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M9.85885 3.40183C10.0511 3.60001 10.0464 3.91656 9.84818 4.10885L5.21017 8.60885C5.01621 8.79704 4.70781 8.79705 4.51384 8.60887L2.15184 6.31737C1.95365 6.12509 1.94885 5.80854 2.14113 5.61034C2.33341 5.41215 2.64996 5.40735 2.84816 5.59963L4.86198 7.55335L9.15183 3.39115C9.35001 3.19886 9.66656 3.20364 9.85885 3.40183Z" fill="#004F3B"/>
-                </svg>
-              <span style="font-weight:500;font-size:12px;line-height:16px;color:#004F3B;">Active</span>
-            </span>
-          {:else}
-            <span
-              class="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5"
-              style="height:20px;background:#FFF8F1;border-color:#FCD9BD;"
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >Seller</th
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M9.32268 2.64556C9.51843 2.84033 9.51922 3.15692 9.32445 3.35267L6.70534 5.98493L9.35444 8.64733C9.54921 8.84308 9.54842 9.15966 9.35267 9.35443C9.15692 9.5492 8.84033 9.54841 8.64556 9.35266L6 6.69381L3.35444 9.35266C3.15967 9.54841 2.84308 9.5492 2.64733 9.35443C2.45158 9.15966 2.45079 8.84308 2.64556 8.64733L5.29466 5.98493L2.67555 3.35267C2.48078 3.15692 2.48157 2.84034 2.67732 2.64556C2.87307 2.45079 3.18966 2.45159 3.38443 2.64734L6 5.27604L8.61557 2.64733C8.81035 2.45158 9.12693 2.45079 9.32268 2.64556Z" fill="#771D1D"/>
-              </svg>
-              <span style="font-weight:500;font-size:12px;line-height:16px;color:#771D1D;">Inactive</span>
-            </span>
-          {/if}
-        </td>
-
-        <!-- Actions (...) dropdown -->
-        <td class="px-6 py-4" onclick={(e) => e.stopPropagation()}>
-          <div class="relative" onclick={(e) => e.stopPropagation()}>
-            <button
-              class="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-gray-100 transition"
-              aria-label="Actions"
-              aria-haspopup="menu"
-              aria-expanded={openActionsFor === getRowId(coupon)}
-              onclick={() => toggleTableActions(coupon)}
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >Discount</th
             >
-              <span class="text-xl leading-none">…</span>
-            </button>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >Valid From</th
+            >
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >Valid To</th
+            >
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >Usage</th
+            >
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >Status</th
+            >
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >Actions</th
+            >
+          </tr>
+        </thead>
 
-            {#if openActionsFor === getRowId(coupon)}
-              <div class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1 right-0" role="menu">
-                {#if coupon.isGlobal}
-                  <button
-                    class="w-full px-3 py-2 text-sm hover:bg-gray-50 text-left"
-                    onclick={() => {
-                      closeActions();
-                      openEditModal(coupon);
-                    }}
-                    role="menuitem"
+        <tbody class="bg-white">
+          {#each paginatedCoupons as coupon}
+            <tr class="hover:bg-gray-50 transition-colors duration-200">
+              <!-- Code main cell -->
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-2.5">
+                  <div
+                    class="shrink-0 rounded-full flex items-center justify-center"
+                    style="width:44px;height:44px;padding:10px 5px;background:#F3F4F6;"
+                    aria-hidden="true"
                   >
-                    Edit
-                  </button>
+                    <span
+                      style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                    >
+                      {(coupon.attributes?.payload?.body?.code || "C")
+                        .charAt(0)
+                        .toUpperCase()}
+                    </span>
+                  </div>
 
-                  <button
-                    class="w-full px-3 py-2 text-sm hover:bg-gray-50 text-left text-red-600"
-                    onclick={() => {
-                      closeActions();
-                      openDeleteModal(coupon);
-                    }}
-                    role="menuitem"
+                  <div class="min-w-0">
+                    <div
+                      class="truncate"
+                      style="font-weight:500;font-size:16px;line-height:16px;color:#101828;"
+                      title={coupon.attributes?.payload?.body?.code || "N/A"}
+                    >
+                      {coupon.attributes?.payload?.body?.code || "N/A"}
+                    </div>
+
+                    <div
+                      class="truncate mt-1"
+                      style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;"
+                    >
+                      {coupon.isGlobal ? "Global coupon" : "Seller coupon"}
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Type pill -->
+              <td class="px-6 py-4">
+                <span
+                  class="inline-flex items-center rounded-sm border px-2 py-0.5"
+                  style="height:20px;background:#EEF6FF;border-color:#BEDBFF;"
+                >
+                  <span
+                    style="font-weight:500;font-size:12px;line-height:16px;color:#1C398E;"
                   >
-                    Delete
-                  </button>
+                    {coupon.attributes?.payload?.body?.discount_type ===
+                    "percentage"
+                      ? "%"
+                      : "$"}
+                  </span>
+                </span>
+              </td>
+
+              <!-- Seller -->
+              <td class="px-6 py-4">
+                <span
+                  style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                >
+                  {coupon.folderDisplayname || "-"}
+                </span>
+              </td>
+
+              <!-- Discount -->
+              <td class="px-6 py-4">
+                <div
+                  style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                >
+                  {#if coupon.attributes?.payload?.body?.discount_type === "percentage"}
+                    {coupon.attributes?.payload?.body?.discount_value ?? 0}%
+                  {:else}
+                    ${coupon.attributes?.payload?.body?.discount_value ?? 0}
+                  {/if}
+
+                  {#if coupon.attributes?.payload?.body?.maximum_amount}
+                    <span class="ml-2" style="font-weight:400;color:#4A5565;">
+                      (max: ${coupon.attributes.payload.body.maximum_amount})
+                    </span>
+                  {/if}
+                </div>
+              </td>
+
+              <!-- Valid From -->
+              <td class="px-6 py-4">
+                <div
+                  class="inline-flex items-center gap-2"
+                  style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      clip-rule="evenodd"
+                      d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z"
+                      fill="#6A7282"
+                    />
+                  </svg>
+
+                  <span
+                    >{formatDateDMY(
+                      coupon.attributes?.payload?.body?.validity?.from,
+                    )}</span
+                  >
+                </div>
+              </td>
+
+              <!-- Valid To -->
+              <td class="px-6 py-4">
+                <div
+                  class="inline-flex items-center gap-2"
+                  style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      clip-rule="evenodd"
+                      d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z"
+                      fill="#6A7282"
+                    />
+                  </svg>
+
+                  <span
+                    >{formatDateDMY(
+                      coupon.attributes?.payload?.body?.validity?.to,
+                    )}</span
+                  >
+                </div>
+              </td>
+
+              <!-- Usage -->
+              <td class="px-6 py-4">
+                <span
+                  style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                >
+                  {coupon.attributes?.payload?.body?.usage_count || 0} / {coupon
+                    .attributes?.payload?.body?.maximum_uses || "∞"}
+                </span>
+              </td>
+
+              <!-- Status pill -->
+              <td class="px-6 py-4">
+                {#if coupon.attributes?.is_active}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5"
+                    style="height:20px;background:#ECFDF5;border-color:#A4F4CF;"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M9.85885 3.40183C10.0511 3.60001 10.0464 3.91656 9.84818 4.10885L5.21017 8.60885C5.01621 8.79704 4.70781 8.79705 4.51384 8.60887L2.15184 6.31737C1.95365 6.12509 1.94885 5.80854 2.14113 5.61034C2.33341 5.41215 2.64996 5.40735 2.84816 5.59963L4.86198 7.55335L9.15183 3.39115C9.35001 3.19886 9.66656 3.20364 9.85885 3.40183Z"
+                        fill="#004F3B"
+                      />
+                    </svg>
+                    <span
+                      style="font-weight:500;font-size:12px;line-height:16px;color:#004F3B;"
+                      >Active</span
+                    >
+                  </span>
                 {:else}
-                  <button
-                    class="w-full px-3 py-2 text-sm hover:bg-gray-50 text-left"
-                    onclick={() => {
-                      closeActions();
-                    }}
-                    role="menuitem"
+                  <span
+                    class="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5"
+                    style="height:20px;background:#FFF8F1;border-color:#FCD9BD;"
                   >
-                    View only
-                  </button>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M9.32268 2.64556C9.51843 2.84033 9.51922 3.15692 9.32445 3.35267L6.70534 5.98493L9.35444 8.64733C9.54921 8.84308 9.54842 9.15966 9.35267 9.35443C9.15692 9.5492 8.84033 9.54841 8.64556 9.35266L6 6.69381L3.35444 9.35266C3.15967 9.54841 2.84308 9.5492 2.64733 9.35443C2.45158 9.15966 2.45079 8.84308 2.64556 8.64733L5.29466 5.98493L2.67555 3.35267C2.48078 3.15692 2.48157 2.84034 2.67732 2.64556C2.87307 2.45079 3.18966 2.45159 3.38443 2.64734L6 5.27604L8.61557 2.64733C8.81035 2.45158 9.12693 2.45079 9.32268 2.64556Z"
+                        fill="#771D1D"
+                      />
+                    </svg>
+                    <span
+                      style="font-weight:500;font-size:12px;line-height:16px;color:#771D1D;"
+                      >Inactive</span
+                    >
+                  </span>
                 {/if}
-              </div>
-            {/if}
-          </div>
-        </td>
-      </tr>
-    {/each}
-  </tbody>
-</table>
+              </td>
 
+              <!-- Actions (...) dropdown -->
+              <td class="px-6 py-4" onclick={(e) => e.stopPropagation()}>
+                <div class="relative" onclick={(e) => e.stopPropagation()}>
+                  <button
+                    class="h-8 w-8 inline-flex items-center justify-center cursor-pointer rounded-md hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
+                    aria-label="Actions"
+                    aria-haspopup="menu"
+                    aria-expanded={openActionsFor === getRowId(coupon)}
+                    onclick={() => toggleTableActions(coupon)}
+                  >
+                    <span class="text-xl leading-none">…</span>
+                  </button>
+
+                  {#if openActionsFor === getRowId(coupon)}
+                    <div
+                      class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1 right-0"
+                      role="menu"
+                    >
+                      {#if coupon.isGlobal}
+                        <!-- Edit -->
+                        <button
+                          class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
+                          onclick={() => {
+                            closeActions();
+                            openEditModal(coupon);
+                          }}
+                          role="menuitem"
+                        >
+                          <!-- Pencil Icon -->
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="w-4 h-4 text-gray-500"
+                          >
+                            <path
+                              fill-rule="evenodd"
+                              clip-rule="evenodd"
+                              d="M15.5763 5.55905L14.1547 7.028L15.5563 8.42618C15.5577 8.42761 15.5592 8.42904 15.5606 8.43048L17.0227 9.88908L18.4245 8.44058L18.4357 8.42918C18.8155 8.0491 19.0288 7.53378 19.0288 6.99649C19.0288 6.45931 18.8155 5.94411 18.4359 5.56405C18.0559 5.1845 17.5407 4.97131 17.0036 4.97131C16.4688 4.97131 15.9558 5.18263 15.5763 5.55905ZM15.6318 11.3265L14.8691 10.5657L10.0378 15.6235L10.7674 16.3531L15.6318 11.3265ZM8.92782 17.3419L7.95914 16.3732C7.95553 16.3699 7.95195 16.3665 7.94838 16.3631C7.93349 16.3489 7.91913 16.3343 7.90531 16.3194L6.93719 15.3513L5.9421 18.337L8.92782 17.3419ZM7.90282 13.4885L8.62322 14.2089L13.4529 9.15285L12.7638 8.46539L7.90282 13.4885ZM12.0308 6.34678C12.0319 6.34571 12.0329 6.34463 12.0339 6.34356L14.1455 4.16158L14.1573 4.14958C14.9124 3.39511 15.9362 2.97131 17.0036 2.97131C18.071 2.97131 19.0948 3.39511 19.8499 4.14958L19.8505 4.15018C20.605 4.90529 21.0288 5.92906 21.0288 6.99649C21.0288 8.06106 20.6072 9.0822 19.8566 9.83672L11.4977 18.4744C11.3859 18.59 11.2479 18.6768 11.0953 18.7277L4.67729 20.8667C4.31797 20.9864 3.92182 20.8929 3.654 20.6251C3.38618 20.3573 3.29266 19.9611 3.41241 19.6018L5.55141 13.1838C5.59875 13.0418 5.67738 12.9122 5.7815 12.8046L12.0308 6.34678Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+
+                          <span>{$_("common.edit") || "Edit"}</span>
+                        </button>
+
+                        <!-- Delete -->
+                        <button
+                          class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-red-50 text-red-600"
+                          onclick={() => {
+                            closeActions();
+                            openDeleteModal(coupon);
+                          }}
+                          role="menuitem"
+                        >
+                          <!-- Trash Icon -->
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            x="0px"
+                            y="0px"
+                            class="w-4 h-4"
+                            viewBox="0,0,256,256"
+                          >
+                            <g
+                              fill="#fa5252"
+                              fill-rule="nonzero"
+                              stroke="none"
+                              stroke-width="1"
+                              stroke-linecap="butt"
+                              stroke-linejoin="miter"
+                              stroke-miterlimit="10"
+                              stroke-dasharray=""
+                              stroke-dashoffset="0"
+                              font-family="none"
+                              font-weight="none"
+                              font-size="none"
+                              text-anchor="none"
+                              style="mix-blend-mode: normal"
+                              ><g transform="scale(2,2)"
+                                ><path
+                                  d="M49,1c-1.66,0 -3,1.34 -3,3c0,1.66 1.34,3 3,3h30c1.66,0 3,-1.34 3,-3c0,-1.66 -1.34,-3 -3,-3zM24,15c-7.17,0 -13,5.83 -13,13c0,7.17 5.83,13 13,13h77v63c0,9.37 -7.63,17 -17,17h-40c-9.37,0 -17,-7.63 -17,-17v-52c0,-1.66 -1.34,-3 -3,-3c-1.66,0 -3,1.34 -3,3v52c0,12.68 10.32,23 23,23h40c12.68,0 23,-10.32 23,-23v-63.35937c5.72,-1.36 10,-6.50062 10,-12.64062c0,-7.17 -5.83,-13 -13,-13zM24,21h80c3.86,0 7,3.14 7,7c0,3.86 -3.14,7 -7,7h-80c-3.86,0 -7,-3.14 -7,-7c0,-3.86 3.14,-7 7,-7zM50,55c-1.66,0 -3,1.34 -3,3v46c0,1.66 1.34,3 3,3c1.66,0 3,-1.34 3,-3v-46c0,-1.66 -1.34,-3 -3,-3zM78,55c-1.66,0 -3,1.34 -3,3v46c0,1.66 1.34,3 3,3c1.66,0 3,-1.34 3,-3v-46c0,-1.66 -1.34,-3 -3,-3z"
+                                ></path></g
+                              ></g
+                            >
+                          </svg>
+
+                          <span>{$_("common.delete") || "Delete"}</span>
+                        </button>
+                      {:else}
+                        <button
+                          class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-gray-600"
+                          onclick={() => {
+                            closeActions();
+                          }}
+                          role="menuitem"
+                        >
+                          <svg
+                            class="h-4 w-4 text-gray-500"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              fill-rule="evenodd"
+                              clip-rule="evenodd"
+                              d="M4.0117 12C4.02312 12.0329 4.04406 12.0868 4.08184 12.1644C4.16842 12.3421 4.3101 12.5758 4.51263 12.851C4.91651 13.3997 5.51827 14.0535 6.2742 14.6801C7.80015 15.9449 9.83098 17 12 17C14.169 17 16.1999 15.9449 17.7258 14.6801C18.4817 14.0535 19.0835 13.3997 19.4874 12.851C19.6899 12.5758 19.8316 12.3421 19.9182 12.1644C19.9559 12.0868 19.9769 12.0329 19.9883 12C19.9769 11.9671 19.9559 11.9132 19.9182 11.8356C19.8316 11.6579 19.6899 11.4242 19.4874 11.149C19.0835 10.6003 18.4817 9.94649 17.7258 9.3199C16.1999 8.05506 14.169 7 12 7C9.83098 7 7.80015 8.05506 6.2742 9.3199C5.51827 9.94649 4.91651 10.6003 4.51263 11.149C4.3101 11.4242 4.16842 11.6579 4.08184 11.8356C4.04406 11.9132 4.02312 11.9671 4.0117 12ZM4.99787 7.7801C6.72929 6.34495 9.19846 5 12 5C14.8015 5 17.2707 6.34495 19.0021 7.7801C19.8749 8.50351 20.5911 9.2747 21.0981 9.96347C21.351 10.3071 21.5629 10.6452 21.7161 10.9597C21.8554 11.2456 22 11.6185 22 12C22 12.3815 21.8554 12.7544 21.7161 13.0403C21.5629 13.3548 21.351 13.6929 21.0981 14.0365C20.5911 14.7253 19.8749 15.4965 19.0021 16.2199C17.2707 17.6551 14.8015 19 12 19C9.19846 19 6.72929 17.6551 4.99787 16.2199C4.12513 15.4965 3.40886 14.7253 2.9019 14.0365C2.649 13.6929 2.43705 13.3548 2.28385 13.0403C2.14458 12.7544 2 12.3815 2 12C2 11.6185 2.14458 11.2456 2.28385 10.9597C2.43705 10.6452 2.649 10.3071 2.9019 9.96347C3.40886 9.2747 4.12513 8.50351 4.99787 7.7801ZM12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10ZM8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+
+                          <span>View only</span>
+                        </button>
+                      {/if}
+                    </div>
+                  {/if}
+                </div>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
     </div>
 
     <Pagination
@@ -1214,10 +1429,7 @@
       </div>
 
       <div class="modal-footer">
-        <button
-          class="btn-secondary"
-          onclick={() => (deleteModalOpen = false)}
-        >
+        <button class="btn-secondary" onclick={() => (deleteModalOpen = false)}>
           Cancel
         </button>
         <button

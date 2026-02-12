@@ -852,7 +852,7 @@
       <td>
         <div class="relative" onclick={(e) => e.stopPropagation()}>
           <button
-            class="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-gray-100 transition"
+            class="h-8 w-8 inline-flex items-center justify-center rounded-md cursor-pointer rounded-md hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
             aria-label={$_("brands.actions") || "Actions"}
             aria-haspopup="menu"
             aria-expanded={openActionsFor === getRowId(brand)}
