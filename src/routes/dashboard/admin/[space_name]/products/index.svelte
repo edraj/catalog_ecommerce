@@ -146,12 +146,6 @@
           colors: colorsData?.attributes?.payload?.body?.options || [],
           storages: storagesData?.attributes?.payload?.body?.options || [],
         };
-
-        console.log("Loaded variations:", {
-          colorsCount: variations.colors.length,
-          colors: variations.colors,
-          storagesCount: variations.storages.length,
-        });
       }
     } catch (error) {
       console.error("Error loading variations:", error);

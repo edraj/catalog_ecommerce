@@ -195,9 +195,7 @@
   let pendingCancellations = $state<
     Record<string, { reasonKey: string; reasonLabel: string }>
   >({});
-  let commentDrafts = $state<Record<string, { text: string; state: string }>>(
-    {},
-  );
+  let commentDrafts = $state<Record<string, { text: string }>>({});
   let commentLoading = $state<Record<string, boolean>>({});
   let commentDeleteLoading = $state<Record<string, boolean>>({});
   let progressCommentDrafts = $state<Record<string, string>>({});
@@ -338,20 +336,13 @@
     }
   }
 
-  function getCommentStateOptions(): string[] {
-    return ["general", ...orderWorkflow.states.map((state) => state.state)];
-  }
-
   function getCommentDraft(order: any) {
     const existing = commentDrafts[order.shortname];
     if (existing) return existing;
-    return { text: "", state: order.attributes?.state || "pending" };
+    return { text: "" };
   }
 
-  function updateCommentDraft(
-    order: any,
-    updates: Partial<{ text: string; state: string }>,
-  ) {
+  function updateCommentDraft(order: any, updates: Partial<{ text: string }>) {
     const current = getCommentDraft(order);
     commentDrafts = {
       ...commentDrafts,
@@ -383,7 +374,7 @@
         order.seller_shortname,
         order.shortname,
         draft.text.trim(),
-        draft.state,
+        "general",
       );
 
       if (!success) {
@@ -942,25 +933,6 @@
 
                   <div class="comment-form">
                     <div class="comment-form-header">Add Comment</div>
-                    <div class="comment-form-row">
-                      <label for="comment-state-{order.shortname}">
-                        Comment State
-                      </label>
-                      <select
-                        id="comment-state-{order.shortname}"
-                        value={commentDraft.state}
-                        onchange={(e) =>
-                          updateCommentDraft(order, {
-                            state: e.currentTarget.value,
-                          })}
-                      >
-                        {#each getCommentStateOptions() as stateOption}
-                          <option value={stateOption}>
-                            {getStateLabel(stateOption)}
-                          </option>
-                        {/each}
-                      </select>
-                    </div>
                     <textarea
                       rows="3"
                       placeholder="Write a comment..."

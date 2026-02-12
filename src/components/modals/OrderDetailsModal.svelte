@@ -13,15 +13,16 @@
   } from "@/lib/toasts_messages";
   import "@/routes/seller/orders/index.css";
 
-  export let order;
-  export let payment: any = null;
-  export let combinedOrder: any = null;
-  export let sellerShortname: string = "";
+  let { order, payment = null, sellerShortname = "" } = $props();
 
   const dispatch = createEventDispatcher();
 
-  $: payload = order?.attributes?.payload?.body;
-  $: orderTotal = calculateTotal();
+  let currentOrder = $state<any>(null);
+  const orderAttributes = $derived(
+    currentOrder?.attributes ?? currentOrder ?? {},
+  );
+  const payload = $derived(orderAttributes?.payload?.body);
+  const orderTotal = $derived(calculateTotal());
 
   const orderWorkflow = {
     name: "order_processing",
@@ -184,30 +185,38 @@
     ],
   };
 
-  let progressComment = "";
-  let commentText = "";
-  let commentState = "general";
-  let commentLoading = false;
-  let commentDeleteLoading: Record<string, boolean> = {};
-  let pendingCancellation: { reasonKey: string; reasonLabel: string } | null =
-    null;
-  let orderState = "pending";
-  let transitions: Array<{ action: string; state: string }> = [];
-  let orderComments: any[] = [];
-  let combinedOrderId = "";
+  let progressComment = $state("");
+  let commentText = $state("");
+  let commentLoading = $state(false);
+  let commentDeleteLoading = $state<Record<string, boolean>>({});
+  let pendingCancellation = $state<{
+    reasonKey: string;
+    reasonLabel: string;
+  } | null>(null);
+  const orderState = $derived(orderAttributes?.state || "pending");
+  const transitions = $derived(getTransitions(orderState));
+  const orderComments = $derived(
+    currentOrder?.attachments?.comment ||
+      orderAttributes?.attachments?.comment ||
+      [],
+  );
 
-  $: if (
-    order?.attributes?.state &&
-    commentState === "general" &&
-    !commentText
-  ) {
-    commentState = order.attributes.state;
+  $effect(() => {
+    if (order) {
+      currentOrder = normalizeOrder(order);
+    }
+  });
+
+  function normalizeOrder(source: any) {
+    if (!source) return null;
+    const attributes = source.attributes ?? source;
+    const attachments = source.attachments ?? attributes?.attachments ?? {};
+    return {
+      ...source,
+      attributes,
+      attachments,
+    };
   }
-  $: orderState = order?.attributes?.state || "pending";
-  $: transitions = getTransitions(orderState);
-  $: orderComments = order?.attachments?.comment || [];
-  $: combinedOrderId =
-    combinedOrder?.shortname || payload?.combined_order_id || "N/A";
 
   function calculateTotal(): number {
     if (!payload || !payload.items) return 0;
@@ -229,20 +238,20 @@
   }
 
   function formatDate(dateString: string): string {
+    if (!dateString) return "-";
     return new Date(dateString).toLocaleString();
   }
 
   async function refreshOrderDetails() {
-    if (!order?.shortname || !sellerShortname) return;
+    if (!currentOrder?.shortname || !sellerShortname) return;
     const refreshed = await getOrderDetails(
       website.main_space,
       sellerShortname,
-      order.shortname,
+      currentOrder.shortname,
       true,
     );
     if (refreshed) {
-      order.attributes = refreshed.attributes;
-      order.attachments = refreshed.attachments;
+      currentOrder = normalizeOrder(refreshed);
     }
   }
 
@@ -287,11 +296,15 @@
     targetState: string,
     additionalData?: any,
   ) {
+    if (!currentOrder?.shortname) {
+      errorToastMessage("Order data is incomplete");
+      return;
+    }
     try {
       const success = await progressOrderTicket(
         website.main_space,
         sellerShortname,
-        order.shortname,
+        currentOrder.shortname,
         action,
         additionalData,
       );
@@ -301,7 +314,7 @@
           await createOrderComment(
             website.main_space,
             sellerShortname,
-            order.shortname,
+            currentOrder.shortname,
             progressComment.trim(),
             targetState,
           );
@@ -346,10 +359,6 @@
     pendingCancellation = null;
   }
 
-  function getCommentStateOptions(): string[] {
-    return ["general", ...orderWorkflow.states.map((state) => state.state)];
-  }
-
   function groupCommentsByState(comments: any[]) {
     const groups: Record<string, any[]> = {};
     comments.forEach((comment) => {
@@ -363,6 +372,10 @@
   }
 
   async function submitComment() {
+    if (!currentOrder?.shortname) {
+      errorToastMessage("Order data is incomplete");
+      return;
+    }
     if (!commentText.trim()) {
       errorToastMessage("Please enter a comment");
       return;
@@ -373,9 +386,9 @@
       const success = await createOrderComment(
         website.main_space,
         sellerShortname,
-        order.shortname,
+        currentOrder.shortname,
         commentText.trim(),
-        commentState,
+        "general",
       );
 
       if (!success) {
@@ -395,6 +408,10 @@
   }
 
   async function removeOrderComment(comment: any) {
+    if (!currentOrder?.shortname) {
+      errorToastMessage("Order data is incomplete");
+      return;
+    }
     if (!comment?.shortname) {
       errorToastMessage("Comment could not be deleted");
       return;
@@ -413,7 +430,7 @@
         comment.shortname,
         website.main_space,
         `orders/${sellerShortname}`,
-        order.shortname,
+        currentOrder.shortname,
       );
 
       if (!success) {
@@ -471,7 +488,7 @@
           </div>
           <div class="info-item">
             <span class="info-label">Combined Order ID</span>
-            <span>{combinedOrderId}</span>
+            <span>{payload?.combined_order_id || "N/A"}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Order From</span>
@@ -479,11 +496,11 @@
           </div>
           <div class="info-item">
             <span class="info-label">Created At</span>
-            <span>{formatDate(order.attributes.created_at)}</span>
+            <span>{formatDate(orderAttributes?.created_at)}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Updated At</span>
-            <span>{formatDate(order.attributes.updated_at)}</span>
+            <span>{formatDate(orderAttributes?.updated_at)}</span>
           </div>
           {#if payload?.activated_at}
             <div class="info-item">
@@ -493,9 +510,7 @@
           {/if}
           <div class="info-item">
             <span class="info-label">Status</span>
-            <span class="badge badge-{order.attributes.state}">
-              {order.attributes.state}
-            </span>
+            <span class="badge badge-{orderState}">{orderState}</span>
           </div>
         </div>
       </section>
@@ -817,19 +832,6 @@
       <section class="section">
         <h3>Comments</h3>
         <div class="comment-form">
-          <div class="comment-form-row">
-            <label for="comment-state">Comment State</label>
-            <select
-              id="comment-state"
-              value={commentState}
-              onchange={(e) => (commentState = e.currentTarget.value)}
-            >
-              {#each getCommentStateOptions() as stateOption}
-                <option value={stateOption}>{getStateLabel(stateOption)}</option
-                >
-              {/each}
-            </select>
-          </div>
           <textarea
             rows="3"
             placeholder="Write a comment..."
@@ -1003,28 +1005,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-  }
-
-  .comment-form-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  .comment-form-row label {
-    font-size: 0.8125rem;
-    color: #374151;
-    font-weight: 600;
-  }
-
-  .comment-form-row select {
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    background: white;
-    color: #111827;
   }
 
   .comment-form textarea {
