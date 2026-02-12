@@ -944,25 +944,50 @@
 
     return text;
   }
+  function truncateText(text: string, max = 30) {
+    if (!text) return "";
+    const t = String(text).trim();
+    return t.length > max ? t.slice(0, max) + "..." : t;
+  }
+
+  // actions dropdown state (same as previous table)
+  let openActionsFor = $state<string | null>(null);
+
+  function getRowId(product: any) {
+    return String(product.id ?? product.shortname ?? crypto.randomUUID());
+  }
+
+  function toggleActions(product: any) {
+    const id = getRowId(product);
+    openActionsFor = openActionsFor === id ? null : id;
+  }
+
+  function closeActions() {
+    openActionsFor = null;
+  }
+
+  function onWindowClick() {
+    if (openActionsFor) closeActions();
+  }
 </script>
 
 <div class="products-page" class:rtl={$isRTL}>
   <!-- Stats Cards -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-icon" style="background: #dbeafe;">
+      <div class="bg-icon mx-4 rounded-lg flex items-center justify-center">
         <svg
-          class="w-6 h-6"
-          style="color: #3b82f6;"
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
           fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746ZM10.2033 7.5L7.86992 18H11.1624C11.7452 18.0015 12.3148 18.1735 12.8011 18.4948C13.2873 18.8161 13.6689 19.2727 13.8988 19.8082C14.2443 20.6086 14.8166 21.2904 15.5449 21.7696C16.2739 22.2492 17.1274 22.5048 18 22.5048C18.8726 22.5048 19.7261 22.2492 20.4551 21.7696C21.1837 21.2903 21.7561 20.608 22.1016 19.8072C22.3316 19.2721 22.713 18.8159 23.1989 18.4948C23.6852 18.1735 24.2548 18.0015 24.8376 18L24.8415 18L28.1301 18L25.7967 7.5H10.2033ZM28.5 21H24.8543C24.2766 22.3368 23.3205 23.4755 22.1038 24.2759C20.8853 25.0776 19.4586 25.5048 18 25.5048C16.5414 25.5048 15.1147 25.0776 13.8962 24.2759C12.6795 23.4755 11.7234 22.3368 11.1457 21H7.5V28.5H28.5V21ZM12 10.5C12 9.67157 12.6716 9 13.5 9H22.5C23.3284 9 24 9.67157 24 10.5C24 11.3284 23.3284 12 22.5 12H13.5C12.6716 12 12 11.3284 12 10.5ZM10.5 15C10.5 14.1716 11.1716 13.5 12 13.5H24C24.8284 13.5 25.5 14.1716 25.5 15C25.5 15.8284 24.8284 16.5 24 16.5H12C11.1716 16.5 10.5 15.8284 10.5 15Z"
+            fill="#3C307F"
           />
         </svg>
       </div>
@@ -975,19 +1000,19 @@
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon" style="background: #d1fae5;">
+      <div class="bg-icon mx-4 rounded-lg flex items-center justify-center">
         <svg
-          class="w-6 h-6"
-          style="color: #10b981;"
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
           fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M18 6C11.3726 6 6 11.3726 6 18C6 24.6274 11.3726 30 18 30C24.6274 30 30 24.6274 30 18C30 11.3726 24.6274 6 18 6ZM3 18C3 9.71573 9.71573 3 18 3C26.2843 3 33 9.71573 33 18C33 26.2843 26.2843 33 18 33C9.71573 33 3 26.2843 3 18ZM23.5607 13.9393C24.1464 14.5251 24.1464 15.4749 23.5607 16.0607L17.5607 22.0607C16.9749 22.6464 16.0251 22.6464 15.4393 22.0607L11.6893 18.3107C11.1036 17.7249 11.1036 16.7751 11.6893 16.1893C12.2751 15.6036 13.2249 15.6036 13.8107 16.1893L16.5 18.8787L21.4393 13.9393C22.0251 13.3536 22.9749 13.3536 23.5607 13.9393Z"
+            fill="#3C307F"
           />
         </svg>
       </div>
@@ -1000,19 +1025,19 @@
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon" style="background: #fee2e2;">
+      <div class="bg-icon mx-4 rounded-lg flex items-center justify-center">
         <svg
-          class="w-6 h-6"
-          style="color: #ef4444;"
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
           fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M6 18L18 6M6 6l12 12"
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M18 6C11.3726 6 6 11.3726 6 18C6 24.6274 11.3726 30 18 30C24.6274 30 30 24.6274 30 18C30 11.3726 24.6274 6 18 6ZM3 18C3 9.71573 9.71573 3 18 3C26.2843 3 33 9.71573 33 18C33 26.2843 26.2843 33 18 33C9.71573 33 3 26.2843 3 18ZM18 10.5C18.8284 10.5 19.5 11.1716 19.5 12V19.5C19.5 20.3284 18.8284 21 18 21C17.1716 21 16.5 20.3284 16.5 19.5V12C16.5 11.1716 17.1716 10.5 18 10.5ZM16.5 24C16.5 23.1716 17.1716 22.5 18 22.5H18.015C18.8434 22.5 19.515 23.1716 19.515 24C19.515 24.8284 18.8434 25.5 18.015 25.5H18C17.1716 25.5 16.5 24.8284 16.5 24Z"
+            fill="#3C307F"
           />
         </svg>
       </div>
@@ -1025,19 +1050,19 @@
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon" style="background: #fef3c7;">
+      <div class="bg-icon mx-4 rounded-lg flex items-center justify-center">
         <svg
-          class="w-6 h-6"
-          style="color: #f59e0b;"
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
           fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746ZM10.2033 7.5L7.86992 18H11.1624C11.7452 18.0015 12.3148 18.1735 12.8011 18.4948C13.2873 18.8161 13.6689 19.2727 13.8988 19.8082C14.2443 20.6086 14.8166 21.2904 15.5449 21.7696C16.2739 22.2492 17.1274 22.5048 18 22.5048C18.8726 22.5048 19.7261 22.2492 20.4551 21.7696C21.1837 21.2903 21.7561 20.608 22.1016 19.8072C22.3316 19.2721 22.713 18.8159 23.1989 18.4948C23.6852 18.1735 24.2548 18.0015 24.8376 18L24.8415 18L28.1301 18L25.7967 7.5H10.2033ZM28.5 21H24.8543C24.2766 22.3368 23.3205 23.4755 22.1038 24.2759C20.8853 25.0776 19.4586 25.5048 18 25.5048C16.5414 25.5048 15.1147 25.0776 13.8962 24.2759C12.6795 23.4755 11.7234 22.3368 11.1457 21H7.5V28.5H28.5V21Z"
+            fill="#3C307F"
           />
         </svg>
       </div>
@@ -1049,49 +1074,188 @@
       </div>
     </div>
   </div>
+  <div
+    class="flex flex-col md:flex-row search-table_header md:items-end justify-between bg-white rounded-t-xl gap-3 w-full p-6"
+  >
+    <!-- SEARCH -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        {$_("common.search")}
+      </label>
 
-  <div class="search-and-filters">
-    <div class="search-bar">
-      <input
-        type="text"
-        bind:value={searchQuery}
-        placeholder={$_("common.search") || "Search products..."}
-        class="search-input"
-        onkeydown={(e) => e.key === "Enter" && handleSearch()}
-      />
-      <button class="search-btn" onclick={handleSearch}>
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-          <path
-            fill-rule="evenodd"
-            d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-            clip-rule="evenodd"
-          />
-        </svg>
-      </button>
+      <div class="relative w-[256px]">
+        <div
+          class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none"
+        >
+          <svg
+            class="w-4 h-4 text-gray-400"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
+
+        <input
+          type="text"
+          bind:value={searchQuery}
+          placeholder={$_("common.search") || "Search products..."}
+          onkeydown={(e) => e.key === "Enter" && handleSearch()}
+          class="w-full h-9 pl-9 pr-3 py-2
+               bg-[#F9FAFB]
+               border border-[#E5E7EB]
+               rounded-[12px]
+               shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+               text-sm
+               focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+        />
+      </div>
     </div>
 
-    <div class="filters">
-      <select
-        id="category-filter"
-        bind:value={selectedCategoryFilter}
-        onchange={handleCategoryFilterChange}
-        class="filter-select"
+    <!-- CATEGORY FILTER DROPDOWN -->
+    <div class="flex items-end">
+      <!-- CREATE BUTTON -->
+      <button
+        onclick={openCreateModal}
+        class="inline-flex items-center justify-center mx-2
+            h-9 cursor-pointer
+           px-3 py-2
+           bg-[#3C307F] text-white text-sm font-medium
+           rounded-[12px]
+           shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+           hover:bg-[#2f2666]
+           transition-colors duration-200"
       >
-        <option value="all">
-          {$_("common.all_categories") || "All Categories"}
-        </option>
-        {#each categories as category}
-          <option value={category.shortname}>
-            {getLocalizedDisplayName(category)}
-          </option>
-        {/each}
-      </select>
-    </div>
+        <PlusOutline size="sm" />
+        <span class="ml-2">
+          {$_("admin_dashboard.create_product") || "Create Product"}
+        </span>
+      </button>
+      <div class="mx-2">
+        <details class="relative">
+          <summary
+            class="list-none cursor-pointer select-none
+                h-9
+               inline-flex items-center justify-between
+               px-3 py-2
+               bg-[#F9FAFB]
+               border border-[#E5E7EB]
+               rounded-[12px]
+               shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+               text-sm text-gray-700
+               hover:bg-gray-50"
+          >
+            <span class="truncate">
+              {selectedCategoryFilter === "all"
+                ? $_("common.all_categories") || "All Categories"
+                : getLocalizedDisplayName(
+                    categories.find(
+                      (c) => c.shortname === selectedCategoryFilter,
+                    ),
+                  )}
+            </span>
 
-    <button class="btn-create" onclick={openCreateModal}>
-      <PlusOutline size="sm" />
-      <span>{$_("admin_dashboard.create_product") || "Create Product"}</span>
-    </button>
+            <svg
+              class="w-4 h-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </summary>
+
+          <div
+            class="absolute z-20 mt-2 w-[220px] rounded-[12px] border border-gray-200 bg-white shadow-lg p-2"
+          >
+            <button
+              type="button"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+              onclick={() => {
+                selectedCategoryFilter = "all";
+                handleCategoryFilterChange();
+              }}
+            >
+              {$_("common.all_categories") || "All Categories"}
+            </button>
+
+            {#each categories as category}
+              <button
+                type="button"
+                class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+                onclick={() => {
+                  selectedCategoryFilter = category.shortname;
+                  handleCategoryFilterChange();
+                }}
+              >
+                {getLocalizedDisplayName(category)}
+              </button>
+            {/each}
+          </div>
+        </details>
+      </div>
+
+      <!-- ACTIONS DROPDOWN -->
+      <div class="mx-2">
+        <details class="relative">
+          <summary
+            class="list-none cursor-pointer select-none
+               h-9
+               inline-flex items-center justify-between
+               px-3 py-2
+               bg-[#F9FAFB]
+               border border-[#E5E7EB]
+               rounded-[12px]
+               shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+               text-sm text-gray-700
+               hover:bg-gray-50"
+          >
+            <span>Actions</span>
+
+            <svg
+              class="w-4 h-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </summary>
+
+          <div
+            class="absolute z-20 mt-2 w-[180px] rounded-[12px] border border-gray-200 bg-white shadow-lg p-2"
+          >
+            <button
+              type="button"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+            >
+              Sort A → Z
+            </button>
+
+            <button
+              type="button"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+            >
+              Sort Z → A
+            </button>
+          </div>
+        </details>
+      </div>
+    </div>
   </div>
 
   {#if isLoading}
@@ -1162,7 +1326,7 @@
                     <div class="product-image">
                       <img
                         src={getProductThumbnail(product)}
-                        alt={getLocalizedDisplayName(product)}
+                        alt={getLocalizedDisplayName(product) || ""}
                         loading="lazy"
                       />
                     </div>
@@ -1180,14 +1344,19 @@
                       </svg>
                     </div>
                   {/if}
+
                   <div class="product-info">
-                    <span class="product-name"
-                      >{getLocalizedDisplayName(product)}</span
+                    <span
+                      class="product-name product-name--truncate"
+                      title={getLocalizedDisplayName(product) || ""}
+                      aria-label={getLocalizedDisplayName(product) || ""}
                     >
-                    <span class="product-shortname">{product.shortname}</span>
+                      {truncateText(getLocalizedDisplayName(product) || "", 30)}
+                    </span>
                   </div>
                 </div>
               </td>
+
               <td class="col-category">
                 {#if getProductMainCategory(product)}
                   <span class="category-text">
@@ -1225,21 +1394,133 @@
                 </span>
               </td>
               <td class="col-actions">
-                <div class="action-buttons">
+                <div class="relative" onclick={(e) => e.stopPropagation()}>
                   <button
-                    class="action-btn edit-btn"
-                    onclick={() => openEditModal(product)}
-                    title={$_("common.edit") || "Edit"}
+                    class="h-8 w-8 inline-flex items-center justify-center cursor-pointer rounded-md hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
+                    aria-label={$_("common.actions") || "Actions"}
+                    aria-haspopup="menu"
+                    aria-expanded={openActionsFor === getRowId(product)}
+                    onclick={() => toggleActions(product)}
                   >
-                    <EditOutline size="sm" />
+                    <span
+                      class="text-xl leading-none flex justify-center items-center"
+                      >…</span
+                    >
                   </button>
-                  <button
-                    class="action-btn delete-btn"
-                    onclick={() => openDeleteModal(product)}
-                    title={$_("common.delete") || "Delete"}
-                  >
-                    <TrashBinOutline size="sm" />
-                  </button>
+
+                  {#if openActionsFor === getRowId(product)}
+                    <div
+                      class="absolute z-20 mt-2 w-44 rounded-lg border border-gray-200 bg-white shadow-lg py-1"
+                      style={$isRTL ? "right:-85px;" : "left:-85px;"}
+                      role="menu"
+                    >
+                      <!-- Manage -->
+                      <button
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
+                        class:flex-row-reverse={$isRTL}
+                        class:text-right={$isRTL}
+                        onclick={() => {
+                          closeActions();
+                          toggleExpandRow(product.shortname);
+                        }}
+                        role="menuitem"
+                      >
+                        <!-- Folder / Manage Icon -->
+                        <svg
+                          class="w-4 h-4 text-gray-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+                          />
+                        </svg>
+
+                        <span
+                          >{$_("admin_dashboard.actions.manage") ||
+                            "Manage"}</span
+                        >
+                      </button>
+
+                      <!-- Edit -->
+                      <button
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
+                        class:flex-row-reverse={$isRTL}
+                        class:text-right={$isRTL}
+                        onclick={() => {
+                          closeActions();
+                          openEditModal(product);
+                        }}
+                        role="menuitem"
+                      >
+                        <!-- Pencil Icon -->
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="w-4 h-4 text-gray-500"
+                        >
+                          <path
+                            fill-rule="evenodd"
+                            clip-rule="evenodd"
+                            d="M15.5763 5.55905L14.1547 7.028L15.5563 8.42618C15.5577 8.42761 15.5592 8.42904 15.5606 8.43048L17.0227 9.88908L18.4245 8.44058L18.4357 8.42918C18.8155 8.0491 19.0288 7.53378 19.0288 6.99649C19.0288 6.45931 18.8155 5.94411 18.4359 5.56405C18.0559 5.1845 17.5407 4.97131 17.0036 4.97131C16.4688 4.97131 15.9558 5.18263 15.5763 5.55905ZM15.6318 11.3265L14.8691 10.5657L10.0378 15.6235L10.7674 16.3531L15.6318 11.3265ZM8.92782 17.3419L7.95914 16.3732C7.95553 16.3699 7.95195 16.3665 7.94838 16.3631C7.93349 16.3489 7.91913 16.3343 7.90531 16.3194L6.93719 15.3513L5.9421 18.337L8.92782 17.3419ZM7.90282 13.4885L8.62322 14.2089L13.4529 9.15285L12.7638 8.46539L7.90282 13.4885ZM12.0308 6.34678C12.0319 6.34571 12.0329 6.34463 12.0339 6.34356L14.1455 4.16158L14.1573 4.14958C14.9124 3.39511 15.9362 2.97131 17.0036 2.97131C18.071 2.97131 19.0948 3.39511 19.8499 4.14958L19.8505 4.15018C20.605 4.90529 21.0288 5.92906 21.0288 6.99649C21.0288 8.06106 20.6072 9.0822 19.8566 9.83672L11.4977 18.4744C11.3859 18.59 11.2479 18.6768 11.0953 18.7277L4.67729 20.8667C4.31797 20.9864 3.92182 20.8929 3.654 20.6251C3.38618 20.3573 3.29266 19.9611 3.41241 19.6018L5.55141 13.1838C5.59875 13.0418 5.67738 12.9122 5.7815 12.8046L12.0308 6.34678Z"
+                            fill="currentColor"
+                          />
+                        </svg>
+
+                        <span>{$_("common.edit") || "Edit"}</span>
+                      </button>
+
+                      <!-- Delete -->
+                      <button
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-red-50 text-red-600"
+                        class:flex-row-reverse={$isRTL}
+                        class:text-right={$isRTL}
+                        onclick={() => {
+                          closeActions();
+                          openDeleteModal(product);
+                        }}
+                        role="menuitem"
+                      >
+                        <!-- Trash Icon -->
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          x="0px"
+                          y="0px"
+                          class="w-4 h-4"
+                          viewBox="0,0,256,256"
+                        >
+                          <g
+                            fill="#fa5252"
+                            fill-rule="nonzero"
+                            stroke="none"
+                            stroke-width="1"
+                            stroke-linecap="butt"
+                            stroke-linejoin="miter"
+                            stroke-miterlimit="10"
+                            stroke-dasharray=""
+                            stroke-dashoffset="0"
+                            font-family="none"
+                            font-weight="none"
+                            font-size="none"
+                            text-anchor="none"
+                            style="mix-blend-mode: normal"
+                            ><g transform="scale(2,2)"
+                              ><path
+                                d="M49,1c-1.66,0 -3,1.34 -3,3c0,1.66 1.34,3 3,3h30c1.66,0 3,-1.34 3,-3c0,-1.66 -1.34,-3 -3,-3zM24,15c-7.17,0 -13,5.83 -13,13c0,7.17 5.83,13 13,13h77v63c0,9.37 -7.63,17 -17,17h-40c-9.37,0 -17,-7.63 -17,-17v-52c0,-1.66 -1.34,-3 -3,-3c-1.66,0 -3,1.34 -3,3v52c0,12.68 10.32,23 23,23h40c12.68,0 23,-10.32 23,-23v-63.35937c5.72,-1.36 10,-6.50062 10,-12.64062c0,-7.17 -5.83,-13 -13,-13zM24,21h80c3.86,0 7,3.14 7,7c0,3.86 -3.14,7 -7,7h-80c-3.86,0 -7,-3.14 -7,-7c0,-3.86 3.14,-7 7,-7zM50,55c-1.66,0 -3,1.34 -3,3v46c0,1.66 1.34,3 3,3c1.66,0 3,-1.34 3,-3v-46c0,-1.66 -1.34,-3 -3,-3zM78,55c-1.66,0 -3,1.34 -3,3v46c0,1.66 1.34,3 3,3c1.66,0 3,-1.34 3,-3v-46c0,-1.66 -1.34,-3 -3,-3z"
+                              ></path></g
+                            ></g
+                          >
+                        </svg>
+
+                        <span>{$_("common.delete") || "Delete"}</span>
+                      </button>
+                    </div>
+                  {/if}
                 </div>
               </td>
             </tr>
@@ -2355,6 +2636,11 @@
 {/if}
 
 <style>
+  .bg-icon {
+    background-color: #f4f5fe;
+    height: 70px;
+    width: 70px;
+  }
   .pagination {
     display: flex;
     justify-content: space-between;
@@ -2429,7 +2715,8 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 20px;
-    padding: 20px;
+    padding-bottom: 20px;
+    padding-top: 20px;
   }
 
   .stat-card {
@@ -2554,7 +2841,13 @@
     border-color: #3c307f;
     box-shadow: 0 0 0 3px rgba(60, 48, 127, 0.1);
   }
-
+  .product-name--truncate {
+    display: inline-block;
+    max-width: 320px; /* adjust per layout */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .btn-create {
     display: inline-flex;
     align-items: center;

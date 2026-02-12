@@ -10,6 +10,18 @@
     Roboto,
     sans-serif;
 }
+.bg-icon {
+    background-color: #f4f5fe;
+    height: 70px;
+    width: 70px;
+  }
+  .brands-table {
+  border-collapse: collapse;
+}
+
+.brands-table tbody tr td {
+  border-bottom: 1px solid #E5E7EB;
+}
 
 @media (max-width: 768px) {
   .brands-page {
@@ -253,12 +265,17 @@
 .brands-table-container {
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
 }
-
+.search-table_header {
+    border-top: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
+    border-left: 1px solid #e5e7eb;
+}
 /* Table Styles */
 .brands-table {
   width: 100%;

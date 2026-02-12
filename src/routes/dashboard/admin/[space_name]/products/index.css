@@ -163,12 +163,17 @@
 .products-table-container {
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
   overflow-x: auto;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   max-width: 100%;
 }
-
+.search-table_header {
+  border-top: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+}
 /* Table Styles */
 .products-table {
   width: 100%;
@@ -190,9 +195,11 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-
+.products-table {
+  border-collapse: collapse; /* keep this */
+}
 .products-table tbody tr.product-row {
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
   transition: all 0.2s ease;
 }
 
@@ -275,7 +282,7 @@
 .product-image {
   width: 40px;
   height: 40px;
-  border-radius: 0.5rem;
+  border-radius: 16px;
   overflow: hidden;
   flex-shrink: 0;
   background: #f3f4f6;
@@ -348,11 +355,15 @@
 .status-badge.active {
   background: #d1fae5;
   color: #065f46;
+  border: 1px solid var(--colors-border-border-success-subtle, #a4f4cf);
+  border-radius: 6px;
 }
 
 .status-badge.inactive {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--colors-background-bg-secondary-medium, #f9fafb);
+  border: 1px solid var(--colors-border-border-base-medium, #e5e7eb);
+  color: var(--colors-text-text-heading, #101828);
+  border-radius: 6px;
 }
 
 /* Expanded Row - Redesigned */

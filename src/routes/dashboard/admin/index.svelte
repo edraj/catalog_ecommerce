@@ -61,6 +61,52 @@
   let isSearching = $state(false);
   let searchTimeout: number;
 
+  type Space = any;
+
+  // dropdown state
+  let openActionsFor = $state<string | null>(null);
+
+  function getSpaceId(space: Space) {
+    return String(space.id ?? space.shortname ?? crypto.randomUUID());
+  }
+
+  // status mapping:
+  // - if attributes.status exists: pending | active | inactive
+  // - else fallback to is_active boolean => active/inactive
+  function getStatus(space: Space): "pending" | "active" | "inactive" {
+    const s = (space?.attributes?.status ?? "").toLowerCase();
+    if (s === "pending") return "pending";
+    if (s === "active") return "active";
+    if (s === "inactive") return "inactive";
+    return space?.attributes?.is_active ? "active" : "inactive";
+  }
+
+  function formatDateDMY(value?: string) {
+    if (!value) return "-";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "-";
+    // -> 15 Mar 2025
+    return d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  function toggleActions(space: Space) {
+    const id = getSpaceId(space);
+    openActionsFor = openActionsFor === id ? null : id;
+  }
+
+  function closeActions() {
+    openActionsFor = null;
+  }
+
+  // click outside to close (simple approach)
+  function onWindowClick() {
+    if (openActionsFor) closeActions();
+  }
+
   const statusOptions = [
     { value: "all", label: $_("admin_dashboard.filters.all") },
     { value: "active", label: $_("admin_dashboard.filters.active") },
@@ -472,21 +518,6 @@
 </script>
 
 <div class="min-h-screen bg-gray-50" class:rtl={$isRTL}>
-  <div class="bg-white border-b border-gray-200">
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
-      <div class="text-center">
-        <h1 class="text-4xl font-bold text-gray-900 mb-4">
-          {$_("admin_dashboard.title")}
-        </h1>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-          {$_("admin_dashboard.welcome", {
-            values: { name: $user.localized_displayname },
-          })}
-        </p>
-      </div>
-    </div>
-  </div>
-
   <div class="container mx-auto px-4 py-8 max-w-7xl">
     {#if isLoading}
       <div class="flex justify-center py-16">
@@ -564,28 +595,31 @@
       </div>
     {:else}
       <div class="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div
+          class="bg-white rounded-lg shadow-sm border border-gray-200 px-2 py-6"
+        >
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <div
-                class="w-12 h-12 bg-purple-100 mx-4 rounded-lg flex items-center justify-center"
+                class="bg-icon mx-4 rounded-lg flex items-center justify-center"
               >
                 <svg
-                  class="w-5 h-5 text-purple-600"
+                  width="36"
+                  height="36"
+                  viewBox="0 0 36 36"
                   fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                  ></path>
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746ZM10.2033 7.5L7.86992 18H11.1624C11.7452 18.0015 12.3148 18.1735 12.8011 18.4948C13.2873 18.8161 13.6689 19.2727 13.8988 19.8082C14.2443 20.6086 14.8166 21.2904 15.5449 21.7696C16.2739 22.2492 17.1274 22.5048 18 22.5048C18.8726 22.5048 19.7261 22.2492 20.4551 21.7696C21.1837 21.2903 21.7561 20.608 22.1016 19.8072C22.3316 19.2721 22.713 18.8159 23.1989 18.4948C23.6852 18.1735 24.2548 18.0015 24.8376 18L24.8415 18L28.1301 18L25.7967 7.5H10.2033ZM28.5 21H24.8543C24.2766 22.3368 23.3205 23.4755 22.1038 24.2759C20.8853 25.0776 19.4586 25.5048 18 25.5048C16.5414 25.5048 15.1147 25.0776 13.8962 24.2759C12.6795 23.4755 11.7234 22.3368 11.1457 21H7.5V28.5H28.5V21ZM12 10.5C12 9.67157 12.6716 9 13.5 9H22.5C23.3284 9 24 9.67157 24 10.5C24 11.3284 23.3284 12 22.5 12H13.5C12.6716 12 12 11.3284 12 10.5ZM10.5 15C10.5 14.1716 11.1716 13.5 12 13.5H24C24.8284 13.5 25.5 14.1716 25.5 15C25.5 15.8284 24.8284 16.5 24 16.5H12C11.1716 16.5 10.5 15.8284 10.5 15Z"
+                    fill="#3C307F"
+                  />
                 </svg>
               </div>
             </div>
-            <div class="ml-6" class:mr-6={$isRTL} class:ml-0={$isRTL}>
+            <div class="ml-2" class:mr-6={$isRTL} class:ml-0={$isRTL}>
               <p class="text-sm font-medium text-gray-500">
                 {$_("admin_dashboard.stats.total_spaces")}
               </p>
@@ -596,28 +630,31 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div
+          class="bg-white rounded-lg shadow-sm border border-gray-200 px-2 py-6"
+        >
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <div
-                class="w-12 h-12 bg-green-100 mx-4 rounded-lg flex items-center justify-center"
+                class="bg-icon mx-4 rounded-lg flex items-center justify-center"
               >
                 <svg
-                  class="w-5 h-5 text-green-600"
+                  width="36"
+                  height="36"
+                  viewBox="0 0 36 36"
                   fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  ></path>
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M18 6C11.3726 6 6 11.3726 6 18C6 24.6274 11.3726 30 18 30C24.6274 30 30 24.6274 30 18C30 11.3726 24.6274 6 18 6ZM3 18C3 9.71573 9.71573 3 18 3C26.2843 3 33 9.71573 33 18C33 26.2843 26.2843 33 18 33C9.71573 33 3 26.2843 3 18ZM23.5607 13.9393C24.1464 14.5251 24.1464 15.4749 23.5607 16.0607L17.5607 22.0607C16.9749 22.6464 16.0251 22.6464 15.4393 22.0607L11.6893 18.3107C11.1036 17.7249 11.1036 16.7751 11.6893 16.1893C12.2751 15.6036 13.2249 15.6036 13.8107 16.1893L16.5 18.8787L21.4393 13.9393C22.0251 13.3536 22.9749 13.3536 23.5607 13.9393Z"
+                    fill="#3C307F"
+                  />
                 </svg>
               </div>
             </div>
-            <div class="ml-6" class:mr-6={$isRTL} class:ml-0={$isRTL}>
+            <div class="ml-2" class:mr-6={$isRTL} class:ml-0={$isRTL}>
               <p class="text-sm font-medium text-gray-500">
                 {$_("admin_dashboard.stats.active_spaces")}
               </p>
@@ -631,28 +668,31 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div
+          class="bg-white rounded-lg shadow-sm border border-gray-200 px-2 py-6"
+        >
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <div
-                class="w-12 h-12 bg-blue-100 rounded-lg mx-4 flex items-center justify-center"
+                class="bg-icon w-12 h-12 rounded-lg mx-4 flex items-center justify-center"
               >
                 <svg
-                  class="w-5 h-5 text-blue-600"
+                  width="36"
+                  height="36"
+                  viewBox="0 0 36 36"
                   fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                  ></path>
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M13.5 9C11.8431 9 10.5 10.3431 10.5 12C10.5 13.6569 11.8431 15 13.5 15C15.1569 15 16.5 13.6569 16.5 12C16.5 10.3431 15.1569 9 13.5 9ZM7.5 12C7.5 8.68629 10.1863 6 13.5 6C16.8137 6 19.5 8.68629 19.5 12C19.5 15.3137 16.8137 18 13.5 18C10.1863 18 7.5 15.3137 7.5 12ZM25.5 15V16.689C26.0505 16.8307 26.5705 17.0486 27.0479 17.3307L28.2426 16.1361L30.3639 18.2574L29.1693 19.452C29.4514 19.9295 29.6693 20.4495 29.811 21L31.5 21.0001L31.4999 24.0001L29.811 24C29.6693 24.5506 29.4514 25.0705 29.1693 25.548L30.364 26.7426L28.2426 28.864L27.048 27.6693C26.5705 27.9514 26.0505 28.1693 25.5 28.311V30H22.5V28.311C21.9495 28.1693 21.4295 27.9514 20.952 27.6693L19.7574 28.8639L17.636 26.7426L18.8307 25.5479C18.5486 25.0705 18.3307 24.5506 18.189 24.0001L16.5001 24.0002L16.4999 21.0002L18.189 21.0001C18.3307 20.4495 18.5486 19.9295 18.8307 19.452L17.636 18.2574L19.7574 16.136L20.952 17.3307C21.4295 17.0486 21.9495 16.8307 22.5 16.689V15H25.5ZM21.8745 24.6171C21.8773 24.6199 21.8801 24.6227 21.8829 24.6255C22.4254 25.1659 23.1737 25.5 24 25.5C25.6569 25.5 27 24.1569 27 22.5C27 21.6771 26.6687 20.9316 26.1322 20.3896L26.1104 20.3678C25.5684 19.8313 24.8229 19.5 24 19.5C22.3431 19.5 21 20.8431 21 22.5C21 23.3263 21.3341 24.0746 21.8745 24.6171ZM10.5 22.5C8.84315 22.5 7.5 23.8431 7.5 25.5V27H16.5V30H7.5C5.84315 30 4.5 28.6569 4.5 27V25.5C4.5 22.1863 7.18629 19.5 10.5 19.5H15V22.5H10.5Z"
+                    fill="#3C307F"
+                  />
                 </svg>
               </div>
             </div>
-            <div class="ml-6" class:mr-6={$isRTL} class:ml-0={$isRTL}>
+            <div class="ml-2" class:mr-6={$isRTL} class:ml-0={$isRTL}>
               <p class="text-sm font-medium text-gray-500">
                 {$_("admin_dashboard.stats.admin_access")}
               </p>
@@ -663,28 +703,31 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div
+          class="bg-white rounded-lg shadow-sm border border-gray-200 px-2 py-6"
+        >
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <div
-                class="w-12 h-12 bg-orange-100 mx-4 rounded-lg flex items-center justify-center"
+                class="bg-icon mx-4 rounded-lg flex items-center justify-center"
               >
                 <svg
-                  class="w-5 h-5 text-orange-600"
+                  width="36"
+                  height="36"
+                  viewBox="0 0 36 36"
                   fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  ></path>
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M18 9C16.3431 9 15 10.3431 15 12C15 13.6569 16.3431 15 18 15C19.6569 15 21 13.6569 21 12C21 10.3431 19.6569 9 18 9ZM12 12C12 8.68629 14.6863 6 18 6C21.3137 6 24 8.68629 24 12C24 15.3137 21.3137 18 18 18C14.6863 18 12 15.3137 12 12ZM15 22.5C13.3431 22.5 12 23.8431 12 25.5V27H24V25.5C24 23.8431 22.6569 22.5 21 22.5H15ZM9 25.5C9 22.1863 11.6863 19.5 15 19.5H21C24.3137 19.5 27 22.1863 27 25.5V27C27 28.6569 25.6569 30 24 30H12C10.3431 30 9 28.6569 9 27V25.5Z"
+                    fill="#3C307F"
+                  />
                 </svg>
               </div>
             </div>
-            <div class="ml-6" class:mr-6={$isRTL} class:ml-0={$isRTL}>
+            <div class="ml-2" class:mr-6={$isRTL} class:ml-0={$isRTL}>
               <p class="text-sm font-medium text-gray-500">
                 {$_("admin_dashboard.stats.role")}
               </p>
@@ -703,110 +746,23 @@
             <div
               class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
             >
-              <div class="flex-1">
-                <h2 class="text-lg font-semibold text-gray-900 mb-2">
-                  {$_("admin_dashboard.manage_spaces", {
-                    values: {
-                      count: formatNumberInText(
-                        displayedSpaces.length,
-                        $locale,
-                      ),
-                    },
-                  })}
-                </h2>
-                <p class="text-sm text-gray-600">
-                  {#if searchQuery.trim()}
-                    Showing {formatNumberInText(
-                      displayedSpaces.length,
-                      $locale,
-                    )} search results for "{searchQuery}"
-                  {:else if isSearchActive}
-                    Showing {formatNumberInText(
-                      displayedSpaces.length,
-                      $locale,
-                    )} of {formatNumberInText(spaces.length, $locale)} spaces
-                  {:else}
-                    {$_("admin_dashboard.admin_access_description")}
-                  {/if}
-                </p>
-              </div>
-              <button
-                onclick={openCreateModal}
-                class="inline-flex items-center px-4 py-2 bg-[#281f51] text-white text-sm font-medium rounded-lg hover:bg-[#1a1433] transition-colors duration-200"
-                aria-label={$_("admin_dashboard.actions.create_space")}
-              >
-                <svg
-                  class="w-4 h-4 mr-2"
-                  class:ml-2={$isRTL}
-                  class:mr-0={$isRTL}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4v16m8-8H4"
-                  ></path>
-                </svg>
-                {$_("admin_dashboard.actions.create_space")}
-              </button>
-            </div>
-          </div>
-
-          <div class="p-6 bg-gray-50 border-b border-gray-200">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div class="lg:col-span-2">
-                <label
-                  for="search"
-                  class="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  {$_("search_filters.search_label")}
-                </label>
-                <div class="relative">
-                  <div
-                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+              <!-- Left group: Search + Filter + Actions -->
+              <div class="flex flex-col md:flex-row md:items-end gap-3">
+                <!-- Search -->
+                <div>
+                  <label
+                    for="search"
+                    class="block text-sm font-medium text-gray-700 mb-2"
                   >
-                    <svg
-                      class="h-5 w-5 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      ></path>
-                    </svg>
-                  </div>
-                  <label for="search"></label>
-                  <input
-                    id="search"
-                    type="text"
-                    bind:value={searchQuery}
-                    oninput={() => debounce(handleSearchInput)}
-                    placeholder={$_("search_filters.search_placeholder")}
-                    class="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-                  />
-                  {#if isSearching}
-                    <div class="absolute inset-y-0 right-8 flex items-center">
-                      <Diamonds color="#8b5cf6" size="16" unit="px" />
-                    </div>
-                  {/if}
-                  {#if searchQuery}
-                    <button
-                      onclick={() => {
-                        searchQuery = "";
-                        searchResults = [];
-                      }}
-                      class="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      aria-label={$_("search_filters.clear_search")}
+                    {$_("search_filters.search_label")}
+                  </label>
+
+                  <div class="relative w-[256px]">
+                    <div
+                      class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none"
                     >
                       <svg
-                        class="h-4 w-4 text-gray-400 hover:text-gray-600"
+                        class="h-5 w-5 text-gray-400"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -815,76 +771,269 @@
                           stroke-linecap="round"
                           stroke-linejoin="round"
                           stroke-width="2"
-                          d="M6 18L18 6M6 6l12 12"
-                        ></path>
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
                       </svg>
-                    </button>
-                  {/if}
+                    </div>
+
+                    <input
+                      id="search"
+                      type="text"
+                      bind:value={searchQuery}
+                      oninput={() => debounce(handleSearchInput)}
+                      placeholder={$_("search_filters.search_placeholder")}
+                      class="block w-full h-9 pl-10 pr-10 py-2
+                   bg-[#F9FAFB]
+                   border border-[#E5E7EB]
+                   rounded-md
+                   shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+                   text-sm
+                   placeholder-gray-500
+                   focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                    />
+
+                    {#if isSearching}
+                      <div class="absolute inset-y-0 right-8 flex items-center">
+                        <Diamonds color="#8b5cf6" size="16" unit="px" />
+                      </div>
+                    {/if}
+
+                    {#if searchQuery}
+                      <button
+                        onclick={() => {
+                          searchQuery = "";
+                          searchResults = [];
+                        }}
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        aria-label={$_("search_filters.clear_search")}
+                        type="button"
+                      >
+                        <svg
+                          class="h-4 w-4 text-gray-400 hover:text-gray-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    {/if}
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label
-                  for="status-filter"
-                  class="block text-sm font-medium text-gray-700 mb-2"
+              <!-- Right group: Create Space -->
+              <div class="flex items-end">
+                <button
+                  onclick={openCreateModal}
+                  class="inline-flex items-center justify-center mx-2
+             w-[135px] h-9 cursor-pointer
+             px-3 py-2
+             bg-[#3C307F] text-white text-sm font-medium
+             rounded-xl
+             shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+             hover:bg-[#2f2666] transition-colors duration-200"
+                  aria-label={$_("admin_dashboard.actions.create_space")}
+                  type="button"
                 >
-                  {$_("search_filters.status_label")}
-                </label>
-                <select
-                  id="status-filter"
-                  bind:value={selectedStatus}
-                  disabled={searchQuery.trim() !== ""}
-                  class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  {#each statusOptions as option}
-                    <option value={option.value}>{option.label}</option>
-                  {/each}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  for="sort-by"
-                  class="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  {$_("search_filters.sort_label")}
-                </label>
-                <div class="flex gap-2">
-                  <select
-                    id="sort-by"
-                    bind:value={sortBy}
-                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                  <svg
+                    class="w-4 h-4 mr-2"
+                    class:ml-2={$isRTL}
+                    class:mr-0={$isRTL}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    {#each sortOptions as option}
-                      <option value={option.value}>{option.label}</option>
-                    {/each}
-                  </select>
-                  <button
-                    onclick={toggleSortOrder}
-                    class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    title={$_("search_filters.toggle_sort")}
-                    aria-label={$_("search_filters.toggle_sort")}
-                  >
-                    <svg
-                      class="w-4 h-4 text-gray-600 {sortOrder === 'desc'
-                        ? 'rotate-180'
-                        : ''}"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  {$_("admin_dashboard.actions.create_space")}
+                </button>
+                <!-- Filter by status dropdown button -->
+                <div class="relative mx-2">
+                  <details class="relative">
+                    <summary
+                      class="list-none cursor-pointer select-none
+                   w-[110px] h-9
+                   inline-flex items-center justify-between
+                   px-3 py-2
+                   bg-[#F9FAFB]
+                   border border-[#E5E7EB]
+                   rounded-md
+                   shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+                   text-sm text-gray-700
+                   hover:bg-gray-50"
+                      aria-label={$_("search_filters.status_label")}
                     >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-                      ></path>
-                    </svg>
-                  </button>
+                      <span class="flex items-center gap-1.5">
+                        <svg
+                          class="w-4 h-4 text-gray-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 12.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 019 17V12.414L3.293 6.707A1 1 0 013 6V4z"
+                          />
+                        </svg>
+                        <span>{$_("search_filters.status_label")}</span>
+                      </span>
+
+                      <svg
+                        class="w-4 h-4 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </summary>
+
+                    <div
+                      class="absolute z-20 mt-2 w-[220px] rounded-md border border-gray-200 bg-white shadow-lg p-2"
+                    >
+                      {#each statusOptions as option}
+                        <button
+                          type="button"
+                          class="w-full text-left px-3 py-2 rounded-md text-sm
+                       hover:bg-gray-50
+                       {selectedStatus === option.value
+                            ? 'bg-gray-50 font-medium'
+                            : ''}"
+                          onclick={() => (selectedStatus = option.value)}
+                          disabled={searchQuery.trim() !== ""}
+                        >
+                          {option.label}
+                        </button>
+                      {/each}
+                    </div>
+                  </details>
+                </div>
+
+                <!-- Actions dropdown (sorting) -->
+                <div class="relative mx-2">
+                  <details class="relative">
+                    <summary
+                      class="list-none cursor-pointer select-none
+                   w-[97px] h-9
+                   inline-flex items-center justify-between
+                   px-3 py-2
+                   bg-[#F9FAFB]
+                   border border-[#E5E7EB]
+                   rounded-md
+                   shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+                   text-sm text-gray-700
+                   hover:bg-gray-50"
+                      aria-label={$_("search_filters.sort_label")}
+                    >
+                      <span class="flex items-center gap-1.5">
+                        <svg
+                          class="w-4 h-4 text-gray-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M3 4h13M3 8h9M3 12h13M3 16h9M3 20h13"
+                          />
+                        </svg>
+                        <span>Actions</span>
+                      </span>
+
+                      <svg
+                        class="w-4 h-4 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </summary>
+
+                    <div
+                      class="absolute z-20 mt-2 w-[260px] rounded-md border border-gray-200 bg-white shadow-lg p-3"
+                    >
+                      <div class="text-xs font-medium text-gray-500 mb-2">
+                        {$_("search_filters.sort_label")}
+                      </div>
+
+                      <div class="mb-3">
+                        <select
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm
+                       focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                          bind:value={sortBy}
+                        >
+                          {#each sortOptions as option}
+                            <option value={option.value}>{option.label}</option>
+                          {/each}
+                        </select>
+                      </div>
+
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Order</span>
+
+                        <button
+                          type="button"
+                          onclick={toggleSortOrder}
+                          class="inline-flex items-center gap-2 px-3 py-2
+                       border border-[#E5E7EB]
+                       rounded-md
+                       bg-[#F9FAFB]
+                       shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+                       text-sm text-gray-700 hover:bg-gray-50"
+                          title={$_("search_filters.toggle_sort")}
+                          aria-label={$_("search_filters.toggle_sort")}
+                        >
+                          <svg
+                            class="w-4 h-4 text-gray-600 {sortOrder === 'desc'
+                              ? 'rotate-180'
+                              : ''}"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                            />
+                          </svg>
+                          <span>{sortOrder === "desc" ? "Desc" : "Asc"}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </details>
                 </div>
               </div>
             </div>
 
+            
             {#if isSearchActive}
               <div class="mt-4 flex items-center justify-between">
                 <div class="text-sm text-gray-600">
@@ -902,10 +1051,14 @@
                     })}
                   {/if}
                 </div>
+
                 <button
                   onclick={clearFilters}
-                  class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm
+               text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50
+               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                   aria-label={$_("search_filters.clear_filters")}
+                  type="button"
                 >
                   <svg
                     class="w-4 h-4 mr-1.5"
@@ -918,7 +1071,7 @@
                       stroke-linejoin="round"
                       stroke-width="2"
                       d="M6 18L18 6M6 6l12 12"
-                    ></path>
+                    />
                   </svg>
                   {$_("search_filters.clear_filters")}
                 </button>
@@ -974,24 +1127,28 @@
                     >
                       {$_("admin_dashboard.table.space")}
                     </th>
+
                     <th
                       class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                       class:text-right={$isRTL}
                     >
                       {$_("admin_dashboard.table.status")}
                     </th>
+
                     <th
                       class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                       class:text-right={$isRTL}
                     >
                       {$_("admin_dashboard.table.owner")}
                     </th>
+
                     <th
                       class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                       class:text-right={$isRTL}
                     >
                       {$_("admin_dashboard.table.created")}
                     </th>
+
                     <th
                       class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                       class:text-right={$isRTL}
@@ -1000,133 +1157,251 @@
                     </th>
                   </tr>
                 </thead>
+
                 <tbody class="bg-white divide-y divide-gray-200">
-                  {#each displayedSpaces as space, index}
+                  {#each displayedSpaces as space (getSpaceId(space))}
+                    {@const status = getStatus(space)}
+                    {@const rowId = getSpaceId(space)}
+
                     <tr
                       class="hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
                       onclick={() => handleRecordClick(space)}
                       role="button"
                       tabindex="0"
                       onkeydown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
+                        if (e.key === "Enter" || e.key === " ")
                           handleRecordClick(space);
-                        }
                       }}
                     >
+                      <!-- 1) SPACE (avatar + name + description) -->
                       <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                          <div class="flex-shrink-0 h-12 w-12 mx-4">
-                            <div
-                              class="h-12 w-12 rounded-lg flex items-center justify-center shadow-md"
-                              style="background: #281f51;"
-                            >
-                              <span class="text-white font-bold text-lg">
-                                {space.shortname
-                                  ? space.shortname.charAt(0).toUpperCase()
-                                  : "S"}
-                              </span>
-                            </div>
-                          </div>
+                        <div
+                          class="flex items-center gap-2.5"
+                          class:flex-row-reverse={$isRTL}
+                        >
+                          <!-- Avatar (44x44, padding 10/5, rounded 100px, bg #F3F4F6) -->
                           <div
-                            class="ml-6"
-                            class:mr-6={$isRTL}
-                            class:ml-0={$isRTL}
+                            class="shrink-0 rounded-full bg-gray-100 flex items-center justify-center"
+                            style="width:44px;height:44px;padding:10px 5px;"
+                            aria-hidden="true"
                           >
-                            <div class="text-sm font-semibold text-gray-900">
+                            <span
+                              class="text-sm font-medium"
+                              style="color:#101828;"
+                            >
+                              {space.shortname
+                                ? space.shortname.charAt(0).toUpperCase()
+                                : "S"}
+                            </span>
+                          </div>
+
+                          <div class="min-w-0">
+                            <!-- Name (Medium, 16px line-height, heading color) -->
+                            <div
+                              class="truncate"
+                              style="font-weight:500;font-size:16px;line-height:16px;color:#101828;"
+                            >
                               {getDisplayName(space)}
                             </div>
+
+                            <!-- Description (Regular, 14px line-height, body color) -->
                             <div
-                              class="text-sm text-gray-500 max-w-xs truncate"
+                              class="truncate mt-1"
+                              style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;"
                             >
                               {getDescription(space)}
                             </div>
-                            <div
-                              class="text-xs text-purple-600 font-medium mt-1"
-                            >
-                              {space.shortname}
-                            </div>
                           </div>
                         </div>
                       </td>
+
+                      <!-- 2) STATUS (pill + svg) -->
                       <td class="px-6 py-4 whitespace-nowrap">
                         <span
-                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {space
-                            .attributes?.is_active
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'}"
+                          class="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5"
+                          style="
+                height:20px;
+                background: {status === 'pending'
+                            ? '#EEF6FF'
+                            : status === 'active'
+                              ? '#ECFDF5'
+                              : '#FFF8F1'};
+                border-color: {status === 'pending'
+                            ? '#BEDBFF'
+                            : status === 'active'
+                              ? '#A4F4CF'
+                              : '#FCD9BD'};
+              "
                         >
-                          <div
-                            class="w-1.5 h-1.5 rounded-full mr-1.5 {space
-                              .attributes?.is_active
-                              ? 'bg-green-400'
-                              : 'bg-red-400'}"
-                            class:ml-1.5={$isRTL}
-                            class:mr-0={$isRTL}
-                          ></div>
-                          {space.attributes?.is_active
-                            ? $_("admin_dashboard.status.active")
-                            : $_("admin_dashboard.status.inactive")}
+                          {#if status === "pending"}
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 12 12"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              aria-hidden="true"
+                            >
+                              <path
+                                fill-rule="evenodd"
+                                clip-rule="evenodd"
+                                d="M2.25 2C2.25 1.72386 2.47386 1.5 2.75 1.5H9.25C9.52614 1.5 9.75 1.72386 9.75 2C9.75 2.27614 9.52614 2.5 9.25 2.5H8.5V3.6665C8.5 3.97975 8.40194 4.28484 8.22003 4.53915L7.41216 5.94864C7.40196 5.96644 7.39067 5.98359 7.37836 6C7.39067 6.01641 7.40196 6.03356 7.41216 6.05136L8.22003 7.46084C8.40194 7.71516 8.5 8.02025 8.5 8.3335V9.5H9.25C9.52614 9.5 9.75 9.72386 9.75 10C9.75 10.2761 9.52614 10.5 9.25 10.5H2.75C2.47386 10.5 2.25 10.2761 2.25 10C2.25 9.72386 2.47386 9.5 2.75 9.5H3.5V8.3335C3.5 8.02131 3.5974 7.71722 3.77814 7.46342L4.56339 6.05634C4.57432 6.03676 4.58655 6.01794 4.6 6C4.58655 5.98206 4.57432 5.96324 4.56339 5.94366L3.77813 4.53658C3.5974 4.28278 3.5 3.97869 3.5 3.6665V2.5H2.75C2.47386 2.5 2.25 2.27614 2.25 2ZM4.5 2.5V3.6665C4.5 3.77469 4.53509 3.87995 4.6 3.9665C4.61345 3.98444 4.62568 4.00326 4.63661 4.02284L5.42302 5.43199C5.5381 5.59873 5.6 5.79679 5.6 6C5.6 6.20321 5.5381 6.40127 5.42302 6.56801L4.63661 7.97716C4.62568 7.99674 4.61345 8.01556 4.6 8.0335C4.53509 8.12005 4.5 8.22532 4.5 8.3335V9.5H7.5V8.3335C7.5 8.22531 7.46491 8.12005 7.4 8.0335C7.38769 8.01709 7.37641 7.99994 7.3662 7.98214L6.55725 6.57077C6.44095 6.40346 6.37836 6.20433 6.37836 6C6.37836 5.79567 6.44095 5.59654 6.55725 5.42923L7.3662 4.01786C7.37641 4.00006 7.38769 3.98291 7.4 3.9665C7.46491 3.87995 7.5 3.77469 7.5 3.6665V2.5H4.5Z"
+                                fill="#1C398E"
+                              />
+                            </svg>
+                            <span
+                              style="font-weight:500;font-size:12px;line-height:16px;color:#1C398E;"
+                            >
+                              {$_("admin_dashboard.status.pending")}
+                            </span>
+                          {:else if status === "active"}
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 12 12"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              aria-hidden="true"
+                            >
+                              <path
+                                fill-rule="evenodd"
+                                clip-rule="evenodd"
+                                d="M9.85885 3.40183C10.0511 3.60001 10.0464 3.91656 9.84818 4.10885L5.21017 8.60885C5.01621 8.79704 4.70781 8.79705 4.51384 8.60887L2.15184 6.31737C1.95365 6.12509 1.94885 5.80854 2.14113 5.61034C2.33341 5.41215 2.64996 5.40735 2.84816 5.59963L4.86198 7.55335L9.15183 3.39115C9.35001 3.19886 9.66656 3.20364 9.85885 3.40183Z"
+                                fill="#004F3B"
+                              />
+                            </svg>
+                            <span
+                              style="font-weight:500;font-size:12px;line-height:16px;color:#004F3B;"
+                            >
+                              {$_("admin_dashboard.status.active")}
+                            </span>
+                          {:else}
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 12 12"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              aria-hidden="true"
+                            >
+                              <path
+                                fill-rule="evenodd"
+                                clip-rule="evenodd"
+                                d="M9.32268 2.64556C9.51843 2.84033 9.51922 3.15692 9.32445 3.35267L6.70534 5.98493L9.35444 8.64733C9.54921 8.84308 9.54842 9.15966 9.35267 9.35443C9.15692 9.5492 8.84033 9.54841 8.64556 9.35266L6 6.69381L3.35444 9.35266C3.15967 9.54841 2.84308 9.5492 2.64733 9.35443C2.45158 9.15966 2.45079 8.84308 2.64556 8.64733L5.29466 5.98493L2.67555 3.35267C2.48078 3.15692 2.48157 2.84034 2.67732 2.64556C2.87307 2.45079 3.18966 2.45159 3.38443 2.64734L6 5.27604L8.61557 2.64733C8.81035 2.45158 9.12693 2.45079 9.32268 2.64556Z"
+                                fill="#771D1D"
+                              />
+                            </svg>
+                            <span
+                              style="font-weight:500;font-size:12px;line-height:16px;color:#771D1D;"
+                            >
+                              {$_("admin_dashboard.status.inactive")}
+                            </span>
+                          {/if}
                         </span>
                       </td>
+
+                      <!-- 3) OWNER (medium text-sm / heading color) -->
+                      <td
+                        class="px-6 py-4 whitespace-nowrap"
+                        style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                      >
+                        {space.attributes?.owner_shortname ||
+                          $_("common.unknown")}
+                      </td>
+
+                      <!-- 4) CREATED (calendar svg + 15 Mar 2025) -->
                       <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                          <div
-                            class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2"
-                            class:ml-2={$isRTL}
-                            class:mr-0={$isRTL}
+                        <div
+                          class="inline-flex items-center gap-2"
+                          style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                          class:flex-row-reverse={$isRTL}
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
                           >
-                            <span class="text-xs font-medium text-gray-600">
-                              {space.attributes?.owner_shortname
-                                ? space.attributes.owner_shortname
-                                    .charAt(0)
-                                    .toUpperCase()
-                                : "U"}
-                            </span>
-                          </div>
-                          <span class="text-sm text-gray-900">
-                            {space.attributes?.owner_shortname ||
-                              $_("common.unknown")}
-                          </span>
+                            <path
+                              fill-rule="evenodd"
+                              clip-rule="evenodd"
+                              d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z"
+                              fill="#6A7282"
+                            />
+                          </svg>
+                          <span
+                            class="whitespace-nowrap"
+                            style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                            >{formatDateDMY(space.attributes?.created_at)}</span
+                          >
                         </div>
                       </td>
-                      <td
-                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
-                      >
-                        {formatDate(space.attributes?.created_at)}
-                      </td>
-                      <td
-                        class="px-6 py-4 whitespace-nowrap text-sm font-medium"
-                      >
-                        <button
-                          onclick={(e) => {
-                            e.stopPropagation();
-                            handleSpaceClick(space);
-                          }}
-                          class="text-purple-600 hover:text-purple-900 transition-colors duration-200 mx-2"
-                          aria-label={$_("admin_dashboard.actions.manage")}
+
+                      <!-- 5) ACTIONS (... dropdown) -->
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div
+                          class="relative"
+                          onclick={(e) => e.stopPropagation()}
                         >
-                          {$_("admin_dashboard.actions.manage")}
-                        </button>
-                        <button
-                          onclick={(e) => {
-                            e.stopPropagation();
-                            openEditModal(space);
-                          }}
-                          class="text-blue-600 hover:text-blue-900 transition-colors duration-200 mx-2"
-                          aria-label={$_("admin_dashboard.actions.edit")}
-                        >
-                          {$_("admin_dashboard.actions.edit")}
-                        </button>
-                        <button
-                          onclick={(e) => {
-                            e.stopPropagation();
-                            openDeleteModal(space);
-                          }}
-                          class="text-red-600 hover:text-red-900 transition-colors duration-200 mx-2"
-                          aria-label={$_("admin_dashboard.actions.delete")}
-                        >
-                          {$_("admin_dashboard.actions.delete")}
-                        </button>
+                          <button
+                            class="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-gray-100 transition"
+                            aria-label={$_("admin_dashboard.table.actions")}
+                            aria-haspopup="menu"
+                            aria-expanded={openActionsFor === rowId}
+                            onclick={() => toggleActions(space)}
+                            type="button"
+                          >
+                            <span
+                              class="text-xl leading-none"
+                              style="color:#101828;">…</span
+                            >
+                          </button>
+
+                          {#if openActionsFor === rowId}
+                            <div
+                              class="absolute flex flex-col z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1"
+                              style={$isRTL ? "right:-40px;" : "left:-40px;"}
+                              role="menu"
+                            >
+                              <button
+                                class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                                class:text-right={$isRTL}
+                                onclick={() => {
+                                  closeActions();
+                                  handleSpaceClick(space);
+                                }}
+                                role="menuitem"
+                              >
+                                {$_("admin_dashboard.actions.manage")}
+                              </button>
+
+                              <button
+                                class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                                class:text-right={$isRTL}
+                                onclick={() => {
+                                  closeActions();
+                                  openEditModal(space);
+                                }}
+                                role="menuitem"
+                              >
+                                {$_("admin_dashboard.actions.edit")}
+                              </button>
+
+                              <button
+                                class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-red-600"
+                                class:text-right={$isRTL}
+                                onclick={() => {
+                                  closeActions();
+                                  openDeleteModal(space);
+                                }}
+                                role="menuitem"
+                              >
+                                {$_("admin_dashboard.actions.delete")}
+                              </button>
+                            </div>
+                          {/if}
+                        </div>
                       </td>
                     </tr>
                   {/each}
@@ -1700,7 +1975,11 @@
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
-
+  .bg-icon {
+    background-color: #f4f5fe;
+    height: 70px;
+    width: 70px;
+  }
   @keyframes fadeIn {
     from {
       opacity: 0;

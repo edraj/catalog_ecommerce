@@ -264,16 +264,28 @@
   color: #9ca3af;
   margin: 0;
 }
+.search-table_header {
+  border-top: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+}
+.warranties-table {
+  border-collapse: collapse;
+}
+
+.warranties-table tbody tr td {
+  border-bottom: 1px solid #E5E7EB;
+}
 
 /* Table Container */
 .warranties-table-container {
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
   overflow-x: auto;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   max-width: 100%;
-  margin: 0 20px;
 }
 
 /* Table Styles */

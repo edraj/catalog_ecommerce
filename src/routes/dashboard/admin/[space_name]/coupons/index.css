@@ -412,7 +412,9 @@
   background: #fee2e2;
   color: #991b1b;
 }
-
+.stat-content {
+  flex: 1;
+}
 .status-badge.active {
   background: #dcfce7;
   color: #166534;

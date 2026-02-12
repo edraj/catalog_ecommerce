@@ -2,12 +2,7 @@
   import { onMount } from "svelte";
   import { goto } from "@roxi/routify";
   import "./index.css";
-  import {
-    getSpaceContents,
-    createEntity,
-    updateEntity,
-    deleteEntity,
-  } from "@/lib/dmart_services";
+  import { getSpaceContents, updateEntity } from "@/lib/dmart_services";
   import { ResourceType } from "@edraj/tsdmart";
   import {
     errorToastMessage,
@@ -22,12 +17,10 @@
   } from "flowbite-svelte-icons";
   import { getLocalizedDisplayName, generateKey } from "@/lib/utils/adminUtils";
   import { getVariationOptions, getOptionName } from "@/lib/utils/entityUtils";
-  import { validateOptionForm } from "@/lib/utils/validationUtils";
   import { formatNumber } from "@/lib/helpers";
   import {
     Button,
     IconButton,
-    FormInput,
     LoadingSpinner,
     EmptyState,
   } from "@/components/ui";
@@ -41,60 +34,90 @@
 
   $goto;
 
-  const isRTL = derived(
-    locale,
-    ($locale) => $locale === "ar" || $locale === "ku",
-  );
+  const isRTL = derived(locale, ($l) => $l === "ar" || $l === "ku");
 
-  let variations = $state([]);
+  let variations = $state<any[]>([]);
   let isLoading = $state(true);
-  let selectedVariation = $state(null);
+
+  // Tabs: only colors + storages
+  type TabKey = "colors" | "storages";
+  let activeTab = $state<TabKey>("colors");
+
+  // Search (single input filters active tab)
+  let searchQuery = $state("");
+    let currentPage = $state(1);
+let itemsPerPage = $state(10);
+  // Modals
+  let selectedVariation = $state<any>(null);
   let showAddOptionModal = $state(false);
   let showEditOptionModal = $state(false);
   let showDeleteOptionModal = $state(false);
-  let selectedOption = $state(null);
+  let selectedOption = $state<any>(null);
   let editFormData = $state<OptionFormData | undefined>(undefined);
 
-  let searchQueries = $state<Record<string, string>>({});
-  let expandedVariations = $state<Record<string, boolean>>({});
-  const INITIAL_DISPLAY_COUNT = 10;
+  // -------- helpers ----------
+  function getVariationByShortname(shortname: string) {
+    return variations.find((v) => v?.shortname === shortname) || null;
+  }
 
-  function getFilteredOptions(variation: any) {
-    const options = getVariationOptions(variation);
-    const searchQuery = searchQueries[variation.shortname]?.toLowerCase() || "";
+  let colorsVariation = $derived.by(() => getVariationByShortname("colors"));
+  let storagesVariation = $derived.by(() =>
+    getVariationByShortname("storages"),
+  );
 
-    if (!searchQuery) return options;
+  function getOptionsSafe(variation: any) {
+    return getVariationOptions(variation) || [];
+  }
+
+  function filterOptions(variation: any) {
+    const options = getOptionsSafe(variation);
+    const q = (searchQuery || "").trim().toLowerCase();
+    if (!q) return options;
 
     return options.filter((option: any) => {
       const nameEn = option.name?.en?.toLowerCase() || "";
       const nameAr = option.name?.ar?.toLowerCase() || "";
-      const value = option.value?.toLowerCase() || "";
-      return (
-        nameEn.includes(searchQuery) ||
-        nameAr.includes(searchQuery) ||
-        value.includes(searchQuery)
-      );
+      const value = option.value?.toLowerCase?.() || "";
+      return nameEn.includes(q) || nameAr.includes(q) || value.includes(q);
     });
   }
 
-  function getDisplayedOptions(variation: any) {
-    const filtered = getFilteredOptions(variation);
-    const isExpanded = expandedVariations[variation.shortname];
+  let activeVariation = $derived.by(() =>
+    activeTab === "colors" ? colorsVariation : storagesVariation,
+  );
 
-    if (isExpanded || filtered.length <= INITIAL_DISPLAY_COUNT) {
-      return filtered;
-    }
+  let activeOptions = $derived.by(() => filterOptions(activeVariation));
+let totalOptionsCount = $derived.by(() => activeOptions.length);
 
-    return filtered.slice(0, INITIAL_DISPLAY_COUNT);
-  }
+let totalPages = $derived.by(() => {
+  return Math.max(1, Math.ceil(totalOptionsCount / itemsPerPage));
+});
 
-  function toggleExpanded(shortname: string) {
-    expandedVariations[shortname] = !expandedVariations[shortname];
-  }
+let paginatedOptions = $derived.by(() => {
+  const start = (currentPage - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return activeOptions.slice(start, end);
+});
 
-  function updateSearch(shortname: string, value: string) {
-    searchQueries[shortname] = value;
-  }
+  let totalColors = $derived.by(() => getOptionsSafe(colorsVariation).length);
+  let totalStorages = $derived.by(
+    () => getOptionsSafe(storagesVariation).length,
+  );
+
+  // Stats shows totals (as requested)
+  let statLeftLabel = $derived.by(
+    () => $_("admin_dashboard.total_colors_label") || "Total Colors",
+  );
+  let statLeftValue = $derived.by(() => totalColors);
+  let statRightLabel = $derived.by(
+    () => $_("admin_dashboard.total_storages_label") || "Total Storages",
+  );
+  let statRightValue = $derived.by(() => totalStorages);
+  let totalVariationsLabel = $derived.by(
+    () =>
+      $_("admin_dashboard.total_variations_available") ||
+      "Total Variations Available",
+  );
 
   onMount(async () => {
     await loadVariations();
@@ -103,7 +126,7 @@
   async function loadVariations() {
     isLoading = true;
     try {
-      const response = await getSpaceContents(
+      const response: any = await getSpaceContents(
         website.main_space,
         "variations",
         "managed",
@@ -114,26 +137,45 @@
 
       if (response?.records) {
         variations = response.records;
+
+        // Default tab if one is missing
+        if (
+          !getVariationByShortname("colors") &&
+          getVariationByShortname("storages")
+        ) {
+          activeTab = "storages";
+        } else {
+          activeTab = "colors";
+        }
       }
     } catch (error) {
       console.error("Error loading variations:", error);
-      errorToastMessage("Failed to load variations");
+      errorToastMessage(
+        $_("admin_dashboard.error_loading_variations") ||
+          "Failed to load variations",
+      );
     } finally {
       isLoading = false;
     }
   }
 
-  function openAddOptionModal(variation) {
+  function setTab(tab: TabKey) {
+  activeTab = tab;
+  searchQuery = "";
+  currentPage = 1;
+}
+
+  // ---------- Modals ----------
+  function openAddOptionModal(variation: any) {
     selectedVariation = variation;
     showAddOptionModal = true;
   }
-
   function closeAddOptionModal() {
     showAddOptionModal = false;
     selectedVariation = null;
   }
 
-  function openEditOptionModal(variation, option) {
+  function openEditOptionModal(variation: any, option: any) {
     selectedVariation = variation;
     selectedOption = option;
     editFormData = {
@@ -143,61 +185,67 @@
     };
     showEditOptionModal = true;
   }
-
   function closeEditOptionModal() {
     showEditOptionModal = false;
     selectedVariation = null;
     selectedOption = null;
   }
 
-  function openDeleteOptionModal(variation, option) {
+  function openDeleteOptionModal(variation: any, option: any) {
     selectedVariation = variation;
     selectedOption = option;
     showDeleteOptionModal = true;
   }
-
   function closeDeleteOptionModal() {
     showDeleteOptionModal = false;
     selectedVariation = null;
     selectedOption = null;
   }
+    function goToPage(page: number) {
+  if (page < 1 || page > totalPages) return;
+
+  currentPage = page;
+  closeDropdown(); 
+}
+
 
   async function handleAddOption(formData: OptionFormData) {
+    if (!selectedVariation) return;
+
     if (!formData.name_en.trim() && !formData.name_ar.trim()) {
-      errorToastMessage("Please enter an option name");
+      errorToastMessage(
+        $_("admin_dashboard.validation.option_name_required") ||
+          "Please enter an option name",
+      );
       return;
     }
 
     if (selectedVariation.shortname === "colors" && !formData.value.trim()) {
-      errorToastMessage("Please enter a color value");
+      errorToastMessage(
+        $_("admin_dashboard.validation.color_value_required") ||
+          "Please enter a color value",
+      );
       return;
     }
 
     try {
-      const currentOptions = getVariationOptions(selectedVariation);
+      const currentOptions = getOptionsSafe(selectedVariation);
 
       const newOption: any = {
         key: generateKey(),
-        name: {
-          en: formData.name_en,
-          ar: formData.name_ar,
-        },
+        name: { en: formData.name_en, ar: formData.name_ar },
       };
 
-      if (selectedVariation.shortname === "colors") {
+      if (selectedVariation.shortname === "colors")
         newOption.value = formData.value;
-      }
 
       const updatedOptions = [...currentOptions, newOption];
 
       const payloadBody = selectedVariation.attributes?.payload?.body || {};
-
       const variationData = {
         ...payloadBody,
         payload: {
-          body: {
-            options: updatedOptions,
-          },
+          body: { options: updatedOptions },
           content_type: "json",
         },
       };
@@ -212,56 +260,60 @@
         "",
       );
 
-      successToastMessage("Option added successfully!");
+      successToastMessage(
+        $_("admin_dashboard.option_added_success") ||
+          "Option added successfully!",
+      );
       closeAddOptionModal();
       await loadVariations();
     } catch (error) {
       console.error("Error adding option:", error);
-      errorToastMessage("Failed to add option");
+      errorToastMessage(
+        $_("admin_dashboard.option_add_failed") || "Failed to add option",
+      );
     }
   }
 
   async function handleUpdateOption(formData: OptionFormData) {
+    if (!selectedVariation || !selectedOption) return;
+
     if (!formData.name_en.trim() && !formData.name_ar.trim()) {
-      errorToastMessage("Please enter an option name");
+      errorToastMessage(
+        $_("admin_dashboard.validation.option_name_required") ||
+          "Please enter an option name",
+      );
       return;
     }
 
     if (selectedVariation.shortname === "colors" && !formData.value.trim()) {
-      errorToastMessage("Please enter a color value");
+      errorToastMessage(
+        $_("admin_dashboard.validation.color_value_required") ||
+          "Please enter a color value",
+      );
       return;
     }
 
     try {
-      const currentOptions = getVariationOptions(selectedVariation);
+      const currentOptions = getOptionsSafe(selectedVariation);
 
-      const updatedOptions = currentOptions.map((opt) => {
-        if (opt.key === selectedOption.key) {
-          const updated: any = {
-            key: opt.key,
-            name: {
-              en: formData.name_en,
-              ar: formData.name_ar,
-            },
-          };
+      const updatedOptions = currentOptions.map((opt: any) => {
+        if (opt.key !== selectedOption.key) return opt;
 
-          if (selectedVariation.shortname === "colors") {
-            updated.value = formData.value;
-          }
+        const updated: any = {
+          key: opt.key,
+          name: { en: formData.name_en, ar: formData.name_ar },
+        };
 
-          return updated;
-        }
-        return opt;
+        if (selectedVariation.shortname === "colors")
+          updated.value = formData.value;
+        return updated;
       });
 
       const payloadBody = selectedVariation.attributes?.payload?.body || {};
-
       const variationData = {
         ...payloadBody,
         payload: {
-          body: {
-            options: updatedOptions,
-          },
+          body: { options: updatedOptions },
           content_type: "json",
         },
       };
@@ -276,31 +328,34 @@
         "",
       );
 
-      successToastMessage("Option updated successfully!");
+      successToastMessage(
+        $_("admin_dashboard.option_updated_success") ||
+          "Option updated successfully!",
+      );
       closeEditOptionModal();
       await loadVariations();
     } catch (error) {
       console.error("Error updating option:", error);
-      errorToastMessage("Failed to update option");
+      errorToastMessage(
+        $_("admin_dashboard.option_update_failed") || "Failed to update option",
+      );
     }
   }
 
   async function handleDeleteOption() {
-    try {
-      const currentOptions = getVariationOptions(selectedVariation);
+    if (!selectedVariation || !selectedOption) return;
 
+    try {
+      const currentOptions = getOptionsSafe(selectedVariation);
       const updatedOptions = currentOptions.filter(
-        (opt) => opt.key !== selectedOption.key,
+        (opt: any) => opt.key !== selectedOption.key,
       );
 
       const payloadBody = selectedVariation.attributes?.payload?.body || {};
-
       const variationData = {
         ...payloadBody,
         payload: {
-          body: {
-            options: updatedOptions,
-          },
+          body: { options: updatedOptions },
           content_type: "json",
         },
       };
@@ -315,13 +370,48 @@
         "",
       );
 
-      successToastMessage("Option deleted successfully!");
+      successToastMessage(
+        $_("admin_dashboard.option_deleted_success") ||
+          "Option deleted successfully!",
+      );
       closeDeleteOptionModal();
       await loadVariations();
     } catch (error) {
       console.error("Error deleting option:", error);
-      errorToastMessage("Failed to delete option");
+      errorToastMessage(
+        $_("admin_dashboard.option_delete_failed") || "Failed to delete option",
+      );
     }
+  }
+
+  function activeTabTitle() {
+    return activeTab === "colors"
+      ? $_("admin_dashboard.colors") || "Colors"
+      : $_("admin_dashboard.storages") || "Storages";
+  }
+
+  function activeTabEmptyIcon() {
+    return activeTab === "colors" ? "🎨" : "💾";
+  }
+
+  function activeTabEmptyText() {
+    return activeTab === "colors"
+      ? $_("admin_dashboard.no_colors_found") || "No colors found"
+      : $_("admin_dashboard.no_storages_found") || "No storages found";
+  }
+  let totalVariationsAvailable = $derived.by(() => {
+    const hasColors = !!colorsVariation;
+    const hasStorages = !!storagesVariation;
+    return (hasColors ? 1 : 0) + (hasStorages ? 1 : 0);
+  });
+  let openDropdownKey = $state<string | null>(null);
+
+  function toggleDropdown(key: string) {
+    openDropdownKey = openDropdownKey === key ? null : key;
+  }
+
+  function closeDropdown() {
+    openDropdownKey = null;
   }
 </script>
 
@@ -340,151 +430,395 @@
 
   {#if isLoading}
     <LoadingSpinner message={$_("common.loading") || "Loading..."} />
-  {:else if variations.length === 0}
+  {:else if !colorsVariation && !storagesVariation}
     <EmptyState
-      icon="🎨"
-      title={$_("admin_dashboard.no_variations") || "No variations found"}
-      description={$_("admin_dashboard.no_variations_description") ||
-        "Variations should be created at the backend level"}
+      icon="⚠️"
+      title={$_("admin_dashboard.no_variations") || "Variations not found"}
+      description={$_("admin_dashboard.expected_variations") ||
+        "Expected variations: colors, storages"}
     />
   {:else}
-    <div class="variations-grid">
-      {#each variations as variation}
-        <div class="variation-card">
-          <div class="variation-header">
-            <div class="variation-info">
-              <h3 class="variation-name">
-                {getLocalizedDisplayName(variation, $locale)}
-              </h3>
-              <span class="variation-shortname">{variation.shortname}</span>
-            </div>
+    <!-- Stats (totals only) -->
+    <div class="stats-grid" style="margin-bottom: 16px;">
+      <div class="stat-card">
+        <div class="bg-icon rounded-lg flex items-center justify-center">
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746Z"
+              fill="#3C307F"
+            />
+          </svg>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-title">{statLeftLabel}</h3>
+          <p class="stat-value">{statLeftValue}</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="bg-icon rounded-lg flex items-center justify-center">
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746ZM10.2033 7.5L7.86992 18H11.1624C11.7452 18.0015 12.3148 18.1735 12.8011 18.4948C13.2873 18.8161 13.6689 19.2727 13.8988 19.8082C14.2443 20.6086 14.8166 21.2904 15.5449 21.7696C16.2739 22.2492 17.1274 22.5048 18 22.5048C18.8726 22.5048 19.7261 22.2492 20.4551 21.7696C21.1837 21.2903 21.7561 20.608 22.1016 19.8072C22.3316 19.2721 22.713 18.8159 23.1989 18.4948C23.6852 18.1735 24.2548 18.0015 24.8376 18L24.8415 18L28.1301 18L25.7967 7.5H10.2033ZM28.5 21H24.8543C24.2766 22.3368 23.3205 23.4755 22.1038 24.2759C20.8853 25.0776 19.4586 25.5048 18 25.5048C16.5414 25.5048 15.1147 25.0776 13.8962 24.2759C12.6795 23.4755 11.7234 22.3368 11.1457 21H7.5V28.5H28.5V21ZM12 10.5C12 9.67157 12.6716 9 13.5 9H22.5C23.3284 9 24 9.67157 24 10.5C24 11.3284 23.3284 12 22.5 12H13.5C12.6716 12 12 11.3284 12 10.5ZM10.5 15C10.5 14.1716 11.1716 13.5 12 13.5H24C24.8284 13.5 25.5 14.1716 25.5 15C25.5 15.8284 24.8284 16.5 24 16.5H12C11.1716 16.5 10.5 15.8284 10.5 15Z"
+              fill="#3C307F"
+            />
+          </svg>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-title">{statRightLabel}</h3>
+          <p class="stat-value">{statRightValue}</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="bg-icon rounded-lg flex items-center justify-center">
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M18.4612 7.5C18.4611 7.5 18.4612 7.5 18.4612 7.5V7.5ZM18.4744 7.50001L27.0568 7.51047C27.0578 7.51048 27.0588 7.51049 27.0598 7.5105C27.4433 7.51362 27.8101 7.66835 28.0799 7.94096C28.3505 8.21429 28.5016 8.58379 28.5 8.96838L28.5 17.2208C28.4868 17.2332 28.4738 17.2458 28.461 17.2587L17.328 28.483L7.50172 18.57L18.4744 7.50001ZM18.4688 4.50001C18.4684 4.50001 18.4692 4.50001 18.4688 4.50001L27.0751 4.51051C28.2543 4.51769 29.3824 4.99241 30.212 5.83046C31.0409 6.66778 31.504 7.79948 31.5 8.97757C31.5 8.97859 31.5 8.97961 31.5 8.98063L30 8.9745H31.5V8.97757V17.2243C31.5 17.6346 31.4156 18.0407 31.2521 18.417C31.093 18.7829 30.8624 19.1131 30.574 19.3884L30.591 19.3713L29.526 18.315L30.5491 19.4119C30.5575 19.4041 30.5658 19.3963 30.574 19.3884L19.4336 30.6201L18.3676 29.5652L19.4325 30.6213C19.1575 30.8989 18.8303 31.1193 18.4698 31.2699C18.1087 31.4207 17.7214 31.4985 17.3301 31.4987C16.9389 31.499 16.5514 31.4218 16.1902 31.2715C15.8289 31.1212 15.501 30.9009 15.2254 30.6232L5.36657 20.6774L6.43048 19.62L5.36517 20.676C4.80937 20.116 4.49744 19.359 4.49744 18.57C4.49744 17.7807 4.80962 17.0234 5.36584 16.4633L16.3644 5.36719C16.6409 5.09132 16.9691 4.87273 17.3302 4.72392C17.6909 4.57526 18.0786 4.49918 18.4688 4.50001ZM21.8745 12.6672C21.8745 11.8388 22.5461 11.1672 23.3745 11.1672H23.3895C24.2179 11.1672 24.8895 11.8388 24.8895 12.6672C24.8895 13.4957 24.2179 14.1672 23.3895 14.1672H23.3745C22.5461 14.1672 21.8745 13.4957 21.8745 12.6672Z"
+              fill="#3C307F"
+            />
+          </svg>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-title">{totalVariationsLabel}</h3>
+          <p class="stat-value">{totalVariationsAvailable}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs + Search + Add -->
+    <div class="bg-white rounded-t-xl w-full p-6" style="margin-bottom: 0;">
+      <div class="flex flex-col gap-4">
+        <!-- Tabs -->
+        <div class="tabs-row">
+          <button
+            type="button"
+            class="tab-btn"
+            class:active={activeTab === "colors"}
+            onclick={() => setTab("colors")}
+          >
+            {$_("admin_dashboard.colors") || "Colors"}
+            <span class="tab-badge">{totalColors}</span>
+          </button>
+
+          <button
+            type="button"
+            class="tab-btn"
+            class:active={activeTab === "storages"}
+            onclick={() => setTab("storages")}
+          >
+            {$_("admin_dashboard.storages") || "Storages"}
+            <span class="tab-badge">{totalStorages}</span>
+          </button>
+        </div>
+
+        <!-- Controls -->
+        <div
+          class="flex flex-col md:flex-row md:items-center justify-between gap-3"
+        >
+          <!-- Search (only filter) -->
+          <div class="search-bar">
+            <input
+  type="text"
+  placeholder={$_("admin_dashboard.search_options") || "Search..."}
+  bind:value={searchQuery}
+  oninput={() => (currentPage = 1)}
+  class="search-input"
+/>
+            <span class="search-icon">🔍</span>
+          </div>
+
+          <!-- Add (based on active tab) -->
+          {#if activeVariation}
             <Button
               variant="primary"
-              onclick={() => openAddOptionModal(variation)}
+              onclick={() => openAddOptionModal(activeVariation)}
             >
               <PlusOutline size="sm" />
-              <span>{$_("admin_dashboard.add_option") || "Add Option"}</span>
+              <span>
+                {$_("admin_dashboard.add_option") || "Add Option"} ({activeTabTitle()})
+              </span>
             </Button>
-          </div>
+          {/if}
+        </div>
+      </div>
+    </div>
 
-          <div class="variation-body">
-            {#if getVariationOptions(variation).length === 0}
-              <div class="no-options">
-                <p>
-                  {$_("admin_dashboard.no_options_available") ||
-                    'No options available. Click "Add Option" to create one.'}
-                </p>
-              </div>
-            {:else}
-              <!-- Search Bar -->
-              {#if getVariationOptions(variation).length > 5}
-                <div class="search-container">
-                  <input
-                    type="text"
-                    placeholder={$_("admin_dashboard.search_options") ||
-                      "Search options..."}
-                    value={searchQueries[variation.shortname] || ""}
-                    oninput={(e) =>
-                      updateSearch(
-                        variation.shortname,
-                        (e.target as HTMLInputElement).value,
-                      )}
-                    class="search-input"
-                  />
-                  <span class="search-icon">🔍</span>
-                </div>
-              {/if}
+    <!-- Table -->
+    <div class="items-table-container">
+      {#if !activeVariation}
+        <EmptyState
+          icon="⚠️"
+          title={$_("admin_dashboard.variation_not_found") ||
+            "Variation not found"}
+          description={activeTab === "colors"
+            ? $_("admin_dashboard.missing_colors_variation") ||
+              "Missing 'colors' variation"
+            : $_("admin_dashboard.missing_storages_variation") ||
+              "Missing 'storages' variation"}
+        />
+      {:else if activeOptions.length === 0}
+        <EmptyState
+          icon={activeTabEmptyIcon()}
+          title={activeTabEmptyText()}
+          description={searchQuery
+            ? $_("admin_dashboard.no_search_results") ||
+              "No results match your search."
+            : $_("admin_dashboard.add_option_hint") ||
+              "Click \u201cAdd Option\u201d to create one."}
+        />
+      {:else}
+        <div class="items-table-container">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th class="col-name">
+                  {activeTab === "colors"
+                    ? $_("admin_dashboard.table_color") || "Color"
+                    : $_("admin_dashboard.table_storage") || "Storage"}
+                </th>
 
-              <!-- Options List -->
-              {#if getFilteredOptions(variation).length === 0}
-                <div class="no-results">
-                  <p>
-                    {$_("admin_dashboard.no_options_found") ||
-                      "No options found matching your search."}
-                  </p>
-                </div>
-              {:else}
-                <div class="options-list">
-                  {#each getDisplayedOptions(variation) as option}
-                    <div class="option-item">
-                      <div class="option-content">
-                        {#if variation.shortname === "colors" && option.value}
-                          <span
-                            class="color-preview"
-                            style="background-color: {option.value}"
-                            title={option.value}
-                          ></span>
-                        {/if}
-                        <div class="option-details">
-                          <span class="option-name"
-                            >{getOptionName(option, $locale)}</span
-                          >
-                          {#if variation.shortname === "colors" && option.value}
-                            <span class="option-value">{option.value}</span>
-                          {/if}
-                        </div>
+                {#if activeTab === "colors"}
+                  <th class="col-value">
+                    {$_("admin_dashboard.table_value") || "Value"}
+                  </th>
+                  <th class="col-preview">
+                    {$_("admin_dashboard.table_preview") || "Preview"}
+                  </th>
+                {/if}
+
+                <th class="col-actions">{$_("common.actions") || "Actions"}</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {#each paginatedOptions as option (option.key)}
+                <tr class="item-row">
+                  <td class="col-name">
+                    <div class="option-cell">
+                      <div
+                        class="option-title"
+                        title={getOptionName(option, $locale)}
+                      >
+                        {getOptionName(option, $locale)}
                       </div>
-                      <div class="option-actions">
-                        <IconButton
-                          onclick={() => openEditOptionModal(variation, option)}
-                          title={$_("Edit") || "Edit"}
-                        >
-                          <EditOutline size="xs" />
-                        </IconButton>
-                        <IconButton
-                          variant="delete"
-                          onclick={() =>
-                            openDeleteOptionModal(variation, option)}
-                          title={$_("common.delete") || "Delete"}
-                        >
-                          <TrashBinOutline size="xs" />
-                        </IconButton>
+                      <div class="option-sub mono" title={option.key}>
+                        {option.key}
                       </div>
                     </div>
-                  {/each}
-                </div>
+                  </td>
 
-                <!-- Show More/Less Button -->
-                {#if getFilteredOptions(variation).length > INITIAL_DISPLAY_COUNT}
-                  <button
-                    class="show-more-btn"
-                    onclick={() => toggleExpanded(variation.shortname)}
-                  >
-                    {#if expandedVariations[variation.shortname]}
-                      <span
-                        >{$_("admin_dashboard.show_less") || "Show Less"}</span
-                      >
-                      <span class="arrow">▲</span>
-                    {:else}
-                      <span
-                        >{$_("admin_dashboard.show_more") || "Show More"} ({getFilteredOptions(
-                          variation,
-                        ).length - INITIAL_DISPLAY_COUNT}
-                        {$_("common.more") || "more"})</span
-                      >
-                      <span class="arrow">▼</span>
-                    {/if}
-                  </button>
-                {/if}
-              {/if}
-            {/if}
-          </div>
+                  {#if activeTab === "colors"}
+                    <td class="col-value">
+                      <span class="mono">{option.value || "-"}</span>
+                    </td>
 
-          <div class="variation-footer">
-            <span class="options-count">
-              {#if searchQueries[variation.shortname]}
-                {getFilteredOptions(variation).length}
-                {$_("of") || "of"}
-                {getVariationOptions(variation).length}
-                {$_("admin_dashboard.options_count") || "option(s)"}
-              {:else}
-                {getVariationOptions(variation).length}
-                {$_("admin_dashboard.options_count") || "option(s)"}
-              {/if}
-            </span>
-          </div>
+                    <td class="col-preview">
+                      {#if option.value}
+                        <span
+                          class="color-preview"
+                          style="background-color: {option.value}"
+                          title={option.value}
+                        ></span>
+                      {:else}
+                        <span class="empty-text">-</span>
+                      {/if}
+                    </td>
+                  {/if}
+
+                  <td class="col-actions">
+                    <div class="actions-dropdown position-relative">
+                      <button
+                        class="dropdown-trigger h-8 w-8 inline-flex items-center justify-center cursor-pointer rounded-md hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
+                        onclick={() => toggleDropdown(option.key)}
+                      >
+                        ⋯
+                      </button>
+
+                      {#if openDropdownKey === option.key}
+                        <div
+                          class="absolute flex flex-col z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1"
+                          style={$isRTL ? "right:-110px;" : "left:-110px;"}
+                          role="menu"
+                        >
+                        <!-- Edit -->
+                      <button
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
+                        class:flex-row-reverse={$isRTL}
+                        class:text-right={$isRTL}
+                       onclick={() => {
+                              closeDropdown();
+                              openEditOptionModal(activeVariation, option);
+                            }}
+                        role="menuitem"
+                      >
+                        <!-- Pencil Icon -->
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="w-4 h-4 text-gray-500"
+                        >
+                          <path
+                            fill-rule="evenodd"
+                            clip-rule="evenodd"
+                            d="M15.5763 5.55905L14.1547 7.028L15.5563 8.42618C15.5577 8.42761 15.5592 8.42904 15.5606 8.43048L17.0227 9.88908L18.4245 8.44058L18.4357 8.42918C18.8155 8.0491 19.0288 7.53378 19.0288 6.99649C19.0288 6.45931 18.8155 5.94411 18.4359 5.56405C18.0559 5.1845 17.5407 4.97131 17.0036 4.97131C16.4688 4.97131 15.9558 5.18263 15.5763 5.55905ZM15.6318 11.3265L14.8691 10.5657L10.0378 15.6235L10.7674 16.3531L15.6318 11.3265ZM8.92782 17.3419L7.95914 16.3732C7.95553 16.3699 7.95195 16.3665 7.94838 16.3631C7.93349 16.3489 7.91913 16.3343 7.90531 16.3194L6.93719 15.3513L5.9421 18.337L8.92782 17.3419ZM7.90282 13.4885L8.62322 14.2089L13.4529 9.15285L12.7638 8.46539L7.90282 13.4885ZM12.0308 6.34678C12.0319 6.34571 12.0329 6.34463 12.0339 6.34356L14.1455 4.16158L14.1573 4.14958C14.9124 3.39511 15.9362 2.97131 17.0036 2.97131C18.071 2.97131 19.0948 3.39511 19.8499 4.14958L19.8505 4.15018C20.605 4.90529 21.0288 5.92906 21.0288 6.99649C21.0288 8.06106 20.6072 9.0822 19.8566 9.83672L11.4977 18.4744C11.3859 18.59 11.2479 18.6768 11.0953 18.7277L4.67729 20.8667C4.31797 20.9864 3.92182 20.8929 3.654 20.6251C3.38618 20.3573 3.29266 19.9611 3.41241 19.6018L5.55141 13.1838C5.59875 13.0418 5.67738 12.9122 5.7815 12.8046L12.0308 6.34678Z"
+                            fill="currentColor"
+                          />
+                        </svg>
+
+                        <span>{$_("common.edit") || "Edit"}</span>
+                      </button>
+
+                      <!-- Delete -->
+                      <button
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-red-50 text-red-600"
+                        class:flex-row-reverse={$isRTL}
+                        class:text-right={$isRTL}
+                        onclick={() => {
+                              closeDropdown();
+                              openDeleteOptionModal(activeVariation, option);
+                            }}
+                        role="menuitem"
+                      >
+                        <!-- Trash Icon -->
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          x="0px"
+                          y="0px"
+                          class="w-4 h-4"
+                          viewBox="0,0,256,256"
+                        >
+                          <g
+                            fill="#fa5252"
+                            fill-rule="nonzero"
+                            stroke="none"
+                            stroke-width="1"
+                            stroke-linecap="butt"
+                            stroke-linejoin="miter"
+                            stroke-miterlimit="10"
+                            stroke-dasharray=""
+                            stroke-dashoffset="0"
+                            font-family="none"
+                            font-weight="none"
+                            font-size="none"
+                            text-anchor="none"
+                            style="mix-blend-mode: normal"
+                            ><g transform="scale(2,2)"
+                              ><path
+                                d="M49,1c-1.66,0 -3,1.34 -3,3c0,1.66 1.34,3 3,3h30c1.66,0 3,-1.34 3,-3c0,-1.66 -1.34,-3 -3,-3zM24,15c-7.17,0 -13,5.83 -13,13c0,7.17 5.83,13 13,13h77v63c0,9.37 -7.63,17 -17,17h-40c-9.37,0 -17,-7.63 -17,-17v-52c0,-1.66 -1.34,-3 -3,-3c-1.66,0 -3,1.34 -3,3v52c0,12.68 10.32,23 23,23h40c12.68,0 23,-10.32 23,-23v-63.35937c5.72,-1.36 10,-6.50062 10,-12.64062c0,-7.17 -5.83,-13 -13,-13zM24,21h80c3.86,0 7,3.14 7,7c0,3.86 -3.14,7 -7,7h-80c-3.86,0 -7,-3.14 -7,-7c0,-3.86 3.14,-7 7,-7zM50,55c-1.66,0 -3,1.34 -3,3v46c0,1.66 1.34,3 3,3c1.66,0 3,-1.34 3,-3v-46c0,-1.66 -1.34,-3 -3,-3zM78,55c-1.66,0 -3,1.34 -3,3v46c0,1.66 1.34,3 3,3c1.66,0 3,-1.34 3,-3v-46c0,-1.66 -1.34,-3 -3,-3z"
+                              ></path></g
+                            ></g
+                          >
+                        </svg>
+
+                        <span>{$_("common.delete") || "Delete"}</span>
+                      </button>
+                        </div>
+                      {/if}
+                    </div>
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
         </div>
-      {/each}
+
+        {#if totalPages > 1}
+  <div class="pagination">
+    <div class="pagination-info">
+      {$_("common.showing") || "Showing"}
+      {formatNumber((currentPage - 1) * itemsPerPage + 1, $locale)}
+      -
+      {formatNumber(
+        Math.min(currentPage * itemsPerPage, totalOptionsCount),
+        $locale,
+      )}
+      {$_("common.of") || "of"}
+      {formatNumber(totalOptionsCount, $locale)}
+      {activeTab === "colors"
+        ? $_("admin_dashboard.colors") || "colors"
+        : $_("admin_dashboard.storages") || "storages"}
+    </div>
+
+    <div class="pagination-pages">
+      {#if totalPages <= 7}
+        {#each Array(totalPages) as _, index}
+          <button
+            class="page-btn"
+            class:active={currentPage === index + 1}
+            onclick={() => goToPage(index + 1)}
+          >
+            {formatNumber(index + 1, $locale)}
+          </button>
+        {/each}
+      {:else}
+        <button
+          class="page-btn"
+          class:active={currentPage === 1}
+          onclick={() => goToPage(1)}
+        >
+          {formatNumber(1, $locale)}
+        </button>
+
+        {#if currentPage > 3}
+          <span class="page-ellipsis">...</span>
+        {/if}
+
+        {#each Array(totalPages) as _, index}
+          {#if index + 1 > 1 && index + 1 < totalPages && Math.abs(currentPage - (index + 1)) <= 1}
+            <button
+              class="page-btn"
+              class:active={currentPage === index + 1}
+              onclick={() => goToPage(index + 1)}
+            >
+              {formatNumber(index + 1, $locale)}
+            </button>
+          {/if}
+        {/each}
+
+        {#if currentPage < totalPages - 2}
+          <span class="page-ellipsis">...</span>
+        {/if}
+
+        <button
+          class="page-btn"
+          class:active={currentPage === totalPages}
+          onclick={() => goToPage(totalPages)}
+        >
+          {formatNumber(totalPages, $locale)}
+        </button>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+
+      {/if}
+      
     </div>
   {/if}
 </div>
@@ -512,3 +846,92 @@
   onConfirm={handleDeleteOption}
   option={selectedOption}
 />
+
+<style>
+  /* Tabs (lightweight, matches your current style) */
+  .tabs-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #374151;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .tab-btn:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+  }
+
+  .tab-btn.active {
+    background: rgba(60, 48, 127, 0.08);
+    border-color: rgba(60, 48, 127, 0.35);
+    color: #3c307f;
+  }
+
+  .tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  /* Table cells */
+  .option-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .option-title {
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .option-sub {
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+    font-size: 13px;
+    color: #374151;
+  }
+
+  .color-preview {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: inline-block;
+    border: 1px solid #e5e7eb;
+    vertical-align: middle;
+  }
+
+  .table-footer {
+    padding: 12px 16px;
+    border-top: 1px solid #e5e7eb;
+    color: #6b7280;
+    font-size: 13px;
+  }
+</style>

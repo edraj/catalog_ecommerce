@@ -5,10 +5,60 @@
   import { newNotificationType } from "@/stores/newNotificationType";
   import { _, locale, switchLocale } from "@/i18n";
   import { roles, signout, user } from "@/stores/user";
-  import { goto } from "@roxi/routify";
+  import { goto, url } from "@roxi/routify";
 
   $goto;
+  const ADMIN_HOME = "/dashboard/admin";
 
+  type Crumb = { label: string; href: string; isHome?: boolean };
+
+  let currentPath = $state<string>("/");
+  let breadcrumbs = $state<Crumb[]>([]);
+
+  function titleize(segment: string) {
+    return segment
+      .replace(/-/g, " ")
+      .replace(/_/g, " ")
+      .replace(/^\w/, (c) => c.toUpperCase());
+  }
+
+  function buildCrumbs(pathname: string) {
+    const segments = pathname.split("/").filter(Boolean);
+
+    const adminIdx = segments.findIndex((s) => s === "admin");
+    const tail = adminIdx >= 0 ? segments.slice(adminIdx + 1) : segments;
+
+    const crumbs: Crumb[] = [{ label: "Home", href: ADMIN_HOME, isHome: true }];
+    let acc = ADMIN_HOME;
+    for (const seg of tail) {
+      acc += `/${seg}`;
+      crumbs.push({ label: titleize(seg), href: acc });
+    }
+
+    return crumbs;
+  }
+
+  onMount(() => {
+    // init
+    currentPath = window.location.pathname;
+
+    // ✅ reliable route change detection (works no matter how router updates URL)
+    let last = window.location.pathname;
+
+    const id = window.setInterval(() => {
+      const now = window.location.pathname;
+      if (now !== last) {
+        last = now;
+        currentPath = now;
+      }
+    }, 150); // 100–250ms is fine
+
+    return () => window.clearInterval(id);
+  });
+
+  $effect(() => {
+    breadcrumbs = buildCrumbs(currentPath);
+  });
   let ws = $state(null);
   let isMenuOpen = $state(false);
   let isAdminExpanded = $state(false);
@@ -126,38 +176,81 @@
 </script>
 
 <header
-  class="sticky top-0 z-40 w-full border-b border-gray-200 bg-white backdrop-blur-md supports-[backdrop-filter]:bg-white/80"
+  class="sticky top-0 z-40 w-full  backdrop-blur-md bg-transparent"
 >
   <div class="container mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex h-16 items-center justify-between">
-      <!-- Logo/Brand -->
-      <div class="flex items-center">
-        <button
-          onclick={() => {
-            if ($user.signedin) {
-              if (
-                $roles.includes("super_admin") ||
-                $roles.includes("zm_admin")
-              ) {
-                $goto("/dashboard/admin");
-              } else if ($roles.includes("zm_seller")) {
-                $goto("/seller");
-              } else {
-                $goto("/");
-              }
-            } else {
-              $goto("/");
-            }
-          }}
-          class="flex items-center group cursor-pointer bg-transparent border-none p-0"
-        >
-          <img
-            src="/assets/images/logo.svg"
-            alt="Logo"
-            class="h-28 w-28 group-hover:scale-105 transition-all duration-300"
-          />
-        </button>
-      </div>
+      <!-- Breadcrumbs -->
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        {#each breadcrumbs as crumb, i}
+          {#if i > 0}
+            <span class="breadcrumb-sep" aria-hidden="true">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M9.74582 6.58756C9.97362 6.81537 9.97362 7.18471 9.74582 7.41252L5.66248 11.4959C5.43468 11.7237 5.06533 11.7237 4.83753 11.4959C4.60972 11.268 4.60972 10.8987 4.83753 10.6709L8.50838 7.00004L4.83753 3.32919C4.60972 3.10138 4.60972 2.73203 4.83753 2.50423C5.06533 2.27642 5.43468 2.27642 5.66248 2.50423L9.74582 6.58756Z"
+                  fill="#4A5565"
+                />
+              </svg>
+            </span>
+          {/if}
+
+          {#if i === breadcrumbs.length - 1}
+            <span class="breadcrumb-current" aria-current="page"
+              >{#if crumb.isHome}
+                <span class="crumb-icon" aria-hidden="true">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      clip-rule="evenodd"
+                      d="M7.5286 2.19526C7.78895 1.93491 8.21106 1.93491 8.4714 2.19526L13.8047 7.5286C14.0651 7.78895 14.0651 8.21106 13.8047 8.4714C13.5444 8.73175 13.1223 8.73175 12.8619 8.4714L12.6667 8.27614V12.6667C12.6667 13.403 12.0697 14 11.3333 14H9.33333C8.96514 14 8.66667 13.7015 8.66667 13.3333V11.3333H7.33333V13.3333C7.33333 13.7015 7.03486 14 6.66667 14H4.66667C3.93029 14 3.33333 13.403 3.33333 12.6667V8.27614L3.13807 8.4714C2.87772 8.73175 2.45561 8.73175 2.19526 8.4714C1.93491 8.21106 1.93491 7.78895 2.19526 7.5286L7.5286 2.19526Z"
+                      fill="#4A5565"
+                    />
+                  </svg>
+                </span>
+              {/if}{crumb.label}</span
+            >
+          {:else}
+            <button
+              type="button"
+              class="breadcrumb-link"
+              onclick={() => $goto(crumb.href)}
+            >
+              {#if crumb.isHome}
+                <span class="crumb-icon" aria-hidden="true">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      clip-rule="evenodd"
+                      d="M7.5286 2.19526C7.78895 1.93491 8.21106 1.93491 8.4714 2.19526L13.8047 7.5286C14.0651 7.78895 14.0651 8.21106 13.8047 8.4714C13.5444 8.73175 13.1223 8.73175 12.8619 8.4714L12.6667 8.27614V12.6667C12.6667 13.403 12.0697 14 11.3333 14H9.33333C8.96514 14 8.66667 13.7015 8.66667 13.3333V11.3333H7.33333V13.3333C7.33333 13.7015 7.03486 14 6.66667 14H4.66667C3.93029 14 3.33333 13.403 3.33333 12.6667V8.27614L3.13807 8.4714C2.87772 8.73175 2.45561 8.73175 2.19526 8.4714C1.93491 8.21106 1.93491 7.78895 2.19526 7.5286L7.5286 2.19526Z"
+                      fill="#4A5565"
+                    />
+                  </svg>
+                </span>
+              {/if}{crumb.label}
+            </button>
+          {/if}
+        {/each}
+      </nav>
 
       <!-- Navigation Items -->
       <div class="flex items-center space-x-3">
@@ -176,7 +269,7 @@
               <span class="dropdown-trigger-label">
                 {(website.main_space || website.display_name || "Menu").replace(
                   /^\w/,
-                  (c) => c.toUpperCase()
+                  (c) => c.toUpperCase(),
                 )}
               </span>
               <span class="dropdown-trigger-icon-wrap" aria-hidden="true">
@@ -663,6 +756,52 @@
 </header>
 
 <style>
+  .breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid var(--colors-border-border-base-medium, #e5e7eb);
+  }
+
+  .breadcrumb-link,
+  .breadcrumb-current {
+    font-family: var(--typography-font-family-font-base, inherit);
+    font-weight: 500;
+    display: flex;
+    font-size: var(--typography-font-size-text-sm, 0.875rem);
+    line-height: var(--typography-line-height-leading-5, 1.25rem);
+    letter-spacing: 0%;
+    color: var(--colors-text-text-body, #4a5565);
+    white-space: nowrap;
+  }
+
+  .breadcrumb-link {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .breadcrumb-link:hover {
+    text-decoration: underline;
+  }
+
+  .breadcrumb-current {
+    opacity: 0.9;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 32ch;
+  }
+
+  .breadcrumb-sep {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+
   /* Pill-shaped dropdown trigger (name + bell + hamburger) */
   .dropdown-trigger-pill {
     display: inline-flex;
@@ -1041,10 +1180,6 @@
     ring: 2px;
     ring-color: rgba(59, 130, 246, 0.5);
     border-color: #3b82f6;
-  }
-
-  header {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
   @media (max-width: 640px) {
