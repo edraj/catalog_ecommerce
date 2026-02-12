@@ -477,11 +477,6 @@
     currentPage = page;
   }
 
-  function toggleFilters(event: Event) {
-    event.stopPropagation();
-    showFilters = !showFilters;
-  }
-
   function closeFilters() {
     if (showFilters) {
       showFilters = false;
@@ -512,6 +507,66 @@
     currentPage = 1;
     loadCouponsPage();
   }
+
+   let isFiltersOpen = $state(false);
+  let isActionsOpen = $state(false);
+
+  function closeAllDropdowns() {
+    isFiltersOpen = false;
+    isActionsOpen = false;
+  }
+
+  function toggleFilters() {
+    isActionsOpen = false;
+    isFiltersOpen = !isFiltersOpen;
+  }
+
+  function toggleActions() {
+    isFiltersOpen = false;
+    isActionsOpen = !isActionsOpen;
+  }
+
+  function activeFiltersCount() {
+    let n = 0;
+    if (activeTab && activeTab !== "all") n++;
+    if (selectedFilter && selectedFilter !== "all") n++;
+    return n;
+  }
+
+  function resetFilters() {
+    activeTab = "all";
+    selectedFilter = "all";
+  }
+
+  function onWindowClick() {
+    closeAllDropdowns();
+  }
+
+  let openActionsFor = $state<string | null>(null);
+
+  function getRowId(item: any) {
+    return String(item.uuid ?? item.id ?? item.shortname ?? item.attributes?.id ?? crypto.randomUUID());
+  }
+
+  function toggleTableActions(item: any) {
+    const id = getRowId(item);
+    openActionsFor = openActionsFor === id ? null : id;
+  }
+
+  function closeActions() {
+    openActionsFor = null;
+  }
+
+  function formatDateDMY(value?: string) {
+    if (!value) return "-";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "-";
+    return d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
 </script>
 
 <svelte:window onclick={closeFilters} />
@@ -523,116 +578,167 @@
         <h1>Coupon Management</h1>
         <p>Manage global and seller-specific coupons</p>
       </div>
-      <div class="header-actions">
-        <button class="btn-add-coupon" type="button" on:click={openCreateModal}>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Create Coupon
-        </button>
-      </div>
     </div>
   </div>
 
-  <!-- Filters -->
-  <div class="search-and-filters">
-    <div class="search-bar">
-      <input
-        id="search"
-        type="text"
-        bind:value={searchQuery}
-        placeholder="Search by code or seller..."
-        class="search-input"
-      />
-      <button
-        type="button"
-        class="search-btn"
-        aria-label="Search by code or seller"
-      >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+ <div class="flex flex-col md:flex-row md:items-end justify-between bg-white rounded-t-xl gap-3 w-full p-6">
+  <!-- LEFT: SEARCH -->
+  <div>
+    <div class="relative w-[256px]">
+      <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+        <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
           <path
             fill-rule="evenodd"
             d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
             clip-rule="evenodd"
           />
         </svg>
-      </button>
+      </div>
+
+      <input
+        id="search"
+        type="text"
+        bind:value={searchQuery}
+        placeholder="Search by code or seller..."
+        class="w-full h-9 pl-9 pr-3 py-2
+          bg-[#F9FAFB]
+          border border-[#E5E7EB]
+          rounded-[12px]
+          shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+          text-sm
+          focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+      />
     </div>
+  </div>
 
-    <div class="filters-left">
-      <div class="filters-dropdown">
-        <button
-          type="button"
-          class="filters-trigger"
-          aria-haspopup="true"
-          aria-expanded={showFilters}
-          on:click={toggleFilters}
-        >
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm2 6a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm3 5a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"
-            />
-          </svg>
+  <!-- RIGHT: FILTERS + ACTIONS + CREATE -->
+  <div class="flex flex-wrap items-end justify-end gap-3">
+    <!-- FILTERS DROPDOWN -->
+    <div class="relative">
+      <button
+        type="button"
+        onclick={toggleFilters}
+        class="h-9 inline-flex items-center justify-between
+          px-3 py-2 min-w-[160px]
+          bg-[#F9FAFB] border border-[#E5E7EB]
+          rounded-[12px]
+          shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+          text-sm text-gray-700 hover:bg-gray-50"
+        aria-haspopup="true"
+        aria-expanded={isFiltersOpen}
+      >
+        <span class="truncate inline-flex items-center gap-2">
           {$_("common.filters") || "Filters"}
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fill-rule="evenodd"
-              d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
-              clip-rule="evenodd"
-            />
-          </svg>
-        </button>
+          {#if activeFiltersCount() > 0}
+            <span class="inline-flex items-center justify-center px-2 h-5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+              {activeFiltersCount()}
+            </span>
+          {/if}
+        </span>
 
-        {#if showFilters}
-          <div class="filters-panel" on:click={handleFiltersPanelClick}>
-            <div class="filter-group">
-              <label class="filter-label" for="scope-filter"> Scope </label>
+        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {#if isFiltersOpen}
+        <div class="absolute right-0 z-20 mt-2 w-[320px] rounded-[12px] border border-gray-200 bg-white shadow-lg p-3">
+          <div class="grid grid-cols-1 gap-3">
+            <!-- Scope -->
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1" for="scope-filter">
+                Scope
+              </label>
               <select
                 id="scope-filter"
                 bind:value={activeTab}
-                class="filter-select"
-                on:change={handleScopeChange}
+                class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
+                onchange={() => {
+                  handleScopeChange();
+                }}
               >
                 <option value="all">Seller Coupons</option>
                 <option value="global">Global Coupons</option>
               </select>
             </div>
-            <div class="filter-group">
-              <label class="filter-label" for="seller-filter">
+
+            <!-- Seller -->
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1" for="seller-filter">
                 Filter by Seller
               </label>
               <select
                 id="seller-filter"
                 bind:value={selectedFilter}
-                class="filter-select"
+                class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm disabled:opacity-60"
                 disabled={activeTab === "global"}
-                on:change={handleSellerChange}
+                onchange={() => {
+                  handleSellerChange();
+                }}
               >
                 <option value="" disabled>Select a seller</option>
                 <option value="all">All Sellers</option>
                 {#each getUniqueSellers() as seller}
-                  <option value={seller.shortname}>
-                    {seller.displayname}
-                  </option>
+                  <option value={seller.shortname}>{seller.displayname}</option>
                 {/each}
               </select>
             </div>
           </div>
-        {/if}
-      </div>
+
+          <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+            <button
+              type="button"
+              onclick={() => {
+                resetFilters();
+              }}
+              class="h-9 inline-flex items-center justify-center
+                px-3 py-2
+                bg-[#F9FAFB] text-gray-700 text-sm font-medium
+                border border-[#E5E7EB]
+                rounded-[12px]
+                hover:bg-gray-50 transition-colors"
+            >
+              Reset
+            </button>
+
+            <button
+              type="button"
+              onclick={() => {
+                isFiltersOpen = false;
+              }}
+              class="h-9 inline-flex items-center justify-center
+                px-3 py-2
+                bg-[#3C307F] text-white text-sm font-medium
+                rounded-[12px]
+                hover:bg-[#2f2666] transition-colors"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      {/if}
     </div>
+
+    <!-- CREATE COUPON -->
+    <button
+      type="button"
+      onclick={openCreateModal}
+      class="inline-flex items-center justify-center
+        h-9 px-3 py-2
+        bg-[#3C307F] text-white text-sm font-medium
+        rounded-[12px]
+        shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+        hover:bg-[#2f2666]
+        transition-colors duration-200"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+      <span class="ml-2">Create Coupon</span>
+    </button>
   </div>
+</div>
+
 
   <!-- Coupons Table -->
   {#if loading}
@@ -651,116 +757,209 @@
     </div>
   {:else}
     <div class="table-container">
-      <table class="coupons-table">
-        <thead>
-          <tr>
-            <th>Code</th>
-            <th>Type</th>
-            <th>Seller</th>
-            <th>Discount</th>
-            <th>Valid From</th>
-            <th>Valid To</th>
-            <th>Usage</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each paginatedCoupons as coupon}
-            {@const body = coupon.attributes.payload?.body || {}}
-            <tr>
-              <td class="code-cell">
-                <strong>{body.code || "N/A"}</strong>
-                {#if coupon.isGlobal}
-                  <span class="badge global">Global</span>
-                {/if}
-              </td>
-              <td>
-                <span class="badge {body.discount_type}">
-                  {body.discount_type === "percentage" ? "%" : "$"}
-                </span>
-              </td>
-              <td>{coupon.folderDisplayname}</td>
-              <td>
-                {body.discount_type === "percentage"
-                  ? `${body.discount_value}%`
-                  : `$${body.discount_value}`}
-                {#if body.maximum_amount}
-                  <span class="text-muted">(max: ${body.maximum_amount})</span>
-                {/if}
-              </td>
-              <td>{formatDate(body.validity?.from)}</td>
-              <td>{formatDate(body.validity?.to)}</td>
-              <td>
-                {body.usage_count || 0} / {body.maximum_uses || "∞"}
-              </td>
-              <td>
-                <span
-                  class="status-badge"
-                  class:active={coupon.attributes.is_active}
-                >
-                  {coupon.attributes.is_active ? "Active" : "Inactive"}
-                </span>
-              </td>
-              <td class="actions-cell">
+      <table class="coupons-table w-full">
+  <thead class="bg-gray-50 border-b border-gray-200">
+    <tr>
+      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seller</th>
+      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
+      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valid From</th>
+      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valid To</th>
+      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
+      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+    </tr>
+  </thead>
+
+  <tbody class="bg-white">
+    {#each paginatedCoupons as coupon}
+      <tr class="hover:bg-gray-50 transition-colors duration-200">
+        <!-- Code main cell -->
+        <td class="px-6 py-4">
+          <div class="flex items-center gap-2.5">
+            <div
+              class="shrink-0 rounded-full flex items-center justify-center"
+              style="width:44px;height:44px;padding:10px 5px;background:#F3F4F6;"
+              aria-hidden="true"
+            >
+              <span style="font-weight:500;font-size:14px;line-height:14px;color:#101828;">
+                {(coupon.attributes?.payload?.body?.code || "C").charAt(0).toUpperCase()}
+              </span>
+            </div>
+
+            <div class="min-w-0">
+              <div
+                class="truncate"
+                style="font-weight:500;font-size:16px;line-height:16px;color:#101828;"
+                title={coupon.attributes?.payload?.body?.code || "N/A"}
+              >
+                {coupon.attributes?.payload?.body?.code || "N/A"}
+              </div>
+
+              <div
+                class="truncate mt-1"
+                style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;"
+              >
+                {coupon.isGlobal ? "Global coupon" : "Seller coupon"}
+              </div>
+            </div>
+          </div>
+        </td>
+
+        <!-- Type pill -->
+        <td class="px-6 py-4">
+          <span
+            class="inline-flex items-center rounded-sm border px-2 py-0.5"
+            style="height:20px;background:#EEF6FF;border-color:#BEDBFF;"
+          >
+            <span style="font-weight:500;font-size:12px;line-height:16px;color:#1C398E;">
+              {coupon.attributes?.payload?.body?.discount_type === "percentage" ? "%" : "$"}
+            </span>
+          </span>
+        </td>
+
+        <!-- Seller -->
+        <td class="px-6 py-4">
+          <span style="font-weight:500;font-size:14px;line-height:14px;color:#101828;">
+            {coupon.folderDisplayname || "-"}
+          </span>
+        </td>
+
+        <!-- Discount -->
+        <td class="px-6 py-4">
+          <div style="font-weight:500;font-size:14px;line-height:14px;color:#101828;">
+            {#if coupon.attributes?.payload?.body?.discount_type === "percentage"}
+              {coupon.attributes?.payload?.body?.discount_value ?? 0}%
+            {:else}
+              ${coupon.attributes?.payload?.body?.discount_value ?? 0}
+            {/if}
+
+            {#if coupon.attributes?.payload?.body?.maximum_amount}
+              <span class="ml-2" style="font-weight:400;color:#4A5565;">
+                (max: ${coupon.attributes.payload.body.maximum_amount})
+              </span>
+            {/if}
+          </div>
+        </td>
+
+        <!-- Valid From -->
+        <td class="px-6 py-4">
+          <div
+            class="inline-flex items-center gap-2"
+            style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z" fill="#6A7282"/>
+</svg>
+
+            <span>{formatDateDMY(coupon.attributes?.payload?.body?.validity?.from)}</span>
+          </div>
+        </td>
+
+        <!-- Valid To -->
+        <td class="px-6 py-4">
+          <div
+            class="inline-flex items-center gap-2"
+            style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z" fill="#6A7282"/>
+</svg>
+
+            <span>{formatDateDMY(coupon.attributes?.payload?.body?.validity?.to)}</span>
+          </div>
+        </td>
+
+        <!-- Usage -->
+        <td class="px-6 py-4">
+          <span style="font-weight:500;font-size:14px;line-height:14px;color:#101828;">
+            {coupon.attributes?.payload?.body?.usage_count || 0} / {coupon.attributes?.payload?.body?.maximum_uses || "∞"}
+          </span>
+        </td>
+
+        <!-- Status pill -->
+        <td class="px-6 py-4">
+          {#if coupon.attributes?.is_active}
+            <span
+              class="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5"
+              style="height:20px;background:#ECFDF5;border-color:#A4F4CF;"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M9.85885 3.40183C10.0511 3.60001 10.0464 3.91656 9.84818 4.10885L5.21017 8.60885C5.01621 8.79704 4.70781 8.79705 4.51384 8.60887L2.15184 6.31737C1.95365 6.12509 1.94885 5.80854 2.14113 5.61034C2.33341 5.41215 2.64996 5.40735 2.84816 5.59963L4.86198 7.55335L9.15183 3.39115C9.35001 3.19886 9.66656 3.20364 9.85885 3.40183Z" fill="#004F3B"/>
+                </svg>
+              <span style="font-weight:500;font-size:12px;line-height:16px;color:#004F3B;">Active</span>
+            </span>
+          {:else}
+            <span
+              class="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5"
+              style="height:20px;background:#FFF8F1;border-color:#FCD9BD;"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M9.32268 2.64556C9.51843 2.84033 9.51922 3.15692 9.32445 3.35267L6.70534 5.98493L9.35444 8.64733C9.54921 8.84308 9.54842 9.15966 9.35267 9.35443C9.15692 9.5492 8.84033 9.54841 8.64556 9.35266L6 6.69381L3.35444 9.35266C3.15967 9.54841 2.84308 9.5492 2.64733 9.35443C2.45158 9.15966 2.45079 8.84308 2.64556 8.64733L5.29466 5.98493L2.67555 3.35267C2.48078 3.15692 2.48157 2.84034 2.67732 2.64556C2.87307 2.45079 3.18966 2.45159 3.38443 2.64734L6 5.27604L8.61557 2.64733C8.81035 2.45158 9.12693 2.45079 9.32268 2.64556Z" fill="#771D1D"/>
+              </svg>
+              <span style="font-weight:500;font-size:12px;line-height:16px;color:#771D1D;">Inactive</span>
+            </span>
+          {/if}
+        </td>
+
+        <!-- Actions (...) dropdown -->
+        <td class="px-6 py-4" onclick={(e) => e.stopPropagation()}>
+          <div class="relative" onclick={(e) => e.stopPropagation()}>
+            <button
+              class="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-gray-100 transition"
+              aria-label="Actions"
+              aria-haspopup="menu"
+              aria-expanded={openActionsFor === getRowId(coupon)}
+              onclick={() => toggleTableActions(coupon)}
+            >
+              <span class="text-xl leading-none">…</span>
+            </button>
+
+            {#if openActionsFor === getRowId(coupon)}
+              <div class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1 right-0" role="menu">
                 {#if coupon.isGlobal}
                   <button
-                    class="btn-icon edit"
-                    on:click={() => openEditModal(coupon)}
-                    title="Edit"
+                    class="w-full px-3 py-2 text-sm hover:bg-gray-50 text-left"
+                    onclick={() => {
+                      closeActions();
+                      openEditModal(coupon);
+                    }}
+                    role="menuitem"
                   >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                    >
-                      <path d="M11.5 2.5l2 2L6 12H4v-2l7.5-7.5z" />
-                      <path d="M10 4l2 2" />
-                    </svg>
+                    Edit
                   </button>
+
                   <button
-                    class="btn-icon delete"
-                    on:click={() => openDeleteModal(coupon)}
-                    title="Delete"
+                    class="w-full px-3 py-2 text-sm hover:bg-gray-50 text-left text-red-600"
+                    onclick={() => {
+                      closeActions();
+                      openDeleteModal(coupon);
+                    }}
+                    role="menuitem"
                   >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                    >
-                      <path
-                        d="M3 4h10M5 4V3h6v1M6 7v4M10 7v4M5 4l.5 9h5l.5-9"
-                      />
-                    </svg>
+                    Delete
                   </button>
                 {:else}
-                  <button class="btn-icon view" title="View Only">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                    >
-                      <path
-                        d="M8 3C4.5 3 2 8 2 8s2.5 5 6 5 6-5 6-5-2.5-5-6-5z"
-                      />
-                      <circle cx="8" cy="8" r="2" />
-                    </svg>
+                  <button
+                    class="w-full px-3 py-2 text-sm hover:bg-gray-50 text-left"
+                    onclick={() => {
+                      closeActions();
+                    }}
+                    role="menuitem"
+                  >
+                    View only
                   </button>
                 {/if}
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+              </div>
+            {/if}
+          </div>
+        </td>
+      </tr>
+    {/each}
+  </tbody>
+</table>
+
     </div>
 
     <Pagination
@@ -774,11 +973,11 @@
 </div>
 
 {#if showCreateModal}
-  <div class="modal-overlay" on:click={closeCreateModal}>
-    <div class="modal" on:click|stopPropagation>
+  <div class="modal-overlay" onclick={closeCreateModal}>
+    <div class="modal">
       <div class="modal-header">
         <h2>Create New Global Coupon</h2>
-        <button class="close-btn" on:click={closeCreateModal}> × </button>
+        <button class="close-btn" onclick={closeCreateModal}> × </button>
       </div>
 
       <div class="modal-body">
@@ -889,10 +1088,10 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" on:click={resetForm}> Reset </button>
+        <button class="btn-secondary" onclick={resetForm}> Reset </button>
         <button
           class="btn-primary"
-          on:click={handleCreateCoupon}
+          onclick={handleCreateCoupon}
           disabled={loading}
         >
           {loading ? "Creating..." : "Create Coupon"}
@@ -904,11 +1103,11 @@
 
 <!-- Edit Modal -->
 {#if editModalOpen && editingCoupon}
-  <div class="modal-overlay" on:click={() => (editModalOpen = false)}>
-    <div class="modal" on:click|stopPropagation>
+  <div class="modal-overlay" onclick={() => (editModalOpen = false)}>
+    <div class="modal">
       <div class="modal-header">
         <h2>Edit Coupon</h2>
-        <button class="close-btn" on:click={() => (editModalOpen = false)}>
+        <button class="close-btn" onclick={() => (editModalOpen = false)}>
           ×
         </button>
       </div>
@@ -980,12 +1179,12 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" on:click={() => (editModalOpen = false)}>
+        <button class="btn-secondary" onclick={() => (editModalOpen = false)}>
           Cancel
         </button>
         <button
           class="btn-primary"
-          on:click={handleUpdateCoupon}
+          onclick={handleUpdateCoupon}
           disabled={loading}
         >
           {loading ? "Updating..." : "Update Coupon"}
@@ -997,11 +1196,11 @@
 
 <!-- Delete Confirmation Modal -->
 {#if deleteModalOpen && deletingCoupon}
-  <div class="modal-overlay" on:click={() => (deleteModalOpen = false)}>
-    <div class="modal modal-small" on:click|stopPropagation>
+  <div class="modal-overlay" onclick={() => (deleteModalOpen = false)}>
+    <div class="modal modal-small">
       <div class="modal-header">
         <h2>Delete Coupon</h2>
-        <button class="close-btn" on:click={() => (deleteModalOpen = false)}>
+        <button class="close-btn" onclick={() => (deleteModalOpen = false)}>
           ×
         </button>
       </div>
@@ -1017,13 +1216,13 @@
       <div class="modal-footer">
         <button
           class="btn-secondary"
-          on:click={() => (deleteModalOpen = false)}
+          onclick={() => (deleteModalOpen = false)}
         >
           Cancel
         </button>
         <button
           class="btn-danger"
-          on:click={handleDeleteCoupon}
+          onclick={handleDeleteCoupon}
           disabled={loading}
         >
           {loading ? "Deleting..." : "Delete"}
