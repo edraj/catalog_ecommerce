@@ -92,10 +92,19 @@
   );
 
   // Stats shows totals (as requested)
-  let statLeftLabel = $derived.by(() => "Total Colors");
+  let statLeftLabel = $derived.by(
+    () => $_("admin_dashboard.total_colors_label") || "Total Colors",
+  );
   let statLeftValue = $derived.by(() => totalColors);
-  let statRightLabel = $derived.by(() => "Total Storages");
+  let statRightLabel = $derived.by(
+    () => $_("admin_dashboard.total_storages_label") || "Total Storages",
+  );
   let statRightValue = $derived.by(() => totalStorages);
+  let totalVariationsLabel = $derived.by(
+    () =>
+      $_("admin_dashboard.total_variations_available") ||
+      "Total Variations Available",
+  );
 
   onMount(async () => {
     await loadVariations();
@@ -128,7 +137,10 @@
       }
     } catch (error) {
       console.error("Error loading variations:", error);
-      errorToastMessage("Failed to load variations");
+      errorToastMessage(
+        $_("admin_dashboard.error_loading_variations") ||
+          "Failed to load variations",
+      );
     } finally {
       isLoading = false;
     }
@@ -180,12 +192,18 @@
     if (!selectedVariation) return;
 
     if (!formData.name_en.trim() && !formData.name_ar.trim()) {
-      errorToastMessage("Please enter an option name");
+      errorToastMessage(
+        $_("admin_dashboard.validation.option_name_required") ||
+          "Please enter an option name",
+      );
       return;
     }
 
     if (selectedVariation.shortname === "colors" && !formData.value.trim()) {
-      errorToastMessage("Please enter a color value");
+      errorToastMessage(
+        $_("admin_dashboard.validation.color_value_required") ||
+          "Please enter a color value",
+      );
       return;
     }
 
@@ -221,12 +239,17 @@
         "",
       );
 
-      successToastMessage("Option added successfully!");
+      successToastMessage(
+        $_("admin_dashboard.option_added_success") ||
+          "Option added successfully!",
+      );
       closeAddOptionModal();
       await loadVariations();
     } catch (error) {
       console.error("Error adding option:", error);
-      errorToastMessage("Failed to add option");
+      errorToastMessage(
+        $_("admin_dashboard.option_add_failed") || "Failed to add option",
+      );
     }
   }
 
@@ -234,12 +257,18 @@
     if (!selectedVariation || !selectedOption) return;
 
     if (!formData.name_en.trim() && !formData.name_ar.trim()) {
-      errorToastMessage("Please enter an option name");
+      errorToastMessage(
+        $_("admin_dashboard.validation.option_name_required") ||
+          "Please enter an option name",
+      );
       return;
     }
 
     if (selectedVariation.shortname === "colors" && !formData.value.trim()) {
-      errorToastMessage("Please enter a color value");
+      errorToastMessage(
+        $_("admin_dashboard.validation.color_value_required") ||
+          "Please enter a color value",
+      );
       return;
     }
 
@@ -278,12 +307,17 @@
         "",
       );
 
-      successToastMessage("Option updated successfully!");
+      successToastMessage(
+        $_("admin_dashboard.option_updated_success") ||
+          "Option updated successfully!",
+      );
       closeEditOptionModal();
       await loadVariations();
     } catch (error) {
       console.error("Error updating option:", error);
-      errorToastMessage("Failed to update option");
+      errorToastMessage(
+        $_("admin_dashboard.option_update_failed") || "Failed to update option",
+      );
     }
   }
 
@@ -315,12 +349,17 @@
         "",
       );
 
-      successToastMessage("Option deleted successfully!");
+      successToastMessage(
+        $_("admin_dashboard.option_deleted_success") ||
+          "Option deleted successfully!",
+      );
       closeDeleteOptionModal();
       await loadVariations();
     } catch (error) {
       console.error("Error deleting option:", error);
-      errorToastMessage("Failed to delete option");
+      errorToastMessage(
+        $_("admin_dashboard.option_delete_failed") || "Failed to delete option",
+      );
     }
   }
 
@@ -335,7 +374,9 @@
   }
 
   function activeTabEmptyText() {
-    return activeTab === "colors" ? "No colors found" : "No storages found";
+    return activeTab === "colors"
+      ? $_("admin_dashboard.no_colors_found") || "No colors found"
+      : $_("admin_dashboard.no_storages_found") || "No storages found";
   }
   let totalVariationsAvailable = $derived.by(() => {
     const hasColors = !!colorsVariation;
@@ -372,7 +413,8 @@
     <EmptyState
       icon="⚠️"
       title={$_("admin_dashboard.no_variations") || "Variations not found"}
-      description={"Expected variations: colors, storages"}
+      description={$_("admin_dashboard.expected_variations") ||
+        "Expected variations: colors, storages"}
     />
   {:else}
     <!-- Stats (totals only) -->
@@ -440,7 +482,7 @@
           </svg>
         </div>
         <div class="stat-content">
-          <h3 class="stat-title">Total Variations Available</h3>
+          <h3 class="stat-title">{totalVariationsLabel}</h3>
           <p class="stat-value">{totalVariationsAvailable}</p>
         </div>
       </div>
@@ -508,18 +550,23 @@
       {#if !activeVariation}
         <EmptyState
           icon="⚠️"
-          title={"Variation not found"}
+          title={$_("admin_dashboard.variation_not_found") ||
+            "Variation not found"}
           description={activeTab === "colors"
-            ? "Missing 'colors' variation"
-            : "Missing 'storages' variation"}
+            ? $_("admin_dashboard.missing_colors_variation") ||
+              "Missing 'colors' variation"
+            : $_("admin_dashboard.missing_storages_variation") ||
+              "Missing 'storages' variation"}
         />
       {:else if activeOptions.length === 0}
         <EmptyState
           icon={activeTabEmptyIcon()}
           title={activeTabEmptyText()}
           description={searchQuery
-            ? "No results match your search."
-            : "Click “Add Option” to create one."}
+            ? $_("admin_dashboard.no_search_results") ||
+              "No results match your search."
+            : $_("admin_dashboard.add_option_hint") ||
+              "Click \u201cAdd Option\u201d to create one."}
         />
       {:else}
         <div class="items-table-container">
@@ -527,12 +574,18 @@
             <thead>
               <tr>
                 <th class="col-name">
-                  {activeTab === "colors" ? "Color" : "Storage"}
+                  {activeTab === "colors"
+                    ? $_("admin_dashboard.table_color") || "Color"
+                    : $_("admin_dashboard.table_storage") || "Storage"}
                 </th>
 
                 {#if activeTab === "colors"}
-                  <th class="col-value">Value</th>
-                  <th class="col-preview">Preview</th>
+                  <th class="col-value">
+                    {$_("admin_dashboard.table_value") || "Value"}
+                  </th>
+                  <th class="col-preview">
+                    {$_("admin_dashboard.table_preview") || "Preview"}
+                  </th>
                 {/if}
 
                 <th class="col-actions">{$_("common.actions") || "Actions"}</th>
