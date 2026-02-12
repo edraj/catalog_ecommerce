@@ -170,25 +170,6 @@
   <aside class="sidebar {isSidebarOpen ? 'open' : 'closed'}" class:rtl={$isRTL}>
     <!-- Sidebar Header -->
     <div class="sidebar-header">
-      <button
-        onclick={toggleSidebar}
-        class="menu-toggle"
-        aria-label={$_("sidebar.toggle_menu")}
-      >
-        <svg
-          class="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 6h16M4 12h16M4 18h16"
-          />
-        </svg>
-      </button>
       {#if isSidebarOpen}
         <div class="sidebar-title">
           <div class="profile-avatar">
@@ -213,7 +194,7 @@
     </div>
 
     <!-- Sidebar Navigation -->
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav overflow-x-hidden">
       {#each adminFeatures as feature}
         {@const active = isActive(feature.path)}
         <button
@@ -233,22 +214,22 @@
     <!-- Logout Button -->
     <div class="sidebar-footer">
       <button onclick={logout} class="nav-item logout-btn" class:rtl={$isRTL}>
-        <span class="nav-icon" aria-hidden="true">
-          <svg
-            class="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-            />
-          </svg>
-        </span>
-        <span class="nav-label">{$_("sidebar.logout") || "Logout"}</span>
+       
+        <span class="label flex items-center" style="color: #C70036;"
+        ><svg
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M2.5 5.83333C2.5 3.99238 3.99238 2.5 5.83333 2.5H7.5C7.96024 2.5 8.33333 2.8731 8.33333 3.33333C8.33333 3.79357 7.96024 4.16667 7.5 4.16667H5.83333C4.91286 4.16667 4.16667 4.91286 4.16667 5.83333V14.1667C4.16667 15.0871 4.91286 15.8333 5.83333 15.8333H7.5C7.96024 15.8333 8.33333 16.2064 8.33333 16.6667C8.33333 17.1269 7.96024 17.5 7.5 17.5H5.83333C3.99238 17.5 2.5 16.0076 2.5 14.1667V5.83333ZM12.7441 6.07741C13.0695 5.75197 13.5972 5.75197 13.9226 6.07741L17.2559 9.41074C17.4122 9.56702 17.5 9.77899 17.5 10C17.5 10.221 17.4122 10.433 17.2559 10.5893L13.9226 13.9226C13.5972 14.248 13.0695 14.248 12.7441 13.9226C12.4186 13.5972 12.4186 13.0695 12.7441 12.7441L14.6548 10.8333L6.66667 10.8333C6.20643 10.8333 5.83333 10.4602 5.83333 9.99999C5.83333 9.53976 6.20643 9.16666 6.66667 9.16666L14.6548 9.16667L12.7441 7.25592C12.4186 6.93049 12.4186 6.40285 12.7441 6.07741Z"
+            fill="#C70036"
+          />
+        </svg>{$_("sidebar.logout") || "Logout"}</span>
       </button>
     </div>
   </aside>
@@ -276,7 +257,7 @@
     top: 0;
     left: 0;
     bottom: 0;
-    width: 260px;
+    width: 288px;
     background: white;
     border-right: 1px solid #e5e7eb;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -430,9 +411,9 @@
   /* Main Content */
   .main-content {
     flex: 1;
-    margin-left: 260px;
     transition: margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-x: hidden;
+    width:calc(100% - var(--sidebar-w));
   }
 
   .rtl .main-content {

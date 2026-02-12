@@ -33,7 +33,8 @@
   const norm = (p?: string) => (p || "/").replace(/\/+$/, "") || "/";
   const isActive = (p?: string) => !!p && norm(activePath) === norm(p);
 
-  const hasChildren = (item: SidebarItem) => !!(item.children && item.children.length);
+  const hasChildren = (item: SidebarItem) =>
+    !!(item.children && item.children.length);
 
   const isItemOrChildActive = (item: SidebarItem): boolean => {
     if (isActive(item.path)) return true;
@@ -63,85 +64,115 @@
   <!-- User header -->
   <div class="user">
     <div class="userLeft">
-      <img class="avatar" src={user.avatarUrl || "https://placehold.co/64x64"} alt="User avatar" />
+      <img
+        class="avatar"
+        src={user.avatarUrl || "https://placehold.co/64x64"}
+        alt="User avatar"
+      />
       <div class="userText">
         <div class="username">{user.name}</div>
         <div class="role">{user.role}</div>
       </div>
     </div>
 
-    <button type="button" class="toggle" on:click={onToggle} aria-label="Toggle sidebar">
+    <button
+      type="button"
+      class="toggle"
+      on:click={onToggle}
+      aria-label="Toggle sidebar"
+    >
       <span class="toggleIcon" aria-hidden="true"></span>
     </button>
   </div>
 
   <!-- Nav -->
   <nav class="nav" aria-label="Sidebar navigation">
-  {#each items as item (item.name)}
-    {@const collapsible = !!(item.children && item.children.length)}
-    {@const key = item.name}
-    {@const expanded = collapsible && openGroups.has(key)}
+    {#each items as item (item.name)}
+      {@const collapsible = !!(item.children && item.children.length)}
+      {@const key = item.name}
+      {@const expanded = collapsible && openGroups.has(key)}
 
-    <div class="group">
-      <button
-        type="button"
-        class="item"
-        class:rtl
-        class:collapsible={collapsible}
-        class:active={isItemOrChildActive(item)}
-        aria-expanded={collapsible ? expanded : undefined}
-        on:click={() => {
-          if (collapsible) toggleGroup(key);
-          else if (item.path) onNavigate(item.path);
-        }}
-      >
-        <span class="left">
-          <span class="icon" aria-hidden="true">
-            {@html item.icon || ""}
+      <div class="group">
+        <button
+          type="button"
+          class="item"
+          class:rtl
+          class:collapsible
+          class:active={isItemOrChildActive(item)}
+          aria-expanded={collapsible ? expanded : undefined}
+          on:click={() => {
+            if (collapsible) toggleGroup(key);
+            else if (item.path) onNavigate(item.path);
+          }}
+        >
+          <span class="left">
+            <span class="icon" aria-hidden="true">
+              {@html item.icon || ""}
+            </span>
+            <span class="label">{item.label}</span>
           </span>
-          <span class="label">{item.label}</span>
-        </span>
 
-        {#if collapsible}
-          <span class="chev" class:open={expanded} aria-hidden="true">
-            <svg width="11" height="6" viewBox="0 0 11 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
-                d="M4.86193 5.80474C5.12228 6.06509 5.54439 6.06509 5.80474 5.80474L10.4714 1.13807C10.7318 0.877722 10.7318 0.455611 10.4714 0.195262C10.2111 -0.0650878 9.78895 -0.0650878 9.5286 0.195262L5.33333 4.39052L1.13807 0.195262C0.877722 -0.0650878 0.455612 -0.0650878 0.195262 0.195262C-0.0650874 0.455611 -0.0650874 0.877722 0.195262 1.13807L4.86193 5.80474Z"
-                fill="#4A5565"
-              />
-            </svg>
-          </span>
+          {#if collapsible}
+            <span class="chev" class:open={expanded} aria-hidden="true">
+              <svg
+                width="11"
+                height="6"
+                viewBox="0 0 11 6"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M4.86193 5.80474C5.12228 6.06509 5.54439 6.06509 5.80474 5.80474L10.4714 1.13807C10.7318 0.877722 10.7318 0.455611 10.4714 0.195262C10.2111 -0.0650878 9.78895 -0.0650878 9.5286 0.195262L5.33333 4.39052L1.13807 0.195262C0.877722 -0.0650878 0.455612 -0.0650878 0.195262 0.195262C-0.0650874 0.455611 -0.0650874 0.877722 0.195262 1.13807L4.86193 5.80474Z"
+                  fill="#4A5565"
+                />
+              </svg>
+            </span>
+          {/if}
+        </button>
+
+        {#if collapsible && expanded && isOpen}
+          <div class="children" class:rtl>
+            {#each item.children as child (child.name)}
+              <button
+                type="button"
+                class="child"
+                class:rtl
+                class:active={isActive(child.path)}
+                on:click={() => child.path && onNavigate(child.path)}
+              >
+                <span class="dot" aria-hidden="true"></span>
+                <span class="label">{child.label}</span>
+              </button>
+            {/each}
+          </div>
         {/if}
-      </button>
-
-      {#if collapsible && expanded && isOpen}
-        <div class="children" class:rtl>
-          {#each item.children as child (child.name)}
-            <button
-              type="button"
-              class="child"
-              class:rtl
-              class:active={isActive(child.path)} 
-              on:click={() => child.path && onNavigate(child.path)}
-            >
-              <span class="dot" aria-hidden="true"></span>
-              <span class="label">{child.label}</span>
-            </button>
-          {/each}
-        </div>
-      {/if}
-    </div>
-  {/each}
-</nav>
-
+      </div>
+    {/each}
+  </nav>
 
   <!-- Logout -->
   <div class="footer">
     <button type="button" class="logout" class:rtl on:click={onLogout}>
       <span class="icon" aria-hidden="true"></span>
-      <span class="label">Logout</span>
+      <span class="label flex items-center" style="color: #C70036;"
+        ><svg
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M2.5 5.83333C2.5 3.99238 3.99238 2.5 5.83333 2.5H7.5C7.96024 2.5 8.33333 2.8731 8.33333 3.33333C8.33333 3.79357 7.96024 4.16667 7.5 4.16667H5.83333C4.91286 4.16667 4.16667 4.91286 4.16667 5.83333V14.1667C4.16667 15.0871 4.91286 15.8333 5.83333 15.8333H7.5C7.96024 15.8333 8.33333 16.2064 8.33333 16.6667C8.33333 17.1269 7.96024 17.5 7.5 17.5H5.83333C3.99238 17.5 2.5 16.0076 2.5 14.1667V5.83333ZM12.7441 6.07741C13.0695 5.75197 13.5972 5.75197 13.9226 6.07741L17.2559 9.41074C17.4122 9.56702 17.5 9.77899 17.5 10C17.5 10.221 17.4122 10.433 17.2559 10.5893L13.9226 13.9226C13.5972 14.248 13.0695 14.248 12.7441 13.9226C12.4186 13.5972 12.4186 13.0695 12.7441 12.7441L14.6548 10.8333L6.66667 10.8333C6.20643 10.8333 5.83333 10.4602 5.83333 9.99999C5.83333 9.53976 6.20643 9.16666 6.66667 9.16666L14.6548 9.16667L12.7441 7.25592C12.4186 6.93049 12.4186 6.40285 12.7441 6.07741Z"
+            fill="#C70036"
+          />
+        </svg>
+        Logout</span
+      >
     </button>
   </div>
 </aside>
@@ -156,7 +187,6 @@
 
     background: var(--colors-background-bg-primary-soft, #fff);
     border: 1px solid var(--colors-border-border-base, #e5e7eb);
-    border-radius: var(--border-radius-rounded-lg, 16px);
     box-shadow: 0px 1px 0.5px 0.05px #1d293d05;
 
     display: flex;

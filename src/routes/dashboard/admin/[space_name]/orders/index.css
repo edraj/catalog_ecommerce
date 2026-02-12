@@ -10,7 +10,11 @@
 .header {
   margin-bottom: 2rem;
 }
-
+.search-table_header {
+  border-top: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+}
 .header h1 {
   font-size: 2rem;
   font-weight: 700;
@@ -25,7 +29,17 @@
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
-
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  padding: 0 0 20px 0;
+}
+.bg-icon {
+    background-color: #f4f5fe;
+    height: 70px;
+    width: 70px;
+  }
 .stat-card {
   background: white;
   border-radius: 0.75rem;
@@ -90,7 +104,7 @@
 }
 
 .stat-value {
-  font-size: 1.5rem;
+  font-size: 18px;
   font-weight: 700;
   color: #111827;
   margin: 0;

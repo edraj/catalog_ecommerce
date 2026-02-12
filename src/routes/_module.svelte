@@ -234,7 +234,7 @@ type SidebarItem = SidebarItemType;
   <div
     class="dashboardShell"
     class:rtl
-    style="--sidebar-w: {isSidebarOpen ? '248px' : '72px'};"
+    style="--sidebar-w: {isSidebarOpen ? '288px' : '72px'};"
   >
     <Sidebar
       user={sidebarUser}
