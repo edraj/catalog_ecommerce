@@ -22,21 +22,39 @@
       .replace(/^\w/, (c) => c.toUpperCase());
   }
 
-  function buildCrumbs(pathname: string) {
-    const segments = pathname.split("/").filter(Boolean);
+ function buildCrumbs(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean);
 
-    const adminIdx = segments.findIndex((s) => s === "admin");
-    const tail = adminIdx >= 0 ? segments.slice(adminIdx + 1) : segments;
+  const isAdmin = segments[0] === "dashboard" && segments[1] === "admin";
+  const base = isAdmin ? "/dashboard/admin" : ""; // ✅ base is "" for public routes
 
-    const crumbs: Crumb[] = [{ label: "Home", href: ADMIN_HOME, isHome: true }];
-    let acc = ADMIN_HOME;
-    for (const seg of tail) {
-      acc += `/${seg}`;
-      crumbs.push({ label: titleize(seg), href: acc });
-    }
+  const tail = isAdmin ? segments.slice(2) : segments;
 
-    return crumbs;
+  // if we're exactly at the base (admin) or at "/" (public)
+  if (tail.length === 0) {
+    return isAdmin
+      ? ([{ label: "Dashboard", href: "/dashboard/admin", isHome: true }] as Crumb[])
+      : ([{ label: "Home", href: "/", isHome: true }] as Crumb[]);
   }
+
+  const crumbs: Crumb[] = [];
+
+  let acc = base; // ✅ correct starting point
+
+  // first crumb
+  acc += `/${tail[0]}`;
+  crumbs.push({ label: titleize(tail[0]), href: acc, isHome: true });
+
+  // rest
+  for (const seg of tail.slice(1)) {
+    acc += `/${seg}`;
+    crumbs.push({ label: titleize(seg), href: acc });
+  }
+
+  return crumbs;
+}
+
+
 
   onMount(() => {
     // init
@@ -205,7 +223,7 @@
           {#if i === breadcrumbs.length - 1}
             <span class="breadcrumb-current" aria-current="page"
               >{#if crumb.isHome}
-                <span class="crumb-icon" aria-hidden="true">
+                <button  class="crumb-icon" aria-hidden="true">
                   <svg
                     width="16"
                     height="16"
@@ -220,7 +238,7 @@
                       fill="#4A5565"
                     />
                   </svg>
-                </span>
+                </button>
               {/if}{crumb.label}</span
             >
           {:else}

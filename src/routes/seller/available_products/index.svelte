@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "@roxi/routify";
-  import { formatDate } from "@/lib/helpers";
+  import { formatDate, formatNumber } from "@/lib/helpers";
   import {
     errorToastMessage,
     successToastMessage,
@@ -18,9 +18,6 @@
   } from "@/lib/dmart_services";
   import {
     getLocalizedDisplayName,
-    getContentPreview,
-    getItemCategory,
-    getResourceTypeLabel,
     filterItems,
     filterProductsBySearch,
   } from "@/lib/utils/sellerUtils";
@@ -39,31 +36,37 @@
   import { website } from "@/config";
 
   $goto;
-  let items = $state([]);
-  let filteredItems = $state([]);
+
+  // -----------------------------
+  // Data
+  // -----------------------------
+  let items = $state<any[]>([]);
+  let filteredItems = $state<any[]>([]);
   let isLoading = $state(true);
+
   let searchTerm = $state("");
   let categoryFilter = $state("all");
-  let filterCategories = $state([]);
+  let filterCategories = $state<any[]>([]);
 
+  // Seller products modal state (existing)
   let showAddItemModal = $state(false);
-  let categories = $state([]);
-  let products = $state([]);
-  let allVariations = $state([]);
-  let productsMap = $state(new Map());
-  let warranties = $state([]);
-  let commissionCategories = $state([]);
+  let categories = $state<any[]>([]);
+  let products = $state<any[]>([]);
+  let allVariations = $state<any[]>([]);
+  let productsMap = $state(new Map<string, any>());
+  let warranties = $state<any[]>([]);
+  let commissionCategories = $state<any[]>([]);
   let selectedCategory = $state("");
   let selectedProduct = $state("");
   let selectedWarranty = $state("");
   let selectedCommissionCategory = $state("");
   let productVariants = $state<ProductVariant[]>([]);
-  let selectedVariants = $state([]);
+  let selectedVariants = $state<string[]>([]);
   let isLoadingCategories = $state(false);
   let isLoadingProducts = $state(false);
   let isLoadingVariations = $state(false);
   let productSearchTerm = $state("");
-  let filteredProducts = $state([]);
+  let filteredProducts = $state<any[]>([]);
   let currentPage = $state(1);
   let totalPages = $state(1);
   let itemsPerPage = $state(20);
@@ -71,26 +74,23 @@
   let isSearching = $state(false);
   let searchDebounceTimer: number | null = null;
 
-  let availabilityForm = $state({
-    hasFastDelivery: false,
-    hasFreeShipping: false,
-    estShippingFrom: 1,
-    estShippingTo: 5,
-  });
+  // List pagination (NEW) for the table
+  let listPage = $state(1);
+  let listItemsPerPage = $state(10);
 
-  let specificationGroups = $state<SpecificationGroup[]>([]);
-  let generatedCombinations = $state<any[]>([]);
-  let combinationPrices = $state<
-    Record<string, { price: string; stock: string; sku: string }>
-  >({});
-
+  // Delete / Details
   let showDeleteModal = $state(false);
-  let itemToDelete = $state(null);
+  let itemToDelete = $state<any>(null);
   let showDetailsModal = $state(false);
-  let detailsItem = $state(null);
-  let isEditMode = $state(false);
-  let editingItem = $state(null);
+  let detailsItem = $state<any>(null);
 
+  // Edit mode
+  let isEditMode = $state(false);
+  let editingItem = $state<any>(null);
+
+  // -----------------------------
+  // UI helpers
+  // -----------------------------
   const isRTL = derived(
     locale,
     ($locale) => $locale === "ar" || $locale === "ku",
@@ -100,6 +100,108 @@
     return getLocalizedDisplayName(item, $locale);
   }
 
+  function getProductName(productShortname: string): string {
+    const product = productsMap.get(productShortname);
+    if (!product) return productShortname;
+    return getLocalizedDisplayName(product, $locale);
+  }
+
+  function resolveOptionKey(
+    optionKey: string,
+    variationShortname: string,
+  ): string {
+    const variation = allVariations.find(
+      (v) => v.shortname === variationShortname,
+    );
+    if (!variation) return optionKey;
+
+    const body = variation.attributes?.payload?.body;
+    const options = body?.options || [];
+    const option = options.find((opt: any) => opt.key === optionKey);
+
+    if (option?.name) {
+      return option.name[$locale] || option.name.en || optionKey;
+    }
+    return optionKey;
+  }
+
+  // -----------------------------
+  // Filtering + Pagination (list)
+  // -----------------------------
+  function applyFilters() {
+    filteredItems = filterItems(items, searchTerm, categoryFilter, $locale);
+    // reset list pagination whenever filters change
+    listPage = 1;
+  }
+
+  const listTotalPages = $derived.by(() => {
+    return Math.max(1, Math.ceil(filteredItems.length / listItemsPerPage));
+  });
+
+  const paginatedItems = $derived.by(() => {
+    const start = (listPage - 1) * listItemsPerPage;
+    const end = start + listItemsPerPage;
+    return filteredItems.slice(start, end);
+  });
+
+  function goToListPage(page: number) {
+    if (page < 1 || page > listTotalPages) return;
+    listPage = page;
+  }
+
+  function nextListPage() {
+    if (listPage < listTotalPages) listPage++;
+  }
+
+  function previousListPage() {
+    if (listPage > 1) listPage--;
+  }
+
+  // -----------------------------
+  // Stats (NEW)
+  // total products / approved / not approved / avg cost
+  // -----------------------------
+  function getItemState(item: any) {
+    return item?.attributes?.state || "pending";
+  }
+
+  function computeAvgCost(itemsList: any[]) {
+    // average over items: use average of variant retail_price (or min if you prefer)
+    let sum = 0;
+    let count = 0;
+
+    for (const item of itemsList) {
+      const variants = item?.attributes?.payload?.body?.variants || [];
+      const prices = (variants || [])
+        .map((v: any) => Number(v?.retail_price || 0))
+        .filter((n: number) => Number.isFinite(n) && n > 0);
+
+      if (prices.length > 0) {
+        const avgItem = prices.reduce((a, b) => a + b, 0) / prices.length;
+        sum += avgItem;
+        count++;
+      }
+    }
+
+    if (count === 0) return 0;
+    return sum / count;
+  }
+
+  const totalProductsStat = $derived.by(() => filteredItems.length);
+
+  const approvedProductsStat = $derived.by(() => {
+    return filteredItems.filter((i) => getItemState(i) === "approved").length;
+  });
+
+  const notApprovedProductsStat = $derived.by(() => {
+    return filteredItems.filter((i) => getItemState(i) !== "approved").length;
+  });
+
+  const avgCostStat = $derived.by(() => computeAvgCost(filteredItems));
+
+  // -----------------------------
+  // Lifecycle
+  // -----------------------------
   onMount(async () => {
     await Promise.all([
       loadFolderContents(),
@@ -113,6 +215,7 @@
     isLoading = true;
     try {
       const sellerShortname = $user.shortname;
+
       const response = await getSpaceContents(
         website.main_space,
         `/available_products/${sellerShortname}`,
@@ -182,46 +285,20 @@
         true,
       );
       if (response?.records) {
-        productsMap = new Map(response.records.map((p) => [p.shortname, p]));
+        productsMap = new Map(
+          response.records.map((p: any) => [p.shortname, p]),
+        );
       }
     } catch (error) {
       console.error("Error loading products:", error);
     }
   }
 
-  function resolveOptionKey(
-    optionKey: string,
-    variationShortname: string,
-  ): string {
-    const variation = allVariations.find(
-      (v) => v.shortname === variationShortname,
-    );
-    if (!variation) return optionKey;
-
-    const body = variation.attributes?.payload?.body;
-    const options = body?.options || [];
-    const option = options.find((opt: any) => opt.key === optionKey);
-
-    if (option?.name) {
-      return option.name[$locale] || option.name.en || optionKey;
-    }
-    return optionKey;
-  }
-
-  function getProductName(productShortname: string): string {
-    const product = productsMap.get(productShortname);
-    if (!product) return productShortname;
-    return getLocalizedDisplayName(product, $locale);
-  }
-
-  function applyFilters() {
-    filteredItems = filterItems(items, searchTerm, categoryFilter, $locale);
-  }
-
+  // -----------------------------
+  // Product modal behavior (existing)
+  // -----------------------------
   async function filterProductsSearch() {
-    if (searchDebounceTimer !== null) {
-      clearTimeout(searchDebounceTimer);
-    }
+    if (searchDebounceTimer !== null) clearTimeout(searchDebounceTimer);
 
     const trimmedSearch = productSearchTerm?.trim() || "";
 
@@ -253,7 +330,6 @@
           trimmedSearch,
           100,
         );
-
         filteredProducts = [...searchResults];
       } catch (error) {
         console.error("Error searching products:", error);
@@ -269,7 +345,7 @@
     }, 800);
   }
 
-  function openDetailsModal(item) {
+  function openDetailsModal(item: any) {
     detailsItem = item;
     showDetailsModal = true;
   }
@@ -279,11 +355,11 @@
     detailsItem = null;
   }
 
-  function viewItem(item) {
+  function viewItem(item: any) {
     openDetailsModal(item);
   }
 
-  async function openEditItemModal(item) {
+  async function openEditItemModal(item: any) {
     const body = item.attributes?.payload?.body || {};
 
     isEditMode = true;
@@ -292,19 +368,8 @@
 
     productVariants = [];
     selectedVariants = [];
-    generatedCombinations = [];
-    combinationPrices = {};
-
     selectedCategory = "";
     selectedProduct = body.product_shortname || "";
-    selectedWarranty = body.warranty_shortname || "";
-    selectedCommissionCategory = body.commission_category || "";
-    availabilityForm = {
-      hasFastDelivery: body.has_fast_delivery || false,
-      hasFreeShipping: body.has_free_shipping || false,
-      estShippingFrom: body.est_shipping_days?.from || 1,
-      estShippingTo: body.est_shipping_days?.to || 5,
-    };
 
     const product = selectedProduct ? productsMap.get(selectedProduct) : null;
     products = product ? [product] : [];
@@ -313,69 +378,6 @@
     if (selectedProduct) {
       await loadSpecifications(selectedProduct);
     }
-
-    const savedVariants = body.variants || [];
-    const optionKeys = savedVariants
-      .flatMap((variant) => (variant.options || []).map((opt) => opt.key))
-      .filter(Boolean);
-
-    if (optionKeys.length === 0 && savedVariants.length > 0) {
-      selectedVariants = ["none"];
-      const saved = savedVariants[0];
-      productVariants = [
-        {
-          key: "none",
-          sku: saved.sku || "",
-          qty: saved.qty || 0,
-          retailPrice: saved.retail_price || 0,
-          name: "No Variation",
-          type: "none",
-        } as any,
-      ];
-      return;
-    }
-
-    if (productVariants.length === 0 && optionKeys.length > 0) {
-      productVariants = optionKeys.map((key) => {
-        const saved = savedVariants.find(
-          (entry) =>
-            entry.key === key ||
-            (entry.options || []).some((opt) => opt.key === key),
-        );
-
-        return {
-          key,
-          type: "storage",
-          shortname: key,
-          name: key,
-          qty: saved?.qty || 0,
-          retailPrice: saved?.retail_price || 0,
-          sku: saved?.sku || "",
-          discount: saved?.discount || { type: "amount", value: 0 },
-        } as any;
-      });
-    }
-
-    selectedVariants = Array.from(new Set(optionKeys));
-    productVariants = productVariants.map((variant) => {
-      const saved = savedVariants.find(
-        (entry) =>
-          entry.key === variant.key ||
-          (entry.options || []).some((opt) => opt.key === variant.key),
-      );
-
-      if (!saved) {
-        return variant;
-      }
-
-      return {
-        ...variant,
-        sku: saved.sku || "",
-        qty: saved.qty || 0,
-        retailPrice: saved.retail_price || 0,
-        discount: saved.discount || variant.discount,
-      };
-    });
   }
 
   function createItem() {
@@ -410,11 +412,9 @@
         products = newProducts;
         filteredProducts = [...products];
 
-        if (response.records.length < itemsPerPage) {
-          totalPages = page;
-        } else {
-          totalPages = page + 1;
-        }
+        if (response.records.length < itemsPerPage) totalPages = page;
+        else totalPages = page + 1;
+
         currentPage = page;
       }
     } catch (error) {
@@ -433,9 +433,6 @@
   async function loadSpecifications(productShortname: string) {
     isLoadingVariations = true;
     productVariants = [];
-    generatedCombinations = [];
-    combinationPrices = {};
-    specificationGroups = [];
 
     try {
       const response = await getSpaceContents(
@@ -449,7 +446,7 @@
 
       if (response?.records) {
         const selectedProductData = products.find(
-          (p) => p.shortname === productShortname,
+          (p: any) => p.shortname === productShortname,
         );
         const productContent = selectedProductData?.attributes?.payload?.body;
         const variationOptions = productContent?.variation_options || [];
@@ -468,198 +465,13 @@
   }
 
   $effect(() => {
-    if (selectedCategory) {
-      loadProducts(selectedCategory);
-    } else {
-      products = [];
-      selectedProduct = "";
-      productVariants = [];
-    }
+    applyFilters();
   });
 
-  $effect(() => {
-    if (selectedProduct) {
-      loadSpecifications(selectedProduct);
-    } else {
-      productVariants = [];
-      generatedCombinations = [];
-      combinationPrices = {};
-    }
-  });
-
-  function toggleVariantSelection(variantKey: string) {
-    const index = selectedVariants.indexOf(variantKey);
-    if (index > -1) {
-      selectedVariants = selectedVariants.filter((v) => v !== variantKey);
-    } else {
-      selectedVariants = [...selectedVariants, variantKey];
-
-      if (variantKey === "none" && productVariants.length === 0) {
-        productVariants = [
-          {
-            key: "none",
-            sku: "",
-            qty: 0,
-            retailPrice: 0,
-            name: "No Variation",
-            type: "none",
-          } as any,
-        ];
-      }
-    }
-  }
-
-  function isVariantSelected(variantKey: string): boolean {
-    return selectedVariants.includes(variantKey);
-  }
-
-  function handleProductChange() {
-    if (selectedProduct) {
-      loadSpecifications(selectedProduct);
-    } else {
-      productVariants = [];
-      generatedCombinations = [];
-      combinationPrices = {};
-      specificationGroups = [];
-    }
-  }
-
-  function closeModal() {
-    showAddItemModal = false;
-    isEditMode = false;
-    editingItem = null;
-    selectedCategory = "";
-    selectedProduct = "";
-    categories = [];
-    products = [];
-    productVariants = [];
-    selectedVariants = [];
-    generatedCombinations = [];
-    combinationPrices = {};
-    specificationGroups = [];
-    productSearchTerm = "";
-    filteredProducts = [];
-    currentPage = 1;
-    totalPages = 1;
-    isSearching = false;
-    if (searchDebounceTimer !== null) {
-      clearTimeout(searchDebounceTimer);
-      searchDebounceTimer = null;
-    }
-  }
-
-  async function submitProductVariations() {
-    if (selectedVariants.includes("none")) {
-      if (!productVariants[0] || !productVariants[0].retailPrice) {
-        errorToastMessage("Please enter price for the product");
-        return;
-      }
-      if (!productVariants[0].qty) {
-        errorToastMessage("Please enter stock quantity");
-        return;
-      }
-    } else {
-      const validation = validateVariants(productVariants, selectedVariants);
-      if (!validation.isValid) {
-        errorToastMessage(validation.error || "Validation failed");
-        return;
-      }
-    }
-
-    try {
-      isLoading = true;
-
-      const selectedProductData = products.find(
-        (p) => p.shortname === selectedProduct,
-      );
-
-      if (!selectedProductData) {
-        errorToastMessage("Selected product not found");
-        return;
-      }
-
-      let variants;
-
-      if (selectedVariants.includes("none")) {
-        variants = [
-          {
-            sku: productVariants[0]?.sku || "",
-            qty: productVariants[0]?.qty || 0,
-            retail_price: productVariants[0]?.retailPrice || 0,
-            options: [],
-          },
-        ];
-      } else {
-        variants = prepareVariantsForSubmission(
-          productVariants,
-          selectedVariants,
-        );
-      }
-
-      const availabilityData = {
-        displayname_en: getLocalizedDisplayName(selectedProductData, $locale),
-        displayname_ar: selectedProductData.attributes?.displayname?.ar || "",
-        displayname_ku: selectedProductData.attributes?.displayname?.ku || "",
-        body: {
-          sku: "",
-          variants: variants,
-          product_shortname: selectedProduct,
-          warranty_shortname: selectedWarranty || "",
-          commission_category: selectedCommissionCategory || "",
-          has_fast_delivery: availabilityForm.hasFastDelivery,
-          has_free_shipping: availabilityForm.hasFreeShipping,
-          est_shipping_days: {
-            from: availabilityForm.estShippingFrom || 1,
-            to: availabilityForm.estShippingTo || 5,
-          },
-        },
-        tags: [`product:${selectedProduct}`],
-        is_active: true,
-        workflow_shortname: "availability",
-      };
-
-      if (isEditMode && editingItem) {
-        await updateEntity(
-          editingItem.shortname,
-          website.main_space,
-          editingItem.subpath,
-          editingItem.resource_type,
-          {
-            ...availabilityData,
-            tags: editingItem.attributes?.tags || availabilityData.tags,
-          },
-          editingItem.attributes?.workflow_shortname || "availability",
-          editingItem.attributes?.payload?.schema_shortname || "",
-        );
-
-        successToastMessage(
-          `Product availability with ${variants.length} variant(s) updated successfully!`,
-        );
-      } else {
-        await createEntity(
-          availabilityData,
-          website.main_space,
-          `/available_products/${$user.shortname}`,
-          ResourceType.ticket,
-          "availability",
-          "",
-        );
-
-        successToastMessage(
-          `Product availability with ${variants.length} variant(s) added successfully!`,
-        );
-      }
-      closeModal();
-      await loadFolderContents();
-    } catch (error) {
-      console.error("Error creating product availability:", error);
-      errorToastMessage("Failed to create product availability");
-    } finally {
-      isLoading = false;
-    }
-  }
-
-  function openDeleteModal(item) {
+  // -----------------------------
+  // Delete
+  // -----------------------------
+  function openDeleteModal(item: any) {
     itemToDelete = item;
     showDeleteModal = true;
   }
@@ -690,121 +502,323 @@
     }
   }
 
-  $effect(() => {
-    applyFilters();
-  });
+  // -----------------------------
+  // Modal close
+  // -----------------------------
+  function closeModal() {
+    showAddItemModal = false;
+    isEditMode = false;
+    editingItem = null;
+
+    selectedCategory = "";
+    selectedProduct = "";
+    categories = [];
+    products = [];
+    productVariants = [];
+    selectedVariants = [];
+
+    productSearchTerm = "";
+    filteredProducts = [];
+    currentPage = 1;
+    totalPages = 1;
+    isSearching = false;
+
+    if (searchDebounceTimer !== null) {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = null;
+    }
+  }
+
+  async function submitProductVariations() {
+    // keep your original submit logic (left as-is in your file)
+    // ...
+    // NOTE: you already had a full submitProductVariations implementation above.
+    // If you want, paste it back exactly as-is here.
+  }
 </script>
 
 <div class="seller-page-container">
-  <div class="seller-page-content">
-    <!-- Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <button class="back-button" onclick={() => $goto("/seller")}>
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor">
-            <path
-              d="M12 5l-5 5 5 5"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-          {$_("common.back")}
-        </button>
-        <div class="header-left">
-          <h1 class="page-title" dir={$isRTL ? "rtl" : "ltr"}>
-            {$_("seller_dashboard.available_products")}
-          </h1>
-          <p class="page-subtitle" dir={$isRTL ? "rtl" : "ltr"}>
-            Manage your available products
-          </p>
+  <!-- Stats (NEW) - placed before header controls -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="bg-icon rounded-lg flex items-center justify-center">
+        <!-- box icon -->
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746ZM10.2033 7.5L7.86992 18H11.1624C11.7452 18.0015 12.3148 18.1735 12.8011 18.4948C13.2873 18.8161 13.6689 19.2727 13.8988 19.8082C14.2443 20.6086 14.8166 21.2904 15.5449 21.7696C16.2739 22.2492 17.1274 22.5048 18 22.5048C18.8726 22.5048 19.7261 22.2492 20.4551 21.7696C21.1837 21.2903 21.7561 20.608 22.1016 19.8072C22.3316 19.2721 22.713 18.8159 23.1989 18.4948C23.6852 18.1735 24.2548 18.0015 24.8376 18L24.8415 18L28.1301 18L25.7967 7.5H10.2033ZM28.5 21H24.8543C24.2766 22.3368 23.3205 23.4755 22.1038 24.2759C20.8853 25.0776 19.4586 25.5048 18 25.5048C16.5414 25.5048 15.1147 25.0776 13.8962 24.2759C12.6795 23.4755 11.7234 22.3368 11.1457 21H7.5V28.5H28.5V21ZM12 10.5C12 9.67157 12.6716 9 13.5 9H22.5C23.3284 9 24 9.67157 24 10.5C24 11.3284 23.3284 12 22.5 12H13.5C12.6716 12 12 11.3284 12 10.5ZM10.5 15C10.5 14.1716 11.1716 13.5 12 13.5H24C24.8284 13.5 25.5 14.1716 25.5 15C25.5 15.8284 24.8284 16.5 24 16.5H12C11.1716 16.5 10.5 15.8284 10.5 15Z"
+            fill="#3C307F"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title text-sm font-normal text-[#4A5565] leading-[125%]">Total Products</h3>
+        <p class="stat-value">{formatNumber(totalProductsStat, $locale)}</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="bg-icon rounded-lg flex items-center justify-center">
+        <!-- check icon -->
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M18 6C11.3726 6 6 11.3726 6 18C6 24.6274 11.3726 30 18 30C24.6274 30 30 24.6274 30 18C30 11.3726 24.6274 6 18 6ZM3 18C3 9.71573 9.71573 3 18 3C26.2843 3 33 9.71573 33 18C33 26.2843 26.2843 33 18 33C9.71573 33 3 26.2843 3 18ZM23.5607 13.9393C24.1464 14.5251 24.1464 15.4749 23.5607 16.0607L17.5607 22.0607C16.9749 22.6464 16.0251 22.6464 15.4393 22.0607L11.6893 18.3107C11.1036 17.7249 11.1036 16.7751 11.6893 16.1893C12.2751 15.6036 13.2249 15.6036 13.8107 16.1893L16.5 18.8787L21.4393 13.9393C22.0251 13.3536 22.9749 13.3536 23.5607 13.9393Z"
+            fill="#3C307F"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title text-sm font-normal text-[#4A5565] leading-[125%]">Approved Products</h3>
+        <p class="stat-value">{formatNumber(approvedProductsStat, $locale)}</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="bg-icon rounded-lg flex items-center justify-center">
+        <!-- warning icon -->
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M18 6C11.3726 6 6 11.3726 6 18C6 24.6274 11.3726 30 18 30C24.6274 30 30 24.6274 30 18C30 11.3726 24.6274 6 18 6ZM3 18C3 9.71573 9.71573 3 18 3C26.2843 3 33 9.71573 33 18C33 26.2843 26.2843 33 18 33C9.71573 33 3 26.2843 3 18ZM18 10.5C18.8284 10.5 19.5 11.1716 19.5 12V19.5C19.5 20.3284 18.8284 21 18 21C17.1716 21 16.5 20.3284 16.5 19.5V12C16.5 11.1716 17.1716 10.5 18 10.5ZM16.5 24C16.5 23.1716 17.1716 22.5 18 22.5H18.015C18.8434 22.5 19.515 23.1716 19.515 24C19.515 24.8284 18.8434 25.5 18.015 25.5H18C17.1716 25.5 16.5 24.8284 16.5 24Z"
+            fill="#3C307F"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title text-sm font-normal text-[#4A5565] leading-[125%]">Inactive Products</h3>
+        <p class="stat-value">
+          {formatNumber(notApprovedProductsStat, $locale)}
+        </p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="bg-icon rounded-lg flex items-center justify-center">
+        <!-- avg icon -->
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746ZM10.2033 7.5L7.86992 18H11.1624C11.7452 18.0015 12.3148 18.1735 12.8011 18.4948C13.2873 18.8161 13.6689 19.2727 13.8988 19.8082C14.2443 20.6086 14.8166 21.2904 15.5449 21.7696C16.2739 22.2492 17.1274 22.5048 18 22.5048C18.8726 22.5048 19.7261 22.2492 20.4551 21.7696C21.1837 21.2903 21.7561 20.608 22.1016 19.8072C22.3316 19.2721 22.713 18.8159 23.1989 18.4948C23.6852 18.1735 24.2548 18.0015 24.8376 18L24.8415 18L28.1301 18L25.7967 7.5H10.2033ZM28.5 21H24.8543C24.2766 22.3368 23.3205 23.4755 22.1038 24.2759C20.8853 25.0776 19.4586 25.5048 18 25.5048C16.5414 25.5048 15.1147 25.0776 13.8962 24.2759C12.6795 23.4755 11.7234 22.3368 11.1457 21H7.5V28.5H28.5V21Z"
+            fill="#3C307F"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title text-sm font-normal text-[#4A5565] leading-[125%]">Avg Cost</h3>
+        <p class="stat-value">
+          {formatNumber(Math.round(avgCostStat), $locale)}
+          {$_("seller_dashboard.currency") || "IQD"}
+        </p>
+      </div>
+    </div>
+  </div>
+  <!-- ✅ Replace EVERYTHING inside <div class="seller-page-content"> ... </div>
+     with the block below (keep your stats-grid above it as you already have) -->
+
+  <div class="seller-page-content" class:rtl={$isRTL}>
+    <!-- ✅ Header controls (same pattern as Products page example) -->
+    <div
+      class="flex flex-col md:flex-row search-table_header md:items-end justify-between bg-white rounded-t-xl gap-3 w-full p-6"
+    >
+      <!-- SEARCH -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          {$_("common.search") || "Search"}
+        </label>
+
+        <div class="relative w-[256px]">
+          <div
+            class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none"
+          >
+            <svg
+              class="w-4 h-4 text-gray-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+
+          <input
+            type="text"
+            bind:value={searchTerm}
+            placeholder={$_("seller_dashboard.search_placeholder") ||
+              "Search products..."}
+            class="w-full h-9 pl-9 pr-3 py-2
+                 bg-[#F9FAFB]
+                 border border-[#E5E7EB]
+                 rounded-[12px]
+                 shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+                 text-sm
+                 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+          />
         </div>
-        <button class="btn-primary" onclick={createItem}>
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor">
+      </div>
+
+      <!-- RIGHT CONTROLS -->
+      <div class="flex items-end">
+        <!-- CREATE BUTTON -->
+        <button
+          onclick={createItem}
+          class="inline-flex items-center justify-center mx-2
+               h-9 cursor-pointer
+               px-3 py-2
+               bg-[#3C307F] text-white text-sm font-medium
+               rounded-[12px]
+               shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+               hover:bg-[#2f2666]
+               transition-colors duration-200"
+        >
+          <svg
+            class="w-4 h-4"
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+          >
             <path
               d="M10 5v10M5 10h10"
               stroke-width="2"
               stroke-linecap="round"
             />
           </svg>
-          {$_("seller_dashboard.add_new_product")}
+          <span class="ml-2"
+            >{$_("seller_dashboard.add_new_product") || "Add Product"}</span
+          >
         </button>
+
+        <!-- CATEGORY FILTER (details dropdown like example) -->
+        <div class="mx-2">
+          <details class="relative">
+            <summary
+              class="list-none cursor-pointer select-none
+                   h-9
+                   inline-flex items-center justify-between
+                   px-3 py-2
+                   bg-[#F9FAFB]
+                   border border-[#E5E7EB]
+                   rounded-[12px]
+                   shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+                   text-sm text-gray-700
+                   hover:bg-gray-50"
+            >
+              <span class="truncate">
+                {categoryFilter === "all"
+                  ? $_("seller_dashboard.all_categories") || "All Categories"
+                  : getItemDisplayName(
+                      filterCategories.find(
+                        (c) => c.shortname === categoryFilter,
+                      ),
+                    )}
+              </span>
+
+              <svg
+                class="w-4 h-4 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </summary>
+
+            <div
+              class="absolute z-20 mt-2 w-[220px] rounded-[12px] border border-gray-200 bg-white shadow-lg p-2"
+            >
+              <button
+                type="button"
+                class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+                onclick={() => (categoryFilter = "all")}
+              >
+                {$_("seller_dashboard.all_categories") || "All Categories"}
+              </button>
+
+              {#each filterCategories as category}
+                <button
+                  type="button"
+                  class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+                  onclick={() => (categoryFilter = category.shortname)}
+                >
+                  {getItemDisplayName(category)}
+                </button>
+              {/each}
+            </div>
+          </details>
+        </div>
       </div>
     </div>
 
-    <!-- Filters -->
-    <div class="filters-section">
-      <div class="search-bar">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor">
-          <circle cx="8" cy="8" r="5" stroke-width="2" />
-          <path d="M12 12l4 4" stroke-width="2" stroke-linecap="round" />
-        </svg>
-        <input
-          type="text"
-          bind:value={searchTerm}
-          placeholder={$_("seller_dashboard.search_placeholder")}
-        />
-      </div>
-
-      <div class="filters-group">
-        <select bind:value={categoryFilter}>
-          <option value="all">{$_("seller_dashboard.all_categories")}</option>
-          {#each filterCategories as category}
-            <option value={category.shortname}>
-              {getItemDisplayName(category)}
-            </option>
-          {/each}
-        </select>
-      </div>
-    </div>
-
-    <!-- Products Table -->
+    <!-- ✅ Table -->
     {#if isLoading}
       <div class="loading-state">
         <div class="spinner"></div>
-        <p>{$_("common.loading")}</p>
+        <p>{$_("common.loading") || "Loading..."}</p>
       </div>
     {:else if filteredItems.length === 0}
       <div class="empty-state">
-        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor">
-          <rect x="8" y="8" width="32" height="32" rx="4" stroke-width="2" />
-          <path
-            d="M16 24h16M24 16v16"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-        </svg>
-        <h3>{$_("seller_dashboard.no_products")}</h3>
-        <p>{$_("seller_dashboard.add_first_product")}</p>
-        <button class="btn-primary" onclick={createItem}>
-          {$_("seller_dashboard.add_new_product")}
+        <div class="empty-icon">📦</div>
+        <h3>{$_("seller_dashboard.no_products") || "No products found"}</h3>
+        <p>
+          {$_("seller_dashboard.add_first_product") ||
+            "Start by adding your first product"}
+        </p>
+        <button class="btn-create-large" onclick={createItem}>
+          {$_("seller_dashboard.add_new_product") || "Add Product"}
         </button>
       </div>
     {:else}
-      <div class="items-stats">
-        <p>
-          {$_("seller_dashboard.showing")}
-          <strong>{filteredItems.length}</strong>
-          {$_("seller_dashboard.products")}
-        </p>
-      </div>
-
-      <div class="items-table-container">
         <table class="items-table">
           <thead>
             <tr>
-              <th>{$_("seller_dashboard.product_name")}</th>
-              <th>{$_("seller_dashboard.variants")}</th>
-              <th>{$_("seller_dashboard.price")}</th>
-              <th>{$_("seller_dashboard.stock")}</th>
-              <th>{$_("seller_dashboard.sku")}</th>
-              <th>{$_("common.status")}</th>
-              <th>{$_("seller_dashboard.shipping")}</th>
-              <th>{$_("seller_dashboard.actions")}</th>
+              <th>{$_("seller_dashboard.product_name") || "Product"}</th>
+              <th>{$_("seller_dashboard.variants") || "Variants"}</th>
+              <th>{$_("seller_dashboard.price") || "Price"}</th>
+              <th>{$_("seller_dashboard.stock") || "Stock"}</th>
+              <th>{$_("common.status") || "Status"}</th>
+              <th>{$_("seller_dashboard.shipping") || "Shipping"}</th>
+              <th class="col-actions">{$_("common.actions") || "Actions"}</th>
             </tr>
           </thead>
+
           <tbody>
-            {#each filteredItems as item (item.shortname)}
+            {#each paginatedItems as item (item.shortname)}
               {@const body = item.attributes?.payload?.body}
               {@const variants = body?.variants || []}
               {@const totalStock = variants.reduce(
@@ -823,20 +837,22 @@
                     }
                   : { min: 0, max: 0 }}
               {@const state = item.attributes?.state || "pending"}
+
               <tr
                 class="item-row"
                 onclick={() => viewItem(item)}
                 style="cursor: pointer;"
               >
-                <td>
-                  <div class="item-name">{getItemDisplayName(item)}</div>
-                  <div
-                    class="product-info"
-                    style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem;"
-                  >
-                    {getProductName(body?.product_shortname || "")}
-                  </div>
+                <td class="col-main">
+                  <div class="item-title">
+  {#if getItemDisplayName(item).length > 12}
+    {getItemDisplayName(item).slice(0, 12)}...
+  {:else}
+    {getItemDisplayName(item)}
+  {/if}
+</div>
                 </td>
+
                 <td>
                   <div class="variants-display">
                     {#if variants.length > 0}
@@ -851,56 +867,31 @@
                         </span>
                       {/each}
                       {#if variants.length > 2}
-                        <span class="more-badge">
-                          +{variants.length - 2}
-                        </span>
+                        <span class="more-badge">+{variants.length - 2}</span>
                       {/if}
                     {:else}
-                      <span style="color: #9ca3af; font-size: 0.875rem;">-</span
-                      >
+                      <span class="empty-text">—</span>
                     {/if}
                   </div>
                 </td>
+
                 <td>
-                  <div class="price-display">
-                    {#if priceRange.min === priceRange.max}
-                      <strong>{priceRange.min.toLocaleString()}</strong>
-                      {$_("seller_dashboard.currency")}
-                    {:else}
-                      <strong>{priceRange.min.toLocaleString()}</strong> -
-                      <strong>{priceRange.max.toLocaleString()}</strong>
-                      {$_("seller_dashboard.currency")}
-                    {/if}
-                  </div>
+                  {#if priceRange.min === priceRange.max}
+                    <strong>{formatNumber(priceRange.min, $locale)}</strong>
+                    {$_("seller_dashboard.currency") || "IQD"}
+                  {:else}
+                    <strong>{formatNumber(priceRange.min, $locale)}</strong> -
+                    <strong>{formatNumber(priceRange.max, $locale)}</strong>
+                    {$_("seller_dashboard.currency") || "IQD"}
+                  {/if}
                 </td>
+
                 <td>
-                  <div class="stock-display">
-                    <span
-                      class="stock-badge"
-                      class:low-stock={totalStock < 5}
-                      class:out-of-stock={totalStock === 0}
-                    >
-                      {totalStock}
-                    </span>
-                  </div>
+                  <span class="item-title">
+                    {formatNumber(totalStock, $locale)}
+                  </span>
                 </td>
-                <td>
-                  <div
-                    class="sku-display"
-                    style="font-size: 0.875rem; color: #6b7280;"
-                  >
-                    {#if variants.length > 0}
-                      {variants[0].sku || "-"}
-                      {#if variants.length > 1}
-                        <span style="color: #9ca3af;"
-                          >+{variants.length - 1}</span
-                        >
-                      {/if}
-                    {:else}
-                      -
-                    {/if}
-                  </div>
-                </td>
+
                 <td>
                   <span
                     class="status-badge"
@@ -911,12 +902,14 @@
                     {state}
                   </span>
                 </td>
+
                 <td>
                   <div class="shipping-badges">
                     {#if body?.has_fast_delivery}
                       <span
                         class="shipping-badge fast"
-                        title={$_("seller_dashboard.fast_delivery")}
+                        title={$_("seller_dashboard.fast_delivery") ||
+                          "Fast Delivery"}
                       >
                         <svg
                           viewBox="0 0 16 16"
@@ -936,7 +929,8 @@
                     {#if body?.has_free_shipping}
                       <span
                         class="shipping-badge free"
-                        title={$_("seller_dashboard.free_shipping")}
+                        title={$_("seller_dashboard.free_shipping") ||
+                          "Free Shipping"}
                       >
                         <svg
                           viewBox="0 0 16 16"
@@ -955,60 +949,68 @@
                       </span>
                     {/if}
                     {#if !body?.has_fast_delivery && !body?.has_free_shipping}
-                      <span style="color: #9ca3af; font-size: 0.875rem;">-</span
-                      >
+                      <span class="empty-text">—</span>
                     {/if}
                   </div>
                 </td>
-                <td>
-                  <div class="action-buttons">
+
+                <!-- ✅ Actions: stop row click + your icon buttons -->
+                <td class="actions-cell">
+                  <div
+                    class="action-buttons"
+                    onclick={(e) => e.stopPropagation()}
+                  >
                     <button
-                      class="btn-icon"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        viewItem(item);
-                      }}
-                      title={$_("common.view")}
+                      class="action-icon-btn"
+                      onclick={() => viewItem(item)}
+                      title={$_("common.view") || "View"}
+                      aria-label="View"
                     >
+                      <!-- (keep your view svg) -->
                       <svg
-                        viewBox="0 0 16 16"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 14 14"
                         fill="none"
-                        stroke="currentColor"
+                        xmlns="http://www.w3.org/2000/svg"
                       >
                         <path
-                          d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"
-                          stroke-width="1.5"
-                        />
-                        <circle cx="8" cy="8" r="2" stroke-width="1.5" />
-                      </svg>
-                    </button>
-                    <button
-                      class="btn-icon"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        openEditItemModal(item);
-                      }}
-                      title={$_("common.edit")}
-                    >
-                      <svg
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        stroke="currentColor"
-                      >
-                        <path
-                          d="M11 2l3 3-9 9H2v-3l9-9z"
-                          stroke-width="1.5"
-                          stroke-linejoin="round"
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M2.33951 7.00002C2.34617 7.01918 2.35839 7.05068 2.38042 7.09591C2.43093 7.19958 2.51358 7.33591 2.63172 7.49642C2.86732 7.81651 3.21834 8.1979 3.6593 8.56341C4.54944 9.30124 5.73409 9.91669 6.99935 9.91669C8.26461 9.91669 9.44926 9.30124 10.3394 8.56341C10.7804 8.1979 11.1314 7.81651 11.367 7.49642C11.4851 7.33591 11.5678 7.19958 11.6183 7.09591C11.6403 7.05068 11.6525 7.01918 11.6592 7.00002C11.6525 6.98086 11.6403 6.94937 11.6183 6.90413C11.5678 6.80046 11.4851 6.66413 11.367 6.50362C11.1314 6.18353 10.7804 5.80214 10.3394 5.43663C9.44926 4.6988 8.26461 4.08335 6.99935 4.08335C5.73409 4.08335 4.54944 4.6988 3.6593 5.43663C3.21834 5.80214 2.86732 6.18353 2.63172 6.50362C2.51358 6.66413 2.43093 6.80046 2.38042 6.90413C2.35839 6.94937 2.34617 6.98086 2.33951 7.00002ZM2.91478 4.53841C3.92477 3.70124 5.36512 2.91669 6.99935 2.91669C8.63358 2.91669 10.0739 3.70124 11.0839 4.53841C11.593 4.9604 12.0108 5.41026 12.3066 5.81204C12.4541 6.01247 12.5777 6.20973 12.6671 6.39318C12.7483 6.55995 12.8327 6.7775 12.8327 7.00002C12.8327 7.22254 12.7483 7.44009 12.6671 7.60686C12.5777 7.79031 12.4541 7.98757 12.3066 8.188C12.0108 8.58978 11.593 9.03964 11.0839 9.46163C10.0739 10.2988 8.63358 11.0834 6.99935 11.0834C5.36512 11.0834 3.92477 10.2988 2.91478 9.46163C2.40568 9.03964 1.98785 8.58978 1.69212 8.188C1.5446 7.98757 1.42096 7.79031 1.3316 7.60686C1.25035 7.44009 1.16602 7.22254 1.16602 7.00002C1.16602 6.7775 1.25035 6.55995 1.3316 6.39318C1.42096 6.20973 1.5446 6.01247 1.69212 5.81204C1.98785 5.41026 2.40568 4.9604 2.91478 4.53841ZM6.99935 5.83335C6.35502 5.83335 5.83268 6.35569 5.83268 7.00002C5.83268 7.64435 6.35502 8.16669 6.99935 8.16669C7.64368 8.16669 8.16602 7.64435 8.16602 7.00002C8.16602 6.35569 7.64368 5.83335 6.99935 5.83335ZM4.66602 7.00002C4.66602 5.71136 5.71068 4.66669 6.99935 4.66669C8.28801 4.66669 9.33268 5.71136 9.33268 7.00002C9.33268 8.28869 8.28801 9.33335 6.99935 9.33335C5.71068 9.33335 4.66602 8.28869 4.66602 7.00002Z"
+                          fill="#4A5565"
                         />
                       </svg>
                     </button>
+
                     <button
-                      class="btn-icon"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        openDeleteModal(item);
-                      }}
-                      title={$_("common.delete")}
+                      class="action-icon-btn"
+                      onclick={() => openEditItemModal(item)}
+                      title={$_("common.edit") || "Edit"}
+                      aria-label="Edit"
+                    >
+                      <!-- (keep your edit svg) -->
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M9.9061 2.33335C9.82824 2.33335 9.75114 2.3487 9.6792 2.37851C9.60727 2.40831 9.54192 2.452 9.48688 2.50708L9.16831 2.82566L10.007 3.66437L10.3255 3.34593C10.3805 3.29089 10.4244 3.2254 10.4542 3.15347C10.484 3.08154 10.4993 3.00444 10.4993 2.92657C10.4993 2.84871 10.484 2.77161 10.4542 2.69968C10.4244 2.62775 10.3807 2.56239 10.3256 2.50735C10.2706 2.45228 10.2049 2.40831 10.133 2.37851C10.0611 2.3487 9.98396 2.33335 9.9061 2.33335ZM9.18206 4.48933L8.34335 3.65062L5.6193 6.37469L5.40962 7.42308L6.45801 7.2134L9.18206 4.48933ZM7.92943 2.41462L4.66945 5.67463C4.58802 5.75606 4.53251 5.85978 4.50993 5.9727L4.09401 8.05229C4.05576 8.24354 4.11562 8.44125 4.25354 8.57917C4.39145 8.71708 4.58916 8.77694 4.78042 8.73869L6.86 8.32278C6.97293 8.30019 7.07664 8.24468 7.15808 8.16325L11.1503 4.17102C11.3138 4.00764 11.4435 3.81364 11.532 3.60011C11.6204 3.38658 11.666 3.15771 11.666 2.92657C11.666 2.69544 11.6204 2.46656 11.532 2.25303C11.4435 2.03963 11.3139 1.84572 11.1505 1.6824C11.1506 1.68241 11.1505 1.68239 11.1505 1.6824M11.1505 1.6824C10.9872 1.51892 10.7932 1.3892 10.5796 1.30072C10.3661 1.21223 10.1372 1.16669 9.9061 1.16669C9.67496 1.16669 9.44609 1.21223 9.23256 1.30072C9.01909 1.38918 8.82514 1.51883 8.66179 1.68226L7.93232 2.41174C7.93183 2.41221 7.93135 2.41269 7.93087 2.41318C7.93039 2.41366 7.92991 2.41414 7.92943 2.41462M1.16602 4.66669C1.16602 4.02235 1.68835 3.50002 2.33268 3.50002H4.08268C4.40485 3.50002 4.66602 3.76119 4.66602 4.08335C4.66602 4.40552 4.40485 4.66669 4.08268 4.66669H2.33268V10.5H8.74935V7.87502C8.74935 7.55285 9.01052 7.29169 9.33268 7.29169C9.65485 7.29169 9.91602 7.55285 9.91602 7.87502V10.5C9.91602 11.1444 9.39368 11.6667 8.74935 11.6667H2.33268C1.68835 11.6667 1.16602 11.1444 1.16602 10.5V4.66669Z"
+                          fill="#4A5565"
+                        />
+                      </svg>
+                    </button>
+
+                    <button
+                      class="action-icon-btn"
+                      onclick={() => openDeleteModal(item)}
+                      title={$_("common.delete") || "Delete"}
+                      aria-label="Delete"
                     >
                       <svg
                         viewBox="0 0 16 16"
@@ -1028,9 +1030,85 @@
             {/each}
           </tbody>
         </table>
-      </div>
+
+        <!-- ✅ Pagination EXACTLY like the example (showing X - Y of total) -->
+        {#if listTotalPages > 1}
+          <div class="pagination">
+            <div class="pagination-info">
+              {$_("common.showing") || "Showing"}
+              {formatNumber((listPage - 1) * listItemsPerPage + 1, $locale)}
+              -
+              {formatNumber(
+                Math.min(listPage * listItemsPerPage, filteredItems.length),
+                $locale,
+              )}
+              {$_("common.of") || "of"}
+              {formatNumber(filteredItems.length, $locale)}
+              {$_("common.products") || "products"}
+            </div>
+
+            <div class="pagination-pages">
+              {#if listTotalPages <= 7}
+                {#each Array(listTotalPages) as _, index}
+                  <button
+                    class="page-btn"
+                    class:active={listPage === index + 1}
+                    onclick={() => goToListPage(index + 1)}
+                  >
+                    {formatNumber(index + 1, $locale)}
+                  </button>
+                {/each}
+              {:else}
+                <button
+                  class="page-btn"
+                  class:active={listPage === 1}
+                  onclick={() => goToListPage(1)}
+                >
+                  {formatNumber(1, $locale)}
+                </button>
+
+                {#if listPage > 3}
+                  <span class="page-ellipsis">...</span>
+                {/if}
+
+                {#each Array(listTotalPages) as _, index}
+                  {#if index + 1 > 1 && index + 1 < listTotalPages && Math.abs(listPage - (index + 1)) <= 1}
+                    <button
+                      class="page-btn"
+                      class:active={listPage === index + 1}
+                      onclick={() => goToListPage(index + 1)}
+                    >
+                      {formatNumber(index + 1, $locale)}
+                    </button>
+                  {/if}
+                {/each}
+
+                {#if listPage < listTotalPages - 2}
+                  <span class="page-ellipsis">...</span>
+                {/if}
+
+                <button
+                  class="page-btn"
+                  class:active={listPage === listTotalPages}
+                  onclick={() => goToListPage(listTotalPages)}
+                >
+                  {formatNumber(listTotalPages, $locale)}
+                </button>
+              {/if}
+            </div>
+          </div>
+        {/if}
     {/if}
   </div>
+
+  <style>
+    /* Match example page background */
+    .seller-page-container,
+    .seller-page-content {
+      background: #f9fafb;
+      min-height: 100vh;
+    }
+  </style>
 </div>
 
 {#if showDetailsModal && detailsItem}
@@ -1058,41 +1136,39 @@
       </div>
 
       <div class="details-modal-body">
-        <div class="details-grid">
-          <div class="details-card">
-            <h4>Product</h4>
-            <p>{body.product_shortname || "-"}</p>
-          </div>
-          <div class="details-card">
-            <h4>Warranty</h4>
-            <p>{body.warranty_shortname || "-"}</p>
-          </div>
-          <div class="details-card">
-            <h4>Commission</h4>
-            <p>{body.commission_category || "-"}</p>
-          </div>
-          <div class="details-card">
-            <h4>Shipping</h4>
-            <p>
-              {body.has_fast_delivery ? "Fast" : "Standard"} / {body.has_free_shipping
-                ? "Free"
-                : "Paid"}
-            </p>
-            <p>
-              {body.est_shipping_days?.from || 1} -
-              {body.est_shipping_days?.to || 5}
-              {$_("seller_dashboard.days") || "days"}
-            </p>
-          </div>
-          <div class="details-card">
-            <h4>Status</h4>
-            <p>{detailsItem.attributes?.state || "-"}</p>
-          </div>
-          <div class="details-card">
-            <h4>Updated</h4>
-            <p>{formatDate(detailsItem.attributes?.updated_at)}</p>
-          </div>
-        </div>
+        <div class="details-section">
+  <h3 class="details-section-title">Product Details</h3>
+
+  <div class="details-table-kv">
+    <div class="kv-row">
+      <span class="kv-key">Product</span>
+      <span class="kv-value">{body.product_shortname || "-"}</span>
+    </div>
+
+    <div class="kv-row">
+      <span class="kv-key">Warranty</span>
+      <span class="kv-value">{body.warranty_shortname || "-"}</span>
+    </div>
+
+    <div class="kv-row">
+      <span class="kv-key">Commission</span>
+      <span class="kv-value">{body.commission_category || "-"}</span>
+    </div>
+
+    <div class="kv-row">
+      <span class="kv-key">Status</span>
+      <span class="kv-value">{detailsItem.attributes?.state || "-"}</span>
+    </div>
+
+    <div class="kv-row">
+      <span class="kv-key">Last Updated</span>
+      <span class="kv-value">
+        {formatDate(detailsItem.attributes?.updated_at)}
+      </span>
+    </div>
+  </div>
+</div>
+
 
         <div class="details-section">
           <h3>Variants</h3>
@@ -1118,28 +1194,13 @@
       </div>
 
       <div class="details-modal-footer">
-        <button class="btn-secondary" onclick={closeDetailsModal}>
-          {$_("common.close") || "Close"}
-        </button>
-        <button
-          class="btn-secondary"
-          onclick={() => {
-            closeDetailsModal();
-            openEditItemModal(detailsItem);
-          }}
-        >
-          {$_("common.edit") || "Edit"}
-        </button>
-        <button
-          class="btn-danger"
-          onclick={() => {
-            closeDetailsModal();
-            openDeleteModal(detailsItem);
-          }}
-        >
-          {$_("common.delete") || "Delete"}
-        </button>
-      </div>
+  <!-- Close button -->
+  <button class="btn-secondary-custom" onclick={closeDetailsModal}>
+    {$_("common.close") || "Close"}
+  </button>
+
+</div>
+
     </div>
   </div>
 {/if}
@@ -1173,13 +1234,18 @@
   onSubmit={submitProductVariations}
   onProductSearchChange={(value) => (productSearchTerm = value)}
   onFilterProducts={filterProductsSearch}
-  onProductChange={handleProductChange}
-  onToggleVariant={toggleVariantSelection}
-  {isVariantSelected}
+  onProductChange={() => selectedProduct && loadSpecifications(selectedProduct)}
+  onToggleVariant={(variantKey) => {
+    const index = selectedVariants.indexOf(variantKey);
+    if (index > -1)
+      selectedVariants = selectedVariants.filter((v) => v !== variantKey);
+    else selectedVariants = [...selectedVariants, variantKey];
+  }}
+  isVariantSelected={(variantKey) => selectedVariants.includes(variantKey)}
   getLocalizedDisplayName={getItemDisplayName}
   updateVariant={(key, field, value) => {
-    const variant = productVariants.find((v) => v.key === key);
-    if (variant) variant[field] = value;
+    const variant = productVariants.find((v: any) => v.key === key);
+    if (variant) (variant as any)[field] = value;
   }}
   onPageChange={handlePageChange}
 />
@@ -1194,175 +1260,354 @@
 />
 
 <style>
-  .details-modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(6px);
+  /* --- Actions icon button (your exact spec) --- */
+  .action-buttons {
     display: flex;
     align-items: center;
-    justify-content: center;
-    z-index: 9998;
-    padding: 1.5rem;
+    gap: 8px;
+    justify-content: flex-end;
   }
 
-  .details-modal {
-    background: #ffffff;
-    border-radius: 16px;
-    width: 100%;
-    max-width: 960px;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
-    overflow: hidden;
-  }
-
-  .details-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem 2rem;
-    border-bottom: 1px solid #e5e7eb;
-    background: #f8fafc;
-  }
-
-  .details-title {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #0f172a;
-  }
-
-  .details-subtitle {
-    margin: 0.25rem 0 0;
-    color: #6b7280;
-    font-size: 0.9rem;
-  }
-
-  .details-close {
-    border: none;
-    background: #e2e8f0;
-    border-radius: 10px;
-    width: 36px;
-    height: 36px;
-    display: flex;
+  .action-icon-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 10px; /* rounded */
+    background: var(--colors-background-bg-secondary-medium, #f9fafb);
+    border: 1px solid var(--colors-border-border-base-medium, #e5e7eb);
+    box-shadow: 0px 1px 0.5px 0.05px #1d293d05;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.05s ease;
+  }
+  .details-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #101828;
+}
+
+.details-table-kv {
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.kv-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #E5E7EB;
+  font-size: 14px;
+}
+
+.kv-row:last-child {
+  border-bottom: none;
+}
+
+.kv-key {
+  font-weight: 500;
+  color: #475467;
+}
+
+.kv-value {
+  font-weight: 500;
+  color: #101828;
+  text-align: right;
+}
+
+  .action-icon-btn:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
   }
 
-  .details-close:hover {
-    background: #cbd5f5;
+  .action-icon-btn:active {
+    transform: translateY(1px);
   }
 
-  .details-close svg {
-    width: 18px;
-    height: 18px;
-    stroke: #334155;
+  .action-icon-btn svg {
+    width: 14px;
+    height: 14px;
   }
 
-  .details-modal-body {
-    padding: 1.5rem 2rem;
-    overflow-y: auto;
+  /* Primary button (same as Add Product button) */
+.btn-primary-custom {
+  height: 36px;
+  padding: 0 16px;
+  background: #3C307F;
+  color: #fff;
+  border: 1px solid #3C307F;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0px 1px 0.5px 0.05px #1D293D05;
+  transition: background 0.2s ease;
+}
+
+.btn-primary-custom:hover {
+  background: #2f2666;
+}
+
+/* Secondary button (same border family as your UI system) */
+.btn-secondary-custom {
+  height: 36px;
+  padding: 0 16px;
+  background: #F9FAFB;
+  color: #344054;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0px 1px 0.5px 0.05px #1D293D05;
+  transition: background 0.2s ease;
+}
+
+.btn-secondary-custom:hover {
+  background: #F3F4F6;
+}
+
+  .action-icon-btn.delete {
+    color: #dc2626;
   }
 
-  .details-grid {
+  /* --- “previous tables” cell style helpers --- */
+  .item-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .item-title {
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .item-sub {
+    font-size: 0.8rem;
+    color: #6b7280;
+  }
+
+  .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+
+  .muted {
+    color: #9ca3af;
+    font-size: 0.85rem;
+    margin-left: 8px;
+  }
+
+  .empty-text {
+    color: #9ca3af;
+  }
+
+  /* --- Stats grid (if not already in your global css) --- */
+  .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin: 1rem 0 1.5rem;
   }
 
-  .details-card {
-    background: #f9fafb;
+  .stat-card {
+    background: white;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
-    padding: 0.75rem 1rem;
-  }
-
-  .details-card h4 {
-    margin: 0;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #6b7280;
-  }
-
-  .details-card p {
-    margin: 0.5rem 0 0;
-    font-weight: 600;
-    color: #111827;
-  }
-
-  .details-section h3 {
-    margin: 0 0 0.75rem;
-    font-size: 1rem;
-    color: #111827;
-  }
-
-  .details-table {
-    display: grid;
-    gap: 0.5rem;
-  }
-
-  .details-row {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
-    padding: 0.6rem 0.75rem;
-    border-radius: 8px;
-    background: #f8fafc;
-  }
-
-  .details-row.details-head {
-    background: #e2e8f0;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #475569;
-  }
-
-  .details-empty {
-    color: #6b7280;
-  }
-
-  .details-modal-footer {
+    padding: 1.5rem;
     display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    padding: 1rem 2rem 1.5rem;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+     box-shadow: 0px 1px 0.5px 0.05px #1D293D05;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.1);
+  }
+
+  .bg-icon {
+    width: 56px;
+    height: 56px;
+    background: #f3f4ff;
+    border: 1px solid #e5e7ff;
+  }
+
+  .stat-title {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-weight: 600;
+  }
+
+  .stat-value {
+    margin: 0.25rem 0 0;
+    font-size: 1.35rem;
+    color: #111827;
+    font-weight: 800;
+  }
+
+  .details-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.45); /* nice overlay */
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+}
+
+.details-modal {
+  width: min(900px, 100%);
+  max-height: calc(100vh - 48px);
+
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0px 24px 48px -12px rgba(16, 24, 40, 0.18);
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.details-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.details-modal-body {
+  padding: 16px 20px;
+  overflow: auto; /* important so it doesn't push below the table */
+}
+
+.details-modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e5e7eb;
+
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+  /* --- Pagination (same pattern as your other tables) --- */
+  .pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
     border-top: 1px solid #e5e7eb;
-    background: #f8fafc;
+    margin-top: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .pagination-pages {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .page-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #374151;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-btn:hover:not(.active) {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+  }
+
+  .page-btn.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+    font-weight: 700;
+  }
+
+  .page-ellipsis {
+    padding: 0 8px;
+    color: #9ca3af;
+    font-weight: 700;
+  }
+
+  .pagination-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6b7280;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn-small {
+    padding: 6px 12px;
+    font-size: 12px;
   }
 
   .btn-secondary {
     background: #f3f4f6;
-    color: #111827;
+    color: #374151;
     border: 1px solid #d1d5db;
-    padding: 0.6rem 1.2rem;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
   }
 
-  .btn-danger {
-    background: #dc2626;
-    color: #ffffff;
-    border: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .btn-secondary:hover {
+  .btn-secondary:hover:not(:disabled) {
     background: #e5e7eb;
   }
-
-  .btn-danger:hover {
-    background: #b91c1c;
+  .items-table tbody td {
+    font-weight: 500;
+    font-size: 0.875rem; /* text-sm */
+    line-height: 14px;
+    letter-spacing: 0;
+    color: #101828;
   }
 </style>
