@@ -559,7 +559,11 @@
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title text-sm font-normal text-[#4A5565] leading-[125%]">Total Products</h3>
+        <h3
+          class="stat-title text-sm font-normal text-[#4A5565] leading-[125%]"
+        >
+          Total Products
+        </h3>
         <p class="stat-value">{formatNumber(totalProductsStat, $locale)}</p>
       </div>
     </div>
@@ -583,7 +587,11 @@
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title text-sm font-normal text-[#4A5565] leading-[125%]">Approved Products</h3>
+        <h3
+          class="stat-title text-sm font-normal text-[#4A5565] leading-[125%]"
+        >
+          Approved Products
+        </h3>
         <p class="stat-value">{formatNumber(approvedProductsStat, $locale)}</p>
       </div>
     </div>
@@ -607,7 +615,11 @@
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title text-sm font-normal text-[#4A5565] leading-[125%]">Inactive Products</h3>
+        <h3
+          class="stat-title text-sm font-normal text-[#4A5565] leading-[125%]"
+        >
+          Inactive Products
+        </h3>
         <p class="stat-value">
           {formatNumber(notApprovedProductsStat, $locale)}
         </p>
@@ -633,7 +645,11 @@
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title text-sm font-normal text-[#4A5565] leading-[125%]">Avg Cost</h3>
+        <h3
+          class="stat-title text-sm font-normal text-[#4A5565] leading-[125%]"
+        >
+          Avg Cost
+        </h3>
         <p class="stat-value">
           {formatNumber(Math.round(avgCostStat), $locale)}
           {$_("seller_dashboard.currency") || "IQD"}
@@ -804,252 +820,324 @@
         </button>
       </div>
     {:else}
-        <table class="items-table">
-          <thead>
-            <tr>
-              <th>{$_("seller_dashboard.product_name") || "Product"}</th>
-              <th>{$_("seller_dashboard.variants") || "Variants"}</th>
-              <th>{$_("seller_dashboard.price") || "Price"}</th>
-              <th>{$_("seller_dashboard.stock") || "Stock"}</th>
-              <th>{$_("common.status") || "Status"}</th>
-              <th>{$_("seller_dashboard.shipping") || "Shipping"}</th>
-              <th class="col-actions">{$_("common.actions") || "Actions"}</th>
-            </tr>
-          </thead>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>{$_("seller_dashboard.product_name") || "Product"}</th>
+            <th>{$_("seller_dashboard.variants") || "Variants"}</th>
+            <th>{$_("seller_dashboard.price") || "Price"}</th>
+            <th>{$_("seller_dashboard.stock") || "Stock"}</th>
+            <th>{$_("common.status") || "Status"}</th>
+            <th>{$_("seller_dashboard.shipping") || "Shipping"}</th>
+            <th class="col-actions">{$_("common.actions") || "Actions"}</th>
+          </tr>
+        </thead>
 
-          <tbody>
-            {#each paginatedItems as item (item.shortname)}
-              {@const body = item.attributes?.payload?.body}
-              {@const variants = body?.variants || []}
-              {@const totalStock = variants.reduce(
-                (sum, v) => sum + (v.qty || 0),
-                0,
-              )}
-              {@const priceRange =
-                variants.length > 0
-                  ? {
-                      min: Math.min(
-                        ...variants.map((v) => v.retail_price || 0),
-                      ),
-                      max: Math.max(
-                        ...variants.map((v) => v.retail_price || 0),
-                      ),
-                    }
-                  : { min: 0, max: 0 }}
-              {@const state = item.attributes?.state || "pending"}
+        <tbody>
+          {#each paginatedItems as item (item.shortname)}
+            {@const body = item.attributes?.payload?.body}
+            {@const variants = body?.variants || []}
+            {@const totalStock = variants.reduce(
+              (sum, v) => sum + (v.qty || 0),
+              0,
+            )}
+            {@const priceRange =
+              variants.length > 0
+                ? {
+                    min: Math.min(...variants.map((v) => v.retail_price || 0)),
+                    max: Math.max(...variants.map((v) => v.retail_price || 0)),
+                  }
+                : { min: 0, max: 0 }}
+            {@const state = item.attributes?.state || "pending"}
 
-              <tr
-                class="item-row"
-                onclick={() => viewItem(item)}
-                style="cursor: pointer;"
-              >
-                <td class="col-main">
-                  <div class="item-title">
-  {#if getItemDisplayName(item).length > 12}
-    {getItemDisplayName(item).slice(0, 12)}...
-  {:else}
-    {getItemDisplayName(item)}
-  {/if}
-</div>
-                </td>
-
-                <td>
-                  <div class="variants-display">
-                    {#if variants.length > 0}
-                      {#each variants.slice(0, 2) as variant}
-                        <span class="variant-badge">
-                          {#each variant.options || [] as option}
-                            {resolveOptionKey(
-                              option.key,
-                              option.variation_shortname,
-                            )}
-                          {/each}
-                        </span>
-                      {/each}
-                      {#if variants.length > 2}
-                        <span class="more-badge">+{variants.length - 2}</span>
-                      {/if}
-                    {:else}
-                      <span class="empty-text">—</span>
-                    {/if}
-                  </div>
-                </td>
-
-                <td>
-                  {#if priceRange.min === priceRange.max}
-                    <strong>{formatNumber(priceRange.min, $locale)}</strong>
-                    {$_("seller_dashboard.currency") || "IQD"}
+            <tr
+              class="item-row"
+              onclick={() => viewItem(item)}
+              style="cursor: pointer;"
+            >
+              <td class="col-main">
+                <div class="item-title">
+                  {#if getItemDisplayName(item).length > 12}
+                    {getItemDisplayName(item).slice(0, 12)}...
                   {:else}
-                    <strong>{formatNumber(priceRange.min, $locale)}</strong> -
-                    <strong>{formatNumber(priceRange.max, $locale)}</strong>
-                    {$_("seller_dashboard.currency") || "IQD"}
+                    {getItemDisplayName(item)}
                   {/if}
-                </td>
+                </div>
+              </td>
 
-                <td>
-                  <span class="item-title">
-                    {formatNumber(totalStock, $locale)}
-                  </span>
-                </td>
+              <td>
+                <div class="variants-display">
+                  {#if variants.length > 0}
+                    {#each variants.slice(0, 2) as variant}
+                      <span class="variant-badge">
+                        {#each variant.options || [] as option}
+                          {resolveOptionKey(
+                            option.key,
+                            option.variation_shortname,
+                          )}
+                        {/each}
+                      </span>
+                    {/each}
+                    {#if variants.length > 2}
+                      <span class="more-badge">+{variants.length - 2}</span>
+                    {/if}
+                  {:else}
+                    <span class="empty-text">—</span>
+                  {/if}
+                </div>
+              </td>
 
-                <td>
+              <td>
+                {#if priceRange.min === priceRange.max}
+                  <strong>{formatNumber(priceRange.min, $locale)}</strong>
+                  {$_("seller_dashboard.currency") || "IQD"}
+                {:else}
+                  <strong>{formatNumber(priceRange.min, $locale)}</strong> -
+                  <strong>{formatNumber(priceRange.max, $locale)}</strong>
+                  {$_("seller_dashboard.currency") || "IQD"}
+                {/if}
+              </td>
+
+              <td>
+                <span class="item-title">
+                  {formatNumber(totalStock, $locale)}
+                </span>
+              </td>
+
+              <td>
+                <span
+                  class="status-badge"
+                  class:active={state === "approved"}
+                  class:pending={state === "pending"}
+                  class:inactive={state === "rejected"}
+                >
+                  {#if state === "approved"}
+                    <!-- Approved SVG -->
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M9.85885 3.40183C10.0511 3.60001 10.0464 3.91656 9.84818 4.10885L5.21017 8.60885C5.01621 8.79704 4.70781 8.79705 4.51384 8.60887L2.15184 6.31737C1.95365 6.12509 1.94885 5.80854 2.14113 5.61034C2.33341 5.41215 2.64996 5.40735 2.84816 5.59963L4.86198 7.55335L9.15183 3.39115C9.35001 3.19886 9.66656 3.20364 9.85885 3.40183Z"
+                        fill="#004F3B"
+                      />
+                    </svg>
+                  {:else if state === "pending"}
+                    <!-- Pending SVG -->
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M2.25 2C2.25 1.72386 2.47386 1.5 2.75 1.5H9.25C9.52614 1.5 9.75 1.72386 9.75 2C9.75 2.27614 9.52614 2.5 9.25 2.5H8.5V3.6665C8.5 3.97975 8.40194 4.28484 8.22003 4.53915L7.41216 5.94864C7.40196 5.96644 7.39067 5.98359 7.37836 6C7.39067 6.01641 7.40196 6.03356 7.41216 6.05136L8.22003 7.46084C8.40194 7.71516 8.5 8.02025 8.5 8.3335V9.5H9.25C9.52614 9.5 9.75 9.72386 9.75 10C9.75 10.2761 9.52614 10.5 9.25 10.5H2.75C2.47386 10.5 2.25 10.2761 2.25 10C2.25 9.72386 2.47386 9.5 2.75 9.5H3.5V8.3335C3.5 8.02131 3.5974 7.71722 3.77814 7.46342L4.56339 6.05634C4.57432 6.03676 4.58655 6.01794 4.6 6C4.58655 5.98206 4.57432 5.96324 4.56339 5.94366L3.77813 4.53658C3.5974 4.28278 3.5 3.97869 3.5 3.6665V2.5H2.75C2.47386 2.5 2.25 2.27614 2.25 2ZM4.5 2.5V3.6665C4.5 3.77469 4.53509 3.87995 4.6 3.9665C4.61345 3.98444 4.62568 4.00326 4.63661 4.02284L5.42302 5.43199C5.5381 5.59873 5.6 5.79679 5.6 6C5.6 6.20321 5.5381 6.40127 5.42302 6.56801L4.63661 7.97716C4.62568 7.99674 4.61345 8.01556 4.6 8.0335C4.53509 8.12005 4.5 8.22532 4.5 8.3335V9.5H7.5V8.3335C7.5 8.22531 7.46491 8.12005 7.4 8.0335C7.38769 8.01709 7.37641 7.99994 7.3662 7.98214L6.55725 6.57077C6.44095 6.40346 6.37836 6.20433 6.37836 6C6.37836 5.79567 6.44095 5.59654 6.55725 5.42923L7.3662 4.01786C7.37641 4.00006 7.38769 3.98291 7.4 3.9665C7.46491 3.87995 7.5 3.77469 7.5 3.6665V2.5H4.5Z"
+                        fill="#1C398E"
+                      />
+                    </svg>
+                  {:else}
+                    <!-- Rejected SVG -->
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M9.32268 2.64556C9.51843 2.84033 9.51922 3.15692 9.32445 3.35267L6.70534 5.98493L9.35444 8.64733C9.54921 8.84308 9.54842 9.15966 9.35267 9.35443C9.15692 9.5492 8.84033 9.54841 8.64556 9.35266L6 6.69381L3.35444 9.35266C3.15967 9.54841 2.84308 9.5492 2.64733 9.35443C2.45158 9.15966 2.45079 8.84308 2.64556 8.64733L5.29466 5.98493L2.67555 3.35267C2.48078 3.15692 2.48157 2.84034 2.67732 2.64556C2.87307 2.45079 3.18966 2.45159 3.38443 2.64734L6 5.27604L8.61557 2.64733C8.81035 2.45158 9.12693 2.45079 9.32268 2.64556Z"
+                        fill="#771D1D"
+                      />
+                    </svg>
+                  {/if}
+
                   <span
-                    class="status-badge"
-                    class:active={state === "approved"}
-                    class:pending={state === "pending"}
-                    class:inactive={state === "rejected"}
+                    class="status-text"
+                    class:active={state?.toLowerCase?.() === "approved"}
+                    class:pending={state?.toLowerCase?.() === "pending"}
+                    class:inactive={state?.toLowerCase?.() === "rejected"}
                   >
                     {state}
                   </span>
-                </td>
+                </span>
+              </td>
 
-                <td>
-                  <div class="shipping-badges">
-                    {#if body?.has_fast_delivery}
-                      <span
-                        class="shipping-badge fast"
-                        title={$_("seller_dashboard.fast_delivery") ||
-                          "Fast Delivery"}
-                      >
-                        <svg
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          stroke="currentColor"
-                          style="width: 14px; height: 14px;"
-                        >
-                          <path
-                            d="M1 8h8M13 8l-3-3m3 3l-3 3"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      </span>
-                    {/if}
-                    {#if body?.has_free_shipping}
-                      <span
-                        class="shipping-badge free"
-                        title={$_("seller_dashboard.free_shipping") ||
-                          "Free Shipping"}
-                      >
-                        <svg
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          stroke="currentColor"
-                          style="width: 14px; height: 14px;"
-                        >
-                          <path
-                            d="M2 5h8v6H2zM10 7h2l2 2v2h-4V7z"
-                            stroke-width="1.5"
-                            stroke-linejoin="round"
-                          />
-                          <circle cx="4" cy="13" r="1.5" stroke-width="1.5" />
-                          <circle cx="12" cy="13" r="1.5" stroke-width="1.5" />
-                        </svg>
-                      </span>
-                    {/if}
-                    {#if !body?.has_fast_delivery && !body?.has_free_shipping}
-                      <span class="empty-text">—</span>
-                    {/if}
-                  </div>
-                </td>
-
-                <!-- ✅ Actions: stop row click + your icon buttons -->
-                <td class="actions-cell">
-                  <div
-                    class="action-buttons"
-                    onclick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      class="action-icon-btn"
-                      onclick={() => viewItem(item)}
-                      title={$_("common.view") || "View"}
-                      aria-label="View"
-                    >
-                      <!-- (keep your view svg) -->
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M2.33951 7.00002C2.34617 7.01918 2.35839 7.05068 2.38042 7.09591C2.43093 7.19958 2.51358 7.33591 2.63172 7.49642C2.86732 7.81651 3.21834 8.1979 3.6593 8.56341C4.54944 9.30124 5.73409 9.91669 6.99935 9.91669C8.26461 9.91669 9.44926 9.30124 10.3394 8.56341C10.7804 8.1979 11.1314 7.81651 11.367 7.49642C11.4851 7.33591 11.5678 7.19958 11.6183 7.09591C11.6403 7.05068 11.6525 7.01918 11.6592 7.00002C11.6525 6.98086 11.6403 6.94937 11.6183 6.90413C11.5678 6.80046 11.4851 6.66413 11.367 6.50362C11.1314 6.18353 10.7804 5.80214 10.3394 5.43663C9.44926 4.6988 8.26461 4.08335 6.99935 4.08335C5.73409 4.08335 4.54944 4.6988 3.6593 5.43663C3.21834 5.80214 2.86732 6.18353 2.63172 6.50362C2.51358 6.66413 2.43093 6.80046 2.38042 6.90413C2.35839 6.94937 2.34617 6.98086 2.33951 7.00002ZM2.91478 4.53841C3.92477 3.70124 5.36512 2.91669 6.99935 2.91669C8.63358 2.91669 10.0739 3.70124 11.0839 4.53841C11.593 4.9604 12.0108 5.41026 12.3066 5.81204C12.4541 6.01247 12.5777 6.20973 12.6671 6.39318C12.7483 6.55995 12.8327 6.7775 12.8327 7.00002C12.8327 7.22254 12.7483 7.44009 12.6671 7.60686C12.5777 7.79031 12.4541 7.98757 12.3066 8.188C12.0108 8.58978 11.593 9.03964 11.0839 9.46163C10.0739 10.2988 8.63358 11.0834 6.99935 11.0834C5.36512 11.0834 3.92477 10.2988 2.91478 9.46163C2.40568 9.03964 1.98785 8.58978 1.69212 8.188C1.5446 7.98757 1.42096 7.79031 1.3316 7.60686C1.25035 7.44009 1.16602 7.22254 1.16602 7.00002C1.16602 6.7775 1.25035 6.55995 1.3316 6.39318C1.42096 6.20973 1.5446 6.01247 1.69212 5.81204C1.98785 5.41026 2.40568 4.9604 2.91478 4.53841ZM6.99935 5.83335C6.35502 5.83335 5.83268 6.35569 5.83268 7.00002C5.83268 7.64435 6.35502 8.16669 6.99935 8.16669C7.64368 8.16669 8.16602 7.64435 8.16602 7.00002C8.16602 6.35569 7.64368 5.83335 6.99935 5.83335ZM4.66602 7.00002C4.66602 5.71136 5.71068 4.66669 6.99935 4.66669C8.28801 4.66669 9.33268 5.71136 9.33268 7.00002C9.33268 8.28869 8.28801 9.33335 6.99935 9.33335C5.71068 9.33335 4.66602 8.28869 4.66602 7.00002Z"
-                          fill="#4A5565"
-                        />
-                      </svg>
-                    </button>
-
-                    <button
-                      class="action-icon-btn"
-                      onclick={() => openEditItemModal(item)}
-                      title={$_("common.edit") || "Edit"}
-                      aria-label="Edit"
-                    >
-                      <!-- (keep your edit svg) -->
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M9.9061 2.33335C9.82824 2.33335 9.75114 2.3487 9.6792 2.37851C9.60727 2.40831 9.54192 2.452 9.48688 2.50708L9.16831 2.82566L10.007 3.66437L10.3255 3.34593C10.3805 3.29089 10.4244 3.2254 10.4542 3.15347C10.484 3.08154 10.4993 3.00444 10.4993 2.92657C10.4993 2.84871 10.484 2.77161 10.4542 2.69968C10.4244 2.62775 10.3807 2.56239 10.3256 2.50735C10.2706 2.45228 10.2049 2.40831 10.133 2.37851C10.0611 2.3487 9.98396 2.33335 9.9061 2.33335ZM9.18206 4.48933L8.34335 3.65062L5.6193 6.37469L5.40962 7.42308L6.45801 7.2134L9.18206 4.48933ZM7.92943 2.41462L4.66945 5.67463C4.58802 5.75606 4.53251 5.85978 4.50993 5.9727L4.09401 8.05229C4.05576 8.24354 4.11562 8.44125 4.25354 8.57917C4.39145 8.71708 4.58916 8.77694 4.78042 8.73869L6.86 8.32278C6.97293 8.30019 7.07664 8.24468 7.15808 8.16325L11.1503 4.17102C11.3138 4.00764 11.4435 3.81364 11.532 3.60011C11.6204 3.38658 11.666 3.15771 11.666 2.92657C11.666 2.69544 11.6204 2.46656 11.532 2.25303C11.4435 2.03963 11.3139 1.84572 11.1505 1.6824C11.1506 1.68241 11.1505 1.68239 11.1505 1.6824M11.1505 1.6824C10.9872 1.51892 10.7932 1.3892 10.5796 1.30072C10.3661 1.21223 10.1372 1.16669 9.9061 1.16669C9.67496 1.16669 9.44609 1.21223 9.23256 1.30072C9.01909 1.38918 8.82514 1.51883 8.66179 1.68226L7.93232 2.41174C7.93183 2.41221 7.93135 2.41269 7.93087 2.41318C7.93039 2.41366 7.92991 2.41414 7.92943 2.41462M1.16602 4.66669C1.16602 4.02235 1.68835 3.50002 2.33268 3.50002H4.08268C4.40485 3.50002 4.66602 3.76119 4.66602 4.08335C4.66602 4.40552 4.40485 4.66669 4.08268 4.66669H2.33268V10.5H8.74935V7.87502C8.74935 7.55285 9.01052 7.29169 9.33268 7.29169C9.65485 7.29169 9.91602 7.55285 9.91602 7.87502V10.5C9.91602 11.1444 9.39368 11.6667 8.74935 11.6667H2.33268C1.68835 11.6667 1.16602 11.1444 1.16602 10.5V4.66669Z"
-                          fill="#4A5565"
-                        />
-                      </svg>
-                    </button>
-
-                    <button
-                      class="action-icon-btn"
-                      onclick={() => openDeleteModal(item)}
-                      title={$_("common.delete") || "Delete"}
-                      aria-label="Delete"
+              <td>
+                <div class="shipping-badges">
+                  {#if body?.has_fast_delivery}
+                    <span
+                      class="shipping-badge fast"
+                      title={$_("seller_dashboard.fast_delivery") ||
+                        "Fast Delivery"}
                     >
                       <svg
                         viewBox="0 0 16 16"
                         fill="none"
                         stroke="currentColor"
+                        style="width: 14px; height: 14px;"
                       >
                         <path
-                          d="M2 4h12M5 4V2h6v2M3 4h10l-1 10H4L3 4z"
-                          stroke-width="1.5"
+                          d="M1 8h8M13 8l-3-3m3 3l-3 3"
+                          stroke-width="2"
+                          stroke-linecap="round"
                           stroke-linejoin="round"
                         />
                       </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
+                    </span>
+                  {/if}
+                  {#if body?.has_free_shipping}
+                    <span
+                      class="shipping-badge free"
+                      title={$_("seller_dashboard.free_shipping") ||
+                        "Free Shipping"}
+                    >
+                      <svg
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        style="width: 14px; height: 14px;"
+                      >
+                        <path
+                          d="M2 5h8v6H2zM10 7h2l2 2v2h-4V7z"
+                          stroke-width="1.5"
+                          stroke-linejoin="round"
+                        />
+                        <circle cx="4" cy="13" r="1.5" stroke-width="1.5" />
+                        <circle cx="12" cy="13" r="1.5" stroke-width="1.5" />
+                      </svg>
+                    </span>
+                  {/if}
+                  {#if !body?.has_fast_delivery && !body?.has_free_shipping}
+                    <span class="empty-text">—</span>
+                  {/if}
+                </div>
+              </td>
 
-        <!-- ✅ Pagination EXACTLY like the example (showing X - Y of total) -->
-        {#if listTotalPages > 1}
-          <div class="pagination">
-            <div class="pagination-info">
-              {$_("common.showing") || "Showing"}
-              {formatNumber((listPage - 1) * listItemsPerPage + 1, $locale)}
-              -
-              {formatNumber(
-                Math.min(listPage * listItemsPerPage, filteredItems.length),
-                $locale,
-              )}
-              {$_("common.of") || "of"}
-              {formatNumber(filteredItems.length, $locale)}
-              {$_("common.products") || "products"}
-            </div>
+              <!-- ✅ Actions: stop row click + your icon buttons -->
+              <td class="actions-cell">
+                <div
+                  class="action-buttons"
+                  onclick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    class="action-icon-btn"
+                    onclick={() => viewItem(item)}
+                    title={$_("common.view") || "View"}
+                    aria-label="View"
+                  >
+                    <!-- (keep your view svg) -->
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M2.33951 7.00002C2.34617 7.01918 2.35839 7.05068 2.38042 7.09591C2.43093 7.19958 2.51358 7.33591 2.63172 7.49642C2.86732 7.81651 3.21834 8.1979 3.6593 8.56341C4.54944 9.30124 5.73409 9.91669 6.99935 9.91669C8.26461 9.91669 9.44926 9.30124 10.3394 8.56341C10.7804 8.1979 11.1314 7.81651 11.367 7.49642C11.4851 7.33591 11.5678 7.19958 11.6183 7.09591C11.6403 7.05068 11.6525 7.01918 11.6592 7.00002C11.6525 6.98086 11.6403 6.94937 11.6183 6.90413C11.5678 6.80046 11.4851 6.66413 11.367 6.50362C11.1314 6.18353 10.7804 5.80214 10.3394 5.43663C9.44926 4.6988 8.26461 4.08335 6.99935 4.08335C5.73409 4.08335 4.54944 4.6988 3.6593 5.43663C3.21834 5.80214 2.86732 6.18353 2.63172 6.50362C2.51358 6.66413 2.43093 6.80046 2.38042 6.90413C2.35839 6.94937 2.34617 6.98086 2.33951 7.00002ZM2.91478 4.53841C3.92477 3.70124 5.36512 2.91669 6.99935 2.91669C8.63358 2.91669 10.0739 3.70124 11.0839 4.53841C11.593 4.9604 12.0108 5.41026 12.3066 5.81204C12.4541 6.01247 12.5777 6.20973 12.6671 6.39318C12.7483 6.55995 12.8327 6.7775 12.8327 7.00002C12.8327 7.22254 12.7483 7.44009 12.6671 7.60686C12.5777 7.79031 12.4541 7.98757 12.3066 8.188C12.0108 8.58978 11.593 9.03964 11.0839 9.46163C10.0739 10.2988 8.63358 11.0834 6.99935 11.0834C5.36512 11.0834 3.92477 10.2988 2.91478 9.46163C2.40568 9.03964 1.98785 8.58978 1.69212 8.188C1.5446 7.98757 1.42096 7.79031 1.3316 7.60686C1.25035 7.44009 1.16602 7.22254 1.16602 7.00002C1.16602 6.7775 1.25035 6.55995 1.3316 6.39318C1.42096 6.20973 1.5446 6.01247 1.69212 5.81204C1.98785 5.41026 2.40568 4.9604 2.91478 4.53841ZM6.99935 5.83335C6.35502 5.83335 5.83268 6.35569 5.83268 7.00002C5.83268 7.64435 6.35502 8.16669 6.99935 8.16669C7.64368 8.16669 8.16602 7.64435 8.16602 7.00002C8.16602 6.35569 7.64368 5.83335 6.99935 5.83335ZM4.66602 7.00002C4.66602 5.71136 5.71068 4.66669 6.99935 4.66669C8.28801 4.66669 9.33268 5.71136 9.33268 7.00002C9.33268 8.28869 8.28801 9.33335 6.99935 9.33335C5.71068 9.33335 4.66602 8.28869 4.66602 7.00002Z"
+                        fill="#4A5565"
+                      />
+                    </svg>
+                  </button>
 
-            <div class="pagination-pages">
-              {#if listTotalPages <= 7}
-                {#each Array(listTotalPages) as _, index}
+                  <button
+                    class="action-icon-btn"
+                    onclick={() => openEditItemModal(item)}
+                    title={$_("common.edit") || "Edit"}
+                    aria-label="Edit"
+                  >
+                    <!-- (keep your edit svg) -->
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M9.9061 2.33335C9.82824 2.33335 9.75114 2.3487 9.6792 2.37851C9.60727 2.40831 9.54192 2.452 9.48688 2.50708L9.16831 2.82566L10.007 3.66437L10.3255 3.34593C10.3805 3.29089 10.4244 3.2254 10.4542 3.15347C10.484 3.08154 10.4993 3.00444 10.4993 2.92657C10.4993 2.84871 10.484 2.77161 10.4542 2.69968C10.4244 2.62775 10.3807 2.56239 10.3256 2.50735C10.2706 2.45228 10.2049 2.40831 10.133 2.37851C10.0611 2.3487 9.98396 2.33335 9.9061 2.33335ZM9.18206 4.48933L8.34335 3.65062L5.6193 6.37469L5.40962 7.42308L6.45801 7.2134L9.18206 4.48933ZM7.92943 2.41462L4.66945 5.67463C4.58802 5.75606 4.53251 5.85978 4.50993 5.9727L4.09401 8.05229C4.05576 8.24354 4.11562 8.44125 4.25354 8.57917C4.39145 8.71708 4.58916 8.77694 4.78042 8.73869L6.86 8.32278C6.97293 8.30019 7.07664 8.24468 7.15808 8.16325L11.1503 4.17102C11.3138 4.00764 11.4435 3.81364 11.532 3.60011C11.6204 3.38658 11.666 3.15771 11.666 2.92657C11.666 2.69544 11.6204 2.46656 11.532 2.25303C11.4435 2.03963 11.3139 1.84572 11.1505 1.6824C11.1506 1.68241 11.1505 1.68239 11.1505 1.6824M11.1505 1.6824C10.9872 1.51892 10.7932 1.3892 10.5796 1.30072C10.3661 1.21223 10.1372 1.16669 9.9061 1.16669C9.67496 1.16669 9.44609 1.21223 9.23256 1.30072C9.01909 1.38918 8.82514 1.51883 8.66179 1.68226L7.93232 2.41174C7.93183 2.41221 7.93135 2.41269 7.93087 2.41318C7.93039 2.41366 7.92991 2.41414 7.92943 2.41462M1.16602 4.66669C1.16602 4.02235 1.68835 3.50002 2.33268 3.50002H4.08268C4.40485 3.50002 4.66602 3.76119 4.66602 4.08335C4.66602 4.40552 4.40485 4.66669 4.08268 4.66669H2.33268V10.5H8.74935V7.87502C8.74935 7.55285 9.01052 7.29169 9.33268 7.29169C9.65485 7.29169 9.91602 7.55285 9.91602 7.87502V10.5C9.91602 11.1444 9.39368 11.6667 8.74935 11.6667H2.33268C1.68835 11.6667 1.16602 11.1444 1.16602 10.5V4.66669Z"
+                        fill="#4A5565"
+                      />
+                    </svg>
+                  </button>
+
+                  <button
+                    class="action-icon-btn"
+                    onclick={() => openDeleteModal(item)}
+                    title={$_("common.delete") || "Delete"}
+                    aria-label="Delete"
+                  >
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                      <path
+                        d="M2 4h12M5 4V2h6v2M3 4h10l-1 10H4L3 4z"
+                        stroke-width="1.5"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+
+      <!-- ✅ Pagination EXACTLY like the example (showing X - Y of total) -->
+      {#if listTotalPages > 1}
+        <div class="pagination">
+          <div class="pagination-info">
+            {$_("common.showing") || "Showing"}
+            {formatNumber((listPage - 1) * listItemsPerPage + 1, $locale)}
+            -
+            {formatNumber(
+              Math.min(listPage * listItemsPerPage, filteredItems.length),
+              $locale,
+            )}
+            {$_("common.of") || "of"}
+            {formatNumber(filteredItems.length, $locale)}
+            {$_("common.products") || "products"}
+          </div>
+
+          <div class="pagination-pages">
+            {#if listTotalPages <= 7}
+              {#each Array(listTotalPages) as _, index}
+                <button
+                  class="page-btn"
+                  class:active={listPage === index + 1}
+                  onclick={() => goToListPage(index + 1)}
+                >
+                  {formatNumber(index + 1, $locale)}
+                </button>
+              {/each}
+            {:else}
+              <button
+                class="page-btn"
+                class:active={listPage === 1}
+                onclick={() => goToListPage(1)}
+              >
+                {formatNumber(1, $locale)}
+              </button>
+
+              {#if listPage > 3}
+                <span class="page-ellipsis">...</span>
+              {/if}
+
+              {#each Array(listTotalPages) as _, index}
+                {#if index + 1 > 1 && index + 1 < listTotalPages && Math.abs(listPage - (index + 1)) <= 1}
                   <button
                     class="page-btn"
                     class:active={listPage === index + 1}
@@ -1057,47 +1145,24 @@
                   >
                     {formatNumber(index + 1, $locale)}
                   </button>
-                {/each}
-              {:else}
-                <button
-                  class="page-btn"
-                  class:active={listPage === 1}
-                  onclick={() => goToListPage(1)}
-                >
-                  {formatNumber(1, $locale)}
-                </button>
-
-                {#if listPage > 3}
-                  <span class="page-ellipsis">...</span>
                 {/if}
+              {/each}
 
-                {#each Array(listTotalPages) as _, index}
-                  {#if index + 1 > 1 && index + 1 < listTotalPages && Math.abs(listPage - (index + 1)) <= 1}
-                    <button
-                      class="page-btn"
-                      class:active={listPage === index + 1}
-                      onclick={() => goToListPage(index + 1)}
-                    >
-                      {formatNumber(index + 1, $locale)}
-                    </button>
-                  {/if}
-                {/each}
-
-                {#if listPage < listTotalPages - 2}
-                  <span class="page-ellipsis">...</span>
-                {/if}
-
-                <button
-                  class="page-btn"
-                  class:active={listPage === listTotalPages}
-                  onclick={() => goToListPage(listTotalPages)}
-                >
-                  {formatNumber(listTotalPages, $locale)}
-                </button>
+              {#if listPage < listTotalPages - 2}
+                <span class="page-ellipsis">...</span>
               {/if}
-            </div>
+
+              <button
+                class="page-btn"
+                class:active={listPage === listTotalPages}
+                onclick={() => goToListPage(listTotalPages)}
+              >
+                {formatNumber(listTotalPages, $locale)}
+              </button>
+            {/if}
           </div>
-        {/if}
+        </div>
+      {/if}
     {/if}
   </div>
 
@@ -1137,38 +1202,39 @@
 
       <div class="details-modal-body">
         <div class="details-section">
-  <h3 class="details-section-title">Product Details</h3>
+          <h3 class="details-section-title">Product Details</h3>
 
-  <div class="details-table-kv">
-    <div class="kv-row">
-      <span class="kv-key">Product</span>
-      <span class="kv-value">{body.product_shortname || "-"}</span>
-    </div>
+          <div class="details-table-kv">
+            <div class="kv-row">
+              <span class="kv-key">Product</span>
+              <span class="kv-value">{body.product_shortname || "-"}</span>
+            </div>
 
-    <div class="kv-row">
-      <span class="kv-key">Warranty</span>
-      <span class="kv-value">{body.warranty_shortname || "-"}</span>
-    </div>
+            <div class="kv-row">
+              <span class="kv-key">Warranty</span>
+              <span class="kv-value">{body.warranty_shortname || "-"}</span>
+            </div>
 
-    <div class="kv-row">
-      <span class="kv-key">Commission</span>
-      <span class="kv-value">{body.commission_category || "-"}</span>
-    </div>
+            <div class="kv-row">
+              <span class="kv-key">Commission</span>
+              <span class="kv-value">{body.commission_category || "-"}</span>
+            </div>
 
-    <div class="kv-row">
-      <span class="kv-key">Status</span>
-      <span class="kv-value">{detailsItem.attributes?.state || "-"}</span>
-    </div>
+            <div class="kv-row">
+              <span class="kv-key">Status</span>
+              <span class="kv-value"
+                >{detailsItem.attributes?.state || "-"}</span
+              >
+            </div>
 
-    <div class="kv-row">
-      <span class="kv-key">Last Updated</span>
-      <span class="kv-value">
-        {formatDate(detailsItem.attributes?.updated_at)}
-      </span>
-    </div>
-  </div>
-</div>
-
+            <div class="kv-row">
+              <span class="kv-key">Last Updated</span>
+              <span class="kv-value">
+                {formatDate(detailsItem.attributes?.updated_at)}
+              </span>
+            </div>
+          </div>
+        </div>
 
         <div class="details-section">
           <h3>Variants</h3>
@@ -1194,13 +1260,11 @@
       </div>
 
       <div class="details-modal-footer">
-  <!-- Close button -->
-  <button class="btn-secondary-custom" onclick={closeDetailsModal}>
-    {$_("common.close") || "Close"}
-  </button>
-
-</div>
-
+        <!-- Close button -->
+        <button class="btn-secondary-custom" onclick={closeDetailsModal}>
+          {$_("common.close") || "Close"}
+        </button>
+      </div>
     </div>
   </div>
 {/if}
@@ -1286,40 +1350,40 @@
       transform 0.05s ease;
   }
   .details-section-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #101828;
-}
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #101828;
+  }
 
-.details-table-kv {
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
-  overflow: hidden;
-}
+  .details-table-kv {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+  }
 
-.kv-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid #E5E7EB;
-  font-size: 14px;
-}
+  .kv-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+  }
 
-.kv-row:last-child {
-  border-bottom: none;
-}
+  .kv-row:last-child {
+    border-bottom: none;
+  }
 
-.kv-key {
-  font-weight: 500;
-  color: #475467;
-}
+  .kv-key {
+    font-weight: 500;
+    color: #475467;
+  }
 
-.kv-value {
-  font-weight: 500;
-  color: #101828;
-  text-align: right;
-}
+  .kv-value {
+    font-weight: 500;
+    color: #101828;
+    text-align: right;
+  }
 
   .action-icon-btn:hover {
     background: #f3f4f6;
@@ -1336,42 +1400,42 @@
   }
 
   /* Primary button (same as Add Product button) */
-.btn-primary-custom {
-  height: 36px;
-  padding: 0 16px;
-  background: #3C307F;
-  color: #fff;
-  border: 1px solid #3C307F;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  box-shadow: 0px 1px 0.5px 0.05px #1D293D05;
-  transition: background 0.2s ease;
-}
+  .btn-primary-custom {
+    height: 36px;
+    padding: 0 16px;
+    background: #3c307f;
+    color: #fff;
+    border: 1px solid #3c307f;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0px 1px 0.5px 0.05px #1d293d05;
+    transition: background 0.2s ease;
+  }
 
-.btn-primary-custom:hover {
-  background: #2f2666;
-}
+  .btn-primary-custom:hover {
+    background: #2f2666;
+  }
 
-/* Secondary button (same border family as your UI system) */
-.btn-secondary-custom {
-  height: 36px;
-  padding: 0 16px;
-  background: #F9FAFB;
-  color: #344054;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  box-shadow: 0px 1px 0.5px 0.05px #1D293D05;
-  transition: background 0.2s ease;
-}
+  /* Secondary button (same border family as your UI system) */
+  .btn-secondary-custom {
+    height: 36px;
+    padding: 0 16px;
+    background: #f9fafb;
+    color: #344054;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0px 1px 0.5px 0.05px #1d293d05;
+    transition: background 0.2s ease;
+  }
 
-.btn-secondary-custom:hover {
-  background: #F3F4F6;
-}
+  .btn-secondary-custom:hover {
+    background: #f3f4f6;
+  }
 
   .action-icon-btn.delete {
     color: #dc2626;
@@ -1428,7 +1492,7 @@
     align-items: center;
     gap: 1rem;
     transition: all 0.3s ease;
-     box-shadow: 0px 1px 0.5px 0.05px #1D293D05;
+    box-shadow: 0px 1px 0.5px 0.05px #1d293d05;
   }
 
   .stat-card:hover {
@@ -1458,54 +1522,54 @@
   }
 
   .details-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(16, 24, 40, 0.45); /* nice overlay */
-  z-index: 9999;
+    position: fixed;
+    inset: 0;
+    background: rgba(16, 24, 40, 0.45); /* nice overlay */
+    z-index: 9999;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-  padding: 24px;
-}
+    padding: 24px;
+  }
 
-.details-modal {
-  width: min(900px, 100%);
-  max-height: calc(100vh - 48px);
+  .details-modal {
+    width: min(900px, 100%);
+    max-height: calc(100vh - 48px);
 
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  box-shadow: 0px 24px 48px -12px rgba(16, 24, 40, 0.18);
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0px 24px 48px -12px rgba(16, 24, 40, 0.18);
 
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
-.details-modal-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  .details-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
 
-  padding: 16px 20px;
-  border-bottom: 1px solid #e5e7eb;
-}
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+  }
 
-.details-modal-body {
-  padding: 16px 20px;
-  overflow: auto; /* important so it doesn't push below the table */
-}
+  .details-modal-body {
+    padding: 16px 20px;
+    overflow: auto; /* important so it doesn't push below the table */
+  }
 
-.details-modal-footer {
-  padding: 12px 20px;
-  border-top: 1px solid #e5e7eb;
+  .details-modal-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #e5e7eb;
 
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
 
   /* --- Pagination (same pattern as your other tables) --- */
   .pagination {
@@ -1609,5 +1673,38 @@
     line-height: 14px;
     letter-spacing: 0;
     color: #101828;
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize;
+  }
+
+  /* approved */
+  .status-badge.active {
+    background: #ecfdf3;
+    color: #027a48;
+    border-color: #abefc6;
+  }
+
+  /* pending */
+  .status-badge.pending {
+    background: #eff8ff;
+    color: #175cd3;
+    border-color: #b2ddff;
+  }
+
+  /* rejected */
+  .status-badge.inactive {
+    background: #fef3f2;
+    color: #b42318;
+    border-color: #fecdca;
   }
 </style>
