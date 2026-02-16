@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { _ } from "@/i18n";
   import {
     getSpaceContents,
     createEntity,
@@ -15,6 +16,10 @@
   } from "@/lib/toasts_messages";
   import { website } from "@/config";
   import "./index.css";
+
+  function t(key: string, fallback: string = ""): string {
+    return $_(key) || fallback;
+  }
 
   let tiles: any[] = [];
   let filteredTiles: any[] = [];
@@ -75,13 +80,15 @@
         "managed",
         100,
         0,
-        false
+        false,
       );
       tiles = response.records || [];
       applyFilters();
     } catch (error) {
       console.error("Error loading tiles:", error);
-      errorToastMessage("Failed to load tiles");
+      errorToastMessage(
+        t("admin.tiles_failed_to_load", "Failed to load tiles"),
+      );
     } finally {
       loading = false;
     }
@@ -92,13 +99,13 @@
 
     if (selectedRegion !== "all") {
       filtered = filtered.filter(
-        (tile) => tile.attributes.payload?.body?.region === selectedRegion
+        (tile) => tile.attributes.payload?.body?.region === selectedRegion,
       );
     }
 
     if (selectedShape !== "all") {
       filtered = filtered.filter(
-        (tile) => tile.attributes.payload?.body?.shape === selectedShape
+        (tile) => tile.attributes.payload?.body?.shape === selectedShape,
       );
     }
     if (searchQuery.trim()) {
@@ -107,7 +114,7 @@
         (tile) =>
           tile.attributes.displayname?.en?.toLowerCase().includes(query) ||
           tile.attributes.displayname?.ar?.toLowerCase().includes(query) ||
-          tile.attributes.description?.en?.toLowerCase().includes(query)
+          tile.attributes.description?.en?.toLowerCase().includes(query),
       );
     }
 
@@ -157,13 +164,15 @@
         ResourceType.content,
         "managed",
         true,
-        true
+        true,
       );
       selectedTile = fullTile;
       viewModalOpen = true;
     } catch (error) {
       console.error("Error loading tile details:", error);
-      errorToastMessage("Failed to load tile details");
+      errorToastMessage(
+        t("admin.tiles_failed_to_load_details", "Failed to load tile details"),
+      );
     } finally {
       loading = false;
     }
@@ -195,12 +204,16 @@
 
   async function handleCreate() {
     if (!tileForm.displayname_en.trim()) {
-      errorToastMessage("Display name (EN) is required");
+      errorToastMessage(
+        t("admin.tiles_display_name_required", "Display name (EN) is required"),
+      );
       return;
     }
 
     if (tileForm.shape === "banner" && !tileForm.url.trim()) {
-      errorToastMessage("URL is required for banners");
+      errorToastMessage(
+        t("admin.tiles_url_required", "URL is required for banners"),
+      );
       return;
     }
 
@@ -208,7 +221,12 @@
       tileForm.shape === "carousel" &&
       !tileForm.collection_shortname.trim()
     ) {
-      errorToastMessage("Collection shortname is required for carousels");
+      errorToastMessage(
+        t(
+          "admin.tiles_collection_required",
+          "Collection shortname is required for carousels",
+        ),
+      );
       return;
     }
 
@@ -246,7 +264,7 @@
         ResourceType.content,
         "",
         "",
-        "json"
+        "json",
       );
 
       if (shortname && imageFile) {
@@ -254,21 +272,27 @@
           shortname,
           website.main_space,
           "settings/tiles",
-          imageFile
+          imageFile,
         );
       }
 
       if (shortname) {
-        successToastMessage("Tile created successfully");
+        successToastMessage(
+          t("admin.tiles_created_success", "Tile created successfully"),
+        );
         createModalOpen = false;
         resetForm();
         await loadTiles();
       } else {
-        errorToastMessage("Failed to create tile");
+        errorToastMessage(
+          t("admin.tiles_create_failed", "Failed to create tile"),
+        );
       }
     } catch (error) {
       console.error("Error creating tile:", error);
-      errorToastMessage("Failed to create tile");
+      errorToastMessage(
+        t("admin.tiles_create_failed", "Failed to create tile"),
+      );
     } finally {
       loading = false;
     }
@@ -278,7 +302,9 @@
     if (!selectedTile) return;
 
     if (!tileForm.displayname_en.trim()) {
-      errorToastMessage("Display name (EN) is required");
+      errorToastMessage(
+        t("admin.tiles_display_name_required", "Display name (EN) is required"),
+      );
       return;
     }
 
@@ -316,7 +342,7 @@
           content_type: "json",
         },
         "",
-        ""
+        "",
       );
 
       if (success && imageFile) {
@@ -324,21 +350,27 @@
           selectedTile.shortname,
           website.main_space,
           "settings/tiles",
-          imageFile
+          imageFile,
         );
       }
 
       if (success) {
-        successToastMessage("Tile updated successfully");
+        successToastMessage(
+          t("admin.tiles_updated_success", "Tile updated successfully"),
+        );
         editModalOpen = false;
         resetForm();
         await loadTiles();
       } else {
-        errorToastMessage("Failed to update tile");
+        errorToastMessage(
+          t("admin.tiles_update_failed", "Failed to update tile"),
+        );
       }
     } catch (error) {
       console.error("Error updating tile:", error);
-      errorToastMessage("Failed to update tile");
+      errorToastMessage(
+        t("admin.tiles_update_failed", "Failed to update tile"),
+      );
     } finally {
       loading = false;
     }
@@ -353,20 +385,26 @@
         selectedTile.shortname,
         website.main_space,
         "settings/tiles",
-        ResourceType.content
+        ResourceType.content,
       );
 
       if (success) {
-        successToastMessage("Tile deleted successfully");
+        successToastMessage(
+          t("admin.tiles_deleted_success", "Tile deleted successfully"),
+        );
         deleteModalOpen = false;
         resetForm();
         await loadTiles();
       } else {
-        errorToastMessage("Failed to delete tile");
+        errorToastMessage(
+          t("admin.tiles_delete_failed", "Failed to delete tile"),
+        );
       }
     } catch (error) {
       console.error("Error deleting tile:", error);
-      errorToastMessage("Failed to delete tile");
+      errorToastMessage(
+        t("admin.tiles_delete_failed", "Failed to delete tile"),
+      );
     } finally {
       loading = false;
     }
@@ -396,20 +434,22 @@
 <div class="tiles-container">
   <div class="header">
     <div>
-      <h1>Tiles Management</h1>
-      <p>Manage homepage tiles and banners</p>
+      <h1>{t("admin.tiles_management", "Tiles Management")}</h1>
+      <p>{t("admin.tiles_description", "Manage homepage tiles and banners")}</p>
     </div>
     <button class="btn-primary" on:click={openCreateModal}>
-      + Create New Tile
+      + {t("admin.create_new_tile", "Create New Tile")}
     </button>
   </div>
 
   <!-- Filters -->
   <div class="filters">
     <div class="filter-group">
-      <label for="region-filter">Region:</label>
+      <label for="region-filter">{t("admin.tiles_region", "Region")}:</label>
       <select id="region-filter" bind:value={selectedRegion}>
-        <option value="all">All Regions</option>
+        <option value="all"
+          >{t("admin.tiles_all_regions", "All Regions")}</option
+        >
         {#each regions as region}
           <option value={region.value}>{region.label}</option>
         {/each}
@@ -417,9 +457,9 @@
     </div>
 
     <div class="filter-group">
-      <label for="shape-filter">Shape:</label>
+      <label for="shape-filter">{t("admin.tiles_shape", "Shape")}:</label>
       <select id="shape-filter" bind:value={selectedShape}>
-        <option value="all">All Shapes</option>
+        <option value="all">{t("admin.tiles_all_shapes", "All Shapes")}</option>
         {#each shapes as shape}
           <option value={shape.value}>{shape.label}</option>
         {/each}
@@ -427,22 +467,25 @@
     </div>
 
     <div class="filter-group">
-      <label for="search">Search:</label>
+      <label for="search">{t("common.search", "Search")}:</label>
       <input
         id="search"
         type="text"
         bind:value={searchQuery}
-        placeholder="Search tiles..."
+        placeholder={t("admin.tiles_search_placeholder", "Search tiles...")}
       />
     </div>
   </div>
 
   <!-- Tiles Grid -->
   {#if loading}
-    <div class="loading">Loading tiles...</div>
+    <div class="loading">
+      {t("common.loading", "Loading")}
+      {t("admin.tiles", "tiles")}...
+    </div>
   {:else if filteredTiles.length === 0}
     <div class="empty-state">
-      <p>No tiles found</p>
+      <p>{t("admin.tiles_not_found", "No tiles found")}</p>
     </div>
   {:else}
     <div class="tiles-grid">
@@ -495,7 +538,10 @@
 
           <div class="tile-content">
             <div class="tile-header">
-              <h3>{tile.attributes.displayname?.en || "Untitled"}</h3>
+              <h3>
+                {tile.attributes.displayname?.en ||
+                  t("common.untitled", "Untitled")}
+              </h3>
               <span class="badge badge-{body.shape}">
                 {body.shape}
               </span>
@@ -512,18 +558,22 @@
                 class="status-badge"
                 class:active={tile.attributes.is_active}
               >
-                {tile.attributes.is_active ? "Active" : "Inactive"}
+                {tile.attributes.is_active
+                  ? t("admin.tiles_status_active", "Active")
+                  : t("admin.tiles_status_inactive", "Inactive")}
               </span>
             </div>
 
             {#if body.shape === "carousel"}
               <div class="tile-info">
-                <small>Collection: {body.collection_shortname}</small>
-                <small>Type: {body.card_type}</small>
+                <small
+                  >{t("admin.tiles_collection", "Collection")}: {body.collection_shortname}</small
+                >
+                <small>{t("common.type", "Type")}: {body.card_type}</small>
               </div>
             {:else if body.url}
               <div class="tile-info">
-                <small>URL: {body.url}</small>
+                <small>{t("common.url", "URL")}: {body.url}</small>
               </div>
             {/if}
 
@@ -531,7 +581,7 @@
               <button
                 class="btn-icon"
                 on:click={() => openViewModal(tile)}
-                title="View"
+                title={t("admin.tiles_view", "View")}
               >
                 <svg
                   width="16"
@@ -548,7 +598,7 @@
               <button
                 class="btn-icon"
                 on:click={() => openEditModal(tile)}
-                title="Edit"
+                title={t("admin.tiles_edit", "Edit")}
               >
                 <svg
                   width="16"
@@ -565,7 +615,7 @@
               <button
                 class="btn-icon delete"
                 on:click={() => openDeleteModal(tile)}
-                title="Delete"
+                title={t("admin.tiles_delete", "Delete")}
               >
                 <svg
                   width="16"
@@ -597,7 +647,11 @@
   >
     <div class="modal modal-large" on:click|stopPropagation>
       <div class="modal-header">
-        <h2>{createModalOpen ? "Create New Tile" : "Edit Tile"}</h2>
+        <h2>
+          {createModalOpen
+            ? t("admin.tiles_create_modal_title", "Create New Tile")
+            : t("admin.tiles_edit_modal_title", "Edit Tile")}
+        </h2>
         <button
           class="close-btn"
           on:click={() => {
@@ -612,7 +666,9 @@
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group">
-            <label for="displayname_en">Display Name (EN) *</label>
+            <label for="displayname_en"
+              >{t("admin.tiles_display_name_en", "Display Name (EN)")} *</label
+            >
             <input
               id="displayname_en"
               type="text"
@@ -623,7 +679,9 @@
           </div>
 
           <div class="form-group">
-            <label for="displayname_ar">Display Name (AR)</label>
+            <label for="displayname_ar"
+              >{t("admin.tiles_display_name_ar", "Display Name (AR)")}</label
+            >
             <input
               id="displayname_ar"
               type="text"
@@ -633,7 +691,9 @@
           </div>
 
           <div class="form-group full-width">
-            <label for="description_en">Description (EN)</label>
+            <label for="description_en"
+              >{t("admin.tiles_description_en", "Description (EN)")}</label
+            >
             <textarea
               id="description_en"
               bind:value={tileForm.description_en}
@@ -643,7 +703,9 @@
           </div>
 
           <div class="form-group full-width">
-            <label for="description_ar">Description (AR)</label>
+            <label for="description_ar"
+              >{t("admin.tiles_description_ar", "Description (AR)")}</label
+            >
             <textarea
               id="description_ar"
               bind:value={tileForm.description_ar}
@@ -653,7 +715,9 @@
           </div>
 
           <div class="form-group">
-            <label for="font_color">Font Color</label>
+            <label for="font_color"
+              >{t("admin.tiles_font_color", "Font Color")}</label
+            >
             <input
               id="font_color"
               type="color"
@@ -662,7 +726,7 @@
           </div>
 
           <div class="form-group">
-            <label for="shape">Shape *</label>
+            <label for="shape">{t("admin.tiles_shape", "Shape")} *</label>
             <select id="shape" bind:value={tileForm.shape}>
               {#each shapes as shape}
                 <option value={shape.value}>{shape.label}</option>
@@ -671,7 +735,7 @@
           </div>
 
           <div class="form-group">
-            <label for="region">Region *</label>
+            <label for="region">{t("admin.tiles_region", "Region")} *</label>
             <select id="region" bind:value={tileForm.region}>
               {#each regions as region}
                 <option value={region.value}>{region.label}</option>
@@ -681,7 +745,7 @@
 
           {#if tileForm.shape === "banner"}
             <div class="form-group">
-              <label for="url">URL *</label>
+              <label for="url">{t("common.url", "URL")} *</label>
               <input
                 id="url"
                 type="text"
@@ -692,7 +756,7 @@
             </div>
 
             <div class="form-group">
-              <label for="image">Image</label>
+              <label for="image">{t("admin.tiles_image", "Image")}</label>
               <input
                 id="image"
                 type="file"
@@ -702,7 +766,10 @@
             </div>
           {:else}
             <div class="form-group">
-              <label for="collection_shortname">Collection Shortname *</label>
+              <label for="collection_shortname"
+                >{t("admin.tiles_collection_shortname", "Collection Shortname")}
+                *</label
+              >
               <input
                 id="collection_shortname"
                 type="text"
@@ -713,7 +780,9 @@
             </div>
 
             <div class="form-group">
-              <label for="card_type">Card Type</label>
+              <label for="card_type"
+                >{t("admin.tiles_card_type", "Card Type")}</label
+              >
               <select id="card_type" bind:value={tileForm.card_type}>
                 {#each cardTypes as type}
                   <option value={type.value}>{type.label}</option>
@@ -723,7 +792,9 @@
           {/if}
 
           <div class="form-group">
-            <label for="backgroundColor">Background Color</label>
+            <label for="backgroundColor"
+              >{t("admin.tiles_background_color", "Background Color")}</label
+            >
             <input
               id="backgroundColor"
               type="color"
@@ -734,7 +805,7 @@
           <div class="form-group">
             <label>
               <input type="checkbox" bind:checked={tileForm.is_active} />
-              Active
+              {t("admin.tiles_active", "Active")}
             </label>
           </div>
         </div>
@@ -748,14 +819,18 @@
             editModalOpen = false;
           }}
         >
-          Cancel
+          {t("common.cancel", "Cancel")}
         </button>
         <button
           class="btn-primary"
           on:click={createModalOpen ? handleCreate : handleUpdate}
           disabled={loading}
         >
-          {loading ? "Saving..." : createModalOpen ? "Create" : "Update"}
+          {loading
+            ? t("common.saving", "Saving...")
+            : createModalOpen
+              ? t("admin.tiles_create", "Create")
+              : t("common.update", "Update")}
         </button>
       </div>
     </div>
@@ -767,7 +842,7 @@
   <div class="modal-overlay" on:click={() => (viewModalOpen = false)}>
     <div class="modal modal-large" on:click|stopPropagation>
       <div class="modal-header">
-        <h2>Tile Details</h2>
+        <h2>{t("admin.tiles_view_modal_title", "Tile Details")}</h2>
         <button class="close-btn" on:click={() => (viewModalOpen = false)}
           >×</button
         >
@@ -786,73 +861,92 @@
 
           <div class="view-details">
             <div class="detail-row">
-              <strong>Display Name (EN):</strong>
-              <span>{selectedTile.displayname?.en || "N/A"}</span>
+              <strong
+                >{t("admin.tiles_display_name_en", "Display Name (EN")}:</strong
+              >
+              <span
+                >{selectedTile.displayname?.en || t("common.n_a", "N/A")}</span
+              >
             </div>
             <div class="detail-row">
-              <strong>Display Name (AR):</strong>
-              <span>{selectedTile.displayname?.ar || "N/A"}</span>
+              <strong
+                >{t("admin.tiles_display_name_ar", "Display Name (AR")}:</strong
+              >
+              <span
+                >{selectedTile.displayname?.ar || t("common.n_a", "N/A")}</span
+              >
             </div>
             <div class="detail-row">
-              <strong>Description (EN):</strong>
-              <span>{selectedTile.description?.en || "N/A"}</span>
+              <strong
+                >{t("admin.tiles_description_en", "Description (EN")}:</strong
+              >
+              <span
+                >{selectedTile.description?.en || t("common.n_a", "N/A")}</span
+              >
             </div>
             <div class="detail-row">
-              <strong>Shape:</strong>
+              <strong>{t("admin.tiles_shape", "Shape")}:</strong>
               <span class="badge badge-{body.shape}">{body.shape}</span>
             </div>
             <div class="detail-row">
-              <strong>Region:</strong>
+              <strong>{t("admin.tiles_region", "Region")}:</strong>
               <span>{body.region?.replace(/_/g, " ")}</span>
             </div>
             {#if body.url}
               <div class="detail-row">
-                <strong>URL:</strong>
+                <strong>{t("common.url", "URL")}:</strong>
                 <span>{body.url}</span>
               </div>
             {/if}
             {#if body.collection_shortname}
               <div class="detail-row">
-                <strong>Collection:</strong>
+                <strong>{t("admin.tiles_collection", "Collection")}:</strong>
                 <span>{body.collection_shortname}</span>
               </div>
               <div class="detail-row">
-                <strong>Card Type:</strong>
+                <strong>{t("admin.tiles_card_type", "Card Type")}:</strong>
                 <span>{body.card_type}</span>
               </div>
             {/if}
             <div class="detail-row">
-              <strong>Background Color:</strong>
+              <strong
+                >{t(
+                  "admin.tiles_background_color",
+                  "Background Color",
+                )}:</strong
+              >
               <span>
                 <span
                   class="color-preview"
                   style="background-color: {body.style?.backgroundColor}"
                 ></span>
-                {body.style?.backgroundColor || "N/A"}
+                {body.style?.backgroundColor || t("common.n_a", "N/A")}
               </span>
             </div>
             <div class="detail-row">
-              <strong>Font Color:</strong>
+              <strong>{t("admin.tiles_font_color", "Font Color")}:</strong>
               <span>
                 <span
                   class="color-preview"
                   style="background-color: {body.font_color}"
                 ></span>
-                {body.font_color || "N/A"}
+                {body.font_color || t("common.n_a", "N/A")}
               </span>
             </div>
             <div class="detail-row">
-              <strong>Status:</strong>
+              <strong>{t("admin.tiles_status", "Status")}:</strong>
               <span class="status-badge" class:active={selectedTile.is_active}>
-                {selectedTile.is_active ? "Active" : "Inactive"}
+                {selectedTile.is_active
+                  ? t("admin.tiles_status_active", "Active")
+                  : t("admin.tiles_status_inactive", "Inactive")}
               </span>
             </div>
             <div class="detail-row">
-              <strong>Created:</strong>
+              <strong>{t("admin.tiles_created", "Created")}:</strong>
               <span>{new Date(selectedTile.created_at).toLocaleString()}</span>
             </div>
             <div class="detail-row">
-              <strong>Updated:</strong>
+              <strong>{t("admin.tiles_updated", "Updated")}:</strong>
               <span>{new Date(selectedTile.updated_at).toLocaleString()}</span>
             </div>
           </div>
@@ -861,7 +955,7 @@
 
       <div class="modal-footer">
         <button class="btn-secondary" on:click={() => (viewModalOpen = false)}
-          >Close</button
+          >{t("common.close", "Close")}</button
         >
       </div>
     </div>
@@ -873,7 +967,7 @@
   <div class="modal-overlay" on:click={() => (deleteModalOpen = false)}>
     <div class="modal modal-small" on:click|stopPropagation>
       <div class="modal-header">
-        <h2>Delete Tile</h2>
+        <h2>{t("admin.tiles_delete_modal_title", "Delete Tile")}</h2>
         <button class="close-btn" on:click={() => (deleteModalOpen = false)}
           >×</button
         >
@@ -881,21 +975,31 @@
 
       <div class="modal-body">
         <p>
-          Are you sure you want to delete the tile
+          {t(
+            "admin.tiles_delete_confirm",
+            "Are you sure you want to delete the tile",
+          )}
           <strong
             >{selectedTile.attributes?.displayname?.en ||
               selectedTile.displayname?.en}</strong
           >?
         </p>
-        <p class="warning">This action cannot be undone.</p>
+        <p class="warning">
+          {t("admin.tiles_delete_warning", "This action cannot be undone.")}
+        </p>
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" on:click={() => (deleteModalOpen = false)}
-          >Cancel</button
+        <button
+          class="btn-secondary"
+          on:click={() => (deleteModalOpen = false)}
         >
+          {t("common.cancel", "Cancel")}
+        </button>
         <button class="btn-danger" on:click={handleDelete} disabled={loading}>
-          {loading ? "Deleting..." : "Delete"}
+          {loading
+            ? t("common.deleting", "Deleting...")
+            : t("admin.tiles_delete", "Delete")}
         </button>
       </div>
     </div>

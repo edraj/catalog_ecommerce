@@ -2,6 +2,82 @@
   direction: rtl;
 }
 
+/* Global RTL Table Styles */
+[dir="rtl"] table,
+html[dir="rtl"] table {
+  direction: rtl;
+}
+
+[dir="rtl"] table th,
+html[dir="rtl"] table th {
+  text-align: right;
+}
+
+[dir="rtl"] table th.text-center,
+html[dir="rtl"] table th.text-center {
+  text-align: center;
+}
+
+[dir="rtl"] table th.text-left,
+html[dir="rtl"] table th.text-left {
+  text-align: left;
+}
+
+[dir="rtl"] table td,
+html[dir="rtl"] table td {
+  text-align: right;
+}
+
+[dir="rtl"] table td.text-center,
+html[dir="rtl"] table td.text-center {
+  text-align: center;
+}
+
+[dir="rtl"] table td.text-left,
+html[dir="rtl"] table td.text-left {
+  text-align: left;
+}
+
+/* Fix padding for RTL - use logical properties */
+[dir="rtl"] table th,
+[dir="rtl"] table td,
+html[dir="rtl"] table th,
+html[dir="rtl"] table td {
+  padding-inline-start: 1rem;
+  padding-inline-end: 1rem;
+}
+
+/* Fix border radius for table corners in RTL */
+[dir="rtl"] table thead th:first-child,
+html[dir="rtl"] table thead th:first-child {
+  border-top-right-radius: 0.5rem;
+  border-top-left-radius: 0;
+}
+
+[dir="rtl"] table thead th:last-child,
+html[dir="rtl"] table thead th:last-child {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0;
+}
+
+/* Fix flexbox direction in table cells for RTL */
+[dir="rtl"] table .order-code,
+[dir="rtl"] table .order-badges,
+html[dir="rtl"] table .order-code,
+html[dir="rtl"] table .order-badges {
+  direction: rtl;
+}
+
+/* Ensure badges and inline elements flow properly in RTL */
+[dir="rtl"] .badge,
+[dir="rtl"] .badge-bnpl,
+[dir="rtl"] .badge-ssd,
+html[dir="rtl"] .badge,
+html[dir="rtl"] .badge-bnpl,
+html[dir="rtl"] .badge-ssd {
+  direction: rtl;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -38,7 +114,12 @@
 .home-container {
   min-height: 100vh;
   background: #281f51;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
     sans-serif;
 }
 
@@ -183,7 +264,12 @@
 .seller-dashboard-container {
   min-height: 100vh;
   padding: 2rem;
-  font-family: "uthmantn", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+  font-family:
+    "uthmantn",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
     sans-serif;
 }
 

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { derived } from "svelte/store";
   import {
     getSpaceFolders,
     getSpaceContents,
@@ -18,6 +19,17 @@
   import { _, locale } from "@/i18n";
   import { Pagination } from "@/components/ui";
   import { formatNumber } from "@/lib/helpers";
+
+  // i18n helper function
+  function t(key: string, fallback: string = ""): string {
+    return $_(key) || fallback;
+  }
+
+  // RTL support
+  const isRTL = derived(
+    locale,
+    ($locale) => $locale === "ar" || $locale === "ku",
+  );
 
   let activeTab = $state<"all" | "global">("global");
   let allCoupons = $state<any[]>([]);
@@ -257,7 +269,9 @@
       totalCouponsCount = searchQuery.trim() ? filteredCoupons.length : total;
     } catch (error) {
       console.error("Error loading coupons:", error);
-      errorToastMessage("Failed to load coupons");
+      errorToastMessage(
+        t("admin.error_loading_coupons", "Failed to load coupons"),
+      );
     } finally {
       loading = false;
     }
@@ -298,12 +312,16 @@
 
   async function handleCreateCoupon() {
     if (!newCoupon.code.trim()) {
-      errorToastMessage("Coupon code is required");
+      errorToastMessage(
+        t("admin.coupon_code_required", "Coupon code is required"),
+      );
       return;
     }
 
     if (!newCoupon.validity.from || !newCoupon.validity.to) {
-      errorToastMessage("Validity dates are required");
+      errorToastMessage(
+        t("admin.validity_dates_required", "Validity dates are required"),
+      );
       return;
     }
 
@@ -324,16 +342,22 @@
       );
 
       if (result) {
-        successToastMessage("Coupon created successfully");
+        successToastMessage(
+          t("admin.coupon_created", "Coupon created successfully"),
+        );
         resetForm();
         activeTab = "global";
         await loadCouponsPage();
       } else {
-        errorToastMessage("Failed to create coupon");
+        errorToastMessage(
+          t("admin.coupon_create_failed", "Failed to create coupon"),
+        );
       }
     } catch (error) {
       console.error("Error creating coupon:", error);
-      errorToastMessage("Failed to create coupon");
+      errorToastMessage(
+        t("admin.coupon_create_failed", "Failed to create coupon"),
+      );
     } finally {
       loading = false;
     }
@@ -391,15 +415,21 @@
       );
 
       if (success) {
-        successToastMessage("Coupon updated successfully");
+        successToastMessage(
+          t("admin.coupon_updated", "Coupon updated successfully"),
+        );
         editModalOpen = false;
         await loadCouponsPage();
       } else {
-        errorToastMessage("Failed to update coupon");
+        errorToastMessage(
+          t("admin.coupon_update_failed", "Failed to update coupon"),
+        );
       }
     } catch (error) {
       console.error("Error updating coupon:", error);
-      errorToastMessage("Failed to update coupon");
+      errorToastMessage(
+        t("admin.coupon_update_failed", "Failed to update coupon"),
+      );
     } finally {
       loading = false;
     }
@@ -424,15 +454,21 @@
       );
 
       if (success) {
-        successToastMessage("Coupon deleted successfully");
+        successToastMessage(
+          t("admin.coupon_deleted", "Coupon deleted successfully"),
+        );
         deleteModalOpen = false;
         await loadCouponsPage();
       } else {
-        errorToastMessage("Failed to delete coupon");
+        errorToastMessage(
+          t("admin.coupon_delete_failed", "Failed to delete coupon"),
+        );
       }
     } catch (error) {
       console.error("Error deleting coupon:", error);
-      errorToastMessage("Failed to delete coupon");
+      errorToastMessage(
+        t("admin.coupon_delete_failed", "Failed to delete coupon"),
+      );
     } finally {
       loading = false;
     }
@@ -577,12 +613,17 @@
 
 <svelte:window onclick={closeFilters} />
 
-<div class="coupons-container">
+<div class="coupons-container" dir={$isRTL ? "rtl" : "ltr"}>
   <div class="header">
     <div class="header-content">
       <div class="header-left">
-        <h1>Coupon Management</h1>
-        <p>Manage global and seller-specific coupons</p>
+        <h1>{t("admin.coupon_management", "Coupon Management")}</h1>
+        <p>
+          {t(
+            "admin.manage_coupons_description",
+            "Manage global and seller-specific coupons",
+          )}
+        </p>
       </div>
     </div>
   </div>
@@ -613,7 +654,10 @@
           id="search"
           type="text"
           bind:value={searchQuery}
-          placeholder="Search by code or seller..."
+          placeholder={t(
+            "admin.search_by_code_or_seller",
+            "Search by code or seller...",
+          )}
           class="w-full h-9 pl-9 pr-3 py-2
           bg-[#F9FAFB]
           border border-[#E5E7EB]
@@ -678,7 +722,7 @@
                   class="block text-xs font-medium text-gray-600 mb-1"
                   for="scope-filter"
                 >
-                  Scope
+                  {t("admin.scope", "Scope")}
                 </label>
                 <select
                   id="scope-filter"
@@ -688,8 +732,12 @@
                     handleScopeChange();
                   }}
                 >
-                  <option value="all">Seller Coupons</option>
-                  <option value="global">Global Coupons</option>
+                  <option value="all"
+                    >{t("admin.seller_coupons", "Seller Coupons")}</option
+                  >
+                  <option value="global"
+                    >{t("admin.global_coupons", "Global Coupons")}</option
+                  >
                 </select>
               </div>
 
@@ -699,7 +747,7 @@
                   class="block text-xs font-medium text-gray-600 mb-1"
                   for="seller-filter"
                 >
-                  Filter by Seller
+                  {t("admin.filter_by_seller", "Filter by Seller")}
                 </label>
                 <select
                   id="seller-filter"
@@ -710,8 +758,15 @@
                     handleSellerChange();
                   }}
                 >
-                  <option value="" disabled>Select a seller</option>
-                  <option value="all">All Sellers</option>
+                  <option value="" disabled
+                    >{t(
+                      "admin.select_seller_coupons",
+                      "Select a seller",
+                    )}</option
+                  >
+                  <option value="all"
+                    >{t("admin.all_sellers_coupons", "All Sellers")}</option
+                  >
                   {#each getUniqueSellers() as seller}
                     <option value={seller.shortname}
                       >{seller.displayname}</option
@@ -736,7 +791,7 @@
                 rounded-[12px]
                 hover:bg-gray-50 transition-colors"
               >
-                Reset
+                {t("admin.reset", "Reset")}
               </button>
 
               <button
@@ -750,7 +805,7 @@
                 rounded-[12px]
                 hover:bg-[#2f2666] transition-colors"
               >
-                Apply
+                {t("admin.apply", "Apply")}
               </button>
             </div>
           </div>
@@ -783,24 +838,33 @@
             d="M12 4v16m8-8H4"
           />
         </svg>
-        <span class="ml-2">Create Coupon</span>
+        <span class="ml-2">{t("admin.create_coupon", "Create Coupon")}</span>
       </button>
     </div>
   </div>
 
   <!-- Coupons Table -->
   {#if loading}
-    <div class="loading">Loading coupons...</div>
+    <div class="loading">
+      {t("admin.loading_coupons", "Loading coupons...")}
+    </div>
   {:else if filteredCoupons.length === 0}
     <div class="empty-state">
       {#if activeTab === "all" && !selectedFilter}
-        <p>Select a seller to view coupons.</p>
+        <p>
+          {t(
+            "admin.select_seller_to_view_coupons",
+            "Select a seller to view coupons.",
+          )}
+        </p>
       {:else if activeTab === "global"}
-        <p>No global coupons found.</p>
+        <p>{t("admin.no_global_coupons", "No global coupons found.")}</p>
       {:else if searchQuery.trim()}
-        <p>No coupons match your search.</p>
+        <p>
+          {t("admin.no_coupons_match_search", "No coupons match your search.")}
+        </p>
       {:else}
-        <p>No coupons found.</p>
+        <p>{t("admin.no_coupons_found", "No coupons found.")}</p>
       {/if}
     </div>
   {:else}
@@ -809,40 +873,40 @@
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >Code</th
+              class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >{t("admin.code", "Code")}</th
             >
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >Type</th
+              class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >{t("admin.type", "Type")}</th
             >
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >Seller</th
+              class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >{t("admin.seller", "Seller")}</th
             >
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >Discount</th
+              class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >{t("admin.discount", "Discount")}</th
             >
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >Valid From</th
+              class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >{t("admin.valid_from", "Valid From")}</th
             >
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >Valid To</th
+              class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >{t("admin.valid_to", "Valid To")}</th
             >
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >Usage</th
+              class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >{t("admin.usage", "Usage")}</th
             >
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >Status</th
+              class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >{t("admin.status", "Status")}</th
             >
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >Actions</th
+              class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >{t("admin.actions", "Actions")}</th
             >
           </tr>
         </thead>
@@ -880,7 +944,9 @@
                       class="truncate mt-1"
                       style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;"
                     >
-                      {coupon.isGlobal ? "Global coupon" : "Seller coupon"}
+                      {coupon.isGlobal
+                        ? t("admin.global_coupon", "Global coupon")
+                        : t("admin.seller_coupon", "Seller coupon")}
                     </div>
                   </div>
                 </div>
@@ -925,7 +991,8 @@
 
                   {#if coupon.attributes?.payload?.body?.maximum_amount}
                     <span class="ml-2" style="font-weight:400;color:#4A5565;">
-                      (max: ${coupon.attributes.payload.body.maximum_amount})
+                      ({t("admin.max", "max")}: ${coupon.attributes.payload.body
+                        .maximum_amount})
                     </span>
                   {/if}
                 </div>
@@ -1023,7 +1090,7 @@
                     </svg>
                     <span
                       style="font-weight:500;font-size:12px;line-height:16px;color:#004F3B;"
-                      >Active</span
+                      >{t("admin.status_active", "Active")}</span
                     >
                   </span>
                 {:else}
@@ -1048,7 +1115,7 @@
                     </svg>
                     <span
                       style="font-weight:500;font-size:12px;line-height:16px;color:#771D1D;"
-                      >Inactive</span
+                      >{t("admin.status_inactive", "Inactive")}</span
                     >
                   </span>
                 {/if}
@@ -1164,7 +1231,7 @@
                             />
                           </svg>
 
-                          <span>View only</span>
+                          <span>{t("admin.view_only", "View only")}</span>
                         </button>
                       {/if}
                     </div>
@@ -1191,33 +1258,43 @@
   <div class="modal-overlay" onclick={closeCreateModal}>
     <div class="modal">
       <div class="modal-header">
-        <h2>Create New Global Coupon</h2>
+        <h2>
+          {t("admin.create_new_global_coupon", "Create New Global Coupon")}
+        </h2>
         <button class="close-btn" onclick={closeCreateModal}> × </button>
       </div>
 
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group">
-            <label for="code">Coupon Code *</label>
+            <label for="code">{t("admin.coupon_code", "Coupon Code")} *</label>
             <input
               id="code"
               type="text"
               bind:value={newCoupon.code}
-              placeholder="e.g., SAVE25"
+              placeholder={t("admin.coupon_code_placeholder", "e.g., SAVE25")}
               required
             />
           </div>
 
           <div class="form-group">
-            <label for="discount_type">Discount Type *</label>
+            <label for="discount_type"
+              >{t("admin.discount_type", "Discount Type")} *</label
+            >
             <select id="discount_type" bind:value={newCoupon.discount_type}>
-              <option value="percentage">Percentage</option>
-              <option value="fixed_amount">Fixed Amount</option>
+              <option value="percentage"
+                >{t("admin.percentage", "Percentage")}</option
+              >
+              <option value="fixed_amount"
+                >{t("admin.fixed_amount", "Fixed Amount")}</option
+              >
             </select>
           </div>
 
           <div class="form-group">
-            <label for="discount_value">Discount Value *</label>
+            <label for="discount_value"
+              >{t("admin.discount_value", "Discount Value")} *</label
+            >
             <input
               id="discount_value"
               type="number"
@@ -1228,7 +1305,9 @@
           </div>
 
           <div class="form-group">
-            <label for="minimum_spend">Minimum Spend</label>
+            <label for="minimum_spend"
+              >{t("admin.minimum_spend", "Minimum Spend")}</label
+            >
             <input
               id="minimum_spend"
               type="number"
@@ -1239,7 +1318,12 @@
           </div>
 
           <div class="form-group">
-            <label for="maximum_amount">Maximum Discount Amount</label>
+            <label for="maximum_amount"
+              >{t(
+                "admin.maximum_discount_amount",
+                "Maximum Discount Amount",
+              )}</label
+            >
             <input
               id="maximum_amount"
               type="number"
@@ -1250,7 +1334,9 @@
           </div>
 
           <div class="form-group">
-            <label for="maximum_uses">Maximum Uses</label>
+            <label for="maximum_uses"
+              >{t("admin.maximum_uses", "Maximum Uses")}</label
+            >
             <input
               id="maximum_uses"
               type="number"
@@ -1260,7 +1346,9 @@
           </div>
 
           <div class="form-group">
-            <label for="maximum_per_user">Maximum Per User</label>
+            <label for="maximum_per_user"
+              >{t("admin.maximum_per_user", "Maximum Per User")}</label
+            >
             <input
               id="maximum_per_user"
               type="number"
@@ -1276,12 +1364,14 @@
                 type="checkbox"
                 bind:checked={newCoupon.is_shipping}
               />
-              Is Shipping Coupon
+              {t("admin.is_shipping_coupon", "Is Shipping Coupon")}
             </label>
           </div>
 
           <div class="form-group">
-            <label for="valid_from">Valid From *</label>
+            <label for="valid_from"
+              >{t("admin.valid_from", "Valid From")} *</label
+            >
             <input
               id="valid_from"
               type="date"
@@ -1291,7 +1381,7 @@
           </div>
 
           <div class="form-group">
-            <label for="valid_to">Valid To *</label>
+            <label for="valid_to">{t("admin.valid_to", "Valid To")} *</label>
             <input
               id="valid_to"
               type="date"
@@ -1303,13 +1393,17 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" onclick={resetForm}> Reset </button>
+        <button class="btn-secondary" onclick={resetForm}>
+          {t("admin.reset", "Reset")}
+        </button>
         <button
           class="btn-primary"
           onclick={handleCreateCoupon}
           disabled={loading}
         >
-          {loading ? "Creating..." : "Create Coupon"}
+          {loading
+            ? t("admin.creating", "Creating...")
+            : t("admin.create_coupon", "Create Coupon")}
         </button>
       </div>
     </div>
@@ -1321,7 +1415,7 @@
   <div class="modal-overlay" onclick={() => (editModalOpen = false)}>
     <div class="modal">
       <div class="modal-header">
-        <h2>Edit Coupon</h2>
+        <h2>{t("admin.edit_coupon", "Edit Coupon")}</h2>
         <button class="close-btn" onclick={() => (editModalOpen = false)}>
           ×
         </button>
@@ -1330,20 +1424,24 @@
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group">
-            <label>Coupon Code</label>
+            <label>{t("admin.coupon_code", "Coupon Code")}</label>
             <input type="text" bind:value={editFormData.code} />
           </div>
 
           <div class="form-group">
-            <label>Discount Type</label>
+            <label>{t("admin.discount_type", "Discount Type")}</label>
             <select bind:value={editFormData.discount_type}>
-              <option value="percentage">Percentage</option>
-              <option value="fixed_amount">Fixed Amount</option>
+              <option value="percentage"
+                >{t("admin.percentage", "Percentage")}</option
+              >
+              <option value="fixed_amount"
+                >{t("admin.fixed_amount", "Fixed Amount")}</option
+              >
             </select>
           </div>
 
           <div class="form-group">
-            <label>Discount Value</label>
+            <label>{t("admin.discount_value", "Discount Value")}</label>
             <input
               type="number"
               bind:value={editFormData.discount_value}
@@ -1353,7 +1451,7 @@
           </div>
 
           <div class="form-group">
-            <label>Minimum Spend</label>
+            <label>{t("admin.minimum_spend", "Minimum Spend")}</label>
             <input
               type="number"
               bind:value={editFormData.minimum_spend}
@@ -1363,7 +1461,7 @@
           </div>
 
           <div class="form-group">
-            <label>Maximum Amount</label>
+            <label>{t("admin.maximum_amount", "Maximum Amount")}</label>
             <input
               type="number"
               bind:value={editFormData.maximum_amount}
@@ -1373,7 +1471,7 @@
           </div>
 
           <div class="form-group">
-            <label>Maximum Uses</label>
+            <label>{t("admin.maximum_uses", "Maximum Uses")}</label>
             <input
               type="number"
               bind:value={editFormData.maximum_uses}
@@ -1382,12 +1480,12 @@
           </div>
 
           <div class="form-group">
-            <label>Valid From</label>
+            <label>{t("admin.valid_from", "Valid From")}</label>
             <input type="date" bind:value={editFormData.validity.from} />
           </div>
 
           <div class="form-group">
-            <label>Valid To</label>
+            <label>{t("admin.valid_to", "Valid To")}</label>
             <input type="date" bind:value={editFormData.validity.to} />
           </div>
         </div>
@@ -1395,14 +1493,16 @@
 
       <div class="modal-footer">
         <button class="btn-secondary" onclick={() => (editModalOpen = false)}>
-          Cancel
+          {$_("common.cancel") || "Cancel"}
         </button>
         <button
           class="btn-primary"
           onclick={handleUpdateCoupon}
           disabled={loading}
         >
-          {loading ? "Updating..." : "Update Coupon"}
+          {loading
+            ? t("admin.updating", "Updating...")
+            : t("admin.update_coupon", "Update Coupon")}
         </button>
       </div>
     </div>
@@ -1414,7 +1514,7 @@
   <div class="modal-overlay" onclick={() => (deleteModalOpen = false)}>
     <div class="modal modal-small">
       <div class="modal-header">
-        <h2>Delete Coupon</h2>
+        <h2>{t("admin.delete_coupon", "Delete Coupon")}</h2>
         <button class="close-btn" onclick={() => (deleteModalOpen = false)}>
           ×
         </button>
@@ -1422,22 +1522,29 @@
 
       <div class="modal-body">
         <p>
-          Are you sure you want to delete the coupon
+          {t(
+            "admin.delete_coupon_confirmation",
+            "Are you sure you want to delete the coupon",
+          )}
           <strong>{deletingCoupon.attributes.payload?.body?.code}</strong>?
         </p>
-        <p class="warning">This action cannot be undone.</p>
+        <p class="warning">
+          {t("admin.action_cannot_be_undone", "This action cannot be undone.")}
+        </p>
       </div>
 
       <div class="modal-footer">
         <button class="btn-secondary" onclick={() => (deleteModalOpen = false)}>
-          Cancel
+          {$_("common.cancel") || "Cancel"}
         </button>
         <button
           class="btn-danger"
           onclick={handleDeleteCoupon}
           disabled={loading}
         >
-          {loading ? "Deleting..." : "Delete"}
+          {loading
+            ? t("admin.deleting", "Deleting...")
+            : $_("common.delete") || "Delete"}
         </button>
       </div>
     </div>

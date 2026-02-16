@@ -89,7 +89,7 @@
           website.main_space,
           "banners",
           newItemKey,
-          newItemImage
+          newItemImage,
         );
         if (!uploadSuccess) {
           errorToastMessage($_("widgets.error.uploadFailed"));
@@ -129,7 +129,7 @@
             website.main_space,
             "categories",
             newItemKey,
-            newItemImage
+            newItemImage,
           );
           if (!uploadSuccess) {
             errorToastMessage($_("widgets.error.uploadFailed"));
@@ -176,7 +176,7 @@
       const success = await updateWidget(
         website.main_space,
         activeWidget,
-        editingItems
+        editingItems,
       );
       if (success) {
         successToastMessage($_("widgets.success.saved"));
@@ -347,7 +347,7 @@
               <input
                 type="text"
                 bind:value={newItemUrl}
-                placeholder="/brands/example"
+                placeholder={$_("widgets.banners.urlPlaceholder")}
               />
             </div>
             <div class="form-group">
@@ -397,7 +397,7 @@
               <!-- svelte-ignore a11y_label_has_associated_control -->
               <label
                 >{$_("widgets.categories.image")} ({$_(
-                  "common.optional"
+                  "common.optional",
                 )})</label
               >
               <input type="file" accept="image/*" onchange={handleFileChange} />

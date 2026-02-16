@@ -175,13 +175,14 @@
   });
 </script>
 
-<header
-  class="sticky top-0 z-40 w-full  backdrop-blur-md bg-transparent"
->
+<header class="sticky top-0 z-40 w-full backdrop-blur-md bg-transparent">
   <div class="container mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex h-16 items-center justify-between">
       <!-- Breadcrumbs -->
-      <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <nav
+        class="breadcrumbs {isRTL ? 'breadcrumbs-rtl' : 'breadcrumbs-ltr'}"
+        aria-label="Breadcrumb"
+      >
         {#each breadcrumbs as crumb, i}
           {#if i > 0}
             <span class="breadcrumb-sep" aria-hidden="true">
@@ -226,7 +227,9 @@
           {:else}
             <button
               type="button"
-              class="breadcrumb-link"
+              class="breadcrumb-link {isRTL
+                ? 'breadcrumb-link-rtl'
+                : 'breadcrumb-link-ltr'}"
               onclick={() => $goto(crumb.href)}
             >
               {#if crumb.isHome}
@@ -765,6 +768,9 @@
     border-radius: 12px;
     border: 1px solid var(--colors-border-border-base-medium, #e5e7eb);
   }
+  .breadcrumbs-rtl {
+    flex-direction: row-reverse;
+  }
 
   .breadcrumb-link,
   .breadcrumb-current {
@@ -787,6 +793,10 @@
 
   .breadcrumb-link:hover {
     text-decoration: underline;
+  }
+
+  .breadcrumb-link-rtl {
+    flex-direction: row-reverse;
   }
 
   .breadcrumb-current {

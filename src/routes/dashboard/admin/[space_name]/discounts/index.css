@@ -468,14 +468,66 @@
 /* RTL Support */
 [dir="rtl"] .items-table th {
   text-align: right;
+  padding-left: 0;
+  padding-right: 1rem;
 }
 
 [dir="rtl"] .items-table td {
   text-align: right;
+  padding-left: 0;
+  padding-right: 1rem;
+}
+
+[dir="rtl"] .items-table th:first-child {
+  padding-right: 1rem;
+  padding-left: 0;
+}
+
+[dir="rtl"] .items-table td:first-child {
+  padding-right: 1rem;
+  padding-left: 0;
 }
 
 [dir="rtl"] .search-bar input {
   padding: 10px 16px 10px 40px;
+}
+
+[dir="rtl"] .header-content {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .page-header {
+  text-align: right;
+}
+
+[dir="rtl"] .search-and-filters {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .filters-left {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .filters-panel {
+  right: auto;
+  left: 0;
+}
+
+[dir="rtl"] .stat-card {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .code-cell {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .actions-cell {
+  justify-content: flex-end;
+}
+
+[dir="rtl"] .modal-footer {
+  justify-content: flex-start;
 }
 
 @media (max-width: 768px) {
