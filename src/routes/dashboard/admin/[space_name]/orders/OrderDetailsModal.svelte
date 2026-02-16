@@ -31,6 +31,9 @@
     onStateChange,
   }: Props = $props();
 
+  const t = (key: string, vars?: Record<string, unknown>) =>
+    globalThis.$(_)(key, vars);
+
   const orderWorkflow = {
     name: "order_processing",
     states: [
@@ -243,16 +246,24 @@
           order.attachments = refreshedOrder.attachments;
         }
 
-        successToastMessage("Order state updated successfully");
+        successToastMessage(
+          t("admin.order_state_updated") || "Order state updated successfully",
+        );
         if (onStateChange) {
           onStateChange(order.seller_shortname, order.shortname, targetState);
         }
       } else {
-        errorToastMessage("Failed to update order state");
+        errorToastMessage(
+          t("admin.order_state_update_failed") ||
+            "Failed to update order state",
+        );
       }
     } catch (error) {
       console.error("Error updating order state:", error);
-      errorToastMessage("An error occurred while updating order");
+      errorToastMessage(
+        t("admin.order_state_update_error") ||
+          "An error occurred while updating order",
+      );
     }
   }
 
@@ -315,7 +326,10 @@
   function confirmCancellation(order: any) {
     const pending = pendingCancellations[order.shortname];
     if (!pending || !pending.reasonKey) {
-      errorToastMessage("Please select a cancellation reason");
+      errorToastMessage(
+        t("admin.select_cancellation_reason") ||
+          "Please select a cancellation reason",
+      );
       return;
     }
     handleStateChange(
@@ -363,7 +377,9 @@
   async function submitComment(order: any) {
     const draft = getCommentDraft(order);
     if (!draft.text.trim()) {
-      errorToastMessage("Please enter a comment");
+      errorToastMessage(
+        t("admin.comment_required") || "Please enter a comment",
+      );
       return;
     }
 
@@ -378,7 +394,9 @@
       );
 
       if (!success) {
-        errorToastMessage("Failed to add comment");
+        errorToastMessage(
+          t("admin.comment_add_failed") || "Failed to add comment",
+        );
         return;
       }
 
@@ -395,10 +413,12 @@
       }
 
       updateCommentDraft(order, { text: "" });
-      successToastMessage("Comment added successfully");
+      successToastMessage(
+        t("admin.comment_added") || "Comment added successfully",
+      );
     } catch (error) {
       console.error("Error adding comment:", error);
-      errorToastMessage("Error adding comment");
+      errorToastMessage(t("admin.comment_add_error") || "Error adding comment");
     } finally {
       commentLoading = { ...commentLoading, [order.shortname]: false };
     }
@@ -406,11 +426,15 @@
 
   async function removeOrderComment(order: any, comment: any) {
     if (!comment?.shortname) {
-      errorToastMessage("Comment could not be deleted");
+      errorToastMessage(
+        t("admin.comment_delete_invalid") || "Comment could not be deleted",
+      );
       return;
     }
 
-    const confirmed = window.confirm("Delete this comment?");
+    const confirmed = window.confirm(
+      t("admin.comment_delete_confirm") || "Delete this comment?",
+    );
     if (!confirmed) return;
 
     commentDeleteLoading = {
@@ -427,7 +451,9 @@
       );
 
       if (!success) {
-        errorToastMessage("Failed to delete comment");
+        errorToastMessage(
+          t("admin.comment_delete_failed") || "Failed to delete comment",
+        );
         return;
       }
 
@@ -443,10 +469,14 @@
         order.attachments = refreshedOrder.attachments;
       }
 
-      successToastMessage("Comment deleted successfully");
+      successToastMessage(
+        t("admin.comment_deleted") || "Comment deleted successfully",
+      );
     } catch (error) {
       console.error("Error deleting comment:", error);
-      errorToastMessage("Error deleting comment");
+      errorToastMessage(
+        t("admin.comment_delete_error") || "Error deleting comment",
+      );
     } finally {
       commentDeleteLoading = {
         ...commentDeleteLoading,
@@ -578,7 +608,7 @@
     class="modal-overlay"
     role="button"
     tabindex="0"
-    aria-label="Close modal"
+    aria-label={$_("admin.close_modal") || "Close modal"}
     onclick={handleBackdropClick}
     onkeydown={handleBackdropKeydown}
   >
@@ -597,7 +627,11 @@
             </div>
           {/if}
         </div>
-        <button class="close-button" onclick={handleClose} aria-label="Close">
+        <button
+          class="close-button"
+          onclick={handleClose}
+          aria-label={$_("common.close") || "Close"}
+        >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path
               d="M18 6L6 18M6 6l12 12"
@@ -628,10 +662,14 @@
                   {payload?.payment_status || "pending"}
                 </div>
                 {#if isBnplOrder(payload)}
-                  <span class="badge badge-bnpl">BNPL</span>
+                  <span class="badge badge-bnpl">
+                    {$_("admin.bnpl") || "BNPL"}
+                  </span>
                 {/if}
                 {#if isSameDayDelivery(payload)}
-                  <span class="badge badge-ssd">SSD</span>
+                  <span class="badge badge-ssd">
+                    {$_("admin.ssd") || "SSD"}
+                  </span>
                 {/if}
               </div>
             </div>
@@ -642,7 +680,11 @@
                   >{$_("admin.order_id") || "Order ID"}</span
                 >
                 <span class="info-value">
-                  <strong>#{payload?.combined_order_id || "N/A"}</strong>
+                  <strong>
+                    #{payload?.combined_order_id ||
+                      $_("common.not_available") ||
+                      "N/A"}
+                  </strong>
                 </span>
               </div>
               <div class="info-item">
@@ -658,7 +700,9 @@
                   >{$_("admin.customer") || "Customer"}</span
                 >
                 <span class="info-value">
-                  <strong>{customerShortname || "N/A"}</strong>
+                  <strong>
+                    {customerShortname || $_("common.not_available") || "N/A"}
+                  </strong>
                 </span>
               </div>
               <div class="info-item">
@@ -666,14 +710,16 @@
                   >{$_("admin.order_from") || "Order From"}</span
                 >
                 <span class="info-value">
-                  {payload?.order_from || "-"}
+                  {payload?.order_from || $_("common.not_available") || "N/A"}
                 </span>
               </div>
               <div class="info-item">
                 <span class="info-label"
                   >{$_("admin.payment_type") || "Payment Type"}</span
                 >
-                <span class="info-value">{payload?.payment_type || "-"}</span>
+                <span class="info-value">
+                  {payload?.payment_type || $_("common.not_available") || "N/A"}
+                </span>
               </div>
               <div class="info-item">
                 <span class="info-label"
@@ -697,7 +743,10 @@
               </h3>
               <div class="loading-orders">
                 <div class="spinner-inline"></div>
-                <p>Loading individual orders...</p>
+                <p>
+                  {$_("admin.loading_individual_orders") ||
+                    "Loading individual orders..."}
+                </p>
               </div>
             </div>
           {:else if individualOrders.length > 0}
@@ -760,7 +809,9 @@
                             }
                           }}
                         >
-                          <option value="">Change state...</option>
+                          <option value="">
+                            {$_("admin.change_state") || "Change state..."}
+                          </option>
                           {#each transitions as transition}
                             <option value={transition.action}>
                               {formatActionLabel(
@@ -771,19 +822,23 @@
                           {/each}
                         </select>
                       {:else}
-                        <span class="state-select-disabled">No actions</span>
+                        <span class="state-select-disabled">
+                          {$_("admin.no_actions") || "No actions"}
+                        </span>
                       {/if}
                     </div>
                   </div>
 
                   <div class="progress-comment">
                     <label for="progress-comment-{order.shortname}">
-                      Progress Comment (optional)
+                      {$_("admin.progress_comment_label") ||
+                        "Progress Comment (optional)"}
                     </label>
                     <textarea
                       id="progress-comment-{order.shortname}"
                       rows="2"
-                      placeholder="Add a comment for this state change..."
+                      placeholder={$_("admin.progress_comment_placeholder") ||
+                        "Add a comment for this state change..."}
                       value={progressCommentDrafts[order.shortname] || ""}
                       oninput={(e) =>
                         updateProgressCommentDraft(
@@ -796,7 +851,8 @@
                   {#if cancellationPending}
                     <div class="cancellation-reason">
                       <label for="cancel-reason-{order.shortname}">
-                        Cancellation reason
+                        {$_("admin.cancellation_reason") ||
+                          "Cancellation reason"}
                       </label>
                       <div class="cancellation-controls">
                         <select
@@ -809,7 +865,9 @@
                               e.currentTarget.selectedOptions?.[0]?.text || "",
                             )}
                         >
-                          <option value="">Select reason...</option>
+                          <option value="">
+                            {$_("admin.select_reason") || "Select reason..."}
+                          </option>
                           {#each getCancellationResolutions() as reason}
                             <option value={reason.key}>{reason.en}</option>
                           {/each}
@@ -818,7 +876,7 @@
                           class="btn-confirm-cancel"
                           onclick={() => confirmCancellation(order)}
                         >
-                          Confirm Cancel
+                          {$_("admin.confirm_cancel") || "Confirm Cancel"}
                         </button>
                       </div>
                     </div>
@@ -835,7 +893,9 @@
                               <div class="item-name">
                                 {item.product_shortname || item.sku}
                               </div>
-                              <div class="item-sku">SKU: {item.sku}</div>
+                              <div class="item-sku">
+                                {$_("admin.sku") || "SKU"}: {item.sku}
+                              </div>
                               {#if item.options && item.options.length > 0}
                                 <div class="item-options">
                                   {#each item.options as option}
@@ -865,7 +925,8 @@
                             </div>
                             <div class="item-quantity">×{item.quantity}</div>
                             <div class="item-price">
-                              {(item.subtotal || 0).toLocaleString()} IQD
+                              {(item.subtotal || 0).toLocaleString()}
+                              {$_("admin.currency") || "IQD"}
                             </div>
                           </div>
                         </div>
@@ -925,17 +986,21 @@
                           "Shipping Information"}
                       </div>
                       <div class="shipping-details">
-                        Delivery: {orderPayload.shipping.min}-{orderPayload
-                          .shipping.max} days
+                        {$_("admin.delivery_label") || "Delivery"}: {orderPayload
+                          .shipping.min}-{orderPayload.shipping.max}
+                        {$_("admin.days") || "days"}
                       </div>
                     </div>
                   {/if}
 
                   <div class="comment-form">
-                    <div class="comment-form-header">Add Comment</div>
+                    <div class="comment-form-header">
+                      {$_("admin.add_comment") || "Add Comment"}
+                    </div>
                     <textarea
                       rows="3"
-                      placeholder="Write a comment..."
+                      placeholder={$_("admin.comment_placeholder") ||
+                        "Write a comment..."}
                       value={commentDraft.text}
                       oninput={(e) =>
                         updateCommentDraft(order, {
@@ -948,19 +1013,19 @@
                       disabled={commentLoading[order.shortname]}
                     >
                       {commentLoading[order.shortname]
-                        ? "Sending..."
-                        : "Add Comment"}
+                        ? $_("sending") || "Sending..."
+                        : $_("admin.add_comment") || "Add Comment"}
                     </button>
                   </div>
                   {#if orderComments.length > 0}
                     {@const commentGroups = groupCommentsByState(orderComments)}
                     <div class="order-comments">
-                      <h4>Comments</h4>
+                      <h4>{$_("admin.comments_title") || "Comments"}</h4>
                       {#each Object.entries(commentGroups) as [commentState, comments]}
                         <div class="comment-group">
                           <div class="comment-group-title">
                             {commentState === "general"
-                              ? "General"
+                              ? $_("admin.comments_general") || "General"
                               : getStateLabel(commentState)}
                           </div>
                           {#each comments as comment}
@@ -969,6 +1034,7 @@
                                 <span class="comment-author">
                                   {comment.attributes?.displayname?.en ||
                                     comment.attributes?.owner_shortname ||
+                                    $_("common.unknown") ||
                                     "Unknown"}
                                 </span>
                                 <div class="comment-actions">
@@ -985,15 +1051,16 @@
                                     ]}
                                   >
                                     {commentDeleteLoading[comment.shortname]
-                                      ? "Deleting..."
-                                      : "Delete"}
+                                      ? $_("admin.deleting") || "Deleting..."
+                                      : $_("common.delete") || "Delete"}
                                   </button>
                                 </div>
                               </div>
                               <p class="comment-text">
                                 {comment.attributes?.payload?.body?.embedded ||
                                   comment.attributes?.payload?.body?.body ||
-                                  "-"}
+                                  $_("common.not_available") ||
+                                  "N/A"}
                               </p>
                             </div>
                           {/each}
@@ -1006,7 +1073,10 @@
             </div>
           {:else}
             <div class="empty-state">
-              <p>No individual orders found for this combined order</p>
+              <p>
+                {$_("admin.no_individual_orders") ||
+                  "No individual orders found for this combined order"}
+              </p>
             </div>
           {/if}
         {/if}

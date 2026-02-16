@@ -37,18 +37,44 @@
   let selectedCombinedOrder = $state(null);
   let selectedCombinedOrderDetails = $state(null);
 
+  const t = (key: string, vars?: Record<string, unknown>) => globalThis.$(_)(key, vars);
+
   const paymentStatuses = [
-    { value: "all", label: "All Payment Status" },
-    { value: "pending", label: "Pending" },
-    { value: "completed", label: "Completed" },
-    { value: "nopaid", label: "Not Paid" },
-    { value: "failed", label: "Failed" },
+    {
+      value: "all",
+      labelKey: "admin.all_payment_statuses",
+      fallback: "All Payment Statuses",
+    },
+    {
+      value: "pending",
+      labelKey: "admin.payment_pending",
+      fallback: "Pending",
+    },
+    {
+      value: "completed",
+      labelKey: "admin.payment_completed",
+      fallback: "Completed",
+    },
+    {
+      value: "nopaid",
+      labelKey: "admin.payment_not_paid",
+      fallback: "Not Paid",
+    },
+    {
+      value: "failed",
+      labelKey: "admin.payment_failed",
+      fallback: "Failed",
+    },
   ];
 
   const bnplFilterOptions = [
-    { value: "all", label: "All" },
-    { value: "bnpl", label: "BNPL" },
-    { value: "non_bnpl", label: "Non-BNPL" },
+    { value: "all", labelKey: "admin.filter_all", fallback: "All" },
+    { value: "bnpl", labelKey: "admin.bnpl", fallback: "BNPL" },
+    {
+      value: "non_bnpl",
+      labelKey: "admin.non_bnpl",
+      fallback: "Non-BNPL",
+    },
   ];
 
   onMount(() => {
@@ -66,7 +92,9 @@
       await loadSubordersForCombinedOrders(combinedOrders);
       applyFilters();
     } catch (e) {
-      error = "An error occurred while loading orders";
+      error =
+        t("admin.orders_load_error") ||
+        "An error occurred while loading orders";
       console.error(e);
     } finally {
       loading = false;
@@ -88,7 +116,7 @@
       );
 
       if (response.status !== "success") {
-        error = "Failed to load orders";
+        error = t("admin.orders_load_failed") || "Failed to load orders";
         break;
       }
 
@@ -310,7 +338,10 @@
     const ordersShortnames = payload?.orders_shortnames || [];
 
     if (ordersShortnames.length === 0) {
-      errorToastMessage("No orders found in this combined order");
+      errorToastMessage(
+        t("admin.no_orders_in_combined") ||
+          "No orders found in this combined order",
+      );
       return;
     }
 
@@ -386,7 +417,9 @@
       };
     } catch (error) {
       console.error("Error loading combined order details:", error);
-      errorToastMessage("Error loading order details");
+      errorToastMessage(
+        t("admin.order_details_load_error") || "Error loading order details",
+      );
       selectedCombinedOrderDetails = {
         ...order,
         individualOrders: [],
@@ -832,7 +865,7 @@
 
 <div class="orders-container">
   <div class="header">
-    <h1>Combined Orders</h1>
+    <h1>{$_("admin.combined_orders_title") || "Combined Orders"}</h1>
   </div>
 
   <div class="stats-grid">
@@ -854,7 +887,9 @@
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title">Total Orders</h3>
+        <h3 class="stat-title">
+          {$_("admin.stats_total_orders") || "Total Orders"}
+        </h3>
 
         <p class="stat-value">
           {filteredOrders.length}
@@ -880,9 +915,12 @@
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title">Total Revenue</h3>
+        <h3 class="stat-title">
+          {$_("admin.stats_total_revenue") || "Total Revenue"}
+        </h3>
         <p class="stat-value">
-          {formatCurrency(totalRevenue)} IQD
+          {formatCurrency(totalRevenue)}
+          {$_("admin.currency") || "IQD"}
         </p>
       </div>
     </div>
@@ -904,7 +942,9 @@
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title">Total Items</h3>
+        <h3 class="stat-title">
+          {$_("admin.stats_total_items") || "Total Items"}
+        </h3>
         <p class="stat-value">
           {totalItems}
         </p>
@@ -928,9 +968,12 @@
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title">Average Order</h3>
+        <h3 class="stat-title">
+          {$_("admin.stats_average_order") || "Average Order"}
+        </h3>
         <p class="stat-value">
-          {formatCurrency(averageOrder)} IQD
+          {formatCurrency(averageOrder)}
+          {$_("admin.currency") || "IQD"}
         </p>
       </div>
     </div>
@@ -961,7 +1004,8 @@
         <input
           type="text"
           bind:value={searchQuery}
-          placeholder="Order ID, username, phone..."
+          placeholder={$_("admin.search_combined_orders_placeholder") ||
+            "Order ID, username, phone..."}
           class="w-full h-9 pl-9 pr-3 py-2
           bg-[#F9FAFB]
           border border-[#E5E7EB]
@@ -1003,7 +1047,7 @@
               />
             </svg>
 
-            Filters
+            {$_("admin.filters") || "Filters"}
             {#if activeFiltersCount() > 0}
               <span
                 class="inline-flex items-center justify-center px-2 h-5 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
@@ -1037,14 +1081,16 @@
               <!-- Payment -->
               <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1"
-                  >Payment Status</label
+                  >{$_("admin.payment_status") || "Payment Status"}</label
                 >
                 <select
                   bind:value={selectedPaymentStatus}
                   class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
                 >
                   {#each paymentStatuses as status}
-                    <option value={status.value}>{status.label}</option>
+                    <option value={status.value}>
+                      {$_(status.labelKey) || status.fallback}
+                    </option>
                   {/each}
                 </select>
               </div>
@@ -1052,7 +1098,7 @@
               <!-- Order Status -->
               <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1"
-                  >Order Status</label
+                  >{$_("admin.order_status") || "Order Status"}</label
                 >
                 <select
                   bind:value={selectedOrderStatus}
@@ -1060,7 +1106,9 @@
                 >
                   {#each availableOrderStatuses as status}
                     <option value={status}>
-                      {status === "all" ? "All Statuses" : status}
+                      {status === "all"
+                        ? $_("admin.all_statuses") || "All Statuses"
+                        : status}
                     </option>
                   {/each}
                 </select>
@@ -1069,7 +1117,7 @@
               <!-- Seller -->
               <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1"
-                  >Seller</label
+                  >{$_("admin.seller") || "Seller"}</label
                 >
                 <select
                   bind:value={selectedSeller}
@@ -1077,7 +1125,9 @@
                 >
                   {#each availableSellers as seller}
                     <option value={seller}>
-                      {seller === "all" ? "All Sellers" : seller}
+                      {seller === "all"
+                        ? $_("admin.all_sellers") || "All Sellers"
+                        : seller}
                     </option>
                   {/each}
                 </select>
@@ -1086,7 +1136,7 @@
               <!-- Governorate -->
               <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1"
-                  >Governorate</label
+                  >{$_("admin.governorate") || "Governorate"}</label
                 >
                 <select
                   bind:value={selectedGovernorate}
@@ -1094,7 +1144,9 @@
                 >
                   {#each availableGovernorates as governorate}
                     <option value={governorate}>
-                      {governorate === "all" ? "All Governorates" : governorate}
+                      {governorate === "all"
+                        ? $_("admin.all_governorates") || "All Governorates"
+                        : governorate}
                     </option>
                   {/each}
                 </select>
@@ -1103,14 +1155,16 @@
               <!-- BNPL -->
               <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1"
-                  >BNPL</label
+                  >{$_("admin.bnpl") || "BNPL"}</label
                 >
                 <select
                   bind:value={selectedBnpl}
                   class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
                 >
                   {#each bnplFilterOptions as option}
-                    <option value={option.value}>{option.label}</option>
+                    <option value={option.value}>
+                      {$_(option.labelKey) || option.fallback}
+                    </option>
                   {/each}
                 </select>
               </div>
@@ -1118,7 +1172,7 @@
               <!-- Date From -->
               <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1"
-                  >Date From</label
+                  >{$_("admin.date_from") || "Date From"}</label
                 >
                 <input
                   type="date"
@@ -1130,7 +1184,7 @@
               <!-- Date To -->
               <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1"
-                  >Date To</label
+                  >{$_("admin.date_to") || "Date To"}</label
                 >
                 <input
                   type="date"
@@ -1153,7 +1207,7 @@
                 rounded-[12px]
                 hover:bg-gray-50 transition-colors"
               >
-                Reset
+                {$_("admin.reset") || "Reset"}
               </button>
 
               <button
@@ -1168,7 +1222,7 @@
                 rounded-[12px]
                 hover:bg-[#2f2666] transition-colors"
               >
-                Apply
+                {$_("admin.apply") || "Apply"}
               </button>
             </div>
           </div>
@@ -1187,7 +1241,7 @@
           shadow-[0px_1px_0.5px_0.05px_#1D293D05]
           text-sm text-gray-700 hover:bg-gray-50"
         >
-          <span class="truncate">Actions</span>
+          <span class="truncate">{$_("admin.actions") || "Actions"}</span>
           <svg
             class="w-4 h-4 text-gray-500"
             fill="none"
@@ -1215,7 +1269,7 @@
                 downloadOrdersCsv();
               }}
             >
-              Download CSV
+              {$_("admin.download_csv") || "Download CSV"}
             </button>
           </div>
         {/if}
@@ -1226,18 +1280,22 @@
   {#if loading}
     <div class="loading">
       <div class="spinner"></div>
-      <p>Loading orders...</p>
+      <p>{$_("admin.loading_orders") || "Loading orders..."}</p>
     </div>
   {:else if error}
     <div class="error-message">
       <p>{error}</p>
-      <button class="btn-retry" onclick={loadCombinedOrders}>Retry</button>
+      <button class="btn-retry" onclick={loadCombinedOrders}>
+        {$_("common.retry") || "Retry"}
+      </button>
     </div>
   {:else if filteredOrders.length === 0}
     <div class="empty-state">
-      <p>No combined orders found</p>
+      <p>{$_("admin.no_combined_orders") || "No combined orders found"}</p>
       {#if searchQuery || selectedPaymentStatus !== "all"}
-        <p class="empty-hint">Try adjusting your filters</p>
+        <p class="empty-hint">
+          {$_("admin.adjust_filters_hint") || "Try adjusting your filters"}
+        </p>
       {/if}
     </div>
   {:else}
@@ -1246,14 +1304,14 @@
       <table class="orders-table">
         <thead>
           <tr>
-            <th>Order Code</th>
-            <th>Customer</th>
-            <th>Items</th>
-            <th>Sellers</th>
-            <th>Total</th>
-            <th>Payment</th>
-            <th>Date</th>
-            <th>Actions</th>
+            <th>{$_("admin.table_order_code") || "Order Code"}</th>
+            <th>{$_("admin.customer") || "Customer"}</th>
+            <th>{$_("admin.items") || "Items"}</th>
+            <th>{$_("admin.sellers") || "Sellers"}</th>
+            <th>{$_("admin.total") || "Total"}</th>
+            <th>{$_("admin.payment_status") || "Payment"}</th>
+            <th>{$_("admin.date") || "Date"}</th>
+            <th>{$_("admin.actions") || "Actions"}</th>
           </tr>
         </thead>
         <tbody class="bg-white">
@@ -1298,7 +1356,7 @@
                         >
                           <span
                             style="font-weight:500;font-size:12px;line-height:16px;color:#1C398E;"
-                            >BNPL</span
+                            >{$_("admin.bnpl") || "BNPL"}</span
                           >
                         </span>
                       {/if}
@@ -1310,7 +1368,7 @@
                         >
                           <span
                             style="font-weight:500;font-size:12px;line-height:16px;color:#771D1D;"
-                            >SSD</span
+                            >{$_("admin.ssd") || "SSD"}</span
                           >
                         </span>
                       {/if}
@@ -1326,16 +1384,23 @@
                     class="truncate"
                     style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
                     title={order.attributes?.payload?.body?.user_shortname ||
+                      $_("common.not_available") ||
                       "N/A"}
                   >
-                    {order.attributes?.payload?.body?.user_shortname || "N/A"}
+                    {order.attributes?.payload?.body?.user_shortname ||
+                      $_("common.not_available") ||
+                      "N/A"}
                   </div>
                   <div
                     class="truncate mt-1"
                     style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;"
-                    title={order.attributes?.payload?.body?.order_from || "N/A"}
+                    title={order.attributes?.payload?.body?.order_from ||
+                      $_("common.not_available") ||
+                      "N/A"}
                   >
-                    {order.attributes?.payload?.body?.order_from || "N/A"}
+                    {order.attributes?.payload?.body?.order_from ||
+                      $_("common.not_available") ||
+                      "N/A"}
                   </div>
                 </div>
               </td>
@@ -1362,8 +1427,8 @@
                       ?.length || 0}
                     {(order.attributes?.payload?.body?.orders_shortnames
                       ?.length || 0) === 1
-                      ? " seller"
-                      : " sellers"}
+                      ? ` ${$_("admin.seller_singular") || "seller"}`
+                      : ` ${$_("admin.seller_plural") || "sellers"}`}
                   </span>
                 </span>
               </td>
@@ -1375,7 +1440,8 @@
                 >
                   {formatCurrency(
                     order.attributes?.payload?.body?.total_amount || 0,
-                  )} IQD
+                  )}
+                  {$_("admin.currency") || "IQD"}
                 </span>
               </td>
 
@@ -1398,7 +1464,9 @@
                   <span
                     style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;"
                   >
-                    {order.attributes?.payload?.body?.payment_type || "N/A"}
+                    {order.attributes?.payload?.body?.payment_type ||
+                      $_("common.not_available") ||
+                      "N/A"}
                   </span>
                 </div>
               </td>
@@ -1433,7 +1501,7 @@
                 <div class="relative" onclick={(e) => e.stopPropagation()}>
                   <button
                     class="h-8 w-8 inline-flex items-center justify-center rounded-md cursor-pointer rounded-md hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
-                    aria-label="Actions"
+                    aria-label={$_("admin.actions") || "Actions"}
                     aria-haspopup="menu"
                     aria-expanded={openActionsFor === getRowId(order)}
                     onclick={() => toggleTableActions(order)}
@@ -1446,9 +1514,9 @@
                       class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1 right-0"
                       role="menu"
                     >
-                    <button
+                      <button
                         class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-gray-600"
-                       onclick={() => {
+                        onclick={() => {
                           closeActions();
                           viewCombinedOrder(order);
                         }}
@@ -1468,7 +1536,7 @@
                           />
                         </svg>
 
-                        <span>View</span>
+                        <span>{$_("view") || "View"}</span>
                       </button>
                     </div>
                   {/if}
@@ -1483,7 +1551,10 @@
     <!-- Pagination -->
     <div class="pagination">
       <p class="pagination-text">
-        Showing {paginationStart}-{paginationEnd} of {filteredTotal}
+        {$_(
+          "admin.pagination_showing",
+          { values: { start: paginationStart, end: paginationEnd, total: filteredTotal } },
+        ) || `Showing ${paginationStart}-${paginationEnd} of ${filteredTotal}`}
       </p>
       <div class="pagination-controls">
         <button
@@ -1491,7 +1562,7 @@
           class="pagination-segment pagination-arrow"
           onclick={previousPage}
           disabled={currentPage === 1}
-          aria-label="Previous page"
+          aria-label={$_("admin.previous_page") || "Previous page"}
         >
           <svg
             class="pagination-arrow-icon"
@@ -1531,7 +1602,7 @@
           class="pagination-segment pagination-arrow"
           onclick={nextPage}
           disabled={currentPage === totalPages}
-          aria-label="Next page"
+          aria-label={$_("admin.next_page") || "Next page"}
         >
           <svg
             class="pagination-arrow-icon"

@@ -553,3 +553,37 @@
     max-height: 95vh;
   }
 }
+
+[dir="rtl"] .coupons-table th {
+  text-align: right;
+  padding-left: 0;
+  padding-right: 1rem;
+}
+
+[dir="rtl"] .coupons-table td {
+  text-align: right;
+  padding-left: 0;
+  padding-right: 1rem;
+}
+
+[dir="rtl"] .coupons-table th:first-child {
+  padding-right: 1rem;
+  padding-left: 0;
+}
+
+[dir="rtl"] .coupons-table td:first-child {
+  padding-right: 1rem;
+  padding-left: 0;
+}
+
+[dir="rtl"] .header-content {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .form-actions {
+  justify-content: flex-end;
+}
+
+[dir="rtl"] .modal-footer {
+  justify-content: flex-start;
+}

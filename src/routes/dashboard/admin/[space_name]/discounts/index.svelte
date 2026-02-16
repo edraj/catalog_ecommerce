@@ -73,6 +73,11 @@
     ($locale) => $locale === "ar" || $locale === "ku",
   );
 
+  // Helper for translation with fallback
+  function t(key: string, fallback: string = ""): string {
+    return $_(key) || fallback;
+  }
+
   // -----------------------------
   // Derived lists
   // -----------------------------
@@ -310,7 +315,9 @@
   // Optional action: CSV export (stub)
   function downloadDiscountsCsv() {
     // You can implement your CSV logic here.
-    successToastMessage("CSV download started (hook your exporter).");
+    successToastMessage(
+      t("admin.csv_download_started", "CSV download started"),
+    );
   }
 
   // -----------------------------
@@ -377,7 +384,9 @@
       }
     } catch (error) {
       console.error("Error loading sellers:", error);
-      errorToastMessage("Error loading sellers");
+      errorToastMessage(
+        t("admin.error_loading_sellers", "Error loading sellers"),
+      );
     } finally {
       isLoadingSellers = false;
     }
@@ -470,7 +479,9 @@
           offset + pageItems.length + (pageItems.length === limit ? 1 : 0);
       } catch (error) {
         console.error("Error loading discounts:", error);
-        errorToastMessage("Error loading discounts");
+        errorToastMessage(
+          t("admin.error_loading_discounts", "Error loading discounts"),
+        );
       } finally {
         isLoadingDiscounts = false;
       }
@@ -506,7 +517,9 @@
         (response?.records?.length === limit ? 1 : 0);
     } catch (error) {
       console.error("Error loading discounts:", error);
-      errorToastMessage("Error loading discounts");
+      errorToastMessage(
+        t("admin.error_loading_discounts", "Error loading discounts"),
+      );
     } finally {
       isLoadingDiscounts = false;
     }
@@ -631,17 +644,26 @@
       !discountForm.validFrom ||
       !discountForm.validTo
     ) {
-      errorToastMessage("Please fill in all required fields");
+      errorToastMessage(
+        t("admin.fill_required_fields", "Please fill in all required fields"),
+      );
       return;
     }
 
     if (discountForm.type && !discountForm.typeShortname) {
-      errorToastMessage("Please select a specific category or brand");
+      errorToastMessage(
+        t(
+          "admin.select_specific_target",
+          "Please select a specific category or brand",
+        ),
+      );
       return;
     }
 
     if (!selectedSeller || selectedSeller === "all") {
-      errorToastMessage("Select a seller to add discounts");
+      errorToastMessage(
+        t("admin.select_seller_to_add", "Select a seller to add discounts"),
+      );
       return;
     }
 
@@ -705,12 +727,16 @@
         );
       }
 
-      successToastMessage("Discount created successfully!");
+      successToastMessage(
+        t("admin.discount_created", "Discount created successfully!"),
+      );
       closeDiscountModal();
       await loadSellerDiscounts(true);
     } catch (error) {
       console.error("Error creating discount:", error);
-      errorToastMessage("Failed to create discount");
+      errorToastMessage(
+        t("admin.discount_create_failed", "Failed to create discount"),
+      );
     } finally {
       isSavingDiscount = false;
     }
@@ -724,17 +750,26 @@
       !discountForm.validFrom ||
       !discountForm.validTo
     ) {
-      errorToastMessage("Please fill in all required fields");
+      errorToastMessage(
+        t("admin.fill_required_fields", "Please fill in all required fields"),
+      );
       return;
     }
 
     if (discountForm.type && !discountForm.typeShortname) {
-      errorToastMessage("Please select a specific category or brand");
+      errorToastMessage(
+        t(
+          "admin.select_specific_target",
+          "Please select a specific category or brand",
+        ),
+      );
       return;
     }
 
     if (!selectedSeller || selectedSeller === "all") {
-      errorToastMessage("Select a seller to edit discounts");
+      errorToastMessage(
+        t("admin.select_seller_to_edit", "Select a seller to edit discounts"),
+      );
       return;
     }
 
@@ -756,7 +791,12 @@
         ) || response?.records?.[0];
 
       if (!configEntry) {
-        errorToastMessage("Discount configuration not found");
+        errorToastMessage(
+          t(
+            "admin.discount_config_not_found",
+            "Discount configuration not found",
+          ),
+        );
         return;
       }
 
@@ -784,12 +824,16 @@
         "",
       );
 
-      successToastMessage("Discount updated successfully!");
+      successToastMessage(
+        t("admin.discount_updated", "Discount updated successfully!"),
+      );
       closeEditDiscountModal();
       await loadSellerDiscounts(true);
     } catch (error) {
       console.error("Error updating discount:", error);
-      errorToastMessage("Failed to update discount");
+      errorToastMessage(
+        t("admin.discount_update_failed", "Failed to update discount"),
+      );
     } finally {
       isSavingDiscount = false;
     }
@@ -799,7 +843,12 @@
     if (!selectedDiscount) return;
 
     if (!selectedSeller || selectedSeller === "all") {
-      errorToastMessage("Select a seller to delete discounts");
+      errorToastMessage(
+        t(
+          "admin.select_seller_to_delete",
+          "Select a seller to delete discounts",
+        ),
+      );
       return;
     }
 
@@ -821,7 +870,12 @@
         ) || response?.records?.[0];
 
       if (!configEntry) {
-        errorToastMessage("Discount configuration not found");
+        errorToastMessage(
+          t(
+            "admin.discount_config_not_found",
+            "Discount configuration not found",
+          ),
+        );
         return;
       }
 
@@ -846,12 +900,16 @@
         "",
       );
 
-      successToastMessage("Discount deleted successfully!");
+      successToastMessage(
+        t("admin.discount_deleted", "Discount deleted successfully!"),
+      );
       closeDeleteDiscountModal();
       await loadSellerDiscounts(true);
     } catch (error) {
       console.error("Error deleting discount:", error);
-      errorToastMessage("Failed to delete discount");
+      errorToastMessage(
+        t("admin.discount_delete_failed", "Failed to delete discount"),
+      );
     } finally {
       isSavingDiscount = false;
     }
@@ -860,7 +918,7 @@
 
 <svelte:window onclick={closeAllDropdowns} />
 
-<div class="admin-page-container">
+<div class="admin-page-container" dir={$isRTL ? "rtl" : "ltr"}>
   <div class="admin-page-content">
     <!-- Page header (title/subtitle stays) -->
     <div class="page-header">
@@ -896,7 +954,9 @@
           </svg>
         </div>
         <div class="stat-content">
-          <h3 class="stat-title">Total Discounts</h3>
+          <h3 class="stat-title">
+            {t("admin.total_discounts", "Total Discounts")}
+          </h3>
           <p class="stat-value">
             {totalStats}
           </p>
@@ -920,7 +980,9 @@
           </svg>
         </div>
         <div class="stat-content">
-          <h3 class="stat-title">Active Discounts</h3>
+          <h3 class="stat-title">
+            {t("admin.active_discounts", "Active Discounts")}
+          </h3>
           <p class="stat-value">
             {activeStats}
           </p>
@@ -944,7 +1006,9 @@
           </svg>
         </div>
         <div class="stat-content">
-          <h3 class="stat-title">Inactive Discounts</h3>
+          <h3 class="stat-title">
+            {t("admin.inactive_discounts", "Inactive Discounts")}
+          </h3>
           <p class="stat-value">
             {inactiveStats}
           </p>
@@ -968,7 +1032,9 @@
           </svg>
         </div>
         <div class="stat-content">
-          <h3 class="stat-title">Average Discounts</h3>
+          <h3 class="stat-title">
+            {t("admin.average_discount", "Average Discounts")}
+          </h3>
           <p class="stat-value">
             {avgDiscountStats}
           </p>
@@ -1157,7 +1223,7 @@
                       rounded-[12px]
                       hover:bg-gray-50 transition-colors"
                   >
-                    Reset
+                    {t("admin.reset", "Reset")}
                   </button>
 
                   <button
@@ -1169,7 +1235,7 @@
                       rounded-[12px]
                       hover:bg-[#2f2666] transition-colors"
                   >
-                    Apply
+                    {t("admin.apply", "Apply")}
                   </button>
                 </div>
               </div>
@@ -1216,7 +1282,7 @@
     {#if isLoadingSellers}
       <div class="loading-state">
         <div class="spinner"></div>
-        <p>{$_("common.loading") || "Loading..."}</p>
+        <p>{t("common.loading", "Loading...")}</p>
       </div>
     {:else if !selectedSeller}
       <div class="empty-state">
@@ -1239,7 +1305,7 @@
     {:else if isLoadingDiscounts}
       <div class="loading-state">
         <div class="spinner"></div>
-        <p>{$_("common.loading") || "Loading discounts..."}</p>
+        <p>{t("admin.loading_discounts", "Loading discounts...")}</p>
       </div>
     {:else if filteredDiscounts.length === 0}
       <div class="empty-state">
@@ -1258,48 +1324,47 @@
         </p>
       </div>
     {:else}
-
       <div class="items-table-container overflow-x-auto">
         <table class="items-table w-full">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 {$_("admin.seller") || "Seller"}
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 {$_("admin.discount_target") || "Target Type"}
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 {$_("admin.target_name") || "Target Name"}
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 {$_("admin.discount_type") || "Discount Type"}
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 {$_("admin.discount_value") || "Value"}
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 {$_("admin.validity_period") || "Validity"}
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 {$_("common.status") || "Status"}
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 {$_("common.actions") || "Actions"}
               </th>
@@ -1497,7 +1562,7 @@
                       </svg>
                       <span
                         style="font-weight:500;font-size:12px;line-height:16px;color:#004F3B;"
-                        >Active</span
+                        >{t("admin.status_active", "Active")}</span
                       >
                     </span>
                   {:else if statusLabel(discount) === "Inactive"}
@@ -1522,7 +1587,7 @@
                       </svg>
                       <span
                         style="font-weight:500;font-size:12px;line-height:16px;color:#771D1D;"
-                        >Inactive</span
+                        >{t("admin.status_inactive", "Inactive")}</span
                       >
                     </span>
                   {:else}
@@ -1547,7 +1612,7 @@
                       </svg>
                       <span
                         style="font-weight:500;font-size:12px;line-height:16px;color:#1C398E;"
-                        >Scheduled</span
+                        >{t("admin.status_scheduled", "Scheduled")}</span
                       >
                     </span>
                   {/if}
@@ -1585,79 +1650,79 @@
                           class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1 right-0"
                           role="menu"
                         >
-                        <!-- Edit -->
-                      <button
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
-                        class:flex-row-reverse={$isRTL}
-                        class:text-right={$isRTL}
-                         onclick={() => {
+                          <!-- Edit -->
+                          <button
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
+                            class:flex-row-reverse={$isRTL}
+                            class:text-right={$isRTL}
+                            onclick={() => {
                               closeAllDropdowns();
                               openEditDiscountModal(discount);
                             }}
-                        role="menuitem"
-                      >
-                        <!-- Pencil Icon -->
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          class="w-4 h-4 text-gray-500"
-                        >
-                          <path
-                            fill-rule="evenodd"
-                            clip-rule="evenodd"
-                            d="M15.5763 5.55905L14.1547 7.028L15.5563 8.42618C15.5577 8.42761 15.5592 8.42904 15.5606 8.43048L17.0227 9.88908L18.4245 8.44058L18.4357 8.42918C18.8155 8.0491 19.0288 7.53378 19.0288 6.99649C19.0288 6.45931 18.8155 5.94411 18.4359 5.56405C18.0559 5.1845 17.5407 4.97131 17.0036 4.97131C16.4688 4.97131 15.9558 5.18263 15.5763 5.55905ZM15.6318 11.3265L14.8691 10.5657L10.0378 15.6235L10.7674 16.3531L15.6318 11.3265ZM8.92782 17.3419L7.95914 16.3732C7.95553 16.3699 7.95195 16.3665 7.94838 16.3631C7.93349 16.3489 7.91913 16.3343 7.90531 16.3194L6.93719 15.3513L5.9421 18.337L8.92782 17.3419ZM7.90282 13.4885L8.62322 14.2089L13.4529 9.15285L12.7638 8.46539L7.90282 13.4885ZM12.0308 6.34678C12.0319 6.34571 12.0329 6.34463 12.0339 6.34356L14.1455 4.16158L14.1573 4.14958C14.9124 3.39511 15.9362 2.97131 17.0036 2.97131C18.071 2.97131 19.0948 3.39511 19.8499 4.14958L19.8505 4.15018C20.605 4.90529 21.0288 5.92906 21.0288 6.99649C21.0288 8.06106 20.6072 9.0822 19.8566 9.83672L11.4977 18.4744C11.3859 18.59 11.2479 18.6768 11.0953 18.7277L4.67729 20.8667C4.31797 20.9864 3.92182 20.8929 3.654 20.6251C3.38618 20.3573 3.29266 19.9611 3.41241 19.6018L5.55141 13.1838C5.59875 13.0418 5.67738 12.9122 5.7815 12.8046L12.0308 6.34678Z"
-                            fill="currentColor"
-                          />
-                        </svg>
+                            role="menuitem"
+                          >
+                            <!-- Pencil Icon -->
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              class="w-4 h-4 text-gray-500"
+                            >
+                              <path
+                                fill-rule="evenodd"
+                                clip-rule="evenodd"
+                                d="M15.5763 5.55905L14.1547 7.028L15.5563 8.42618C15.5577 8.42761 15.5592 8.42904 15.5606 8.43048L17.0227 9.88908L18.4245 8.44058L18.4357 8.42918C18.8155 8.0491 19.0288 7.53378 19.0288 6.99649C19.0288 6.45931 18.8155 5.94411 18.4359 5.56405C18.0559 5.1845 17.5407 4.97131 17.0036 4.97131C16.4688 4.97131 15.9558 5.18263 15.5763 5.55905ZM15.6318 11.3265L14.8691 10.5657L10.0378 15.6235L10.7674 16.3531L15.6318 11.3265ZM8.92782 17.3419L7.95914 16.3732C7.95553 16.3699 7.95195 16.3665 7.94838 16.3631C7.93349 16.3489 7.91913 16.3343 7.90531 16.3194L6.93719 15.3513L5.9421 18.337L8.92782 17.3419ZM7.90282 13.4885L8.62322 14.2089L13.4529 9.15285L12.7638 8.46539L7.90282 13.4885ZM12.0308 6.34678C12.0319 6.34571 12.0329 6.34463 12.0339 6.34356L14.1455 4.16158L14.1573 4.14958C14.9124 3.39511 15.9362 2.97131 17.0036 2.97131C18.071 2.97131 19.0948 3.39511 19.8499 4.14958L19.8505 4.15018C20.605 4.90529 21.0288 5.92906 21.0288 6.99649C21.0288 8.06106 20.6072 9.0822 19.8566 9.83672L11.4977 18.4744C11.3859 18.59 11.2479 18.6768 11.0953 18.7277L4.67729 20.8667C4.31797 20.9864 3.92182 20.8929 3.654 20.6251C3.38618 20.3573 3.29266 19.9611 3.41241 19.6018L5.55141 13.1838C5.59875 13.0418 5.67738 12.9122 5.7815 12.8046L12.0308 6.34678Z"
+                                fill="currentColor"
+                              />
+                            </svg>
 
-                        <span>{$_("common.edit") || "Edit"}</span>
-                      </button>
+                            <span>{$_("common.edit") || "Edit"}</span>
+                          </button>
 
-                      <!-- Delete -->
-                      <button
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-red-50 text-red-600"
-                        class:flex-row-reverse={$isRTL}
-                        class:text-right={$isRTL}
-                        onclick={() => {
+                          <!-- Delete -->
+                          <button
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-red-50 text-red-600"
+                            class:flex-row-reverse={$isRTL}
+                            class:text-right={$isRTL}
+                            onclick={() => {
                               closeAllDropdowns();
                               openDeleteDiscountModal(discount);
                             }}
-                        role="menuitem"
-                      >
-                        <!-- Trash Icon -->
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          x="0px"
-                          y="0px"
-                          class="w-4 h-4"
-                          viewBox="0,0,256,256"
-                        >
-                          <g
-                            fill="#fa5252"
-                            fill-rule="nonzero"
-                            stroke="none"
-                            stroke-width="1"
-                            stroke-linecap="butt"
-                            stroke-linejoin="miter"
-                            stroke-miterlimit="10"
-                            stroke-dasharray=""
-                            stroke-dashoffset="0"
-                            font-family="none"
-                            font-weight="none"
-                            font-size="none"
-                            text-anchor="none"
-                            style="mix-blend-mode: normal"
-                            ><g transform="scale(2,2)"
-                              ><path
-                                d="M49,1c-1.66,0 -3,1.34 -3,3c0,1.66 1.34,3 3,3h30c1.66,0 3,-1.34 3,-3c0,-1.66 -1.34,-3 -3,-3zM24,15c-7.17,0 -13,5.83 -13,13c0,7.17 5.83,13 13,13h77v63c0,9.37 -7.63,17 -17,17h-40c-9.37,0 -17,-7.63 -17,-17v-52c0,-1.66 -1.34,-3 -3,-3c-1.66,0 -3,1.34 -3,3v52c0,12.68 10.32,23 23,23h40c12.68,0 23,-10.32 23,-23v-63.35937c5.72,-1.36 10,-6.50062 10,-12.64062c0,-7.17 -5.83,-13 -13,-13zM24,21h80c3.86,0 7,3.14 7,7c0,3.86 -3.14,7 -7,7h-80c-3.86,0 -7,-3.14 -7,-7c0,-3.86 3.14,-7 7,-7zM50,55c-1.66,0 -3,1.34 -3,3v46c0,1.66 1.34,3 3,3c1.66,0 3,-1.34 3,-3v-46c0,-1.66 -1.34,-3 -3,-3zM78,55c-1.66,0 -3,1.34 -3,3v46c0,1.66 1.34,3 3,3c1.66,0 3,-1.34 3,-3v-46c0,-1.66 -1.34,-3 -3,-3z"
-                              ></path></g
-                            ></g
+                            role="menuitem"
                           >
-                        </svg>
+                            <!-- Trash Icon -->
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              x="0px"
+                              y="0px"
+                              class="w-4 h-4"
+                              viewBox="0,0,256,256"
+                            >
+                              <g
+                                fill="#fa5252"
+                                fill-rule="nonzero"
+                                stroke="none"
+                                stroke-width="1"
+                                stroke-linecap="butt"
+                                stroke-linejoin="miter"
+                                stroke-miterlimit="10"
+                                stroke-dasharray=""
+                                stroke-dashoffset="0"
+                                font-family="none"
+                                font-weight="none"
+                                font-size="none"
+                                text-anchor="none"
+                                style="mix-blend-mode: normal"
+                                ><g transform="scale(2,2)"
+                                  ><path
+                                    d="M49,1c-1.66,0 -3,1.34 -3,3c0,1.66 1.34,3 3,3h30c1.66,0 3,-1.34 3,-3c0,-1.66 -1.34,-3 -3,-3zM24,15c-7.17,0 -13,5.83 -13,13c0,7.17 5.83,13 13,13h77v63c0,9.37 -7.63,17 -17,17h-40c-9.37,0 -17,-7.63 -17,-17v-52c0,-1.66 -1.34,-3 -3,-3c-1.66,0 -3,1.34 -3,3v52c0,12.68 10.32,23 23,23h40c12.68,0 23,-10.32 23,-23v-63.35937c5.72,-1.36 10,-6.50062 10,-12.64062c0,-7.17 -5.83,-13 -13,-13zM24,21h80c3.86,0 7,3.14 7,7c0,3.86 -3.14,7 -7,7h-80c-3.86,0 -7,-3.14 -7,-7c0,-3.86 3.14,-7 7,-7zM50,55c-1.66,0 -3,1.34 -3,3v46c0,1.66 1.34,3 3,3c1.66,0 3,-1.34 3,-3v-46c0,-1.66 -1.34,-3 -3,-3zM78,55c-1.66,0 -3,1.34 -3,3v46c0,1.66 1.34,3 3,3c1.66,0 3,-1.34 3,-3v-46c0,-1.66 -1.34,-3 -3,-3z"
+                                  ></path></g
+                                ></g
+                              >
+                            </svg>
 
-                        <span>{$_("common.delete") || "Delete"}</span>
-                      </button>
+                            <span>{$_("common.delete") || "Delete"}</span>
+                          </button>
                         </div>
                       {/if}
                     </div>
