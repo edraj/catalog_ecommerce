@@ -1418,20 +1418,20 @@
                       onclick={(e) => e.stopPropagation()}
                     >
                       <button
-                        class="btn-expanded btn-edit"
+                        class="btn-expanded btn-edit flex justify-center items-center"
                         onclick={() => openEditModal(product)}
                       >
                         <EditOutline size="sm" />
                         {$_("common.edit") || "Edit product"}
                       </button>
 
-                      <button
+                      <!-- <button
                         class="btn-expanded btn-preview"
                         onclick={() => previewProduct(product)}
                       >
                         <EyeOutline size="sm" />
                         {$_("common.preview") || "Preview"}
-                      </button>
+                      </button> -->
 
                       <button
                         class="btn-expanded btn-delete"

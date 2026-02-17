@@ -1150,8 +1150,8 @@
 
 .modal-body {
   padding: 1.5rem;
-  overflow-y: auto;
   flex: 1;
+  overflow: hidden !important;
 }
 
 .details-content {
@@ -1293,9 +1293,7 @@
     font-size: 1.25rem;
   }
 
-  .modal-body {
-    padding: 1rem;
-  }
+ 
 
   .detail-section {
     padding: 1rem;

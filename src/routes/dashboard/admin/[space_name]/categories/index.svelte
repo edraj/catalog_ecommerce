@@ -615,7 +615,7 @@
           {$_("admin_dashboard.create_category") || "Create Category"}
         </span>
       </button>
-      <div class="mx-2">
+      <!-- <div class="mx-2">
         <details class="relative">
           <summary
             class="list-none cursor-pointer select-none
@@ -685,7 +685,7 @@
             {/each}
           </div>
         </details>
-      </div>
+      </div> -->
 
       <!-- ACTIONS DROPDOWN -->
       <div class="mx-2">
