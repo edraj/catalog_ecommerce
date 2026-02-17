@@ -190,6 +190,8 @@
         itemsPerPage,
         offset,
         true,
+        undefined,
+        searchQuery,
       );
       if (response?.records) {
         products = response.records;
@@ -578,7 +580,7 @@
 
   function handleSearch() {
     currentPage = 1;
-    // no need to loadProducts(); filtering is client-side
+    void loadProducts();
   }
 
   $effect(() => {
@@ -1938,88 +1940,54 @@
                 />
               </div>
             </div>
-         {:else if activeTab === "categories"}
-          <div class="form-content">
-            <h3 class="section-title">
-              {$_("admin_dashboard.categories") || "Categories *"}
-            </h3>
-            <p class="section-description">
-              {$_("admin_dashboard.categories_description") ||
-                "Select one or more categories. Mark one as main category."}
-            </p>
+          {:else if activeTab === "categories"}
+            <div class="form-content">
+              <h3 class="section-title">
+                {$_("admin_dashboard.categories") || "Categories *"}
+              </h3>
+              <p class="section-description">
+                {$_("admin_dashboard.categories_description") ||
+                  "Select one or more categories. Mark one as main category."}
+              </p>
 
-            {#if isLoadingCategories}
-              <div class="loading-message">
-                {$_("admin_dashboard.loading_categories") ||
-                  "Loading categories..."}
-              </div>
-            {:else if categories.length === 0}
-              <div class="warning-message">
-                <p>
-                  {$_("admin_dashboard.no_categories_warning") ||
-                    "⚠️ No categories found. Please create categories first."}
-                </p>
-              </div>
-            {:else}
-              <div class="categories-selection">
-                {#each parentCategories as category}
-                  <div class="category-item">
-                    <label class="category-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={productForm.categories.includes(
-                          category.shortname,
-                        )}
-                        onchange={() => toggleCategory(category.shortname)}
-                      />
-                      <span>{getLocalizedDisplayName(category)}</span>
-                    </label>
-
-                    {#if productForm.categories.includes(category.shortname)}
-                      <button
-                        type="button"
-                        class="btn-main-category"
-                        class:is-main={productForm.main_category ===
-                          category.shortname}
-                        onclick={() => setMainCategory(category.shortname)}
-                        title={$_("admin_dashboard.set_as_main_category") ||
-                          "Set as main category"}
-                      >
-                        {#if productForm.main_category === category.shortname}
-                          <CheckOutline size="xs" />
-                          {$_("admin_dashboard.main") || "Main"}
-                        {:else}
-                          {$_("admin_dashboard.set_as_main") || "Set as Main"}
-                        {/if}
-                      </button>
-                    {/if}
-                  </div>
-
-                  <!-- Sub-categories -->
-                  {#each getSubCategories(category.shortname) as subCategory}
-                    <div class="category-item sub">
+              {#if isLoadingCategories}
+                <div class="loading-message">
+                  {$_("admin_dashboard.loading_categories") ||
+                    "Loading categories..."}
+                </div>
+              {:else if categories.length === 0}
+                <div class="warning-message">
+                  <p>
+                    {$_("admin_dashboard.no_categories_warning") ||
+                      "⚠️ No categories found. Please create categories first."}
+                  </p>
+                </div>
+              {:else}
+                <div class="categories-selection">
+                  {#each parentCategories as category}
+                    <div class="category-item">
                       <label class="category-checkbox">
                         <input
                           type="checkbox"
                           checked={productForm.categories.includes(
-                            subCategory.shortname,
+                            category.shortname,
                           )}
-                          onchange={() => toggleCategory(subCategory.shortname)}
+                          onchange={() => toggleCategory(category.shortname)}
                         />
-                        <span>└ {getLocalizedDisplayName(subCategory)}</span>
+                        <span>{getLocalizedDisplayName(category)}</span>
                       </label>
 
-                      {#if productForm.categories.includes(subCategory.shortname)}
+                      {#if productForm.categories.includes(category.shortname)}
                         <button
                           type="button"
                           class="btn-main-category"
                           class:is-main={productForm.main_category ===
-                            subCategory.shortname}
-                          onclick={() => setMainCategory(subCategory.shortname)}
+                            category.shortname}
+                          onclick={() => setMainCategory(category.shortname)}
                           title={$_("admin_dashboard.set_as_main_category") ||
                             "Set as main category"}
                         >
-                          {#if productForm.main_category === subCategory.shortname}
+                          {#if productForm.main_category === category.shortname}
                             <CheckOutline size="xs" />
                             {$_("admin_dashboard.main") || "Main"}
                           {:else}
@@ -2028,250 +1996,293 @@
                         </button>
                       {/if}
                     </div>
-                  {/each}
-                {/each}
-              </div>
-            {/if}
-          </div>
-        {:else if activeTab === "variants"}
-          <div class="form-content">
-            <h3 class="section-title">
-              {$_("admin_dashboard.variations_optional") ||
-                "Variations (Optional)"}
-            </h3>
 
-            {#if variations.colors.length > 0}
-              <div class="variation-group">
-                <div class="variation-header">
-                  <h4 class="variation-title">
-                    {$_("admin_dashboard.colors") || "Colors"}
-                  </h4>
-                  {#if variations.colors.length > INITIAL_VARIATION_DISPLAY}
-                    <input
-                      type="text"
-                      bind:value={colorSearchTerm}
-                      placeholder={$_("admin_dashboard.search_colors") ||
-                        "Search colors..."}
-                      class="variation-search"
-                    />
-                  {/if}
+                    <!-- Sub-categories -->
+                    {#each getSubCategories(category.shortname) as subCategory}
+                      <div class="category-item sub">
+                        <label class="category-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={productForm.categories.includes(
+                              subCategory.shortname,
+                            )}
+                            onchange={() =>
+                              toggleCategory(subCategory.shortname)}
+                          />
+                          <span>└ {getLocalizedDisplayName(subCategory)}</span>
+                        </label>
+
+                        {#if productForm.categories.includes(subCategory.shortname)}
+                          <button
+                            type="button"
+                            class="btn-main-category"
+                            class:is-main={productForm.main_category ===
+                              subCategory.shortname}
+                            onclick={() =>
+                              setMainCategory(subCategory.shortname)}
+                            title={$_("admin_dashboard.set_as_main_category") ||
+                              "Set as main category"}
+                          >
+                            {#if productForm.main_category === subCategory.shortname}
+                              <CheckOutline size="xs" />
+                              {$_("admin_dashboard.main") || "Main"}
+                            {:else}
+                              {$_("admin_dashboard.set_as_main") ||
+                                "Set as Main"}
+                            {/if}
+                          </button>
+                        {/if}
+                      </div>
+                    {/each}
+                  {/each}
                 </div>
-                <div class="variation-options">
-                  {#each displayedColors as color}
-                    <button
-                      type="button"
-                      class="variation-option color"
-                      class:selected={isVariationSelected("colors", color.key)}
-                      onclick={() => toggleVariationValue("colors", color.key)}
-                      title={color.name?.en || color.name?.ar}
-                    >
-                      <span
-                        class="color-swatch"
-                        style="background-color: {color.value}"
-                      ></span>
-                      <span class="color-name"
-                        >{color.name?.en || color.name?.ar}</span
+              {/if}
+            </div>
+          {:else if activeTab === "variants"}
+            <div class="form-content">
+              <h3 class="section-title">
+                {$_("admin_dashboard.variations_optional") ||
+                  "Variations (Optional)"}
+              </h3>
+
+              {#if variations.colors.length > 0}
+                <div class="variation-group">
+                  <div class="variation-header">
+                    <h4 class="variation-title">
+                      {$_("admin_dashboard.colors") || "Colors"}
+                    </h4>
+                    {#if variations.colors.length > INITIAL_VARIATION_DISPLAY}
+                      <input
+                        type="text"
+                        bind:value={colorSearchTerm}
+                        placeholder={$_("admin_dashboard.search_colors") ||
+                          "Search colors..."}
+                        class="variation-search"
+                      />
+                    {/if}
+                  </div>
+                  <div class="variation-options">
+                    {#each displayedColors as color}
+                      <button
+                        type="button"
+                        class="variation-option color"
+                        class:selected={isVariationSelected(
+                          "colors",
+                          color.key,
+                        )}
+                        onclick={() =>
+                          toggleVariationValue("colors", color.key)}
+                        title={color.name?.en || color.name?.ar}
                       >
-                    </button>
-                  {/each}
-                </div>
-                {#if filteredColors.length > INITIAL_VARIATION_DISPLAY}
-                  <button
-                    type="button"
-                    class="show-more-btn"
-                    onclick={() => (showAllColors = !showAllColors)}
-                  >
-                    {showAllColors
-                      ? $_("admin_dashboard.show_less") || "Show Less"
-                      : `${$_("admin_dashboard.show_more") || "Show More"} (${filteredColors.length - INITIAL_VARIATION_DISPLAY})`}
-                  </button>
-                {/if}
-                {#if colorSearchTerm && filteredColors.length === 0}
-                  <p class="no-results">
-                    {$_("admin_dashboard.no_colors_found") || "No colors found"}
-                  </p>
-                {/if}
-              </div>
-            {/if}
-
-            {#if variations.storages.length > 0}
-              <div class="variation-group">
-                <div class="variation-header">
-                  <h4 class="variation-title">
-                    {$_("admin_dashboard.storage") || "Storage"}
-                  </h4>
-                  {#if variations.storages.length > INITIAL_VARIATION_DISPLAY}
-                    <input
-                      type="text"
-                      bind:value={storageSearchTerm}
-                      placeholder={$_("admin_dashboard.search_storage") ||
-                        "Search storage..."}
-                      class="variation-search"
-                    />
-                  {/if}
-                </div>
-                <div class="variation-options">
-                  {#each displayedStorages as storage}
+                        <span
+                          class="color-swatch"
+                          style="background-color: {color.value}"
+                        ></span>
+                        <span class="color-name"
+                          >{color.name?.en || color.name?.ar}</span
+                        >
+                      </button>
+                    {/each}
+                  </div>
+                  {#if filteredColors.length > INITIAL_VARIATION_DISPLAY}
                     <button
                       type="button"
-                      class="variation-option"
-                      class:selected={isVariationSelected(
-                        "storages",
-                        storage.key,
-                      )}
-                      onclick={() =>
-                        toggleVariationValue("storages", storage.key)}
+                      class="show-more-btn"
+                      onclick={() => (showAllColors = !showAllColors)}
                     >
-                      {storage.name?.en || storage.name?.ar}
+                      {showAllColors
+                        ? $_("admin_dashboard.show_less") || "Show Less"
+                        : `${$_("admin_dashboard.show_more") || "Show More"} (${filteredColors.length - INITIAL_VARIATION_DISPLAY})`}
                     </button>
-                  {/each}
+                  {/if}
+                  {#if colorSearchTerm && filteredColors.length === 0}
+                    <p class="no-results">
+                      {$_("admin_dashboard.no_colors_found") ||
+                        "No colors found"}
+                    </p>
+                  {/if}
                 </div>
-                {#if filteredStorages.length > INITIAL_VARIATION_DISPLAY}
-                  <button
-                    type="button"
-                    class="show-more-btn"
-                    onclick={() => (showAllStorages = !showAllStorages)}
-                  >
-                    {showAllStorages
-                      ? $_("admin_dashboard.show_less") || "Show Less"
-                      : `${$_("admin_dashboard.show_more") || "Show More"} (${filteredStorages.length - INITIAL_VARIATION_DISPLAY})`}
-                  </button>
-                {/if}
-                {#if storageSearchTerm && filteredStorages.length === 0}
-                  <p class="no-results">
-                    {$_("admin_dashboard.no_storage_found") ||
-                      "No storage options found"}
+              {/if}
+
+              {#if variations.storages.length > 0}
+                <div class="variation-group">
+                  <div class="variation-header">
+                    <h4 class="variation-title">
+                      {$_("admin_dashboard.storage") || "Storage"}
+                    </h4>
+                    {#if variations.storages.length > INITIAL_VARIATION_DISPLAY}
+                      <input
+                        type="text"
+                        bind:value={storageSearchTerm}
+                        placeholder={$_("admin_dashboard.search_storage") ||
+                          "Search storage..."}
+                        class="variation-search"
+                      />
+                    {/if}
+                  </div>
+                  <div class="variation-options">
+                    {#each displayedStorages as storage}
+                      <button
+                        type="button"
+                        class="variation-option"
+                        class:selected={isVariationSelected(
+                          "storages",
+                          storage.key,
+                        )}
+                        onclick={() =>
+                          toggleVariationValue("storages", storage.key)}
+                      >
+                        {storage.name?.en || storage.name?.ar}
+                      </button>
+                    {/each}
+                  </div>
+                  {#if filteredStorages.length > INITIAL_VARIATION_DISPLAY}
+                    <button
+                      type="button"
+                      class="show-more-btn"
+                      onclick={() => (showAllStorages = !showAllStorages)}
+                    >
+                      {showAllStorages
+                        ? $_("admin_dashboard.show_less") || "Show Less"
+                        : `${$_("admin_dashboard.show_more") || "Show More"} (${filteredStorages.length - INITIAL_VARIATION_DISPLAY})`}
+                    </button>
+                  {/if}
+                  {#if storageSearchTerm && filteredStorages.length === 0}
+                    <p class="no-results">
+                      {$_("admin_dashboard.no_storage_found") ||
+                        "No storage options found"}
+                    </p>
+                  {/if}
+                </div>
+              {/if}
+
+              <h3 class="section-title" style="margin-top: 2rem;">
+                {$_("admin_dashboard.specifications_optional") ||
+                  "Specifications (Optional)"}
+              </h3>
+              <p class="section-description">
+                {$_("admin_dashboard.specifications_select_description") ||
+                  "Select specifications and their values based on the selected categories"}
+              </p>
+
+              {#if productForm.categories.length === 0}
+                <div class="info-message">
+                  <p>
+                    {$_("admin_dashboard.select_category_first") ||
+                      "ℹ️ Please select at least one category to see available specifications"}
                   </p>
-                {/if}
-              </div>
-            {/if}
+                </div>
+              {:else if availableSpecifications.length === 0}
+                <div class="info-message">
+                  <p>
+                    {$_("admin_dashboard.no_specifications_available") ||
+                      "ℹ️ No specifications available for the selected categories"}
+                  </p>
+                </div>
+              {:else}
+                <div class="specifications-selection">
+                  {#each availableSpecifications as spec}
+                    <div class="specification-item">
+                      <div class="spec-header">
+                        <label class="spec-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={isSpecificationSelected(spec.shortname)}
+                            onchange={() =>
+                              toggleProductSpecification(spec.shortname)}
+                          />
+                          <span class="spec-name"
+                            >{getSpecificationDisplayName(spec)}</span
+                          >
+                        </label>
+                      </div>
 
-            <h3 class="section-title" style="margin-top: 2rem;">
-              {$_("admin_dashboard.specifications_optional") ||
-                "Specifications (Optional)"}
-            </h3>
-            <p class="section-description">
-              {$_("admin_dashboard.specifications_select_description") ||
-                "Select specifications and their values based on the selected categories"}
-            </p>
-
-            {#if productForm.categories.length === 0}
-              <div class="info-message">
-                <p>
-                  {$_("admin_dashboard.select_category_first") ||
-                    "ℹ️ Please select at least one category to see available specifications"}
-                </p>
-              </div>
-            {:else if availableSpecifications.length === 0}
-              <div class="info-message">
-                <p>
-                  {$_("admin_dashboard.no_specifications_available") ||
-                    "ℹ️ No specifications available for the selected categories"}
-                </p>
-              </div>
-            {:else}
-              <div class="specifications-selection">
-                {#each availableSpecifications as spec}
-                  <div class="specification-item">
-                    <div class="spec-header">
-                      <label class="spec-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={isSpecificationSelected(spec.shortname)}
-                          onchange={() =>
-                            toggleProductSpecification(spec.shortname)}
-                        />
-                        <span class="spec-name"
-                          >{getSpecificationDisplayName(spec)}</span
-                        >
-                      </label>
-                    </div>
-
-                    {#if isSpecificationSelected(spec.shortname)}
-                      <div class="spec-values">
-                        <div class="spec-values-header">
-                          {$_("admin_dashboard.select_values") ||
-                            "Select Values:"}
-                        </div>
-                        <div class="spec-values-grid">
-                          {#each getSpecificationOptions(spec) as option}
-                            <label class="spec-value-checkbox">
-                              <input
-                                type="checkbox"
-                                checked={isSpecificationValueSelected(
-                                  spec.shortname,
-                                  option.key,
-                                )}
-                                onchange={() =>
-                                  toggleSpecificationValue(
+                      {#if isSpecificationSelected(spec.shortname)}
+                        <div class="spec-values">
+                          <div class="spec-values-header">
+                            {$_("admin_dashboard.select_values") ||
+                              "Select Values:"}
+                          </div>
+                          <div class="spec-values-grid">
+                            {#each getSpecificationOptions(spec) as option}
+                              <label class="spec-value-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={isSpecificationValueSelected(
                                     spec.shortname,
                                     option.key,
                                   )}
-                              />
-                              <span>{getOptionDisplayName(option)}</span>
-                            </label>
-                          {/each}
+                                  onchange={() =>
+                                    toggleSpecificationValue(
+                                      spec.shortname,
+                                      option.key,
+                                    )}
+                                />
+                                <span>{getOptionDisplayName(option)}</span>
+                              </label>
+                            {/each}
+                          </div>
                         </div>
-                      </div>
-                    {/if}
-                  </div>
-                {/each}
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {:else if activeTab === "meta_info"}
+            <div class="form-content">
+              <h3 class="section-title">
+                {$_("admin_dashboard.seo_meta_information") ||
+                  "SEO & Meta Information"}
+              </h3>
+
+              <div class="form-group">
+                <label for="meta-title"
+                  >{$_("admin_dashboard.meta_title") || "Meta Title"}</label
+                >
+                <input
+                  id="meta-title"
+                  type="text"
+                  bind:value={productForm.meta_title}
+                  placeholder={$_(
+                    "admin_dashboard.seo_meta_title_placeholder",
+                  ) || "SEO meta title"}
+                  class="form-input"
+                />
               </div>
-            {/if}
-          </div>
-        {:else if activeTab === "meta_info"}
-          <div class="form-content">
-            <h3 class="section-title">
-              {$_("admin_dashboard.seo_meta_information") ||
-                "SEO & Meta Information"}
-            </h3>
 
-            <div class="form-group">
-              <label for="meta-title"
-                >{$_("admin_dashboard.meta_title") || "Meta Title"}</label
-              >
-              <input
-                id="meta-title"
-                type="text"
-                bind:value={productForm.meta_title}
-                placeholder={$_("admin_dashboard.seo_meta_title_placeholder") ||
-                  "SEO meta title"}
-                class="form-input"
-              />
-            </div>
+              <div class="form-group">
+                <label for="meta-description"
+                  >{$_("admin_dashboard.meta_description") ||
+                    "Meta Description"}</label
+                >
+                <textarea
+                  id="meta-description"
+                  bind:value={productForm.meta_description}
+                  placeholder={$_(
+                    "admin_dashboard.seo_meta_description_placeholder",
+                  ) || "SEO meta description"}
+                  class="form-textarea"
+                  rows="2"
+                ></textarea>
+              </div>
 
-            <div class="form-group">
-              <label for="meta-description"
-                >{$_("admin_dashboard.meta_description") ||
-                  "Meta Description"}</label
-              >
-              <textarea
-                id="meta-description"
-                bind:value={productForm.meta_description}
-                placeholder={$_(
-                  "admin_dashboard.seo_meta_description_placeholder",
-                ) || "SEO meta description"}
-                class="form-textarea"
-                rows="2"
-              ></textarea>
+              <div class="form-group">
+                <label for="brand"
+                  >{$_("admin_dashboard.brand_shortname") ||
+                    "Brand Shortname"}</label
+                >
+                <input
+                  id="brand"
+                  type="text"
+                  bind:value={productForm.brand_shortname}
+                  placeholder={$_("admin_dashboard.brand_identifier") ||
+                    "Brand identifier"}
+                  class="form-input"
+                />
+              </div>
             </div>
-
-            <div class="form-group">
-              <label for="brand"
-                >{$_("admin_dashboard.brand_shortname") ||
-                  "Brand Shortname"}</label
-              >
-              <input
-                id="brand"
-                type="text"
-                bind:value={productForm.brand_shortname}
-                placeholder={$_("admin_dashboard.brand_identifier") ||
-                  "Brand identifier"}
-                class="form-input"
-              />
-            </div>
-          </div>
-        {/if}
+          {/if}
         </div>
 
         <!-- Footer -->
@@ -2947,8 +2958,8 @@
     gap: 24px;
     position: sticky;
     top: 0;
-  z-index: 20;
-  background: #fff;
+    z-index: 20;
+    background: #fff;
     padding: 24px 0 20px 0; /* bottom spacing/5 = 20px */
     border-bottom: 1px solid var(--colors-border-border-base, #e5e7eb);
   }
@@ -3006,7 +3017,7 @@
   /* ---------- Body spacing ---------- */
   .product-modal-body {
     padding-top: 16px;
-    overflow-y:auto;
+    overflow-y: auto;
   }
 
   /* ---------- Language tabs (segmented) ---------- */

@@ -342,6 +342,7 @@
   "sidebar.logout": "تسجيل الخروج",
 
   "admin_dashboard.total_products": "إجمالي المنتجات",
+  "admin_dashboard.variation_type": "نوع التنويعات",
   "admin_dashboard.active_products": "المنتجات النشطة",
   "admin_dashboard.inactive_products": "المنتجات غير النشطة",
   "admin_dashboard.low_stock": "مخزون منخفض",
@@ -708,6 +709,9 @@
   "admin_dashboard.no_variations": "لم يتم العثور على تنويعات",
   "admin_dashboard.no_variations_description": "يجب إنشاء التنويعات على مستوى الخادم",
   "admin_dashboard.add_option": "إضافة خيار",
+
+  "admin_dashboard.specification": "مواصفة",
+  "admin_dashboard.available_options": "الخيارات المتاحة",
   "admin_dashboard.no_options_available": "لا توجد خيارات متاحة. انقر على \"إضافة خيار\" لإنشاء واحد.",
   "admin_dashboard.search_options": "البحث عن خيارات...",
   "admin_dashboard.no_options_found": "لم يتم العثور على خيارات تطابق بحثك.",
@@ -869,6 +873,10 @@
   "paymentMethod.descriptionArPlaceholder": "أدخل الوصف بالعربية",
   "paymentMethod.descriptionKu": "الوصف (الكردية)",
   "paymentMethod.descriptionKuPlaceholder": "أدخل الوصف بالكردية",
+  "admin.active_shippings": "خيارات الشحن النشطة",
+  "admin.avg_min_order": "متوسط الحد الأدنى للطلب",
+  "admin.avg_shipping_cost": "متوسط تكلفة الشحن",
+
   "admin.services.title": "إدارة الخدمات",
   "admin.services.description": "إدارة خدمات البائعين والخدمات العامة للمنصة",
   "admin.services.search_placeholder": "البحث عن خدمات...",
@@ -3534,7 +3542,13 @@
   "admin.tiles_update_failed": "فشل تحديث البلاط",
   "admin.tiles_deleted_success": "تم حذف البلاط بنجاح",
   "admin.tiles_delete_failed": "فشل حذف البلاط",
+  "admin.total_products": "إجمالي المنتجات",
+  "admin.total_sellers": "إجمالي البائعين",
+  "admin.active_products": "المنتجات النشطة",
+  "admin.inactive_products": "المنتجات غير النشطة",
+
   "common.untitled": "بدون عنوان",
+  "common.preview": "معاينة",
   "common.type": "النوع",
   "common.url": "الرابط",
   "common.n_a": "غير متاح",

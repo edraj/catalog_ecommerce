@@ -82,6 +82,8 @@
   let previousSelectedFilter = $state("");
   let previousSearchQuery = $state("");
   let showCreateModal = $state(false);
+  let isReady = $state(false);
+  let lastFetchKey = "";
 
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
@@ -128,7 +130,7 @@
   onMount(async () => {
     if (website.main_space) {
       await loadCouponFolders();
-      await loadCouponsPage();
+      isReady = true;
     }
   });
 
@@ -314,12 +316,19 @@
   }
 
   $effect(() => {
-    activeTab;
-    selectedFilter;
-    searchQuery;
-    currentPage;
-    itemsPerPage;
-    loadCouponsPage();
+    if (!isReady) return;
+
+    const key = [
+      activeTab,
+      selectedFilter,
+      searchQuery,
+      currentPage,
+      itemsPerPage,
+    ].join("|");
+
+    if (key === lastFetchKey) return;
+    lastFetchKey = key;
+    void loadCouponsPage();
   });
 
   $effect(() => {
@@ -572,12 +581,10 @@
     if (activeTab === "all" && !selectedFilter) {
       selectedFilter = "all";
     }
-    loadCouponsPage();
   }
 
   function handleSellerChange() {
     currentPage = 1;
-    loadCouponsPage();
   }
 
   let isFiltersOpen = $state(false);
@@ -967,7 +974,6 @@
   {#if loading}
     <div class="loading-state">
       <div class="spinner"></div>
-      <p>{t("common.loading", "Loading...")}</p>
     </div>
   {:else if filteredCoupons.length === 0}
     <div class="empty-state">

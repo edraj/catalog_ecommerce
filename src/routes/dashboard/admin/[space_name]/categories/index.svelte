@@ -65,13 +65,14 @@
   let itemsPerPage = $state(10);
 
   onMount(async () => {
-    await Promise.all([loadCategories(), loadSpecifications()]);
+    await Promise.all([
+      loadAllCategoriesCache(),
+      loadCategories(),
+      loadSpecifications(),
+    ]);
   });
 
-  async function loadCategories() {
-    isLoading = true;
-    const offset = (currentPage - 1) * itemsPerPage;
-
+  async function loadAllCategoriesCache() {
     try {
       const response = await getSpaceContents(
         website.main_space,
@@ -84,9 +85,39 @@
 
       if (response?.records) {
         allCategoriesCache = response.records;
-        totalCategoriesCount =
-          response.attributes?.total || response.records.length;
+      }
+    } catch (error) {
+      console.error("Error loading categories cache:", error);
+      errorToastMessage("Failed to load categories");
+    }
+  }
+
+  async function loadCategories() {
+    isLoading = true;
+    const offset = (currentPage - 1) * itemsPerPage;
+    const hasFilters = searchTerm.trim() || selectedParentFilter !== "all";
+
+    try {
+      if (hasFilters) {
         updateFilteredCategories();
+        return;
+      }
+
+      const response = await getSpaceContents(
+        website.main_space,
+        "categories",
+        "managed",
+        itemsPerPage,
+        offset,
+        true,
+      );
+
+      if (response?.records) {
+        categories = response.records;
+        totalCategoriesCount =
+          response.attributes?.total ||
+          allCategoriesCache.length ||
+          response.records.length;
       }
     } catch (error) {
       console.error("Error loading categories:", error);
@@ -124,6 +155,7 @@
     }
 
     categories = filtered;
+    totalCategoriesCount = filtered.length;
   }
 
   async function loadSpecifications() {
@@ -263,7 +295,7 @@
 
       successToastMessage("Category created successfully!");
       closeCreateModal();
-      await loadCategories();
+      await Promise.all([loadAllCategoriesCache(), loadCategories()]);
     } catch (error) {
       console.error("Error creating category:", error);
       errorToastMessage("Failed to create category");
@@ -306,16 +338,15 @@
 
       successToastMessage("Category updated successfully!");
       closeEditModal();
-      await loadCategories();
+      await Promise.all([loadAllCategoriesCache(), loadCategories()]);
     } catch (error) {
       console.error("Error updating category:", error);
       errorToastMessage("Failed to update category");
     }
   }
-   function goToPage(page: number) {
+  function goToPage(page: number) {
     if (page >= 1 && page <= totalPages) {
       currentPage = page;
-      loadCategories();
     }
   }
   async function handleDeleteCategory() {
@@ -331,7 +362,7 @@
 
       successToastMessage("Category deleted successfully!");
       closeDeleteModal();
-      await loadCategories();
+      await Promise.all([loadAllCategoriesCache(), loadCategories()]);
     } catch (error) {
       console.error("Error deleting category:", error);
       errorToastMessage("Failed to delete category");
@@ -365,13 +396,17 @@
   });
 
   let paginatedCategories = $derived.by(() => {
+    const hasFilters = searchTerm.trim() || selectedParentFilter !== "all";
+    if (!hasFilters) return categories;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return categories.slice(startIndex, endIndex);
   });
 
   let totalPages = $derived.by(() => {
-    return Math.ceil(categories.length / itemsPerPage);
+    const hasFilters = searchTerm.trim() || selectedParentFilter !== "all";
+    const total = hasFilters ? categories.length : totalCategoriesCount;
+    return Math.ceil(total / itemsPerPage);
   });
 
   function handlePageChange(page: number) {
@@ -382,7 +417,6 @@
 
   function handleSearchOrFilterChange() {
     currentPage = 1;
-    updateFilteredCategories();
   }
 
   function toggleDropdown(shortname: string) {
@@ -394,9 +428,11 @@
   }
 
   $effect(() => {
-    if (allCategoriesCache.length > 0) {
-      handleSearchOrFilterChange();
-    }
+    currentPage;
+    itemsPerPage;
+    searchTerm;
+    selectedParentFilter;
+    void loadCategories();
   });
 
   let openActionsFor = $state<string | null>(null);
@@ -522,6 +558,188 @@
       </div>
     </div>
   </div>
+  <div
+    class="flex flex-col search-table_header md:flex-row search-table_header md:items-end justify-between bg-white rounded-t-xl gap-3 w-full p-6"
+  >
+    <!-- SEARCH -->
+    <div>
+      <div class="relative w-[256px]">
+        <div
+          class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none"
+        >
+          <svg
+            class="w-4 h-4 text-gray-400"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
+
+        <input
+          type="text"
+          bind:value={searchTerm}
+          placeholder={$_("admin_dashboard.search_categories")}
+          oninput={handleSearchOrFilterChange}
+          class="w-full h-9 pl-9 pr-3 py-2
+               bg-[#F9FAFB]
+               border border-[#E5E7EB]
+               rounded-[12px]
+               shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+               text-sm
+               focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+        />
+      </div>
+    </div>
+
+    <!-- CATEGORY FILTER DROPDOWN -->
+    <div class="flex items-end">
+      <!-- CREATE BUTTON -->
+      <button
+        onclick={openCreateModal}
+        class="inline-flex items-center justify-center mx-2
+            h-9 cursor-pointer
+           px-3 py-2
+           bg-[#3C307F] text-white text-sm font-medium
+           rounded-[12px]
+           shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+           hover:bg-[#2f2666]
+           transition-colors duration-200"
+      >
+        <PlusOutline size="sm" />
+        <span class="ml-2">
+          {$_("admin_dashboard.create_category") || "Create Category"}
+        </span>
+      </button>
+      <div class="mx-2">
+        <details class="relative">
+          <summary
+            class="list-none cursor-pointer select-none
+                h-9
+               inline-flex items-center justify-between
+               px-3 py-2
+               bg-[#F9FAFB]
+               border border-[#E5E7EB]
+               rounded-[12px]
+               shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+               text-sm text-gray-700
+               hover:bg-gray-50"
+          >
+            <span class="truncate">
+              {getSelectedParentFilterLabel()}
+            </span>
+            <svg
+              class="w-4 h-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </summary>
+
+          <div
+            class="absolute z-20 mt-2 w-[220px] h-[320px] overflow-y-scroll rounded-[12px] border border-gray-200 bg-white shadow-lg p-2"
+          >
+            <button
+              type="button"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+              onclick={() => {
+                selectedParentFilter = "all";
+                handleSearchOrFilterChange();
+              }}
+            >
+              {$_("common.all_categories") || "All Categories"}
+            </button>
+
+            <button
+              type="button"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+              onclick={() => {
+                selectedParentFilter = "root";
+                handleSearchOrFilterChange();
+              }}
+              >{$_("common.parent_categories_only") ||
+                "Parent Categories Only"}</button
+            >
+            {#each parentCategories as category}
+              <button
+                type="button"
+                class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+                onclick={() => {
+                  selectedParentFilter = category.shortname;
+                  handleSearchOrFilterChange();
+                }}
+              >
+                {getLocalizedDisplayName(category)}
+              </button>
+            {/each}
+          </div>
+        </details>
+      </div>
+
+      <!-- ACTIONS DROPDOWN -->
+      <div class="mx-2">
+        <details class="relative">
+          <summary
+            class="list-none cursor-pointer select-none
+               h-9
+               inline-flex items-center justify-between
+               px-3 py-2
+               bg-[#F9FAFB]
+               border border-[#E5E7EB]
+               rounded-[12px]
+               shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+               text-sm text-gray-700
+               hover:bg-gray-50"
+          >
+            <span>Actions</span>
+
+            <svg
+              class="w-4 h-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </summary>
+
+          <div
+            class="absolute z-20 mt-2 w-[180px] rounded-[12px] border border-gray-200 bg-white shadow-lg p-2"
+          >
+            <button
+              type="button"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+            >
+              Sort A → Z
+            </button>
+
+            <button
+              type="button"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+            >
+              Sort Z → A
+            </button>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
   {#if isLoading}
     <div class="loading-state">
       <div class="loading-spinner"></div>
@@ -552,189 +770,6 @@
       </p>
     </div>
   {:else}
-    <div
-      class="flex flex-col search-table_header md:flex-row search-table_header md:items-end justify-between bg-white rounded-t-xl gap-3 w-full p-6"
-    >
-      <!-- SEARCH -->
-      <div>
-        <div class="relative w-[256px]">
-          <div
-            class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none"
-          >
-            <svg
-              class="w-4 h-4 text-gray-400"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </div>
-
-          <input
-            type="text"
-            bind:value={searchTerm}
-            placeholder={$_("admin_dashboard.search_categories")}
-            oninput={handleSearchOrFilterChange}
-            class="w-full h-9 pl-9 pr-3 py-2
-               bg-[#F9FAFB]
-               border border-[#E5E7EB]
-               rounded-[12px]
-               shadow-[0px_1px_0.5px_0.05px_#1D293D05]
-               text-sm
-               focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-          />
-        </div>
-      </div>
-
-      <!-- CATEGORY FILTER DROPDOWN -->
-      <div class="flex items-end">
-        <!-- CREATE BUTTON -->
-        <button
-          onclick={openCreateModal}
-          class="inline-flex items-center justify-center mx-2
-            h-9 cursor-pointer
-           px-3 py-2
-           bg-[#3C307F] text-white text-sm font-medium
-           rounded-[12px]
-           shadow-[0px_1px_0.5px_0.05px_#1D293D05]
-           hover:bg-[#2f2666]
-           transition-colors duration-200"
-        >
-          <PlusOutline size="sm" />
-          <span class="ml-2">
-            {$_("admin_dashboard.create_category") || "Create Category"}
-          </span>
-        </button>
-        <div class="mx-2">
-          <details class="relative">
-            <summary
-              class="list-none cursor-pointer select-none
-                h-9
-               inline-flex items-center justify-between
-               px-3 py-2
-               bg-[#F9FAFB]
-               border border-[#E5E7EB]
-               rounded-[12px]
-               shadow-[0px_1px_0.5px_0.05px_#1D293D05]
-               text-sm text-gray-700
-               hover:bg-gray-50"
-            >
-              <span class="truncate">
-                {getSelectedParentFilterLabel()}
-              </span>
-              <svg
-                class="w-4 h-4 text-gray-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </summary>
-
-            <div
-              class="absolute z-20 mt-2 w-[220px] h-[320px] overflow-y-scroll rounded-[12px] border border-gray-200 bg-white shadow-lg p-2"
-            >
-              <button
-                type="button"
-                class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
-                onclick={() => {
-                  selectedParentFilter = "all";
-                  handleSearchOrFilterChange();
-                }}
-              >
-                {$_("common.all_categories") || "All Categories"}
-              </button>
-
-              <button
-                type="button"
-                class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
-                onclick={() => {
-                  selectedParentFilter = "root";
-                  handleSearchOrFilterChange();
-                }}
-                >{$_("common.parent_categories_only") ||
-                  "Parent Categories Only"}</button
-              >
-              {#each categories as category}
-                <button
-                  type="button"
-                  class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
-                  onclick={() => {
-                    selectedParentFilter = category.shortname;
-                    handleSearchOrFilterChange();
-                  }}
-                >
-                  {getLocalizedDisplayName(category)}
-                </button>
-              {/each}
-            </div>
-          </details>
-        </div>
-
-        <!-- ACTIONS DROPDOWN -->
-        <div class="mx-2">
-          <details class="relative">
-            <summary
-              class="list-none cursor-pointer select-none
-               h-9
-               inline-flex items-center justify-between
-               px-3 py-2
-               bg-[#F9FAFB]
-               border border-[#E5E7EB]
-               rounded-[12px]
-               shadow-[0px_1px_0.5px_0.05px_#1D293D05]
-               text-sm text-gray-700
-               hover:bg-gray-50"
-            >
-              <span>Actions</span>
-
-              <svg
-                class="w-4 h-4 text-gray-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </summary>
-
-            <div
-              class="absolute z-20 mt-2 w-[180px] rounded-[12px] border border-gray-200 bg-white shadow-lg p-2"
-            >
-              <button
-                type="button"
-                class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
-              >
-                Sort A → Z
-              </button>
-
-              <button
-                type="button"
-                class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
-              >
-                Sort Z → A
-              </button>
-            </div>
-          </details>
-        </div>
-      </div>
-    </div>
-
     <div class="categories-table-container">
       <table class="categories-table">
         <thead>
@@ -755,11 +790,9 @@
               class:expanded={isExpanded(category.shortname)}
               class:has-children={getSubCategories(
                 category.shortname,
-                categories,
+                allCategoriesCache,
               ).length > 0}
             >
-              
-
               <!-- Category (avatar + name + description) -->
               <td class="col-category">
                 <div
@@ -790,14 +823,15 @@
                     </div>
                   </div>
 
-                  {#if getSubCategories(category.shortname, categories).length > 0}
+                  {#if getSubCategories(category.shortname, allCategoriesCache).length > 0}
                     <span
                       class="ml-auto"
                       class:mr-auto={$isRTL}
                       style="font-weight:500;font-size:12px;line-height:16px;color:#101828;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:8px;padding:2px 8px;"
                     >
                       {formatNumber(
-                        getSubCategories(category.shortname, categories).length,
+                        getSubCategories(category.shortname, allCategoriesCache)
+                          .length,
                         $locale,
                       )}
                     </span>
@@ -922,9 +956,20 @@
                   style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
                   class:flex-row-reverse={$isRTL}
                 >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z" fill="#6A7282"/>
-</svg>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      clip-rule="evenodd"
+                      d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z"
+                      fill="#6A7282"
+                    />
+                  </svg>
 
                   <span>{formatDateDMY(category.attributes?.created_at)}</span>
                 </div>
@@ -1062,8 +1107,8 @@
             </tr>
 
             <!-- Sub categories -->
-            {#if isExpanded(category.shortname) && getSubCategories(category.shortname, categories).length > 0}
-              {#each getSubCategories(category.shortname, categories) as subCategory}
+            {#if isExpanded(category.shortname) && getSubCategories(category.shortname, allCategoriesCache).length > 0}
+              {#each getSubCategories(category.shortname, allCategoriesCache) as subCategory}
                 <tr class="category-row sub-category">
                   <td class="col-expand"></td>
 
@@ -1186,9 +1231,20 @@
                       style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
                       class:flex-row-reverse={$isRTL}
                     >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z" fill="#6A7282"/>
-</svg>
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z"
+                          fill="#6A7282"
+                        />
+                      </svg>
 
                       <span
                         >{formatDateDMY(
@@ -1277,7 +1333,7 @@
       </table>
     </div>
 
-   {#if totalPages > 1}
+    {#if totalPages > 1}
       <div class="pagination">
         <!-- Left text -->
         <div class="pagination-info">

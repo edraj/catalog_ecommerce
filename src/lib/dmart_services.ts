@@ -1162,11 +1162,16 @@ export async function getSpaceContents(
   offset = 0,
   exact_subpath = false,
   queryType: QueryType = QueryType.search,
+  searchQuery: string = "",
 ): Promise<ApiQueryResponse> {
-  let search = "";
+  const searchParts: string[] = [];
   if (scope === "public") {
-    search = "-@shortname:schema";
+    searchParts.push("-@shortname:schema");
   }
+  if (searchQuery && searchQuery.trim()) {
+    searchParts.push(searchQuery.trim());
+  }
+  const search = searchParts.join(" ");
   const response = await Dmart.query(
     {
       type: queryType,
