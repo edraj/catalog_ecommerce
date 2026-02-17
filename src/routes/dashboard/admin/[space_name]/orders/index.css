@@ -2,9 +2,7 @@
 
 /* Main Container */
 .orders-container {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+      padding: 1.5rem;
 }
 
 .header {
@@ -409,10 +407,10 @@
 /* Table Styles */
 .orders-table-wrapper {
   background: white;
-  border-radius: 0.5rem;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  margin-bottom: 1.5rem;
 }
 
 .orders-table {
@@ -421,8 +419,8 @@
 }
 
 .orders-table thead {
-  background: #f9fafb;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  border-top: 1px solid #e5e7eb;
 }
 
 .orders-table thead th {

@@ -88,7 +88,7 @@
 
   /* Variants */
   .btn-primary {
-    background: #281f51;
+    background: #3C307F;
     color: white;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }

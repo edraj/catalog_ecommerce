@@ -22,37 +22,56 @@
       .replace(/^\w/, (c) => c.toUpperCase());
   }
 
- function buildCrumbs(pathname: string) {
+function buildCrumbs(pathname: string) {
   const segments = pathname.split("/").filter(Boolean);
 
-  const isAdmin = segments[0] === "dashboard" && segments[1] === "admin";
-  const base = isAdmin ? "/dashboard/admin" : ""; // ✅ base is "" for public routes
+  const isSuperAdmin = $roles.includes("super_admin");
+  const HOME_PATH = isSuperAdmin ? ADMIN_HOME : "/";
+  const HOME_LABEL = isSuperAdmin ? "Dashboard" : "Home";
 
-  const tail = isAdmin ? segments.slice(2) : segments;
+  // Always start with Home/Dashboard
+  const crumbs: Crumb[] = [{ label: HOME_LABEL, href: HOME_PATH, isHome: true }];
 
-  // if we're exactly at the base (admin) or at "/" (public)
-  if (tail.length === 0) {
-    return isAdmin
-      ? ([{ label: "Dashboard", href: "/dashboard/admin", isHome: true }] as Crumb[])
-      : ([{ label: "Home", href: "/", isHome: true }] as Crumb[]);
+  // --------------------------
+  // Admin routes
+  // --------------------------
+  const isAdminRoute = segments[0] === "dashboard" && segments[1] === "admin";
+
+  if (isAdminRoute) {
+    // Cases:
+    // 1) /dashboard/admin                       -> only Dashboard
+    // 2) /dashboard/admin/users                 -> Dashboard > Users
+    // 3) /dashboard/admin/:space/products       -> Dashboard > Products  (skip :space)
+    if (segments.length <= 2) return crumbs;
+
+    const isSpaceScoped = segments.length >= 4; // has /dashboard/admin/:space/...
+    const space = isSpaceScoped ? segments[2] : null;
+
+    const base = space ? `/dashboard/admin/${space}` : ADMIN_HOME;
+    const tail = space ? segments.slice(3) : segments.slice(2); // ✅ skip dashboard/admin/(space)
+
+    let acc = base;
+    for (const seg of tail) {
+      acc += `/${seg}`;
+      crumbs.push({ label: titleize(seg), href: acc });
+    }
+
+    return crumbs;
   }
 
-  const crumbs: Crumb[] = [];
-
-  let acc = base; // ✅ correct starting point
-
-  // first crumb
-  acc += `/${tail[0]}`;
-  crumbs.push({ label: titleize(tail[0]), href: acc, isHome: true });
-
-  // rest
-  for (const seg of tail.slice(1)) {
+  // --------------------------
+  // Public routes
+  // --------------------------
+  let acc = "";
+  for (const seg of segments) {
     acc += `/${seg}`;
     crumbs.push({ label: titleize(seg), href: acc });
   }
 
   return crumbs;
 }
+
+
 
 
 
@@ -194,8 +213,8 @@
 </script>
 
 <header class="sticky top-0 z-40 w-full backdrop-blur-md bg-transparent">
-  <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex h-16 items-center justify-between">
+  <div>
+    <div class="flex h-16 items-center justify-between" style='    padding: 1.5rem;'>
       <!-- Breadcrumbs -->
       <nav
         class="breadcrumbs {isRTL ? 'breadcrumbs-rtl' : 'breadcrumbs-ltr'}"

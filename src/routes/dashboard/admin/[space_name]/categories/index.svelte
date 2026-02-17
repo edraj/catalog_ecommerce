@@ -61,7 +61,6 @@
   let allCategoriesCache = $state([]);
   let searchTerm = $state("");
   let openDropdownId = $state<string | null>(null);
-
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
 
@@ -313,7 +312,12 @@
       errorToastMessage("Failed to update category");
     }
   }
-
+   function goToPage(page: number) {
+    if (page >= 1 && page <= totalPages) {
+      currentPage = page;
+      loadCategories();
+    }
+  }
   async function handleDeleteCategory() {
     if (!selectedCategory) return;
 
@@ -438,7 +442,7 @@
   <!-- Stats Cards -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="bg-icon mx-4 rounded-lg flex items-center justify-center">
+      <div class="bg-icon rounded-lg flex items-center justify-center">
         <svg
           width="36"
           height="36"
@@ -465,7 +469,7 @@
     </div>
 
     <div class="stat-card">
-      <div class="bg-icon mx-4 rounded-lg flex items-center justify-center">
+      <div class="bg-icon rounded-lg flex items-center justify-center">
         <svg
           width="36"
           height="36"
@@ -492,7 +496,7 @@
     </div>
 
     <div class="stat-card">
-      <div class="bg-icon mx-4 rounded-lg flex items-center justify-center">
+      <div class="bg-icon rounded-lg flex items-center justify-center">
         <svg
           width="36"
           height="36"
@@ -553,10 +557,6 @@
     >
       <!-- SEARCH -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">
-          {$_("admin_dashboard.search_categories")}
-        </label>
-
         <div class="relative w-[256px]">
           <div
             class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none"
@@ -739,7 +739,6 @@
       <table class="categories-table">
         <thead>
           <tr>
-            <th class="col-expand"></th>
             <th class="col-category">{$_("common.category") || "Category"}</th>
             <th class="col-level">{$_("common.level") || "Level"}</th>
             <th class="col-description"
@@ -747,7 +746,6 @@
             >
             <th class="col-status">{$_("common.status") || "Status"}</th>
             <th class="col-created">{$_("common.created") || "Created"}</th>
-            <th class="col-actions">{$_("common.actions") || "Actions"}</th>
           </tr>
         </thead>
         <tbody>
@@ -760,31 +758,7 @@
                 categories,
               ).length > 0}
             >
-              <!-- Expand -->
-              <td class="col-expand">
-                {#if getSubCategories(category.shortname, categories).length > 0}
-                  <button
-                    class="expand-btn"
-                    onclick={() => toggleCategory(category.shortname)}
-                    title={isExpanded(category.shortname)
-                      ? $_("common.collapse") || "Collapse"
-                      : $_("common.expand") || "Expand"}
-                  >
-                    <svg
-                      class="expand-icon"
-                      class:rotated={isExpanded(category.shortname)}
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                  </button>
-                {/if}
-              </td>
+              
 
               <!-- Category (avatar + name + description) -->
               <td class="col-category">
@@ -948,21 +922,10 @@
                   style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
                   class:flex-row-reverse={$isRTL}
                 >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      clip-rule="evenodd"
-                      d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2Z"
-                      fill="#6A7282"
-                    />
-                  </svg>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z" fill="#6A7282"/>
+</svg>
+
                   <span>{formatDateDMY(category.attributes?.created_at)}</span>
                 </div>
               </td>
@@ -1223,21 +1186,10 @@
                       style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
                       class:flex-row-reverse={$isRTL}
                     >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        aria-hidden="true"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2Z"
-                          fill="#6A7282"
-                        />
-                      </svg>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z" fill="#6A7282"/>
+</svg>
+
                       <span
                         >{formatDateDMY(
                           subCategory.attributes?.created_at,
@@ -1325,28 +1277,138 @@
       </table>
     </div>
 
-    {#if totalPages > 1}
+   {#if totalPages > 1}
       <div class="pagination">
+        <!-- Left text -->
         <div class="pagination-info">
-          {$_("common.page") || "Page"}
-          {currentPage}
-          {$_("common.of") || "of"}
-          {totalPages}
+          <span class="pagination-info__label">
+            {$_("common.showing") || "Showing"}
+          </span>
+
+          <span class="pagination-info__strong">
+            {formatNumber((currentPage - 1) * itemsPerPage + 1, $locale)}
+            -
+            {formatNumber(
+              Math.min(currentPage * itemsPerPage, totalCategoriesCount),
+              $locale,
+            )}
+          </span>
+
+          <span class="pagination-info__label">
+            {$_("common.of") || "of"}
+          </span>
+
+          <span class="pagination-info__strong">
+            {formatNumber(totalCategoriesCount, $locale)}
+          </span>
         </div>
-        <div class="pagination-pages">
-          {#each Array.from({ length: totalPages }, (_, i) => i + 1) as page}
-            {#if page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)}
+
+        <!-- Right controls -->
+        <div class="pagination-controls">
+          <!-- Prev -->
+          <button
+            class="pager-arrow pager-arrow--left"
+            onclick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            aria-label="Previous page"
+            type="button"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M4.86195 8.47132C4.6016 8.21097 4.6016 7.78886 4.86195 7.52851L9.52862 2.86185C9.78897 2.6015 10.2111 2.6015 10.4714 2.86185C10.7318 3.1222 10.7318 3.54431 10.4714 3.80466L6.27616 7.99992L10.4714 12.1952C10.7318 12.4555 10.7318 12.8776 10.4714 13.138C10.2111 13.3983 9.78897 13.3983 9.52862 13.138L4.86195 8.47132Z"
+                fill="#101828"
+              />
+            </svg>
+          </button>
+
+          <!-- Pages -->
+          <div class="pagination-pages">
+            {#if totalPages <= 7}
+              {#each Array(totalPages) as _, index}
+                <button
+                  class="page-chip"
+                  class:active={currentPage === index + 1}
+                  onclick={() => goToPage(index + 1)}
+                  type="button"
+                >
+                  {formatNumber(index + 1, $locale)}
+                </button>
+              {/each}
+            {:else}
+              <!-- 1 -->
               <button
-                class="page-btn"
-                class:active={page === currentPage}
-                onclick={() => handlePageChange(page)}
+                class="page-chip"
+                class:active={currentPage === 1}
+                onclick={() => goToPage(1)}
+                type="button"
               >
-                {page}
+                {formatNumber(1, $locale)}
               </button>
-            {:else if page === currentPage - 2 || page === currentPage + 2}
-              <span class="page-ellipsis">...</span>
+
+              {#if currentPage > 3}
+                <span class="page-ellipsis">...</span>
+              {/if}
+
+              {#each Array(totalPages) as _, index}
+                {#if index + 1 > 1 && index + 1 < totalPages && Math.abs(currentPage - (index + 1)) <= 1}
+                  <button
+                    class="page-chip"
+                    class:active={currentPage === index + 1}
+                    onclick={() => goToPage(index + 1)}
+                    type="button"
+                  >
+                    {formatNumber(index + 1, $locale)}
+                  </button>
+                {/if}
+              {/each}
+
+              {#if currentPage < totalPages - 2}
+                <span class="page-ellipsis">...</span>
+              {/if}
+
+              <!-- last -->
+              <button
+                class="page-chip"
+                class:active={currentPage === totalPages}
+                onclick={() => goToPage(totalPages)}
+                type="button"
+              >
+                {formatNumber(totalPages, $locale)}
+              </button>
             {/if}
-          {/each}
+          </div>
+
+          <!-- Next -->
+          <button
+            class="pager-arrow pager-arrow--right"
+            onclick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            aria-label="Next page"
+            type="button"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M11.1381 7.52868C11.3985 7.78903 11.3985 8.21114 11.1381 8.47149L6.47145 13.1382C6.2111 13.3985 5.78899 13.3985 5.52864 13.1382C5.26829 12.8778 5.26829 12.4557 5.52864 12.1953L9.7239 8.00008L5.52864 3.80482C5.26829 3.54447 5.26829 3.12236 5.52864 2.86201C5.78899 2.60166 6.2111 2.60166 6.47145 2.86201L11.1381 7.52868Z"
+                fill="#101828"
+              />
+            </svg>
+          </button>
         </div>
       </div>
     {/if}

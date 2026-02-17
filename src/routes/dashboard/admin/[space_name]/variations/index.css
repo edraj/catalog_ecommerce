@@ -1,7 +1,7 @@
 .variations-page {
   min-height: 100vh;
   background: #f8f9fa;
-  padding: 2rem 1rem;
+  padding: 1.5rem;
 }
 
 .rtl {
@@ -199,7 +199,6 @@
   background: white;
   border-radius: 1rem;
   padding: 3rem;
-  max-width: 1200px;
   margin: 0 auto;
 }
 

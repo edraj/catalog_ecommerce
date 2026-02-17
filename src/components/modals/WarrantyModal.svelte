@@ -35,6 +35,9 @@
     isEditMode = false,
   }: Props = $props();
 
+  type LangKey = "ar" | "en";
+  let activeLang = $state<LangKey>("en");
+
   function handleSubmit(event?: Event) {
     event?.preventDefault();
     onSubmit();
@@ -51,144 +54,207 @@
 >
   {#snippet body()}
     <div class="warranty-form">
-      <div class="form-section">
-        <h3 class="section-title">
-          {$_("seller_dashboard.warranty_name") || "Warranty Name"}
-        </h3>
+      <!-- Language Tabs (match your product modal layout) -->
+      <div class="lang-tabs">
+        <button
+          class="lang-tab"
+          class:active={activeLang === "ar"}
+          onclick={() => (activeLang = "ar")}
+          type="button"
+        >
+          Arabic
+        </button>
 
-        <div class="form-group">
-          <label class="form-label" class:rtl={isRTL}>
-            <span>
-              {$_("seller_dashboard.name_english") || "Name (English)"} *
-            </span>
-          </label>
-          <input
-            type="text"
-            bind:value={warrantyForm.displaynameEn}
-            class="form-input"
-            placeholder="e.g., 1 Year - Al-Nabaa"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" class:rtl={isRTL}>
-            <span>{$_("seller_dashboard.name_arabic") || "Name (Arabic)"}</span>
-          </label>
-          <input
-            type="text"
-            bind:value={warrantyForm.displaynameAr}
-            class="form-input"
-            class:rtl={true}
-            placeholder="مثال: سنة واحدة - النبأ"
-          />
-        </div>
+        <button
+          class="lang-tab"
+          class:active={activeLang === "en"}
+          onclick={() => (activeLang = "en")}
+          type="button"
+        >
+        English
+        </button>
       </div>
 
-      <div class="form-section">
-        <h3 class="section-title">
-          {$_("seller_dashboard.warranty_description") ||
-            "Warranty Description"}
-        </h3>
+      <!-- Fields -->
+      <div class="form-content">
+        <div class="form-section">
+          <h3 class="section-title">
+            {$_("seller_dashboard.warranty_name") || "Warranty Name"}
+          </h3>
 
-        <div class="form-group">
-          <label class="form-label" class:rtl={isRTL}>
-            <span>
-              {$_("seller_dashboard.description_english") ||
-                "Description (English)"} *
-            </span>
-          </label>
-          <textarea
-            bind:value={warrantyForm.descriptionEn}
-            class="form-textarea"
-            rows="4"
-            placeholder="Enter warranty terms and conditions..."
-            required
-          ></textarea>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" class:rtl={isRTL}>
-            <span>
-              {$_("seller_dashboard.description_arabic") ||
-                "Description (Arabic)"}
-            </span>
-          </label>
-          <textarea
-            bind:value={warrantyForm.descriptionAr}
-            class="form-textarea"
-            class:rtl={true}
-            rows="4"
-            placeholder="أدخل شروط وأحكام الضمان..."
-          ></textarea>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <h3 class="section-title">
-          {$_("seller_dashboard.warranty_scope") || "Warranty Scope"}
-        </h3>
-
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input
-              type="checkbox"
-              bind:checked={warrantyForm.isGlobal}
-              class="form-checkbox"
-            />
-            <span>
-              {$_("seller_dashboard.is_global_warranty") ||
-                "Global Warranty (applies to all products)"}
-            </span>
-          </label>
-        </div>
-
-        {#if !warrantyForm.isGlobal}
           <div class="form-group">
-            <label class="form-label" class:rtl={isRTL}>
+            <label class="form-label" class:rtl={activeLang === "ar"}>
               <span>
-                {$_("seller_dashboard.select_brand") || "Select Brand"} *
+                {activeLang === "ar"
+                  ? $_("seller_dashboard.name_arabic") || "Name (Arabic)"
+                  : $_("seller_dashboard.name_english") || "Name (English)"} *
               </span>
             </label>
-            {#if isLoadingBrands}
-              <p class="loading-text">Loading brands...</p>
+
+            {#if activeLang === "ar"}
+              <input
+                type="text"
+                bind:value={warrantyForm.displaynameAr}
+                class="form-input rtl"
+                placeholder="مثال: سنة واحدة - النبأ"
+                required
+              />
             {:else}
-              <select
-                bind:value={warrantyForm.brandShortname}
-                class="form-select"
-                class:rtl={isRTL}
-                required={!warrantyForm.isGlobal}
-              >
-                <option value="">
-                  {$_("seller_dashboard.choose_brand") || "Choose a brand..."}
-                </option>
-                {#each brands as brand (brand.shortname)}
-                  <option value={brand.shortname}>
-                    {getLocalizedDisplayName(brand)}
-                  </option>
-                {/each}
-              </select>
+              <input
+                type="text"
+                bind:value={warrantyForm.displaynameEn}
+                class="form-input"
+                placeholder="e.g., 1 Year - Al-Nabaa"
+                required
+              />
             {/if}
           </div>
-        {/if}
+        </div>
+
+        <div class="form-section">
+          <h3 class="section-title">
+            {$_("seller_dashboard.warranty_description") ||
+              "Warranty Description"}
+          </h3>
+
+          <div class="form-group">
+            <label class="form-label" class:rtl={activeLang === "ar"}>
+              <span>
+                {activeLang === "ar"
+                  ? $_("seller_dashboard.description_arabic") ||
+                    "Description (Arabic)"
+                  : $_("seller_dashboard.description_english") ||
+                    "Description (English)"} *
+              </span>
+            </label>
+
+            {#if activeLang === "ar"}
+              <textarea
+                bind:value={warrantyForm.descriptionAr}
+                class="form-textarea rtl"
+                rows="4"
+                placeholder="أدخل شروط وأحكام الضمان..."
+                required
+              ></textarea>
+            {:else}
+              <textarea
+                bind:value={warrantyForm.descriptionEn}
+                class="form-textarea"
+                rows="4"
+                placeholder="Enter warranty terms and conditions..."
+                required
+              ></textarea>
+            {/if}
+          </div>
+        </div>
+
+        <!-- Shared (Scope) -->
+        <div class="form-section">
+          <h3 class="section-title">
+            {$_("seller_dashboard.warranty_scope") || "Warranty Scope"}
+          </h3>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                bind:checked={warrantyForm.isGlobal}
+                class="form-checkbox"
+              />
+              <span>
+                {$_("seller_dashboard.is_global_warranty") ||
+                  "Global Warranty (applies to all products)"}
+              </span>
+            </label>
+          </div>
+
+          {#if !warrantyForm.isGlobal}
+            <div class="form-group">
+              <label class="form-label" class:rtl={isRTL}>
+                <span>
+                  {$_("seller_dashboard.select_brand") || "Select Brand"} *
+                </span>
+              </label>
+
+              {#if isLoadingBrands}
+                <p class="loading-text">Loading brands...</p>
+              {:else}
+                <select
+                  bind:value={warrantyForm.brandShortname}
+                  class="form-select"
+                  class:rtl={isRTL}
+                  required={!warrantyForm.isGlobal}
+                >
+                  <option value="">
+                    {$_("seller_dashboard.choose_brand") || "Choose a brand..."}
+                  </option>
+                  {#each brands as brand (brand.shortname)}
+                    <option value={brand.shortname}>
+                      {getLocalizedDisplayName(brand)}
+                    </option>
+                  {/each}
+                </select>
+              {/if}
+            </div>
+          {/if}
+        </div>
       </div>
     </div>
   {/snippet}
 
   {#snippet footer()}
-    <Button variant="secondary" onclick={onClose}>
-      {$_("seller_dashboard.cancel") || "Cancel"}
-    </Button>
-    <Button variant="primary" onclick={handleSubmit}>
-      {isEditMode
-        ? $_("common.save") || "Save"
-        : $_("seller_dashboard.create") || "Create"}
+    <Button variant="primary" class='w-full' onclick={handleSubmit}>
+      {isEditMode ? $_("common.save") || "Save" : $_("seller_dashboard.create") || "Create"}
     </Button>
   {/snippet}
 </Modal>
 
 <style>
   .warranty-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  /* === Language Tabs (same structure as your product modal) === */
+  .lang-tabs {
+    display: inline-flex;
+    gap: 8px;
+    width: 100%;
+    padding: 6px;
+    border-radius: 12px;
+  }
+
+  .lang-tab {
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #4a5565;
+    font-weight: 600;
+    width: 50%;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+     background: #f9fafb;
+    border-color: #e5e7eb;
+    box-shadow: 0px 1px 0.5px 0.05px #1d293d05;
+  }
+
+  .lang-tab:hover {
+    background: rgba(255, 255, 255, 0.75);
+  }
+
+  .lang-tab.active {
+    background: #ffffff;
+    border-color: #e5e7eb;
+    color: #111827;
+    box-shadow: 0px 1px 0.5px 0.05px #1d293d05;
+  }
+
+  /* Content */
+  .form-content {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -253,9 +319,7 @@
     resize: vertical;
   }
 
-  .form-textarea.rtl,
-  .form-input.rtl,
-  .form-select.rtl {
+  .rtl {
     direction: rtl;
     text-align: right;
   }

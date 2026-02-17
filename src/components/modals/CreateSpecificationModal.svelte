@@ -69,7 +69,7 @@
 <Modal
   bind:show
   title={$_("admin_dashboard.create_specification") || "Create Specification"}
-  size="large"
+  size="medium"
   {onClose}
 >
   {#snippet body()}
@@ -145,10 +145,8 @@
   {/snippet}
 
   {#snippet footer()}
-    <Button variant="secondary" onclick={onClose}>
-      {$_("common.cancel") || "Cancel"}
-    </Button>
-    <Button variant="primary" onclick={handleSubmit}>
+   
+    <Button variant="primary" class='w-full' onclick={handleSubmit}>
       {$_("common.create") || "Create"}
     </Button>
   {/snippet}

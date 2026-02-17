@@ -288,8 +288,6 @@
 .categories-table-container {
   background: white;
   border: 1px solid #e5e7eb;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
   overflow-x: auto;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -306,10 +304,141 @@
 }
 
 .categories-table thead {
-  background: #f9fafb;
   border-bottom: 2px solid #e5e7eb;
 }
+ .pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    border-top: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 0 0 12px 12px;
+    border: 1px solid #e5e7eb;
+  }
 
+  /* Left text */
+  .pagination-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .pagination-info__label {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0%;
+    color: var(--colors-text-text-body, #4a5565);
+  }
+
+  .pagination-info__strong {
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0%;
+    color: var(--colors-text-text-body, #4a5565);
+  }
+
+  /* Right side */
+  .pagination-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Arrow buttons */
+  .pager-arrow {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--colors-background-bg-primary-soft, #ffffff);
+    border: 1px solid var(--colors-border-border-base, #e5e7eb);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .pager-arrow--left {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .pager-arrow--right {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  .pager-arrow:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Pages group (keeps borders aligned with arrows) */
+  .pagination-pages {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .page-chip {
+    width: 36px;
+    height: 36px;
+    padding: 8px 12px;
+    background: var(--colors-background-bg-primary-soft, #ffffff);
+    border-top: 1px solid var(--colors-border-border-base, #e5e7eb);
+    border-bottom: 1px solid var(--colors-border-border-base, #e5e7eb);
+    border-left: 0;
+    border-right: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0%;
+    color: var(--colors-text-text-body, #4a5565);
+
+    cursor: pointer;
+  }
+
+  /* Add a vertical separator between page chips (like individual boxes) */
+  .page-chip + .page-chip {
+    border-left: 1px solid var(--colors-border-border-base, #e5e7eb);
+  }
+
+  .page-chip.active {
+    color: var(--colors-text-text-fg-brand, #1447e6);
+  }
+
+  .page-chip:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .page-ellipsis {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 1px solid var(--colors-border-border-base, #e5e7eb);
+    border-bottom: 1px solid var(--colors-border-border-base, #e5e7eb);
+    border-left: 1px solid var(--colors-border-border-base, #e5e7eb);
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--colors-text-text-body, #4a5565);
+  }
 .categories-table th {
   padding: 12px 16px;
   text-align: left;
@@ -386,7 +515,6 @@
 }
 
 .col-actions {
-  width: 150px;
   text-align: right;
 }
 
@@ -574,7 +702,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-top: 2rem;
   flex-wrap: wrap;
 }
 
@@ -612,7 +739,6 @@
 
 .pagination-pages {
   display: flex;
-  gap: 0.5rem;
   align-items: center;
 }
 

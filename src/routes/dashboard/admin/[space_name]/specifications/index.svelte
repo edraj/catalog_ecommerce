@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { goto } from "@roxi/routify";
   import "./index.css";
   import {
@@ -8,27 +8,17 @@
     updateEntity,
     deleteEntity,
   } from "@/lib/dmart_services";
-  import { ResourceType, ContentType } from "@edraj/tsdmart";
+  import { ResourceType } from "@edraj/tsdmart";
   import {
     errorToastMessage,
     successToastMessage,
   } from "@/lib/toasts_messages";
   import { _, locale } from "@/i18n";
   import { derived } from "svelte/store";
-  import {
-    PlusOutline,
-    EditOutline,
-    TrashBinOutline,
-  } from "flowbite-svelte-icons";
+  import { PlusOutline } from "flowbite-svelte-icons";
   import { getLocalizedDisplayName, formatDate } from "@/lib/utils/adminUtils";
-  import { getEntityContent } from "@/lib/utils/entityUtils";
   import { formatNumber } from "@/lib/helpers";
-  import {
-    Button,
-    IconButton,
-    LoadingSpinner,
-    EmptyState,
-  } from "@/components/ui";
+  import { Button, LoadingSpinner, EmptyState } from "@/components/ui";
   import {
     CreateSpecificationModal,
     EditSpecificationModal,
@@ -39,59 +29,111 @@
 
   $goto;
 
-  const isRTL = derived(
-    locale,
-    ($locale) => $locale === "ar" || $locale === "ku",
-  );
+  const isRTL = derived(locale, ($l) => $l === "ar" || $l === "ku");
 
-  let specifications = $state([]);
+  let specifications = $state<any[]>([]);
   let isLoading = $state(true);
+
   let showCreateModal = $state(false);
   let showEditModal = $state(false);
   let showDeleteModal = $state(false);
-  let selectedSpecification = $state(null);
+
+  let selectedSpecification = $state<any>(null);
   let editFormData = $state<SpecificationFormData | undefined>(undefined);
+
   let totalSpecificationsCount = $state(0);
   let searchTerm = $state("");
+
+  // actions dropdown (per row)
   let openDropdownId = $state<string | null>(null);
 
+  // Pagination (client-side)
   let currentPage = $state(1);
   let itemsPerPage = $state(12);
 
+  // ---------------- helpers ----------------
+  function truncateText(text: string, max = 25) {
+    const t = (text || "").trim();
+    return t.length > max ? t.slice(0, max) + "..." : t;
+  }
+
+  function getSpecificationOptions(specification: any): any[] {
+    const content = specification?.attributes?.payload?.body || {};
+    return content?.options || [];
+  }
+
+  function getOptionsCount(specification: any) {
+    return getSpecificationOptions(specification).length;
+  }
+
+  function getStatus(specification: any) {
+    // keep compatible with your current data shape
+    const v = specification?.attributes?.is_active;
+    return v === undefined ? true : !!v;
+  }
+
+  // ---------------- derived ----------------
   let filteredSpecifications = $derived.by(() => {
-    if (!searchTerm.trim()) return specifications;
-    const term = searchTerm.toLowerCase();
-    return specifications.filter((spec) => {
-      const displayname = getLocalizedDisplayName(spec, $locale).toLowerCase();
-      const shortname = spec.shortname?.toLowerCase() || "";
+    const list = specifications || [];
+    const term = (searchTerm || "").trim().toLowerCase();
+    if (!term) return list;
+
+    return list.filter((spec) => {
+      const displayname = (getLocalizedDisplayName(spec, $locale) || "")
+        .toLowerCase()
+        .trim();
+      const shortname = (spec?.shortname || "").toLowerCase();
       return displayname.includes(term) || shortname.includes(term);
     });
   });
 
+  let totalFiltered = $derived.by(() => filteredSpecifications.length);
+
+  let totalPages = $derived.by(() =>
+    Math.max(1, Math.ceil(totalFiltered / itemsPerPage)),
+  );
+
   let paginatedSpecifications = $derived.by(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredSpecifications.slice(startIndex, endIndex);
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredSpecifications.slice(start, end);
   });
 
-  let totalPages = $derived.by(() => {
-    return Math.ceil(filteredSpecifications.length / itemsPerPage);
-  });
+  // Stats (new style)
+  let totalSpecs = $derived.by(() => specifications.length);
 
+  let activeSpecs = $derived.by(
+    () => specifications.filter((s) => getStatus(s)).length,
+  );
+
+  let inactiveSpecs = $derived.by(() => totalSpecs - activeSpecs);
+
+  let totalOptions = $derived.by(() =>
+    specifications.reduce((sum, s) => sum + getOptionsCount(s), 0),
+  );
+
+  // ---------------- lifecycle ----------------
   onMount(async () => {
     await loadSpecifications();
+    window.addEventListener("click", onWindowClick);
+  });
+
+  onDestroy(() => {
+    window.removeEventListener("click", onWindowClick);
   });
 
   async function loadSpecifications() {
     isLoading = true;
-    const offset = (currentPage - 1) * itemsPerPage;
-
     try {
-      const response = await getSpaceContents(
+      // Load a big chunk once, then filter/paginate client-side (prevents double-pagination)
+      const limit = 500;
+      const offset = 0;
+
+      const response: any = await getSpaceContents(
         website.main_space,
         "specifications",
         "managed",
-        itemsPerPage,
+        limit,
         offset,
         true,
       );
@@ -99,7 +141,10 @@
       if (response?.records) {
         specifications = response.records;
         totalSpecificationsCount =
-          response.attributes?.total || response.records.length;
+          response.attributes?.total ?? response.records.length;
+      } else {
+        specifications = [];
+        totalSpecificationsCount = 0;
       }
     } catch (error) {
       console.error("Error loading specifications:", error);
@@ -109,23 +154,36 @@
     }
   }
 
+  // keep page in range
+  $effect(() => {
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+  });
+
+  // reset to first page when searching
+  $effect(() => {
+    (searchTerm || "").trim();
+    currentPage = 1;
+  });
+
+  // ---------------- modals ----------------
   function openCreateModal() {
     showCreateModal = true;
   }
-
   function closeCreateModal() {
     showCreateModal = false;
   }
 
-  function openEditModal(specification) {
+  function openEditModal(specification: any) {
     selectedSpecification = specification;
-    const content = specification.attributes?.payload?.body || {};
-    const displayname = specification.attributes?.displayname || {};
+
+    const content = specification?.attributes?.payload?.body || {};
+    const displayname = specification?.attributes?.displayname || {};
 
     let options = content?.options || [];
 
-    const normalizedOptions = options.map((opt) => {
-      if (opt.name) {
+    const normalizedOptions = (options || []).map((opt: any) => {
+      if (opt?.name) {
         return {
           key: opt.key || Math.random().toString(36).substring(2, 15),
           name: {
@@ -134,7 +192,7 @@
             ku: opt.name.ku || "",
           },
         };
-      } else if (opt.en || opt.ar) {
+      } else if (opt?.en || opt?.ar) {
         return {
           key: opt.key || Math.random().toString(36).substring(2, 15),
           name: {
@@ -161,6 +219,7 @@
               },
             ],
     };
+
     showEditModal = true;
   }
 
@@ -169,7 +228,7 @@
     selectedSpecification = null;
   }
 
-  function openDeleteModal(specification) {
+  function openDeleteModal(specification: any) {
     selectedSpecification = specification;
     showDeleteModal = true;
   }
@@ -196,11 +255,7 @@
         displayname_en: formData.displayname,
         displayname_ar: formData.displayname_ar || "",
         displayname_ku: formData.displayname_ku || "",
-
-        body: {
-          options: validOptions,
-          content_type: "json",
-        },
+        body: { options: validOptions, content_type: "json" },
         tags: [],
         is_active: true,
       };
@@ -238,17 +293,15 @@
     if (!selectedSpecification) return;
 
     try {
-      const specificationData = {
+      const specificationData: any = {
         displayname: {
           en: formData.displayname,
           ar: formData.displayname_ar || "",
           ku: formData.displayname_ku || "",
         },
-        body: {
-          options: validOptions,
-        },
+        body: { options: validOptions },
         content_type: "json",
-        tags: selectedSpecification.attributes?.tags || [],
+        tags: selectedSpecification?.attributes?.tags || [],
         is_active: true,
       };
 
@@ -291,45 +344,21 @@
     }
   }
 
-  function getSpecificationOptions(specification: any): any[] {
-    const content = specification.attributes?.payload?.body || {};
-    return content?.options || [];
-  }
-
-  function getOptionName(option: any, locale: string): string {
-    if (option?.name) {
-      if (typeof option.name === "string") return option.name;
-      return (
-        option.name[locale] ||
-        option.name.en ||
-        option.name.ar ||
-        option.name.ku ||
-        ""
-      );
-    }
-    if (option?.[locale]) return option[locale];
-    return option?.en || option?.ar || option?.ku || "";
-  }
-
+  // ---------------- pagination ----------------
   function goToPage(page: number) {
-    if (page >= 1 && page <= totalPages) {
-      currentPage = page;
-    }
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
   }
-
   function nextPage() {
-    if (currentPage < totalPages) {
-      currentPage++;
-    }
+    if (currentPage < totalPages) currentPage++;
   }
-
   function previousPage() {
-    if (currentPage > 1) {
-      currentPage--;
-    }
+    if (currentPage > 1) currentPage--;
   }
 
-  function toggleDropdown(shortname: string) {
+  // ---------------- dropdown ----------------
+  function toggleDropdown(shortname: string, e?: Event) {
+    e?.stopPropagation?.();
     openDropdownId = openDropdownId === shortname ? null : shortname;
   }
 
@@ -337,344 +366,380 @@
     openDropdownId = null;
   }
 
-  $effect(() => {
-    currentPage = 1;
-  });
+  function onWindowClick() {
+    if (openDropdownId) closeDropdown();
+  }
 </script>
 
 <div class="specifications-page" class:rtl={$isRTL}>
-  <!-- Stats Cards -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon" style="background: #dbeafe;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-          />
-        </svg>
-      </div>
-      <div class="stat-content">
-        <p class="stat-title">
-          {$_("admin_dashboard.total_specifications") || "Total Specifications"}
-        </p>
-        <h3 class="stat-value">
-          {formatNumber(specifications.length, $locale)}
-        </h3>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon" style="background: #d1fae5;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      </div>
-      <div class="stat-content">
-        <p class="stat-title">
-          {$_("admin_dashboard.with_options") || "With Options"}
-        </p>
-        <h3 class="stat-value">
-          {formatNumber(
-            specifications.filter((s) => getSpecificationOptions(s).length > 0)
-              .length,
-            $locale,
-          )}
-        </h3>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon" style="background: #fef3c7;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-          />
-        </svg>
-      </div>
-      <div class="stat-content">
-        <p class="stat-title">
-          {$_("admin_dashboard.total_options") || "Total Options"}
-        </p>
-        <h3 class="stat-value">
-          {formatNumber(
-            specifications.reduce(
-              (sum, s) => sum + getSpecificationOptions(s).length,
-              0,
-            ),
-            $locale,
-          )}
-        </h3>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon" style="background: #e0e7ff;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-          />
-        </svg>
-      </div>
-      <div class="stat-content">
-        <p class="stat-title">{$_("common.showing") || "Showing"}</p>
-        <h3 class="stat-value">
-          {formatNumber(paginatedSpecifications.length, $locale)}
-        </h3>
-      </div>
-    </div>
-  </div>
-
-  <!-- Search and Filters -->
-  <div class="search-and-filters">
-    <div class="search-bar search-bar--icon-left">
-      <span class="search-icon">
-        <svg
-          viewBox="0 0 16 16"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.6"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M15 15l-4-4m2-5a5 5 0 11-10 0 5 5 0 0110 0z"
-          />
-        </svg>
-      </span>
-      <input
-        type="text"
-        bind:value={searchTerm}
-        placeholder={$_("admin_dashboard.search_specifications") ||
-          "Search specifications..."}
-        class="search-input"
-        class:rtl={$isRTL}
-        style="padding-left: 32px;"
-      />
-    </div>
-    <style>
-      .search-bar--icon-left {
-        position: relative;
-        display: flex;
-        align-items: center;
-      }
-      .search-bar--icon-left .search-icon {
-        position: absolute;
-        left: 10px;
-        color: #9ca3af;
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-        height: 100%;
-        z-index: 2;
-      }
-      .rtl .search-bar--icon-left .search-icon {
-        left: auto;
-        right: 10px;
-      }
-      .search-bar--icon-left .search-input {
-        padding-left: 32px;
-      }
-      .rtl .search-bar--icon-left .search-input {
-        padding-left: 0;
-        padding-right: 32px;
-      }
-    </style>
-
-    <button class="btn-create" onclick={openCreateModal}>
-      <PlusOutline size="sm" />
-      <span
-        >{$_("admin_dashboard.create_specification") ||
-          "Create Specification"}</span
-      >
-    </button>
-  </div>
-
   {#if isLoading}
-    <div class="loading-state">
-      <div class="loading-spinner"></div>
-      <p>{$_("common.loading") || "Loading..."}</p>
-    </div>
+    <LoadingSpinner message={$_("common.loading") || "Loading..."} />
   {:else if specifications.length === 0}
-    <div class="empty-state">
-      <div class="empty-icon">📋</div>
-      <h3>
-        {$_("admin_dashboard.no_specifications") || "No specifications found"}
-      </h3>
-      <p>
-        {$_("admin_dashboard.create_first_specification_desc") ||
-          "Create your first specification to get started"}
-      </p>
-      <button class="btn-create-large" onclick={openCreateModal}>
+    <EmptyState
+      icon="📋"
+      title={$_("admin_dashboard.no_specifications") ||
+        "No specifications found"}
+      description={$_("admin_dashboard.create_first_specification_desc") ||
+        "Create your first specification to get started"}
+    />
+    <div class="mt-4">
+      <Button variant="primary" onclick={openCreateModal}>
         <PlusOutline size="sm" />
         <span
-          >{$_("admin_dashboard.create_first_specification") ||
-            "Create First Specification"}</span
+          >{$_("admin_dashboard.create_specification") ||
+            "Create Specification"}</span
         >
-      </button>
-    </div>
-  {:else if filteredSpecifications.length === 0}
-    <div class="empty-state">
-      <div class="empty-icon">🔍</div>
-      <h3>{$_("common.no_results") || "No results found"}</h3>
-      <p>
-        {$_("common.try_different_search") || "Try adjusting your search terms"}
-      </p>
+      </Button>
     </div>
   {:else}
-    <div class="specifications-grid">
-      {#each paginatedSpecifications as specification}
-        <div class="specification-card">
-          <div class="specification-header">
-            <div class="header-left">
-              <h3 class="specification-name">
-                {getLocalizedDisplayName(specification, $locale)}
-              </h3>
-              {#if specification.attributes?.is_active}
-                <span class="status-badge active">
-                  {$_("common.active") || "Active"}
-                </span>
-              {:else}
-                <span class="status-badge inactive">
-                  {$_("common.inactive") || "Inactive"}
-                </span>
-              {/if}
-            </div>
-            <div class="specification-actions">
-              <button
-                class="settings-btn"
-                onclick={() => toggleDropdown(specification.shortname)}
-                title={$_("common.settings") || "Settings"}
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path
-                    d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
-                  />
-                </svg>
-              </button>
-              {#if openDropdownId === specification.shortname}
-                <div class="dropdown-menu">
-                  <button
-                    class="dropdown-item"
-                    onclick={() => {
-                      closeDropdown();
-                      openEditModal(specification);
-                    }}
-                  >
-                    <EditOutline size="sm" />
-                    <span>{$_("common.edit") || "Edit"}</span>
-                  </button>
-                  <button
-                    class="dropdown-item delete"
-                    onclick={() => {
-                      closeDropdown();
-                      openDeleteModal(specification);
-                    }}
-                  >
-                    <TrashBinOutline size="sm" />
-                    <span>{$_("common.delete") || "Delete"}</span>
-                  </button>
-                </div>
-              {/if}
-            </div>
-          </div>
-          <div class="specification-options">
-            <h4 class="options-title">
-              {$_("common.options") || "Options"}:
-            </h4>
-            {#if getSpecificationOptions(specification).length > 0}
-              <div class="options-list">
-                {#each getSpecificationOptions(specification) as option}
-                  <div class="option-item">
-                    <span class="option-value"
-                      >{getOptionName(option, $locale)}</span
-                    >
-                  </div>
-                {/each}
-              </div>
-            {:else}
-              <p class="no-options">
-                {$_("common.no_options") || "No options defined"}
-              </p>
-            {/if}
-          </div>
-          <div class="specification-meta">
-            <span class="meta-item"
-              >{$_("common.shortname") || "Shortname"}: {specification.shortname}</span
-            >
-            <span class="meta-item"
-              >{$_("common.created") || "Created"}: {formatDate(
-                specification.attributes?.created_at,
-                $locale,
-              )}</span
-            >
-          </div>
+    <!-- Stats (redesigned like previous stats cards) -->
+    <div class="stats-grid" style="margin-bottom: 16px;">
+      <!-- Total -->
+      <div class="stat-card">
+        <div class="bg-icon rounded-lg flex items-center justify-center">
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746ZM10.2033 7.5L7.86992 18H11.1624C11.7452 18.0015 12.3148 18.1735 12.8011 18.4948C13.2873 18.8161 13.6689 19.2727 13.8988 19.8082C14.2443 20.6086 14.8166 21.2904 15.5449 21.7696C16.2739 22.2492 17.1274 22.5048 18 22.5048C18.8726 22.5048 19.7261 22.2492 20.4551 21.7696C21.1837 21.2903 21.7561 20.608 22.1016 19.8072C22.3316 19.2721 22.713 18.8159 23.1989 18.4948C23.6852 18.1735 24.2548 18.0015 24.8376 18L24.8415 18L28.1301 18L25.7967 7.5H10.2033ZM28.5 21H24.8543C24.2766 22.3368 23.3205 23.4755 22.1038 24.2759C20.8853 25.0776 19.4586 25.5048 18 25.5048C16.5414 25.5048 15.1147 25.0776 13.8962 24.2759C12.6795 23.4755 11.7234 22.3368 11.1457 21H7.5V28.5H28.5V21ZM12 10.5C12 9.67157 12.6716 9 13.5 9H22.5C23.3284 9 24 9.67157 24 10.5C24 11.3284 23.3284 12 22.5 12H13.5C12.6716 12 12 11.3284 12 10.5ZM10.5 15C10.5 14.1716 11.1716 13.5 12 13.5H24C24.8284 13.5 25.5 14.1716 25.5 15C25.5 15.8284 24.8284 16.5 24 16.5H12C11.1716 16.5 10.5 15.8284 10.5 15Z"
+              fill="#3C307F"
+            />
+          </svg>
         </div>
-      {/each}
+        <div class="stat-content">
+          <h3 class="stat-title">
+            {$_("admin_dashboard.total_specifications") ||
+              "Total Specifications"}
+          </h3>
+          <p class="stat-value">{formatNumber(totalSpecs, $locale)}</p>
+        </div>
+      </div>
+
+      <!-- Active -->
+      <div class="stat-card">
+        <div class="bg-icon rounded-lg flex items-center justify-center">
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M18 6C11.3726 6 6 11.3726 6 18C6 24.6274 11.3726 30 18 30C24.6274 30 30 24.6274 30 18C30 11.3726 24.6274 6 18 6ZM3 18C3 9.71573 9.71573 3 18 3C26.2843 3 33 9.71573 33 18C33 26.2843 26.2843 33 18 33C9.71573 33 3 26.2843 3 18ZM23.5607 13.9393C24.1464 14.5251 24.1464 15.4749 23.5607 16.0607L17.5607 22.0607C16.9749 22.6464 16.0251 22.6464 15.4393 22.0607L11.6893 18.3107C11.1036 17.7249 11.1036 16.7751 11.6893 16.1893C12.2751 15.6036 13.2249 15.6036 13.8107 16.1893L16.5 18.8787L21.4393 13.9393C22.0251 13.3536 22.9749 13.3536 23.5607 13.9393Z"
+              fill="#3C307F"
+            />
+          </svg>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-title">{$_("common.active") || "Active"}</h3>
+          <p class="stat-value">{formatNumber(activeSpecs, $locale)}</p>
+        </div>
+      </div>
+
+      <!-- Inactive -->
+      <div class="stat-card">
+        <div class="bg-icon rounded-lg flex items-center justify-center">
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M18 6C11.3726 6 6 11.3726 6 18C6 24.6274 11.3726 30 18 30C24.6274 30 30 24.6274 30 18C30 11.3726 24.6274 6 18 6ZM3 18C3 9.71573 9.71573 3 18 3C26.2843 3 33 9.71573 33 18C33 26.2843 26.2843 33 18 33C9.71573 33 3 26.2843 3 18ZM18 10.5C18.8284 10.5 19.5 11.1716 19.5 12V19.5C19.5 20.3284 18.8284 21 18 21C17.1716 21 16.5 20.3284 16.5 19.5V12C16.5 11.1716 17.1716 10.5 18 10.5ZM16.5 24C16.5 23.1716 17.1716 22.5 18 22.5H18.015C18.8434 22.5 19.515 23.1716 19.515 24C19.515 24.8284 18.8434 25.5 18.015 25.5H18C17.1716 25.5 16.5 24.8284 16.5 24Z"
+              fill="#3C307F"
+            />
+          </svg>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-title">{$_("common.inactive") || "Inactive"}</h3>
+          <p class="stat-value">{formatNumber(inactiveSpecs, $locale)}</p>
+        </div>
+      </div>
+
+      <!-- Total Options -->
+      <div class="stat-card">
+        <div class="bg-icon rounded-lg flex items-center justify-center">
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746ZM10.2033 7.5L7.86992 18H11.1624C11.7452 18.0015 12.3148 18.1735 12.8011 18.4948C13.2873 18.8161 13.6689 19.2727 13.8988 19.8082C14.2443 20.6086 14.8166 21.2904 15.5449 21.7696C16.2739 22.2492 17.1274 22.5048 18 22.5048C18.8726 22.5048 19.7261 22.2492 20.4551 21.7696C21.1837 21.2903 21.7561 20.608 22.1016 19.8072C22.3316 19.2721 22.713 18.8159 23.1989 18.4948C23.6852 18.1735 24.2548 18.0015 24.8376 18L24.8415 18L28.1301 18L25.7967 7.5H10.2033ZM28.5 21H24.8543C24.2766 22.3368 23.3205 23.4755 22.1038 24.2759C20.8853 25.0776 19.4586 25.5048 18 25.5048C16.5414 25.5048 15.1147 25.0776 13.8962 24.2759C12.6795 23.4755 11.7234 22.3368 11.1457 21H7.5V28.5H28.5V21ZM12 10.5C12 9.67157 12.6716 9 13.5 9H22.5C23.3284 9 24 9.67157 24 10.5C24 11.3284 23.3284 12 22.5 12H13.5C12.6716 12 12 11.3284 12 10.5ZM10.5 15C10.5 14.1716 11.1716 13.5 12 13.5H24C24.8284 13.5 25.5 14.1716 25.5 15C25.5 15.8284 24.8284 16.5 24 16.5H12C11.1716 16.5 10.5 15.8284 10.5 15Z"
+              fill="#3C307F"
+            />
+          </svg>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-title">
+            {$_("admin_dashboard.total_options") || "Total Options"}
+          </h3>
+          <p class="stat-value">{formatNumber(totalOptions, $locale)}</p>
+        </div>
+      </div>
     </div>
 
-    {#if totalPages > 1}
-      <div class="pagination">
-        <button
-          class="page-btn"
-          onclick={previousPage}
-          disabled={currentPage === 1}
-        >
-          ← {$_("common.previous") || "Previous"}
-        </button>
+    <!-- Controls (search + create) -->
+    <div class="bg-white rounded-t-xl w-full p-6" style="margin-bottom: 0;">
+      <div
+        class="flex flex-col md:flex-row md:items-center justify-between gap-3"
+      >
+        <div class="relative w-[256px]">
+          <div
+            class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none"
+          >
+            <svg
+              class="w-4 h-4 text-gray-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
 
-        <div class="pagination-pages">
-          {#each Array.from({ length: totalPages }, (_, i) => i + 1) as page}
-            {#if page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)}
-              <button
-                class="page-btn"
-                class:active={page === currentPage}
-                onclick={() => goToPage(page)}
-              >
-                {page}
-              </button>
-            {:else if page === currentPage - 2 || page === currentPage + 2}
-              <span class="page-ellipsis">...</span>
-            {/if}
-          {/each}
+          <input
+            type="text"
+            bind:value={searchTerm}
+            placeholder={$_("admin_dashboard.search_specifications") ||
+              "Search specifications..."}
+            class="w-full h-9 pl-9 pr-3 py-2
+              bg-[#F9FAFB]
+              border border-[#E5E7EB]
+              rounded-[12px]
+              shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+              text-sm
+              focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+          />
         </div>
 
-        <div class="pagination-info">
-          {$_("common.page") || "Page"}
-          {currentPage}
-          {$_("common.of") || "of"}
-          {totalPages}
-        </div>
-
-        <button
-          class="page-btn"
-          onclick={nextPage}
-          disabled={currentPage === totalPages}
-        >
-          {$_("common.next") || "Next"} →
+        <button class='inline-flex items-center justify-center mx-2 h-9 cursor-pointer px-3 py-2 bg-[#3C307F] text-white text-sm font-medium rounded-[12px] shadow-[0px_1px_0.5px_0.05px_#1D293D05] hover:bg-[#2f2666] transition-colors duration-200 s-YJT1Gee9Kcm3 s-PDCyVhHr-VbL' onclick={openCreateModal}>
+          <PlusOutline size="sm" />
+          <span
+            >{$_("admin_dashboard.create_specification") ||
+              "Create Specification"}</span
+          >
         </button>
       </div>
-    {/if}
+    </div>
+
+    <!-- Table -->
+    <div class="items-table-container">
+      {#if filteredSpecifications.length === 0}
+        <EmptyState
+          icon="🔍"
+          title={$_("common.no_results") || "No results found"}
+          description={$_("common.try_different_search") ||
+            "Try adjusting your search terms"}
+        />
+      {:else}
+        <div class="items-table-container">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th class="col-name">
+                  {$_("admin_dashboard.specification") || "Specification"}
+                </th>
+                <th class="col-count">
+                  {$_("admin_dashboard.available_options") ||
+                    "Available Options"}
+                </th>
+                <th class="col-status">
+                  {$_("common.status") || "Status"}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {#each paginatedSpecifications as specification (specification.shortname)}
+                <tr class="item-row">
+                  <!-- Specification -->
+                  <td class="col-name">
+                    <div class="option-cell">
+                      <div
+                        class="option-title"
+                        title={getLocalizedDisplayName(specification, $locale)}
+                      >
+                        {truncateText(
+                          getLocalizedDisplayName(specification, $locale),
+                          25,
+                        )}
+                      </div>
+
+                      <div
+                        class="option-sub mono"
+                        title={specification.shortname}
+                      >
+                        {truncateText(specification.shortname, 30)}
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Available options -->
+                  <td class="col-count">
+                    <span class="mono">
+                      {formatNumber(getOptionsCount(specification), $locale)}
+                    </span>
+                  </td>
+
+                  <!-- Status -->
+                  <td class="col-status">
+                    {#if getStatus(specification)}
+                      <span class="status-pill status-pill--active">
+                        {$_("common.active") || "Active"}
+                      </span>
+                    {:else}
+                      <span class="status-pill status-pill--inactive">
+                        {$_("common.inactive") || "Inactive"}
+                      </span>
+                    {/if}
+                  </td>
+
+                  <!-- Action -->
+                  <td onclick={(e) => e.stopPropagation()}>
+                    <div
+                      class="relative flex justify-end"
+                      onclick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        aria-label={$_("common.actions") || "Action"}
+                        onclick={(e) =>
+                          toggleDropdown(specification.shortname, e)}
+                      >
+                        <span class="text-xl leading-none">…</span>
+                      </button>
+
+                      {#if openDropdownId === specification.shortname}
+                        <div
+                          class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1"
+                          style={$isRTL
+                            ? "right:0; top:22px;"
+                            : "right:0; top:22px;"}
+                          role="menu"
+                        >
+                          <button
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
+                            onclick={() => {
+                              closeDropdown();
+                              openEditModal(specification);
+                            }}
+                            role="menuitem"
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              class="w-4 h-4 text-gray-500"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                fill-rule="evenodd"
+                                clip-rule="evenodd"
+                                d="M15.5763 5.55905L14.1547 7.028L15.5606 8.43048L17.0227 9.88908L18.4357 8.42918C18.8155 8.0491 19.0288 7.53378 19.0288 6.99649C19.0288 6.45931 18.8155 5.94411 18.4359 5.56405C18.0559 5.1845 17.5407 4.97131 17.0036 4.97131C16.4688 4.97131 15.9558 5.18263 15.5763 5.55905ZM10.0378 15.6235L14.8691 10.5657L15.6318 11.3265L10.7674 16.3531L10.0378 15.6235ZM7.95914 16.3732L8.92782 17.3419L5.9421 18.337L6.93719 15.3513L7.90531 16.3194C7.91913 16.3343 7.93349 16.3489 7.94838 16.3631C7.95195 16.3665 7.95553 16.3699 7.95914 16.3732ZM8.62322 14.2089L7.90282 13.4885L12.7638 8.46539L13.4529 9.15285L8.62322 14.2089ZM14.1455 4.16158L12.0339 6.34356C12.0329 6.34463 12.0319 6.34571 12.0308 6.34678L5.7815 12.8046C5.67738 12.9122 5.59875 13.0418 5.55141 13.1838L3.41241 19.6018C3.29266 19.9611 3.38618 20.3573 3.654 20.6251C3.92182 20.8929 4.31797 20.9864 4.67729 20.8667L11.0953 18.7277C11.2479 18.6768 11.3859 18.59 11.4977 18.4744L19.8566 9.83672C20.6072 9.0822 21.0288 8.06106 21.0288 6.99649C21.0288 5.92906 20.605 4.90529 19.8505 4.15018L19.8499 4.14958C19.0948 3.39511 18.071 2.97131 17.0036 2.97131C15.9362 2.97131 14.9124 3.39511 14.1573 4.14958L14.1455 4.16158Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                            <span>{$_("common.edit") || "Edit"}</span>
+                          </button>
+
+                          <button
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-red-50 text-red-600"
+                            onclick={() => {
+                              closeDropdown();
+                              openDeleteModal(specification);
+                            }}
+                            role="menuitem"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              class="w-4 h-4"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path
+                                d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v10h-2V9zm4 0h2v10h-2V9zM7 9h2v10H7V9z"
+                              />
+                            </svg>
+                            <span>{$_("common.delete") || "Delete"}</span>
+                          </button>
+                        </div>
+                      {/if}
+                    </div>
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        {#if totalPages > 1}
+          <div class="pagination">
+            <button
+              class="page-btn"
+              onclick={previousPage}
+              disabled={currentPage === 1}
+            >
+              ← {$_("common.previous") || "Previous"}
+            </button>
+
+            <div class="pagination-pages">
+              {#each Array.from({ length: totalPages }, (_, i) => i + 1) as page}
+                {#if page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)}
+                  <button
+                    class="page-btn"
+                    class:active={page === currentPage}
+                    onclick={() => goToPage(page)}
+                  >
+                    {formatNumber(page, $locale)}
+                  </button>
+                {:else if page === currentPage - 2 || page === currentPage + 2}
+                  <span class="page-ellipsis">...</span>
+                {/if}
+              {/each}
+            </div>
+
+            <div class="pagination-info">
+              {$_("common.page") || "Page"}
+              {formatNumber(currentPage, $locale)}
+              {$_("common.of") || "of"}
+              {formatNumber(totalPages, $locale)}
+            </div>
+
+            <button
+              class="page-btn"
+              onclick={nextPage}
+              disabled={currentPage === totalPages}
+            >
+              {$_("common.next") || "Next"} →
+            </button>
+          </div>
+        {/if}
+      {/if}
+    </div>
   {/if}
 </div>
 
-<!-- Modal Components -->
+<!-- Modals -->
 <CreateSpecificationModal
   bind:show={showCreateModal}
   onClose={closeCreateModal}
@@ -695,3 +760,50 @@
   onConfirm={handleDeleteSpecification}
   specification={selectedSpecification}
 />
+
+<style>
+  /* Status pills */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .status-pill--active {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #059669;
+  }
+  .status-pill--inactive {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #dc2626;
+  }
+
+  /* Table cell layout */
+  .option-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .option-title {
+    font-weight: 700;
+    color: #111827;
+  }
+  .option-sub {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+    font-size: 13px;
+    color: #374151;
+  }
+</style>

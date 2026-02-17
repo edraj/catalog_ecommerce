@@ -45,7 +45,7 @@
 
 <Modal
   bind:show
-  size="medium"
+  size="small"
   title={isEditMode
     ? $_("seller_dashboard.edit_discount") || "Edit Discount"
     : $_("seller_dashboard.create_discount") || "Create Discount"}
@@ -233,10 +233,7 @@
   {/snippet}
 
   {#snippet footer()}
-    <Button variant="secondary" onclick={onClose}>
-      {$_("seller_dashboard.cancel") || "Cancel"}
-    </Button>
-    <Button variant="primary" onclick={handleSubmit}>
+    <Button variant="primary" class='w-full' onclick={handleSubmit}>
       {isEditMode
         ? $_("common.save") || "Save"
         : $_("seller_dashboard.create") || "Create"}

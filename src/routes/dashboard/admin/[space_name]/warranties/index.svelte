@@ -728,6 +728,29 @@
 
     <!-- RIGHT: Filters + Actions + Create -->
     <div class="flex items-end gap-3 justify-end">
+      <!-- CREATE WARRANTY (same condition) -->
+        <button
+          type="button"
+          onclick={openCreateModal}
+          class="inline-flex items-center justify-center
+          h-9 px-3 py-2
+          bg-[#3C307F] text-white text-sm font-medium
+          rounded-[12px]
+          shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+          hover:bg-[#2f2666]
+          transition-colors duration-200"
+        >
+          <svg viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+            <path
+              fill-rule="evenodd"
+              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <span class="ml-2"
+            >{$_("admin.create_warranty") || "Create warranty"}</span
+          >
+        </button>
       <!-- FILTERS DROPDOWN (Seller + Status + Scope) -->
       <div class="relative">
         <button
@@ -886,31 +909,7 @@
         {/if}
       </div>
 
-      <!-- CREATE WARRANTY (same condition) -->
-      {#if selectedSeller && selectedSeller !== "all"}
-        <button
-          type="button"
-          onclick={openCreateModal}
-          class="inline-flex items-center justify-center
-          h-9 px-3 py-2
-          bg-[#3C307F] text-white text-sm font-medium
-          rounded-[12px]
-          shadow-[0px_1px_0.5px_0.05px_#1D293D05]
-          hover:bg-[#2f2666]
-          transition-colors duration-200"
-        >
-          <svg viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-            <path
-              fill-rule="evenodd"
-              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <span class="ml-2"
-            >{$_("admin.create_warranty") || "Create warranty"}</span
-          >
-        </button>
-      {/if}
+      
     </div>
   </div>
 
@@ -958,7 +957,6 @@
             <th>{$_("admin.warranty_terms") || "Terms"}</th>
             <th>{$_("common.status") || "Status"}</th>
             <th>{$_("admin.created") || "Created"}</th>
-            <th>{$_("common.actions") || "Actions"}</th>
           </tr>
         </thead>
         <tbody class="bg-white">
@@ -967,24 +965,6 @@
               <!-- Seller (avatar + seller + warranty name below) -->
               <td class="px-6 py-4">
                 <div class="flex items-center gap-2.5">
-                  <div
-                    class="shrink-0 rounded-full flex items-center justify-center"
-                    style="width:44px;height:44px;padding:10px 5px;background:#F3F4F6;"
-                    aria-hidden="true"
-                  >
-                    <span
-                      style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
-                    >
-                      {(
-                        warranty.seller_displayname ||
-                        warranty.seller_shortname ||
-                        "S"
-                      )
-                        .charAt(0)
-                        .toUpperCase()}
-                    </span>
-                  </div>
-
                   <div class="min-w-0">
                     <div
                       class="truncate"
@@ -1137,28 +1117,17 @@
                   class="inline-flex items-center gap-2"
                   style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
                 >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      clip-rule="evenodd"
-                      d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2Z"
-                      fill="#6A7282"
-                    />
-                  </svg>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z" fill="#6A7282"/>
+</svg>
+
                   <span>{formatDateDMY(warranty.attributes?.created_at)}</span>
                 </div>
               </td>
 
               <!-- Actions (... dropdown) -->
               <td class="px-6 py-4" onclick={(e) => e.stopPropagation()}>
-                <div class="relative" onclick={(e) => e.stopPropagation()}>
+                <div class="relative flex justify-end" onclick={(e) => e.stopPropagation()}>
                   <button
                     class="h-8 w-8 inline-flex items-center justify-center cursor-pointer rounded-md hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
                     aria-label="Actions"

@@ -8,11 +8,9 @@
     progressOrderTicket,
   } from "@/lib/dmart_services";
   import { website } from "@/config";
-  import {
-    errorToastMessage,
-    successToastMessage,
-  } from "@/lib/toasts_messages";
+  import { errorToastMessage, successToastMessage } from "@/lib/toasts_messages";
   import "./index.css";
+
   interface Props {
     isOpen: boolean;
     combinedOrder: any;
@@ -41,11 +39,7 @@
         name: "Pending",
         state: "pending",
         next: [
-          {
-            roles: ["super_admin"],
-            state: "confirmed",
-            action: "confirm",
-          },
+          { roles: ["super_admin"], state: "confirmed", action: "confirm" },
           {
             roles: ["super_admin", "zm_customer", "customer"],
             state: "customer_cancelled",
@@ -62,22 +56,14 @@
             state: "processing",
             action: "start_processing",
           },
-          {
-            roles: ["super_admin"],
-            state: "pending",
-            action: "move_to_pending",
-          },
+          { roles: ["super_admin"], state: "pending", action: "move_to_pending" },
         ],
       },
       {
         name: "Processing",
         state: "processing",
         next: [
-          {
-            roles: ["super_admin"],
-            state: "delivered",
-            action: "mark_delivered",
-          },
+          { roles: ["super_admin"], state: "delivered", action: "mark_delivered" },
           {
             roles: ["super_admin"],
             state: "confirmed",
@@ -101,10 +87,7 @@
           },
         ],
       },
-      {
-        name: "Delivery Confirmed",
-        state: "delivery_confirmed",
-      },
+      { name: "Delivery Confirmed", state: "delivery_confirmed" },
       {
         name: "Issue Reported",
         state: "issue_reported",
@@ -114,47 +97,19 @@
             state: "processing",
             action: "process_replacement",
           },
-          {
-            roles: ["super_admin"],
-            state: "refund_pending",
-            action: "process_refund",
-          },
-          {
-            roles: ["super_admin"],
-            state: "resolved",
-            action: "resolve_issue",
-          },
-          {
-            roles: ["super_admin"],
-            state: "cancel",
-            action: "cancel",
-          },
-          {
-            roles: ["super_admin"],
-            state: "delivered",
-            action: "reject_issue",
-          },
+          { roles: ["super_admin"], state: "refund_pending", action: "process_refund" },
+          { roles: ["super_admin"], state: "resolved", action: "resolve_issue" },
+          { roles: ["super_admin"], state: "cancel", action: "cancel" },
+          { roles: ["super_admin"], state: "delivered", action: "reject_issue" },
         ],
       },
       {
         name: "Refund Pending",
         state: "refund_pending",
-        next: [
-          {
-            roles: ["super_admin"],
-            state: "refunded",
-            action: "complete_refund",
-          },
-        ],
+        next: [{ roles: ["super_admin"], state: "refunded", action: "complete_refund" }],
       },
-      {
-        name: "Refunded",
-        state: "refunded",
-      },
-      {
-        name: "Resolved",
-        state: "resolved",
-      },
+      { name: "Refunded", state: "refunded" },
+      { name: "Resolved", state: "resolved" },
       {
         name: "Customer Cancelled",
         state: "cancel",
@@ -170,26 +125,11 @@
         name: "Customer Cancel",
         state: "customer_cancelled",
         resolutions: [
-          {
-            en: "No agreement",
-            key: "no_agreement",
-          },
-          {
-            en: "Price issue",
-            key: "price_issue",
-          },
-          {
-            en: "Changed mind",
-            key: "changed_mind",
-          },
-          {
-            en: "Duplicate order",
-            key: "duplicate_order",
-          },
-          {
-            en: "Others",
-            key: "others",
-          },
+          { en: "No agreement", key: "no_agreement" },
+          { en: "Price issue", key: "price_issue" },
+          { en: "Changed mind", key: "changed_mind" },
+          { en: "Duplicate order", key: "duplicate_order" },
+          { en: "Others", key: "others" },
         ],
       },
     ],
@@ -254,8 +194,7 @@
         }
       } else {
         errorToastMessage(
-          t("admin.order_state_update_failed") ||
-            "Failed to update order state",
+          t("admin.order_state_update_failed") || "Failed to update order state",
         );
       }
     } catch (error) {
@@ -290,24 +229,25 @@
 
   function handleStateSelect(order: any, action: string, targetState: string) {
     if (!action) return;
+
     if (targetState === "customer_cancelled") {
       pendingCancellations = {
         ...pendingCancellations,
-        [order.shortname]: {
-          reasonKey: "",
-          reasonLabel: "",
-        },
+        [order.shortname]: { reasonKey: "", reasonLabel: "" },
       };
       return;
     }
+
     if (pendingCancellations[order.shortname]) {
       const { [order.shortname]: _, ...rest } = pendingCancellations;
       pendingCancellations = rest;
     }
+
     const progressComment = progressCommentDrafts[order.shortname] || "";
     handleStateChange(order, action, targetState, undefined, progressComment);
+
     if (progressCommentDrafts[order.shortname]) {
-      const { [order.shortname]: _, ...rest } = progressCommentDrafts;
+      const { [order.shortname]: __, ...rest } = progressCommentDrafts;
       progressCommentDrafts = rest;
     }
   }
@@ -327,11 +267,11 @@
     const pending = pendingCancellations[order.shortname];
     if (!pending || !pending.reasonKey) {
       errorToastMessage(
-        t("admin.select_cancellation_reason") ||
-          "Please select a cancellation reason",
+        t("admin.select_cancellation_reason") || "Please select a cancellation reason",
       );
       return;
     }
+
     handleStateChange(
       order,
       "customer_cancel",
@@ -342,8 +282,10 @@
       },
       progressCommentDrafts[order.shortname],
     );
+
     const { [order.shortname]: _, ...rest } = pendingCancellations;
     pendingCancellations = rest;
+
     if (progressCommentDrafts[order.shortname]) {
       const { [order.shortname]: __, ...progressRest } = progressCommentDrafts;
       progressCommentDrafts = progressRest;
@@ -360,10 +302,7 @@
     const current = getCommentDraft(order);
     commentDrafts = {
       ...commentDrafts,
-      [order.shortname]: {
-        ...current,
-        ...updates,
-      },
+      [order.shortname]: { ...current, ...updates },
     };
   }
 
@@ -377,9 +316,7 @@
   async function submitComment(order: any) {
     const draft = getCommentDraft(order);
     if (!draft.text.trim()) {
-      errorToastMessage(
-        t("admin.comment_required") || "Please enter a comment",
-      );
+      errorToastMessage(t("admin.comment_required") || "Please enter a comment");
       return;
     }
 
@@ -394,9 +331,7 @@
       );
 
       if (!success) {
-        errorToastMessage(
-          t("admin.comment_add_failed") || "Failed to add comment",
-        );
+        errorToastMessage(t("admin.comment_add_failed") || "Failed to add comment");
         return;
       }
 
@@ -413,9 +348,7 @@
       }
 
       updateCommentDraft(order, { text: "" });
-      successToastMessage(
-        t("admin.comment_added") || "Comment added successfully",
-      );
+      successToastMessage(t("admin.comment_added") || "Comment added successfully");
     } catch (error) {
       console.error("Error adding comment:", error);
       errorToastMessage(t("admin.comment_add_error") || "Error adding comment");
@@ -437,10 +370,7 @@
     );
     if (!confirmed) return;
 
-    commentDeleteLoading = {
-      ...commentDeleteLoading,
-      [comment.shortname]: true,
-    };
+    commentDeleteLoading = { ...commentDeleteLoading, [comment.shortname]: true };
 
     try {
       const success = await deleteComment(
@@ -451,9 +381,7 @@
       );
 
       if (!success) {
-        errorToastMessage(
-          t("admin.comment_delete_failed") || "Failed to delete comment",
-        );
+        errorToastMessage(t("admin.comment_delete_failed") || "Failed to delete comment");
         return;
       }
 
@@ -469,19 +397,12 @@
         order.attachments = refreshedOrder.attachments;
       }
 
-      successToastMessage(
-        t("admin.comment_deleted") || "Comment deleted successfully",
-      );
+      successToastMessage(t("admin.comment_deleted") || "Comment deleted successfully");
     } catch (error) {
       console.error("Error deleting comment:", error);
-      errorToastMessage(
-        t("admin.comment_delete_error") || "Error deleting comment",
-      );
+      errorToastMessage(t("admin.comment_delete_error") || "Error deleting comment");
     } finally {
-      commentDeleteLoading = {
-        ...commentDeleteLoading,
-        [comment.shortname]: false,
-      };
+      commentDeleteLoading = { ...commentDeleteLoading, [comment.shortname]: false };
     }
   }
 
@@ -490,16 +411,12 @@
   }
 
   function handleBackdropClick(e: MouseEvent) {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
+    if (e.target === e.currentTarget) handleClose();
   }
 
   function handleBackdropKeydown(e: KeyboardEvent) {
     if (e.target !== e.currentTarget) return;
-    if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
-      handleClose();
-    }
+    if (e.key === "Enter" || e.key === " " || e.key === "Escape") handleClose();
   }
 
   function formatDate(dateString: string): string {
@@ -552,42 +469,33 @@
     const groups: Record<string, any[]> = {};
     comments.forEach((comment) => {
       const state = comment.attributes?.payload?.body?.state || "general";
-      if (!groups[state]) {
-        groups[state] = [];
-      }
+      if (!groups[state]) groups[state] = [];
       groups[state].push(comment);
     });
     return groups;
   }
 
   async function loadVariationOptions(variationShortname: string) {
+    variationOptionsLoading = { ...variationOptionsLoading, [variationShortname]: true };
     try {
       const result = await getVariationOptionsByShortname(
         website.main_space,
         variationShortname,
       );
-      variationOptionsCache = {
-        ...variationOptionsCache,
-        [variationShortname]: result,
-      };
+      variationOptionsCache = { ...variationOptionsCache, [variationShortname]: result };
       return result;
     } catch (error) {
       console.error("Error loading variation options:", error);
       return { displayname: {}, options: [] };
     } finally {
-      variationOptionsLoading = {
-        ...variationOptionsLoading,
-        [variationShortname]: false,
-      };
+      variationOptionsLoading = { ...variationOptionsLoading, [variationShortname]: false };
     }
   }
 
   function getOptionDisplayName(option: any): string {
     if (!option) return "";
     if (typeof option.name === "string") return option.name;
-    return (
-      option.name?.en || option.name?.ar || option.name?.ku || option.key || ""
-    );
+    return option.name?.en || option.name?.ar || option.name?.ku || option.key || "";
   }
 
   function getPaymentStatusColor(status: string): string {
@@ -613,31 +521,28 @@
     onkeydown={handleBackdropKeydown}
   >
     <div class="modal-container">
+      <!-- Header (Figma) -->
       <div class="modal-header">
-        <div class="header-title">
-          <h2>
+        <div class="modal-header-left">
+          <h2 class="modal-title">
             {$_("admin.combined_order_details") || "Combined Order Details"}
           </h2>
+
           {#if combinedOrder}
             {@const payload = combinedOrder.attributes?.payload?.body}
-            <div class="order-code-badge">
-              <code
-                >#{payload?.combined_order_id || combinedOrder.shortname}</code
-              >
+            <div class="modal-subtitle">
+              #{payload?.combined_order_id || combinedOrder.shortname}
             </div>
           {/if}
         </div>
+
         <button
           class="close-button"
           onclick={handleClose}
           aria-label={$_("common.close") || "Close"}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path
-              d="M18 6L6 18M6 6l12 12"
-              stroke-width="2"
-              stroke-linecap="round"
-            />
+            <path d="M18 6L6 18M6 6l12 12" stroke-width="2" stroke-linecap="round" />
           </svg>
         </button>
       </div>
@@ -649,88 +554,70 @@
           {@const individualOrders = combinedOrder.individualOrders || []}
           {@const isLoadingOrders = combinedOrder.isLoadingOrders || false}
 
-          <!-- Combined Order Summary -->
-          <div class="section">
-            <div class="section-header-inline">
-              <h3>{$_("admin.order_information") || "Order Information"}</h3>
-              <div class="header-badges">
-                <div
-                  class="payment-badge {getPaymentStatusColor(
-                    payload?.payment_status || 'pending',
-                  )}"
-                >
-                  {payload?.payment_status || "pending"}
-                </div>
-                {#if isBnplOrder(payload)}
-                  <span class="badge badge-bnpl">
-                    {$_("admin.bnpl") || "BNPL"}
-                  </span>
-                {/if}
-                {#if isSameDayDelivery(payload)}
-                  <span class="badge badge-ssd">
-                    {$_("admin.ssd") || "SSD"}
-                  </span>
-                {/if}
+          <!-- Order Summary (Figma) -->
+          <div class="order-summary-block">
+            <div class="order-summary-header">
+              <div class="order-summary-title">
+                {$_("admin.order_details") || "Order Details"}
+              </div>
+
+              <div
+                class="order-summary-status {getPaymentStatusColor(
+                  payload?.payment_status || 'pending',
+                )}"
+              >
+                {payload?.payment_status || "pending"}
               </div>
             </div>
 
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label"
-                  >{$_("admin.order_id") || "Order ID"}</span
-                >
-                <span class="info-value">
-                  <strong>
-                    #{payload?.combined_order_id ||
-                      $_("common.not_available") ||
-                      "N/A"}
-                  </strong>
+            <div class="order-summary-info">
+              <div class="summary-info-row">
+                <span class="summary-info-label">
+                  {$_("admin.order_date") || "Order date"}
+                </span>
+                <span class="summary-info-value">
+                  {formatDate(combinedOrder.attributes.created_at)}
                 </span>
               </div>
-              <div class="info-item">
-                <span class="info-label"
-                  >{$_("admin.order_date") || "Order Date"}</span
-                >
-                <span class="info-value"
-                  >{formatDate(combinedOrder.attributes.created_at)}</span
-                >
+
+              <div class="summary-info-row">
+                <span class="summary-info-label">
+                  {$_("admin.customer") || "Customer"}
+                </span>
+                <span class="summary-info-value">{customerShortname || "—"}</span>
               </div>
-              <div class="info-item">
-                <span class="info-label"
-                  >{$_("admin.customer") || "Customer"}</span
-                >
-                <span class="info-value">
-                  <strong>
-                    {customerShortname || $_("common.not_available") || "N/A"}
-                  </strong>
+
+              <div class="summary-info-row">
+                <span class="summary-info-label">
+                  {$_("admin.payment_method") || "Payment method"}
+                </span>
+                <span class="summary-info-value">{payload?.payment_type || "—"}</span>
+              </div>
+
+              <div class="summary-info-row">
+                <span class="summary-info-label">
+                  {$_("admin.origin") || "Origin"}
+                </span>
+                <span class="summary-info-value">{payload?.order_from || "—"}</span>
+              </div>
+
+              <div class="summary-info-row">
+                <span class="summary-info-label">
+                  {$_("admin.total_amount") || "Total price"}
+                </span>
+                <span class="summary-info-value">
+                  {(payload?.total_amount || 0).toLocaleString()}
+                  {$_("admin.currency") || "IQD"}
                 </span>
               </div>
-              <div class="info-item">
-                <span class="info-label"
-                  >{$_("admin.order_from") || "Order From"}</span
-                >
-                <span class="info-value">
-                  {payload?.order_from || $_("common.not_available") || "N/A"}
-                </span>
-              </div>
-              <div class="info-item">
-                <span class="info-label"
-                  >{$_("admin.payment_type") || "Payment Type"}</span
-                >
-                <span class="info-value">
-                  {payload?.payment_type || $_("common.not_available") || "N/A"}
-                </span>
-              </div>
-              <div class="info-item">
-                <span class="info-label"
-                  >{$_("admin.total_amount") || "Total Amount"}</span
-                >
-                <span class="info-value">
-                  <strong
-                    >{(payload?.total_amount || 0).toLocaleString()}
-                    {$_("admin.currency") || "IQD"}</strong
-                  >
-                </span>
+
+              <div class="summary-info-row badges-row">
+                {#if isBnplOrder(payload)}
+                  <span class="badge badge-bnpl">{$_("admin.bnpl") || "BNPL"}</span>
+                {/if}
+                {#if isSameDayDelivery(payload)}
+                  <span class="badge badge-ssd">{$_("admin.ssd") || "SSD"}</span>
+                {/if}
               </div>
             </div>
           </div>
@@ -738,9 +625,6 @@
           <!-- Individual Seller Orders -->
           {#if isLoadingOrders}
             <div class="section">
-              <h3>
-                {$_("admin.individual_orders") || "Individual Seller Orders"}
-              </h3>
               <div class="loading-orders">
                 <div class="spinner-inline"></div>
                 <p>
@@ -751,7 +635,7 @@
             </div>
           {:else if individualOrders.length > 0}
             <div class="section">
-              <h3>
+              <h3 class="section-title">
                 {$_("admin.individual_orders") || "Individual Seller Orders"} ({individualOrders.length})
               </h3>
 
@@ -759,8 +643,7 @@
                 {@const orderPayload = order.attributes?.payload?.body}
                 {@const orderState = order.attributes?.state || "pending"}
                 {@const transitions = getTransitions(orderState)}
-                {@const cancellationPending =
-                  pendingCancellations[order.shortname]}
+                {@const cancellationPending = pendingCancellations[order.shortname]}
                 {@const commentDraft = getCommentDraft(order)}
                 {@const itemsTotal =
                   orderPayload?.items?.reduce(
@@ -768,12 +651,12 @@
                     0,
                   ) || 0}
                 {@const shippingCost = orderPayload?.shipping?.cost || 0}
-                {@const couponDiscount =
-                  orderPayload?.coupon?.discount_amount || 0}
+                {@const couponDiscount = orderPayload?.coupon?.discount_amount || 0}
                 {@const orderTotal = itemsTotal + shippingCost - couponDiscount}
                 {@const orderComments = order.attachments?.comment || []}
 
                 <div class="order-card">
+                  <!-- Top row: seller + status + actions select (keep logic) -->
                   <div class="order-card-header">
                     <div class="order-card-title">
                       <span class="order-number">#{index + 1}</span>
@@ -785,6 +668,7 @@
                         <div class="order-shortname">{order.shortname}</div>
                       </div>
                     </div>
+
                     <div class="order-card-status">
                       <span class="status-badge {getStatusColor(orderState)}">
                         <svg viewBox="0 0 8 8" fill="currentColor">
@@ -792,6 +676,7 @@
                         </svg>
                         {getStateLabel(orderState)}
                       </span>
+
                       {#if transitions.length > 0}
                         <select
                           class="state-select-inline"
@@ -801,11 +686,7 @@
                               (transition) => transition.action === action,
                             );
                             if (selected) {
-                              handleStateSelect(
-                                order,
-                                selected.action,
-                                selected.state,
-                              );
+                              handleStateSelect(order, selected.action, selected.state);
                             }
                           }}
                         >
@@ -814,10 +695,7 @@
                           </option>
                           {#each transitions as transition}
                             <option value={transition.action}>
-                              {formatActionLabel(
-                                transition.action,
-                                transition.state,
-                              )}
+                              {formatActionLabel(transition.action, transition.state)}
                             </option>
                           {/each}
                         </select>
@@ -829,6 +707,7 @@
                     </div>
                   </div>
 
+                  <!-- progress comment (keep) -->
                   <div class="progress-comment">
                     <label for="progress-comment-{order.shortname}">
                       {$_("admin.progress_comment_label") ||
@@ -841,18 +720,14 @@
                         "Add a comment for this state change..."}
                       value={progressCommentDrafts[order.shortname] || ""}
                       oninput={(e) =>
-                        updateProgressCommentDraft(
-                          order,
-                          e.currentTarget.value,
-                        )}
+                        updateProgressCommentDraft(order, e.currentTarget.value)}
                     ></textarea>
                   </div>
 
                   {#if cancellationPending}
                     <div class="cancellation-reason">
                       <label for="cancel-reason-{order.shortname}">
-                        {$_("admin.cancellation_reason") ||
-                          "Cancellation reason"}
+                        {$_("admin.cancellation_reason") || "Cancellation reason"}
                       </label>
                       <div class="cancellation-controls">
                         <select
@@ -882,130 +757,142 @@
                     </div>
                   {/if}
 
-                  <!-- Order Items -->
-                  {#if orderPayload?.items && orderPayload.items.length > 0}
-                    <div class="order-items-list">
-                      {#each orderPayload.items as item, itemIndex}
-                        <div class="order-item">
-                          <div class="item-row">
-                            <span class="item-number">{itemIndex + 1}</span>
-                            <div class="item-details">
-                              <div class="item-name">
-                                {item.product_shortname || item.sku}
+                  <!-- Shipment block (Figma) -->
+                  <div class="shipment-block">
+                    <div class="shipment-header">
+                      <div class="shipment-seller">
+                        <div class="shipment-flag">PH</div>
+                        <div class="shipment-seller-meta">
+                          <div class="shipment-seller-name">{order.seller_shortname}</div>
+                          <div class="shipment-seller-id">#{order.shortname}</div>
+                        </div>
+                      </div>
+
+                      <div class="shipment-right">
+                        <span class="shipment-status {getStatusColor(orderState)}">
+                          {getStateLabel(orderState)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {#if orderPayload?.items && orderPayload.items.length > 0}
+                      <div class="shipment-products">
+                        {#each orderPayload.items as item}
+                          <div class="shipment-product">
+                            <div class="shipment-product-left">
+                              <div class="product-image">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <path d="M7 7h10v10H7z" stroke-width="1.5" />
+                                  <path
+                                    d="M7 14l3-3 3 3 2-2 2 2"
+                                    stroke-width="1.5"
+                                  />
+                                </svg>
                               </div>
-                              <div class="item-sku">
-                                {$_("admin.sku") || "SKU"}: {item.sku}
-                              </div>
-                              {#if item.options && item.options.length > 0}
-                                <div class="item-options">
-                                  {#each item.options as option}
-                                    {#await loadVariationOptions(option.variation_shortname) then variationData}
-                                      {@const resolvedOption =
-                                        variationData.options.find(
-                                          (opt) => opt.key === option.key,
-                                        )}
-                                      {@const variationLabel =
-                                        variationData.displayname?.en ||
-                                        variationData.displayname?.ar ||
-                                        variationData.displayname?.ku ||
-                                        option.variation_shortname}
-                                      <span class="option-badge">
-                                        {variationLabel}: {getOptionDisplayName(
-                                          resolvedOption,
-                                        ) || option.key}
-                                      </span>
-                                    {:catch}
-                                      <span class="option-badge">
-                                        {option.variation_shortname}: {option.key}
-                                      </span>
-                                    {/await}
-                                  {/each}
+
+                              <div class="product-meta">
+                                <div class="product-name">
+                                  {item.product_shortname || item.sku}
                                 </div>
-                              {/if}
+                                <div class="product-sku">
+                                  {$_("admin.sku") || "SKU"}: {item.sku}
+                                </div>
+
+                                {#if item.options && item.options.length > 0}
+                                  <div class="item-options">
+                                    {#each item.options as option}
+                                      {#await loadVariationOptions(option.variation_shortname) then variationData}
+                                        {@const resolvedOption =
+                                          variationData.options.find(
+                                            (opt) => opt.key === option.key,
+                                          )}
+                                        {@const variationLabel =
+                                          variationData.displayname?.en ||
+                                          variationData.displayname?.ar ||
+                                          variationData.displayname?.ku ||
+                                          option.variation_shortname}
+                                        <span class="option-badge">
+                                          {variationLabel}: {getOptionDisplayName(resolvedOption) || option.key}
+                                        </span>
+                                      {:catch}
+                                        <span class="option-badge">
+                                          {option.variation_shortname}: {option.key}
+                                        </span>
+                                      {/await}
+                                    {/each}
+                                  </div>
+                                {/if}
+                              </div>
                             </div>
-                            <div class="item-quantity">×{item.quantity}</div>
-                            <div class="item-price">
-                              {(item.subtotal || 0).toLocaleString()}
-                              {$_("admin.currency") || "IQD"}
+
+                            <div class="shipment-product-right">
+                              <div class="product-qty">x{item.quantity}</div>
+                              <div class="product-price">
+                                {(item.subtotal || 0).toLocaleString()}
+                                {$_("admin.currency") || "IQD"}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      {/each}
-                    </div>
-                  {/if}
+                        {/each}
+                      </div>
+                    {/if}
 
-                  <!-- Order Summary -->
-                  <div class="order-summary">
-                    <div class="summary-row">
-                      <span>{$_("admin.items_subtotal") || "Items"}</span>
-                      <span
-                        >{itemsTotal.toLocaleString()}
-                        {$_("admin.currency") || "IQD"}</span
-                      >
-                    </div>
-                    {#if shippingCost > 0}
+                    <!-- Seller order totals (keep) -->
+                    <div class="order-summary">
                       <div class="summary-row">
-                        <span>{$_("admin.shipping") || "Shipping"}</span>
-                        <span
-                          >{shippingCost.toLocaleString()}
-                          {$_("admin.currency") || "IQD"}</span
-                        >
+                        <span>{$_("admin.items_subtotal") || "Items"}</span>
+                        <span>{itemsTotal.toLocaleString()} {$_("admin.currency") || "IQD"}</span>
                       </div>
-                    {/if}
-                    {#if couponDiscount > 0}
-                      <div class="summary-row discount">
-                        <span>{$_("admin.discount") || "Discount"}</span>
-                        <span
-                          >-{couponDiscount.toLocaleString()}
-                          {$_("admin.currency") || "IQD"}</span
-                        >
+                      {#if shippingCost > 0}
+                        <div class="summary-row">
+                          <span>{$_("admin.shipping") || "Shipping"}</span>
+                          <span>{shippingCost.toLocaleString()} {$_("admin.currency") || "IQD"}</span>
+                        </div>
+                      {/if}
+                      {#if couponDiscount > 0}
+                        <div class="summary-row discount">
+                          <span>{$_("admin.discount") || "Discount"}</span>
+                          <span>-{couponDiscount.toLocaleString()} {$_("admin.currency") || "IQD"}</span>
+                        </div>
+                      {/if}
+                      <div class="summary-row total">
+                        <span>{$_("admin.total") || "Total"}</span>
+                        <span>{orderTotal.toLocaleString()} {$_("admin.currency") || "IQD"}</span>
                       </div>
-                    {/if}
-                    <div class="summary-row total">
-                      <span>{$_("admin.total") || "Total"}</span>
-                      <span
-                        >{orderTotal.toLocaleString()}
-                        {$_("admin.currency") || "IQD"}</span
-                      >
                     </div>
                   </div>
 
-                  <!-- Shipping Info -->
+                  <!-- Shipping Info (keep) -->
                   {#if orderPayload?.shipping}
                     <div class="shipping-info">
                       <div class="shipping-label">
                         <svg viewBox="0 0 20 20" fill="currentColor">
-                          <path
-                            d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"
-                          />
+                          <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
                           <path
                             d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"
                           />
                         </svg>
-                        {$_("admin.shipping_information") ||
-                          "Shipping Information"}
+                        {$_("admin.shipping_information") || "Shipping Information"}
                       </div>
                       <div class="shipping-details">
-                        {$_("admin.delivery_label") || "Delivery"}: {orderPayload
-                          .shipping.min}-{orderPayload.shipping.max}
+                        {$_("admin.delivery_label") || "Delivery"}:
+                        {orderPayload.shipping.min}-{orderPayload.shipping.max}
                         {$_("admin.days") || "days"}
                       </div>
                     </div>
                   {/if}
 
+                  <!-- Comments (keep) -->
                   <div class="comment-form">
                     <div class="comment-form-header">
                       {$_("admin.add_comment") || "Add Comment"}
                     </div>
                     <textarea
                       rows="3"
-                      placeholder={$_("admin.comment_placeholder") ||
-                        "Write a comment..."}
+                      placeholder={$_("admin.comment_placeholder") || "Write a comment..."}
                       value={commentDraft.text}
                       oninput={(e) =>
-                        updateCommentDraft(order, {
-                          text: e.currentTarget.value,
-                        })}
+                        updateCommentDraft(order, { text: e.currentTarget.value })}
                     ></textarea>
                     <button
                       class="btn-comment"
@@ -1017,10 +904,12 @@
                         : $_("admin.add_comment") || "Add Comment"}
                     </button>
                   </div>
+
                   {#if orderComments.length > 0}
                     {@const commentGroups = groupCommentsByState(orderComments)}
                     <div class="order-comments">
                       <h4>{$_("admin.comments_title") || "Comments"}</h4>
+
                       {#each Object.entries(commentGroups) as [commentState, comments]}
                         <div class="comment-group">
                           <div class="comment-group-title">
@@ -1028,6 +917,7 @@
                               ? $_("admin.comments_general") || "General"
                               : getStateLabel(commentState)}
                           </div>
+
                           {#each comments as comment}
                             <div class="comment-item">
                               <div class="comment-header">
@@ -1044,11 +934,8 @@
                                   <button
                                     class="comment-delete"
                                     type="button"
-                                    onclick={() =>
-                                      removeOrderComment(order, comment)}
-                                    disabled={commentDeleteLoading[
-                                      comment.shortname
-                                    ]}
+                                    onclick={() => removeOrderComment(order, comment)}
+                                    disabled={commentDeleteLoading[comment.shortname]}
                                   >
                                     {commentDeleteLoading[comment.shortname]
                                       ? $_("admin.deleting") || "Deleting..."
@@ -1056,6 +943,7 @@
                                   </button>
                                 </div>
                               </div>
+
                               <p class="comment-text">
                                 {comment.attributes?.payload?.body?.embedded ||
                                   comment.attributes?.payload?.body?.body ||
@@ -1086,6 +974,7 @@
 {/if}
 
 <style>
+  /* Overlay + container */
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -1099,17 +988,13 @@
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   .modal-container {
     background: white;
-    border-radius: 1rem;
+    border-radius: 12px;
     max-width: 900px;
     width: 100%;
     max-height: 90vh;
@@ -1119,56 +1004,50 @@
       0 20px 25px -5px rgba(0, 0, 0, 0.1),
       0 10px 10px -5px rgba(0, 0, 0, 0.04);
     animation: slideUp 0.3s ease;
+    overflow: hidden;
   }
 
   @keyframes slideUp {
-    from {
-      transform: translateY(20px);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 
+  /* Header (Figma) */
   .modal-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    padding: 1.5rem 2rem;
+    padding: 16px 20px;
     border-bottom: 1px solid #e5e7eb;
   }
 
-  .header-title {
+  .modal-header-left {
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 2px;
   }
 
-  .header-title h2 {
+  .modal-title {
     margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 28px;
+    letter-spacing: 0;
     color: #111827;
   }
 
-  .order-code-badge {
-    padding: 0.375rem 0.75rem;
-    background: #f3f4f6;
-    border-radius: 0.5rem;
-  }
-
-  .order-code-badge code {
-    font-size: 0.875rem;
-    color: #374151;
-    font-family: "Monaco", "Courier New", monospace;
+  .modal-subtitle {
+    font-weight: 400;
+    font-size: 10px;
+    line-height: 24px;
+    letter-spacing: 0;
+    color: #4A5565;
   }
 
   .close-button {
     width: 40px;
     height: 40px;
-    border-radius: 0.5rem;
+    border-radius: 8px;
     border: none;
     background: #f3f4f6;
     color: #6b7280;
@@ -1177,6 +1056,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    flex-shrink: 0;
   }
 
   .close-button:hover {
@@ -1190,84 +1070,125 @@
   }
 
   .modal-body {
-    padding: 2rem;
+    padding: 16px 20px;
     overflow-y: auto;
     flex: 1;
+    background: #ffffff;
   }
 
-  .section {
-    margin-bottom: 2rem;
-  }
-
-  .section:last-child {
-    margin-bottom: 0;
-  }
-
-  .section h3 {
-    margin: 0 0 1rem;
-    font-size: 1.125rem;
+  /* Section title */
+  .section-title {
+    margin: 16px 0 12px;
+    font-size: 14px;
     font-weight: 600;
     color: #111827;
   }
 
-  .section-header-inline {
+  /* Order summary (Figma) */
+  .order-summary-block {
+    width: 100%;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .order-summary-header {
+    width: 100%;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1rem;
   }
 
-  .header-badges {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .section-header-inline h3 {
-    margin: 0;
-  }
-
-  .info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-
-  .info-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .info-label {
-    font-size: 0.8125rem;
-    color: #6b7280;
+  .order-summary-title {
     font-weight: 500;
-  }
-
-  .info-value {
-    font-size: 0.9375rem;
+    font-size: 18px;
+    line-height: 28px;
     color: #111827;
-    font-weight: 500;
   }
 
-  .payment-badge {
+  .order-summary-status {
+    width: 110px;
+    height: 24px;
     display: inline-flex;
     align-items: center;
-    padding: 0.375rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.8125rem;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 6px; /* rounded-sm */
+    border-width: 1px;
+    border-style: solid;
+    padding: 4px 8px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: capitalize;
+  }
+
+  .order-summary-status.paid {
+    background: #ECFDF5;
+    border-color: #A4F4CF;
+    color: #065f46;
+  }
+
+  .order-summary-status.pending {
+    background: #FFFBEB;
+    border-color: #FDC700;
+    color: #92400e;
+  }
+
+  .order-summary-status.failed {
+    background: #FEE2E2;
+    border-color: #FCA5A5;
+    color: #991b1b;
+  }
+
+  .order-summary-status.refunded {
+    background: #EEF2FF;
+    border-color: #C7D2FE;
+    color: #3730A3;
+  }
+
+  .order-summary-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .summary-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .summary-info-label,
+  .summary-info-value {
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: 0;
+    color: #111827;
+  }
+
+  .summary-info-label {
+    color: #4A5565;
+    font-weight: 500;
+  }
+
+  .badges-row {
+    justify-content: flex-start;
+    gap: 8px;
+    margin-top: 4px;
   }
 
   .badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.3rem 0.6rem;
+    padding: 4px 10px;
     border-radius: 9999px;
-    font-size: 0.75rem;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.02em;
   }
@@ -1276,142 +1197,60 @@
     background: #ede9fe;
     color: #5b21b6;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
   }
 
   .badge-ssd {
     background: #cffafe;
     color: #155e75;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
   }
 
-  .payment-badge.paid {
-    background: #d1fae5;
-    color: #065f46;
-  }
-
-  .payment-badge.pending {
-    background: #fef3c7;
-    color: #92400e;
-  }
-
-  .payment-badge.failed {
-    background: #fee2e2;
-    color: #991b1b;
-  }
-
-  .customer-card {
-    background: #f9fafb;
-    border-radius: 0.75rem;
-    padding: 1.5rem;
-  }
-
-  .customer-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  .customer-avatar {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .customer-avatar svg {
-    width: 28px;
-    height: 28px;
-  }
-
-  .customer-name {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: #111827;
-  }
-
-  .customer-id {
-    font-size: 0.875rem;
-    color: #6b7280;
-  }
-
-  .customer-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding-top: 1rem;
-    border-top: 1px solid #e5e7eb;
-  }
-
-  .detail-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 0.875rem;
-    color: #374151;
-  }
-
-  .detail-row svg {
-    width: 18px;
-    height: 18px;
-    color: #9ca3af;
-    flex-shrink: 0;
-  }
-
+  /* Seller card container (kept) */
   .order-card {
-    background: #f9fafb;
+    background: #ffffff;
     border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-  }
-
-  .order-card:last-child {
-    margin-bottom: 0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
   }
 
   .order-card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
+    gap: 12px;
+    padding-bottom: 12px;
     border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 12px;
   }
 
   .order-card-title {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 12px;
   }
 
   .order-number {
     width: 32px;
     height: 32px;
-    border-radius: 50%;
+    border-radius: 9999px;
     background: #281f51;
-    color: white;
+    color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: 14px;
+    flex-shrink: 0;
   }
 
   .seller-name {
-    font-size: 0.9375rem;
+    font-size: 14px;
     color: #374151;
   }
 
   .order-shortname {
-    font-size: 0.8125rem;
+    font-size: 12px;
     color: #6b7280;
     font-family: monospace;
   }
@@ -1419,16 +1258,16 @@
   .order-card-status {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 10px;
   }
 
   .status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.375rem;
-    padding: 0.375rem 0.75rem;
+    gap: 6px;
+    padding: 6px 10px;
     border-radius: 9999px;
-    font-size: 0.8125rem;
+    font-size: 12px;
     font-weight: 600;
     text-transform: capitalize;
   }
@@ -1439,7 +1278,7 @@
   }
 
   .status-badge.pending {
-    background: #fef3c7;
+    background: #fffbeb;
     color: #92400e;
   }
 
@@ -1454,7 +1293,7 @@
   }
 
   .status-badge.delivered {
-    background: #d1fae5;
+    background: #ecfdf5;
     color: #065f46;
   }
 
@@ -1464,71 +1303,251 @@
   }
 
   .state-select-inline {
-    padding: 0.375rem 0.75rem;
+    padding: 8px 10px;
     border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
+    border-radius: 8px;
+    font-size: 14px;
     color: #374151;
     background: white;
     cursor: pointer;
   }
 
-  .state-select-inline:hover {
-    border-color: #9ca3af;
-  }
-
   .state-select-disabled {
-    font-size: 0.8125rem;
+    font-size: 12px;
     color: #9ca3af;
     font-weight: 600;
   }
 
-  .cancellation-reason {
-    margin: 0 0 1rem;
-    background: #fff7ed;
-    border: 1px solid #fed7aa;
-    border-radius: 0.75rem;
-    padding: 0.75rem;
-  }
-
-  .cancellation-reason label {
-    display: block;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #9a3412;
-    margin-bottom: 0.5rem;
-  }
-
-  .cancellation-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .cancellation-controls select {
-    flex: 1;
-    min-width: 220px;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #fdba74;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    background: white;
-    color: #7c2d12;
-  }
-
-  .progress-comment {
-    margin: 0 0 1rem;
-    padding: 0.75rem;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
+  /* Shipment block (Figma) */
+  .shipment-block {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 16px;
+    margin-bottom: 12px;
+    background: #ffffff;
+  }
+
+  .shipment-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .shipment-seller {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .shipment-flag {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background: #f3f4f6;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+  }
+
+  .shipment-seller-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .shipment-seller-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #101828;
+  }
+
+  .shipment-seller-id {
+    font-weight: 400;
+    font-size: 10px;
+    line-height: 14px;
+    color: #4A5565;
+  }
+
+  .shipment-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+    background: #f9fafb;
+    color: #4A5565;
+  }
+
+  .shipment-status.pending {
+    background: #fffbeb;
+    border-color: #fdc700;
+    color: #92400e;
+  }
+
+  .shipment-status.processing {
+    background: #dbeafe;
+    border-color: #bfdbfe;
+    color: #1e40af;
+  }
+
+  .shipment-status.shipped {
+    background: #e0e7ff;
+    border-color: #c7d2fe;
+    color: #5b21b6;
+  }
+
+  .shipment-status.delivered {
+    background: #ecfdf5;
+    border-color: #a4f4cf;
+    color: #065f46;
+  }
+
+  .shipment-status.cancelled {
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #991b1b;
+  }
+
+  .shipment-products {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+  }
+
+  .shipment-product {
+    width: 100%;
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .shipment-product:first-child {
+    border-top: none;
+  }
+
+  .shipment-product-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .product-image {
+    width: 32px;
+    height: 32px;
+    border-radius: 100px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 5px;
+    flex-shrink: 0;
+    color: #6b7280;
+  }
+
+  .product-image svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .product-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .product-name {
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 16px;
+    color: #101828;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 440px;
+  }
+
+  .product-sku {
+    font-weight: 400;
+    font-size: 10px;
+    line-height: 14px;
+    color: #4A5565;
+  }
+
+  .shipment-product-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .product-qty {
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 24px;
+    color: #6A7282;
+  }
+
+  .product-price {
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 16px;
+    color: #101828;
+  }
+
+  /* variation option chips */
+  .item-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .option-badge {
+    padding: 2px 8px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #374151;
+  }
+
+  /* Progress comment (kept) */
+  .progress-comment {
+    margin: 0 0 12px;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .progress-comment label {
-    font-size: 0.8125rem;
+    font-size: 13px;
     font-weight: 600;
     color: #374151;
   }
@@ -1536,10 +1555,10 @@
   .progress-comment textarea {
     width: 100%;
     resize: vertical;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
+    padding: 12px;
+    border-radius: 8px;
     border: 1px solid #d1d5db;
-    font-size: 0.875rem;
+    font-size: 14px;
     color: #111827;
   }
 
@@ -1549,13 +1568,47 @@
     box-shadow: 0 0 0 3px rgba(40, 31, 81, 0.1);
   }
 
+  /* Cancellation box (kept) */
+  .cancellation-reason {
+    margin: 0 0 12px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .cancellation-reason label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #9a3412;
+    margin-bottom: 8px;
+  }
+
+  .cancellation-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .cancellation-controls select {
+    flex: 1;
+    min-width: 220px;
+    padding: 10px 12px;
+    border: 1px solid #fdba74;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    color: #7c2d12;
+  }
+
   .btn-confirm-cancel {
-    padding: 0.5rem 0.75rem;
+    padding: 10px 12px;
     background: #ea580c;
     color: white;
     border: none;
-    border-radius: 0.5rem;
-    font-size: 0.8125rem;
+    border-radius: 8px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s ease;
@@ -1565,96 +1618,19 @@
     background: #c2410c;
   }
 
-  .order-items-list {
-    margin-bottom: 1rem;
-  }
-
-  .order-item {
-    background: white;
-    border-radius: 0.5rem;
-    padding: 0.75rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .order-item:last-child {
-    margin-bottom: 0;
-  }
-
-  .item-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .item-number {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: #e0e7ff;
-    color: #4338ca;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 0.75rem;
-    flex-shrink: 0;
-  }
-
-  .item-details {
-    flex: 1;
-  }
-
-  .item-name {
-    font-weight: 600;
-    color: #111827;
-    font-size: 0.875rem;
-  }
-
-  .item-sku {
-    font-size: 0.75rem;
-    color: #6b7280;
-  }
-
-  .item-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    margin-top: 0.25rem;
-  }
-
-  .option-badge {
-    padding: 0.125rem 0.5rem;
-    background: #f3f4f6;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    color: #374151;
-  }
-
-  .item-quantity {
-    font-weight: 600;
-    color: #6b7280;
-    font-size: 0.875rem;
-  }
-
-  .item-price {
-    font-weight: 600;
-    color: #111827;
-    font-size: 0.875rem;
-  }
-
+  /* Order totals (kept) */
   .order-summary {
-    background: white;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
   }
 
   .summary-row {
     display: flex;
     justify-content: space-between;
-    padding: 0.375rem 0;
-    font-size: 0.875rem;
+    padding: 6px 0;
+    font-size: 14px;
     color: #374151;
   }
 
@@ -1665,67 +1641,141 @@
   .summary-row.total {
     font-weight: 700;
     color: #111827;
-    padding-top: 0.75rem;
+    padding-top: 12px;
     border-top: 1px solid #e5e7eb;
-    margin-top: 0.5rem;
+    margin-top: 8px;
   }
 
+  /* Shipping info (kept) */
   .shipping-info {
-    background: white;
-    border-radius: 0.5rem;
-    padding: 0.75rem;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 12px;
+  }
+
+  .shipping-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
+  }
+
+  .shipping-label svg {
+    width: 18px;
+    height: 18px;
+    color: #6b7280;
+  }
+
+  .shipping-details {
+    font-size: 14px;
+    color: #6b7280;
+  }
+
+  /* Comments (kept) */
+  .comment-form {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .comment-form-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .comment-form textarea {
+    width: 100%;
+    resize: vertical;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 14px;
+    color: #111827;
+  }
+
+  .comment-form textarea:focus {
+    outline: none;
+    border-color: #281f51;
+    box-shadow: 0 0 0 3px rgba(40, 31, 81, 0.1);
+  }
+
+  .btn-comment {
+    align-self: flex-start;
+    padding: 10px 14px;
+    background: #281f51;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .btn-comment:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+
+  .btn-comment:hover:not(:disabled) {
+    background: #1e1640;
   }
 
   .order-comments {
-    margin-top: 1rem;
+    margin-top: 12px;
     border-top: 1px solid #e5e7eb;
-    padding-top: 1rem;
+    padding-top: 12px;
   }
 
   .order-comments h4 {
-    margin: 0 0 0.75rem;
-    font-size: 0.9375rem;
+    margin: 0 0 12px;
+    font-size: 15px;
     color: #111827;
     font-weight: 600;
   }
 
-  .comment-group {
-    margin-bottom: 1rem;
-  }
-
   .comment-group-title {
-    font-size: 0.8125rem;
+    font-size: 12px;
     font-weight: 600;
     color: #6b7280;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    margin-bottom: 0.5rem;
+    margin-bottom: 8px;
   }
 
   .comment-item {
-    padding: 0.5rem 0.75rem;
+    padding: 10px 12px;
     background: white;
     border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    margin-bottom: 0.5rem;
+    border-radius: 10px;
+    margin-bottom: 8px;
   }
 
   .comment-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 0.75rem;
-    margin-bottom: 0.25rem;
-    gap: 0.75rem;
+    font-size: 12px;
+    margin-bottom: 6px;
+    gap: 12px;
   }
 
   .comment-actions {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
   }
 
   .comment-author {
@@ -1742,7 +1792,7 @@
     background: transparent;
     color: #b91c1c;
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 12px;
     cursor: pointer;
     padding: 0;
   }
@@ -1758,126 +1808,24 @@
 
   .comment-text {
     margin: 0;
-    font-size: 0.8125rem;
+    font-size: 13px;
     color: #374151;
-  }
-
-  .shipping-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    color: #374151;
-    font-size: 0.875rem;
-  }
-
-  .shipping-label svg {
-    width: 18px;
-    height: 18px;
-    color: #6b7280;
-  }
-
-  .shipping-details {
-    font-size: 0.875rem;
-    color: #6b7280;
-  }
-
-  .comment-form {
-    margin-top: 1rem;
-    padding: 0.75rem;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .comment-form-header {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #111827;
-  }
-
-  .comment-form-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  .comment-form-row label {
-    font-size: 0.8125rem;
-    color: #374151;
-    font-weight: 600;
-  }
-
-  .comment-form-row select {
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    background: white;
-    color: #111827;
-  }
-
-  .comment-form textarea {
-    width: 100%;
-    resize: vertical;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    border: 1px solid #d1d5db;
-    font-size: 0.875rem;
-    color: #111827;
-  }
-
-  .comment-form textarea:focus,
-  .comment-form-row select:focus {
-    outline: none;
-    border-color: #281f51;
-    box-shadow: 0 0 0 3px rgba(40, 31, 81, 0.1);
-  }
-
-  .btn-comment {
-    align-self: flex-start;
-    padding: 0.5rem 0.875rem;
-    background: #281f51;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s ease;
-  }
-
-  .btn-comment:disabled {
-    background: #9ca3af;
-    cursor: not-allowed;
-  }
-
-  .btn-comment:hover:not(:disabled) {
-    background: #1e1640;
   }
 
   .empty-state {
     text-align: center;
-    padding: 3rem;
+    padding: 24px;
     color: #6b7280;
   }
 
+  /* Loading */
   .loading-orders {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 3rem;
-    gap: 1rem;
-  }
-
-  .loading-orders p {
-    color: #6b7280;
-    font-size: 0.875rem;
+    padding: 24px;
+    gap: 12px;
   }
 
   .spinner-inline {
@@ -1890,43 +1838,15 @@
   }
 
   @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
   }
 
   @media (max-width: 768px) {
-    .modal-overlay {
-      padding: 1rem;
-    }
-
-    .modal-header {
-      padding: 1rem 1.5rem;
-    }
-
-    .modal-body {
-      padding: 1.5rem;
-    }
-
-    .header-title {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.5rem;
-    }
-
-    .info-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .order-card-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.75rem;
-    }
-
-    .order-card-status {
-      width: 100%;
-      justify-content: space-between;
-    }
+    .modal-overlay { padding: 12px; }
+    .modal-body { padding: 12px; }
+    .order-card-header { flex-direction: column; align-items: flex-start; }
+    .order-card-status { width: 100%; justify-content: space-between; }
+    .shipment-product-right { gap: 10px; }
+    .product-name { max-width: 220px; }
   }
 </style>

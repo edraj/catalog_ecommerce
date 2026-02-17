@@ -18,8 +18,8 @@
   import { ResourceType } from "@edraj/tsdmart";
 
   let serviceFolders = $state<any[]>([]);
-  let selectedFolder = $state("");
-  let previousFolder = $state("");
+  let selectedFolder = $state("all");
+  let previousFolder = $state("all");
   let services = $state<any[]>([]);
   let isLoadingFolders = $state(true);
   let isLoadingServices = $state(false);
@@ -352,11 +352,19 @@
   }
 
   $effect(() => {
-    if (selectedFolder && selectedFolder !== previousFolder) {
-      previousFolder = selectedFolder;
-      loadFolderServices(true);
-    }
-  });
+  // wait until folders are loaded
+  if (isLoadingFolders) return;
+
+  // ensure default
+  if (!selectedFolder) selectedFolder = "all";
+
+  const loadKey = `${selectedFolder}-${serviceFolders.length}`;
+  if (loadKey === previousFolder) return;
+
+  previousFolder = loadKey;
+  loadFolderServices(true);
+});
+
 
   // -----------------------------
   // Create modal
@@ -461,20 +469,6 @@
 
 <div class="admin-page-container">
   <div class="admin-page-content">
-    <!-- Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-left">
-          <h1 class="page-title" dir={$isRTL ? "rtl" : "ltr"}>
-            {$_("admin.services.title")}
-          </h1>
-          <p class="page-subtitle" dir={$isRTL ? "rtl" : "ltr"}>
-            {$_("admin.services.description")}
-          </p>
-        </div>
-      </div>
-    </div>
-
     <!-- STATS (before header controls) -->
     <div class="stats-grid">
       <div class="stat-card">
@@ -617,14 +611,38 @@
         </div>
 
         <div class="flex flex-wrap items-end justify-end gap-3">
+          <!-- CREATE SERVICE (only global like your old logic) -->
+            <button
+              type="button"
+              onclick={openCreateModal}
+              class="inline-flex items-center justify-center
+                h-9 px-3 py-2
+                bg-[#3C307F] text-white text-sm font-medium
+                rounded-[12px]
+                shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+                hover:bg-[#2f2666]
+                transition-colors duration-200"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span class="ml-2"
+                >{$_("admin.services.create_service") || "Create Service"}</span
+              >
+            </button>
           <!-- FOLDER SELECT -->
           <div class="min-w-[240px]">
-            <label
-              class="block text-xs font-medium text-gray-600 mb-1"
-              for="folder-filter"
-            >
-              {$_("admin.services.select_folder") || "Select Folder"}
-            </label>
             <select
               id="folder-filter"
               bind:value={selectedFolder}
@@ -774,38 +792,7 @@
             {/if}
           </div>
 
-          <!-- CREATE SERVICE (only global like your old logic) -->
-          {#if selectedFolder === "global"}
-            <button
-              type="button"
-              onclick={openCreateModal}
-              class="inline-flex items-center justify-center
-                h-9 px-3 py-2
-                bg-[#3C307F] text-white text-sm font-medium
-                rounded-[12px]
-                shadow-[0px_1px_0.5px_0.05px_#1D293D05]
-                hover:bg-[#2f2666]
-                transition-colors duration-200"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              <span class="ml-2"
-                >{$_("admin.services.create_service") || "Create Service"}</span
-              >
-            </button>
-          {/if}
+          
         </div>
       </div>
     </div>
@@ -853,22 +840,7 @@
         <p>{$_("admin.services.no_services_description")}</p>
       </div>
     {:else}
-      <div class="items-stats">
-        <p>
-          {$_("admin.showing") || "Showing"}
-          <strong>{filteredServices.length}</strong>
-          {$_("admin.services.services_count") || "services"}
-          {#if selectedFolder !== "all"}
-            from
-            <strong>
-              {getFolderDisplayName(
-                serviceFolders.find((f: any) => f.shortname === selectedFolder),
-              )}
-            </strong>
-          {/if}
-        </p>
-      </div>
-
+      
       <div class="items-table-container overflow-x-auto">
         <table class="items-table w-full">
           <thead class="bg-gray-50 border-b border-gray-200">
@@ -902,11 +874,6 @@
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 {$_("common.status") || "Status"}
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                {$_("common.actions") || "Actions"}
               </th>
             </tr>
           </thead>
@@ -1087,7 +1054,7 @@
                 <!-- Actions: only allow edit/delete on global folder -->
                 <td class="px-6 py-4" onclick={(e) => e.stopPropagation()}>
                   {#if selectedFolder === "global"}
-                    <div class="relative" onclick={(e) => e.stopPropagation()}>
+                    <div class="relative flex justify-end" onclick={(e) => e.stopPropagation()}>
                       <button
                         class="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-gray-100 transition"
                         aria-label="Actions"

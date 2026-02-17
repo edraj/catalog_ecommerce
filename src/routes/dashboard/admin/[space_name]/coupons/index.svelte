@@ -31,6 +31,42 @@
     ($locale) => $locale === "ar" || $locale === "ku",
   );
 
+  // ------- stats (coupons) -------
+  let totalCouponsStat = $derived.by(() => {
+    // use totals when available (not searching), otherwise fall back to what’s currently loaded
+    if (searchQuery.trim()) return filteredCoupons.length;
+
+    // when browsing "global" tab, globalCouponsTotal is the actual total count
+    if (activeTab === "global")
+      return globalCouponsTotal || globalCoupons.length;
+
+    // when browsing sellers tab, allCouponsTotal is the page total you’re tracking
+    if (activeTab === "all") return allCouponsTotal || filteredCoupons.length;
+
+    return filteredCoupons.length;
+  });
+
+  let globalCouponsStat = $derived.by(() => {
+    // if you are on global tab => global total, else count from current view
+    if (!searchQuery.trim() && activeTab === "global")
+      return globalCouponsTotal || globalCoupons.length;
+
+    // otherwise count visible items that are global
+    return (filteredCoupons || []).filter((c) => c?.isGlobal === true).length;
+  });
+
+  let activeCouponsStat = $derived.by(() => {
+    return (filteredCoupons || []).filter(
+      (c) => c?.attributes?.is_active === true,
+    ).length;
+  });
+
+  let inactiveCouponsStat = $derived.by(() => {
+    return (filteredCoupons || []).filter(
+      (c) => c?.attributes?.is_active !== true,
+    ).length;
+  });
+
   let activeTab = $state<"all" | "global">("global");
   let allCoupons = $state<any[]>([]);
   let globalCoupons = $state<any[]>([]);
@@ -614,16 +650,101 @@
 <svelte:window onclick={closeFilters} />
 
 <div class="coupons-container" dir={$isRTL ? "rtl" : "ltr"}>
-  <div class="header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1>{t("admin.coupon_management", "Coupon Management")}</h1>
-        <p>
-          {t(
-            "admin.manage_coupons_description",
-            "Manage global and seller-specific coupons",
-          )}
-        </p>
+  <!-- Stats (matches your css classes) -->
+  <div class="stats-grid">
+    <!-- Total Coupons -->
+    <div class="stat-card">
+      <div class="bg-icon rounded-lg flex items-center justify-center">
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746ZM10.2033 7.5L7.86992 18H11.1624C11.7452 18.0015 12.3148 18.1735 12.8011 18.4948C13.2873 18.8161 13.6689 19.2727 13.8988 19.8082C14.2443 20.6086 14.8166 21.2904 15.5449 21.7696C16.2739 22.2492 17.1274 22.5048 18 22.5048C18.8726 22.5048 19.7261 22.2492 20.4551 21.7696C21.1837 21.2903 21.7561 20.608 22.1016 19.8072C22.3316 19.2721 22.713 18.8159 23.1989 18.4948C23.6852 18.1735 24.2548 18.0015 24.8376 18L24.8415 18L28.1301 18L25.7967 7.5H10.2033ZM28.5 21H24.8543C24.2766 22.3368 23.3205 23.4755 22.1038 24.2759C20.8853 25.0776 19.4586 25.5048 18 25.5048C16.5414 25.5048 15.1147 25.0776 13.8962 24.2759C12.6795 23.4755 11.7234 22.3368 11.1457 21H7.5V28.5H28.5V21ZM12 10.5C12 9.67157 12.6716 9 13.5 9H22.5C23.3284 9 24 9.67157 24 10.5C24 11.3284 23.3284 12 22.5 12H13.5C12.6716 12 12 11.3284 12 10.5ZM10.5 15C10.5 14.1716 11.1716 13.5 12 13.5H24C24.8284 13.5 25.5 14.1716 25.5 15C25.5 15.8284 24.8284 16.5 24 16.5H12C11.1716 16.5 10.5 15.8284 10.5 15Z"
+            fill="#3C307F"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title">Total Coupons</h3>
+        <p class="stat-value">{formatNumber(totalCouponsStat, $locale)}</p>
+      </div>
+    </div>
+
+    <!-- Global Coupons -->
+    <div class="stat-card">
+      <div class="bg-icon rounded-lg flex items-center justify-center">
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M18.4612 7.5C18.4611 7.5 18.4612 7.5 18.4612 7.5V7.5ZM18.4744 7.50001L27.0568 7.51047C27.0578 7.51048 27.0588 7.51049 27.0598 7.5105C27.4433 7.51362 27.8101 7.66835 28.0799 7.94096C28.3505 8.21429 28.5016 8.58379 28.5 8.96838L28.5 17.2208C28.4868 17.2332 28.4738 17.2458 28.461 17.2587L17.328 28.483L7.50172 18.57L18.4744 7.50001ZM18.4688 4.50001C18.4684 4.50001 18.4692 4.50001 18.4688 4.50001L27.0751 4.51051C28.2543 4.51769 29.3824 4.99241 30.212 5.83046C31.0409 6.66778 31.504 7.79948 31.5 8.97757C31.5 8.97859 31.5 8.97961 31.5 8.98063L30 8.9745H31.5V8.97757V17.2243C31.5 17.6346 31.4156 18.0407 31.2521 18.417C31.093 18.7829 30.8624 19.1131 30.574 19.3884L30.591 19.3713L29.526 18.315L30.5491 19.4119C30.5575 19.4041 30.5658 19.3963 30.574 19.3884L19.4336 30.6201L18.3676 29.5652L19.4325 30.6213C19.1575 30.8989 18.8303 31.1193 18.4698 31.2699C18.1087 31.4207 17.7214 31.4985 17.3301 31.4987C16.9389 31.499 16.5514 31.4218 16.1902 31.2715C15.8289 31.1212 15.501 30.9009 15.2254 30.6232L5.36657 20.6774L6.43048 19.62L5.36517 20.676C4.80937 20.116 4.49744 19.359 4.49744 18.57C4.49744 17.7807 4.80962 17.0234 5.36584 16.4633L16.3644 5.36719C16.6409 5.09132 16.9691 4.87273 17.3302 4.72392C17.6909 4.57526 18.0786 4.49918 18.4688 4.50001ZM21.8745 12.6672C21.8745 11.8388 22.5461 11.1672 23.3745 11.1672H23.3895C24.2179 11.1672 24.8895 11.8388 24.8895 12.6672C24.8895 13.4957 24.2179 14.1672 23.3895 14.1672H23.3745C22.5461 14.1672 21.8745 13.4957 21.8745 12.6672Z"
+            fill="#3C307F"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title">Global Coupons</h3>
+        <p class="stat-value">{formatNumber(globalCouponsStat, $locale)}</p>
+      </div>
+    </div>
+
+    <!-- Active Coupons -->
+    <div class="stat-card">
+      <div class="bg-icon rounded-lg flex items-center justify-center">
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M18 6C11.3726 6 6 11.3726 6 18C6 24.6274 11.3726 30 18 30C24.6274 30 30 24.6274 30 18C30 11.3726 24.6274 6 18 6ZM3 18C3 9.71573 9.71573 3 18 3C26.2843 3 33 9.71573 33 18C33 26.2843 26.2843 33 18 33C9.71573 33 3 26.2843 3 18ZM23.5607 13.9393C24.1464 14.5251 24.1464 15.4749 23.5607 16.0607L17.5607 22.0607C16.9749 22.6464 16.0251 22.6464 15.4393 22.0607L11.6893 18.3107C11.1036 17.7249 11.1036 16.7751 11.6893 16.1893C12.2751 15.6036 13.2249 15.6036 13.8107 16.1893L16.5 18.8787L21.4393 13.9393C22.0251 13.3536 22.9749 13.3536 23.5607 13.9393Z"
+            fill="#3C307F"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title">Active Coupons</h3>
+        <p class="stat-value">{formatNumber(activeCouponsStat, $locale)}</p>
+      </div>
+    </div>
+
+    <!-- Inactive Coupons -->
+    <div class="stat-card">
+      <div class="bg-icon rounded-lg flex items-center justify-center">
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M18 6C11.3726 6 6 11.3726 6 18C6 24.6274 11.3726 30 18 30C24.6274 30 30 24.6274 30 18C30 11.3726 24.6274 6 18 6ZM3 18C3 9.71573 9.71573 3 18 3C26.2843 3 33 9.71573 33 18C33 26.2843 26.2843 33 18 33C9.71573 33 3 26.2843 3 18ZM18 10.5C18.8284 10.5 19.5 11.1716 19.5 12V19.5C19.5 20.3284 18.8284 21 18 21C17.1716 21 16.5 20.3284 16.5 19.5V12C16.5 11.1716 17.1716 10.5 18 10.5ZM16.5 24C16.5 23.1716 17.1716 22.5 18 22.5H18.015C18.8434 22.5 19.515 23.1716 19.515 24C19.515 24.8284 18.8434 25.5 18.015 25.5H18C17.1716 25.5 16.5 24.8284 16.5 24Z"
+            fill="#3C307F"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title">Inactive Coupons</h3>
+        <p class="stat-value">{formatNumber(inactiveCouponsStat, $locale)}</p>
       </div>
     </div>
   </div>
@@ -671,6 +792,34 @@
 
     <!-- RIGHT: FILTERS + ACTIONS + CREATE -->
     <div class="flex flex-wrap items-end justify-end gap-3">
+      <!-- CREATE COUPON -->
+      <button
+        type="button"
+        onclick={openCreateModal}
+        class="inline-flex items-center justify-center
+        h-9 px-3 py-2
+        bg-[#3C307F] text-white text-sm font-medium
+        rounded-[12px]
+        shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+        hover:bg-[#2f2666]
+        transition-colors duration-200"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 4v16m8-8H4"
+          />
+        </svg>
+        <span class="ml-2">{t("admin.create_coupon", "Create Coupon")}</span>
+      </button>
       <!-- FILTERS DROPDOWN -->
       <div class="relative">
         <button
@@ -811,42 +960,14 @@
           </div>
         {/if}
       </div>
-
-      <!-- CREATE COUPON -->
-      <button
-        type="button"
-        onclick={openCreateModal}
-        class="inline-flex items-center justify-center
-        h-9 px-3 py-2
-        bg-[#3C307F] text-white text-sm font-medium
-        rounded-[12px]
-        shadow-[0px_1px_0.5px_0.05px_#1D293D05]
-        hover:bg-[#2f2666]
-        transition-colors duration-200"
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
-        <span class="ml-2">{t("admin.create_coupon", "Create Coupon")}</span>
-      </button>
     </div>
   </div>
 
   <!-- Coupons Table -->
   {#if loading}
-    <div class="loading">
-      {t("admin.loading_coupons", "Loading coupons...")}
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>{t("common.loading", "Loading...")}</p>
     </div>
   {:else if filteredCoupons.length === 0}
     <div class="empty-state">
@@ -904,10 +1025,6 @@
               class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
               >{t("admin.status", "Status")}</th
             >
-            <th
-              class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >{t("admin.actions", "Actions")}</th
-            >
           </tr>
         </thead>
 
@@ -917,20 +1034,6 @@
               <!-- Code main cell -->
               <td class="px-6 py-4">
                 <div class="flex items-center gap-2.5">
-                  <div
-                    class="shrink-0 rounded-full flex items-center justify-center"
-                    style="width:44px;height:44px;padding:10px 5px;background:#F3F4F6;"
-                    aria-hidden="true"
-                  >
-                    <span
-                      style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
-                    >
-                      {(coupon.attributes?.payload?.body?.code || "C")
-                        .charAt(0)
-                        .toUpperCase()}
-                    </span>
-                  </div>
-
                   <div class="min-w-0">
                     <div
                       class="truncate"
@@ -1123,7 +1226,10 @@
 
               <!-- Actions (...) dropdown -->
               <td class="px-6 py-4" onclick={(e) => e.stopPropagation()}>
-                <div class="relative" onclick={(e) => e.stopPropagation()}>
+                <div
+                  class="relative flex justify-end"
+                  onclick={(e) => e.stopPropagation()}
+                >
                   <button
                     class="h-8 w-8 inline-flex items-center justify-center cursor-pointer rounded-md hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
                     aria-label="Actions"
@@ -1393,11 +1499,8 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" onclick={resetForm}>
-          {t("admin.reset", "Reset")}
-        </button>
         <button
-          class="btn-primary"
+          class="btn-primary w-full"
           onclick={handleCreateCoupon}
           disabled={loading}
         >
@@ -1492,11 +1595,8 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" onclick={() => (editModalOpen = false)}>
-          {$_("common.cancel") || "Cancel"}
-        </button>
         <button
-          class="btn-primary"
+          class="btn-primary w-full"
           onclick={handleUpdateCoupon}
           disabled={loading}
         >

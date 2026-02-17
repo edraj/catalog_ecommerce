@@ -767,20 +767,22 @@
     }
   }
 
-  $effect(() => {
-    selectedPaymentStatus;
-    selectedOrderStatus;
-    selectedSeller;
-    selectedGovernorate;
-    selectedBnpl;
-    dateFrom;
-    dateTo;
-    searchQuery;
-    phoneQuery;
-    if (combinedOrders.length > 0) {
-      applyFilters();
-    }
-  });
+$effect(() => {
+  selectedPaymentStatus;
+  selectedOrderStatus;
+  selectedSeller;
+  selectedGovernorate;
+  selectedBnpl;
+  dateFrom;
+  dateTo;
+  searchQuery;
+  phoneQuery;
+
+  if (combinedOrders.length > 0) {
+    applyFilters();
+    currentPage = 1; // ✅ reset pagination when filters change
+  }
+});
 
   // dropdown states
   let isFiltersOpen = $state(false);
@@ -864,10 +866,6 @@
 </script>
 
 <div class="orders-container">
-  <div class="header">
-    <h1>{$_("admin.combined_orders_title") || "Combined Orders"}</h1>
-  </div>
-
   <div class="stats-grid">
     <div class="stat-card">
       <div class="bg-icon rounded-lg flex items-center justify-center">
@@ -1311,11 +1309,10 @@
             <th>{$_("admin.total") || "Total"}</th>
             <th>{$_("admin.payment_status") || "Payment"}</th>
             <th>{$_("admin.date") || "Date"}</th>
-            <th>{$_("admin.actions") || "Actions"}</th>
           </tr>
         </thead>
         <tbody class="bg-white">
-          {#each filteredOrders as order (order.shortname)}
+          {#each paginatedOrders as order (order.shortname)}
             <tr
               class="clickable-row hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
               onclick={() => viewCombinedOrder(order)}
@@ -1324,18 +1321,7 @@
               <td class="px-6 py-4">
                 <div class="flex items-center gap-2.5">
                   <!-- 44x44 icon -->
-                  <div
-                    class="shrink-0 rounded-full flex items-center justify-center"
-                    style="width:44px;height:44px;padding:10px 5px;background:#F3F4F6;"
-                    aria-hidden="true"
-                  >
-                    <span
-                      style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
-                    >
-                      #
-                    </span>
-                  </div>
-
+                 
                   <div class="min-w-0">
                     <div
                       class="truncate"
@@ -1434,7 +1420,7 @@
               </td>
 
               <!-- TOTAL -->
-              <td class="px-6 py-4 text-right">
+              <td class="px-6 py-4">
                 <span
                   style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
                 >
@@ -1498,7 +1484,7 @@
 
               <!-- ACTIONS (... dropdown) -->
               <td class="px-6 py-4" onclick={(e) => e.stopPropagation()}>
-                <div class="relative" onclick={(e) => e.stopPropagation()}>
+                <div class="relative flex justify-end" onclick={(e) => e.stopPropagation()}>
                   <button
                     class="h-8 w-8 inline-flex items-center justify-center rounded-md cursor-pointer rounded-md hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
                     aria-label={$_("admin.actions") || "Actions"}
@@ -1513,6 +1499,7 @@
                     <div
                       class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1 right-0"
                       role="menu"
+                      style='top:22px;'
                     >
                       <button
                         class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-gray-600"
@@ -1604,19 +1591,20 @@
           disabled={currentPage === totalPages}
           aria-label={$_("admin.next_page") || "Next page"}
         >
-          <svg
-            class="pagination-arrow-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
+         <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M11.1381 7.52868C11.3985 7.78903 11.3985 8.21114 11.1381 8.47149L6.47145 13.1382C6.2111 13.3985 5.78899 13.3985 5.52864 13.1382C5.26829 12.8778 5.26829 12.4557 5.52864 12.1953L9.7239 8.00008L5.52864 3.80482C5.26829 3.54447 5.26829 3.12236 5.52864 2.86201C5.78899 2.60166 6.2111 2.60166 6.47145 2.86201L11.1381 7.52868Z"
+                fill="#101828"
+              />
+            </svg>
         </button>
       </div>
     </div>

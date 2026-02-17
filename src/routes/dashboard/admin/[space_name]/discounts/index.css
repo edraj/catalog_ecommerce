@@ -1,14 +1,13 @@
 .admin-page-container {
   min-height: 100vh;
   background: #f9fafb;
+  padding:1.5rem !important;
 }
 
-.admin-page-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem;
+.admin-page-content{
+  max-width: unset;
+  padding: unset !important;
 }
-
 .page-header {
   margin-bottom: 2rem;
 }

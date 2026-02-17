@@ -601,7 +601,7 @@
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <div
-                class="bg-icon mx-4 rounded-lg flex items-center justify-center"
+                class="bg-icon rounded-lg flex items-center justify-center"
               >
                 <svg
                   width="36"
@@ -636,7 +636,7 @@
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <div
-                class="bg-icon mx-4 rounded-lg flex items-center justify-center"
+                class="bg-icon rounded-lg flex items-center justify-center"
               >
                 <svg
                   width="36"
@@ -709,7 +709,7 @@
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <div
-                class="bg-icon mx-4 rounded-lg flex items-center justify-center"
+                class="bg-icon rounded-lg flex items-center justify-center"
               >
                 <svg
                   width="36"
@@ -1855,7 +1855,9 @@
     color: #7f1d1d;
     margin: 0;
   }
-
+.container{
+  max-width: unset !important;
+}
   .space-details {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
