@@ -1,14 +1,19 @@
 <script lang="ts">
   import { _ } from "@/i18n";
+  import { get } from "svelte/store";
   import {
     createOrderComment,
     deleteComment,
     getOrderDetails,
     getVariationOptionsByShortname,
     progressOrderTicket,
+    updateOrderActiveStatus,
   } from "@/lib/dmart_services";
   import { website } from "@/config";
-  import { errorToastMessage, successToastMessage } from "@/lib/toasts_messages";
+  import {
+    errorToastMessage,
+    successToastMessage,
+  } from "@/lib/toasts_messages";
   import "./index.css";
 
   interface Props {
@@ -29,8 +34,10 @@
     onStateChange,
   }: Props = $props();
 
-  const t = (key: string, vars?: Record<string, unknown>) =>
-    globalThis.$(_)(key, vars);
+  const t = (key: string, vars?: Record<string, unknown>) => {
+    const translate = get(_);
+    return typeof translate === "function" ? translate(key, vars) : key;
+  };
 
   const orderWorkflow = {
     name: "order_processing",
@@ -56,14 +63,22 @@
             state: "processing",
             action: "start_processing",
           },
-          { roles: ["super_admin"], state: "pending", action: "move_to_pending" },
+          {
+            roles: ["super_admin"],
+            state: "pending",
+            action: "move_to_pending",
+          },
         ],
       },
       {
         name: "Processing",
         state: "processing",
         next: [
-          { roles: ["super_admin"], state: "delivered", action: "mark_delivered" },
+          {
+            roles: ["super_admin"],
+            state: "delivered",
+            action: "mark_delivered",
+          },
           {
             roles: ["super_admin"],
             state: "confirmed",
@@ -97,16 +112,34 @@
             state: "processing",
             action: "process_replacement",
           },
-          { roles: ["super_admin"], state: "refund_pending", action: "process_refund" },
-          { roles: ["super_admin"], state: "resolved", action: "resolve_issue" },
+          {
+            roles: ["super_admin"],
+            state: "refund_pending",
+            action: "process_refund",
+          },
+          {
+            roles: ["super_admin"],
+            state: "resolved",
+            action: "resolve_issue",
+          },
           { roles: ["super_admin"], state: "cancel", action: "cancel" },
-          { roles: ["super_admin"], state: "delivered", action: "reject_issue" },
+          {
+            roles: ["super_admin"],
+            state: "delivered",
+            action: "reject_issue",
+          },
         ],
       },
       {
         name: "Refund Pending",
         state: "refund_pending",
-        next: [{ roles: ["super_admin"], state: "refunded", action: "complete_refund" }],
+        next: [
+          {
+            roles: ["super_admin"],
+            state: "refunded",
+            action: "complete_refund",
+          },
+        ],
       },
       { name: "Refunded", state: "refunded" },
       { name: "Resolved", state: "resolved" },
@@ -141,6 +174,7 @@
   let commentDrafts = $state<Record<string, { text: string }>>({});
   let commentLoading = $state<Record<string, boolean>>({});
   let commentDeleteLoading = $state<Record<string, boolean>>({});
+  let statusToggleLoading = $state<Record<string, boolean>>({});
   let progressCommentDrafts = $state<Record<string, string>>({});
   let variationOptionsCache = $state<
     Record<string, { displayname: any; options: any[] }>
@@ -194,7 +228,8 @@
         }
       } else {
         errorToastMessage(
-          t("admin.order_state_update_failed") || "Failed to update order state",
+          t("admin.order_state_update_failed") ||
+            "Failed to update order state",
         );
       }
     } catch (error) {
@@ -267,7 +302,8 @@
     const pending = pendingCancellations[order.shortname];
     if (!pending || !pending.reasonKey) {
       errorToastMessage(
-        t("admin.select_cancellation_reason") || "Please select a cancellation reason",
+        t("admin.select_cancellation_reason") ||
+          "Please select a cancellation reason",
       );
       return;
     }
@@ -316,7 +352,9 @@
   async function submitComment(order: any) {
     const draft = getCommentDraft(order);
     if (!draft.text.trim()) {
-      errorToastMessage(t("admin.comment_required") || "Please enter a comment");
+      errorToastMessage(
+        t("admin.comment_required") || "Please enter a comment",
+      );
       return;
     }
 
@@ -331,7 +369,9 @@
       );
 
       if (!success) {
-        errorToastMessage(t("admin.comment_add_failed") || "Failed to add comment");
+        errorToastMessage(
+          t("admin.comment_add_failed") || "Failed to add comment",
+        );
         return;
       }
 
@@ -348,7 +388,9 @@
       }
 
       updateCommentDraft(order, { text: "" });
-      successToastMessage(t("admin.comment_added") || "Comment added successfully");
+      successToastMessage(
+        t("admin.comment_added") || "Comment added successfully",
+      );
     } catch (error) {
       console.error("Error adding comment:", error);
       errorToastMessage(t("admin.comment_add_error") || "Error adding comment");
@@ -370,7 +412,10 @@
     );
     if (!confirmed) return;
 
-    commentDeleteLoading = { ...commentDeleteLoading, [comment.shortname]: true };
+    commentDeleteLoading = {
+      ...commentDeleteLoading,
+      [comment.shortname]: true,
+    };
 
     try {
       const success = await deleteComment(
@@ -381,7 +426,9 @@
       );
 
       if (!success) {
-        errorToastMessage(t("admin.comment_delete_failed") || "Failed to delete comment");
+        errorToastMessage(
+          t("admin.comment_delete_failed") || "Failed to delete comment",
+        );
         return;
       }
 
@@ -397,12 +444,91 @@
         order.attachments = refreshedOrder.attachments;
       }
 
-      successToastMessage(t("admin.comment_deleted") || "Comment deleted successfully");
+      successToastMessage(
+        t("admin.comment_deleted") || "Comment deleted successfully",
+      );
     } catch (error) {
       console.error("Error deleting comment:", error);
-      errorToastMessage(t("admin.comment_delete_error") || "Error deleting comment");
+      errorToastMessage(
+        t("admin.comment_delete_error") || "Error deleting comment",
+      );
     } finally {
-      commentDeleteLoading = { ...commentDeleteLoading, [comment.shortname]: false };
+      commentDeleteLoading = {
+        ...commentDeleteLoading,
+        [comment.shortname]: false,
+      };
+    }
+  }
+
+  function isOrderActive(order: any): boolean {
+    if (typeof order?.attributes?.is_active === "boolean") {
+      return order.attributes.is_active;
+    }
+    if (typeof order?.attributes?.isActive === "boolean") {
+      return order.attributes.isActive;
+    }
+    return false;
+  }
+
+  async function handleOrderActiveToggle(order: any) {
+    const currentlyActive = isOrderActive(order);
+    const nextActive = !currentlyActive;
+
+    const confirmed = window.confirm(
+      nextActive
+        ? t("admin.confirm_deactivate_order") ||
+            "Are you sure you want to deactivate this order?"
+        : t("admin.confirm_activate_order") ||
+            "Are you sure you want to activate this order?",
+    );
+
+    if (!confirmed) return;
+
+    statusToggleLoading = { ...statusToggleLoading, [order.shortname]: true };
+    try {
+      const success = await updateOrderActiveStatus(
+        website.main_space,
+        order.seller_shortname,
+        order.shortname,
+        nextActive,
+      );
+
+      if (!success) {
+        errorToastMessage(
+          t("admin.order_active_update_failed") ||
+            "Failed to update order active status",
+        );
+        return;
+      }
+
+      const refreshedOrder = await getOrderDetails(
+        website.main_space,
+        order.seller_shortname,
+        order.shortname,
+        true,
+      );
+
+      if (refreshedOrder) {
+        order.attributes = refreshedOrder.attributes;
+        order.attachments = refreshedOrder.attachments;
+      }
+
+      successToastMessage(
+        nextActive
+          ? t("admin.order_activated") || "Order activated successfully"
+          : t("admin.order_deactivated") || "Order deactivated successfully",
+      );
+    } catch (error) {
+      console.error("Error updating order active status:", error);
+      errorToastMessage(
+        t("admin.order_active_update_error") ||
+          "An error occurred while updating order active status",
+      );
+    } finally {
+      statusToggleLoading = {
+        ...statusToggleLoading,
+        [order.shortname]: false,
+      };
     }
   }
 
@@ -476,26 +602,37 @@
   }
 
   async function loadVariationOptions(variationShortname: string) {
-    variationOptionsLoading = { ...variationOptionsLoading, [variationShortname]: true };
+    variationOptionsLoading = {
+      ...variationOptionsLoading,
+      [variationShortname]: true,
+    };
     try {
       const result = await getVariationOptionsByShortname(
         website.main_space,
         variationShortname,
       );
-      variationOptionsCache = { ...variationOptionsCache, [variationShortname]: result };
+      variationOptionsCache = {
+        ...variationOptionsCache,
+        [variationShortname]: result,
+      };
       return result;
     } catch (error) {
       console.error("Error loading variation options:", error);
       return { displayname: {}, options: [] };
     } finally {
-      variationOptionsLoading = { ...variationOptionsLoading, [variationShortname]: false };
+      variationOptionsLoading = {
+        ...variationOptionsLoading,
+        [variationShortname]: false,
+      };
     }
   }
 
   function getOptionDisplayName(option: any): string {
     if (!option) return "";
     if (typeof option.name === "string") return option.name;
-    return option.name?.en || option.name?.ar || option.name?.ku || option.key || "";
+    return (
+      option.name?.en || option.name?.ar || option.name?.ku || option.key || ""
+    );
   }
 
   function getPaymentStatusColor(status: string): string {
@@ -508,6 +645,12 @@
       refunded: "refunded",
     };
     return statusMap[status] || "pending";
+  }
+
+  function formatNumberValue(value: unknown): string {
+    const numberValue = Number(value);
+    if (!Number.isFinite(numberValue)) return "0";
+    return numberValue.toLocaleString();
   }
 </script>
 
@@ -542,7 +685,11 @@
           aria-label={$_("common.close") || "Close"}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M18 6L6 18M6 6l12 12" stroke-width="2" stroke-linecap="round" />
+            <path
+              d="M18 6L6 18M6 6l12 12"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
           </svg>
         </button>
       </div>
@@ -584,21 +731,27 @@
                 <span class="summary-info-label">
                   {$_("admin.customer") || "Customer"}
                 </span>
-                <span class="summary-info-value">{customerShortname || "—"}</span>
+                <span class="summary-info-value"
+                  >{customerShortname || "—"}</span
+                >
               </div>
 
               <div class="summary-info-row">
                 <span class="summary-info-label">
                   {$_("admin.payment_method") || "Payment method"}
                 </span>
-                <span class="summary-info-value">{payload?.payment_type || "—"}</span>
+                <span class="summary-info-value"
+                  >{payload?.payment_type || "—"}</span
+                >
               </div>
 
               <div class="summary-info-row">
                 <span class="summary-info-label">
                   {$_("admin.origin") || "Origin"}
                 </span>
-                <span class="summary-info-value">{payload?.order_from || "—"}</span>
+                <span class="summary-info-value"
+                  >{payload?.order_from || "—"}</span
+                >
               </div>
 
               <div class="summary-info-row">
@@ -613,10 +766,13 @@
 
               <div class="summary-info-row badges-row">
                 {#if isBnplOrder(payload)}
-                  <span class="badge badge-bnpl">{$_("admin.bnpl") || "BNPL"}</span>
+                  <span class="badge badge-bnpl"
+                    >{$_("admin.bnpl") || "BNPL"}</span
+                  >
                 {/if}
                 {#if isSameDayDelivery(payload)}
-                  <span class="badge badge-ssd">{$_("admin.ssd") || "SSD"}</span>
+                  <span class="badge badge-ssd">{$_("admin.ssd") || "SSD"}</span
+                  >
                 {/if}
               </div>
             </div>
@@ -643,7 +799,8 @@
                 {@const orderPayload = order.attributes?.payload?.body}
                 {@const orderState = order.attributes?.state || "pending"}
                 {@const transitions = getTransitions(orderState)}
-                {@const cancellationPending = pendingCancellations[order.shortname]}
+                {@const cancellationPending =
+                  pendingCancellations[order.shortname]}
                 {@const commentDraft = getCommentDraft(order)}
                 {@const itemsTotal =
                   orderPayload?.items?.reduce(
@@ -651,9 +808,13 @@
                     0,
                   ) || 0}
                 {@const shippingCost = orderPayload?.shipping?.cost || 0}
-                {@const couponDiscount = orderPayload?.coupon?.discount_amount || 0}
+                {@const couponDiscount =
+                  orderPayload?.coupon?.discount_amount || 0}
                 {@const orderTotal = itemsTotal + shippingCost - couponDiscount}
                 {@const orderComments = order.attachments?.comment || []}
+                {@const shipping = orderPayload?.shipping || null}
+                {@const coupon = orderPayload?.coupon || null}
+                {@const userDetails = orderPayload?.user || null}
 
                 <div class="order-card">
                   <!-- Top row: seller + status + actions select (keep logic) -->
@@ -686,7 +847,11 @@
                               (transition) => transition.action === action,
                             );
                             if (selected) {
-                              handleStateSelect(order, selected.action, selected.state);
+                              handleStateSelect(
+                                order,
+                                selected.action,
+                                selected.state,
+                              );
                             }
                           }}
                         >
@@ -695,7 +860,10 @@
                           </option>
                           {#each transitions as transition}
                             <option value={transition.action}>
-                              {formatActionLabel(transition.action, transition.state)}
+                              {formatActionLabel(
+                                transition.action,
+                                transition.state,
+                              )}
                             </option>
                           {/each}
                         </select>
@@ -704,6 +872,21 @@
                           {$_("admin.no_actions") || "No actions"}
                         </span>
                       {/if}
+
+                      <button
+                        type="button"
+                        class="btn-activation-toggle"
+                        onclick={() => handleOrderActiveToggle(order)}
+                        disabled={statusToggleLoading[order.shortname]}
+                      >
+                        {#if statusToggleLoading[order.shortname]}
+                          {$_("common.updating") || "Updating..."}
+                        {:else if isOrderActive(order)}
+                          {$_("admin.deactivate_order") || "Deactivate"}
+                        {:else}
+                          {$_("admin.activate_order") || "Activate"}
+                        {/if}
+                      </button>
                     </div>
                   </div>
 
@@ -720,14 +903,18 @@
                         "Add a comment for this state change..."}
                       value={progressCommentDrafts[order.shortname] || ""}
                       oninput={(e) =>
-                        updateProgressCommentDraft(order, e.currentTarget.value)}
+                        updateProgressCommentDraft(
+                          order,
+                          e.currentTarget.value,
+                        )}
                     ></textarea>
                   </div>
 
                   {#if cancellationPending}
                     <div class="cancellation-reason">
                       <label for="cancel-reason-{order.shortname}">
-                        {$_("admin.cancellation_reason") || "Cancellation reason"}
+                        {$_("admin.cancellation_reason") ||
+                          "Cancellation reason"}
                       </label>
                       <div class="cancellation-controls">
                         <select
@@ -757,19 +944,81 @@
                     </div>
                   {/if}
 
+                  {#if userDetails}
+                    <div class="customer-info-block">
+                      <div class="customer-info-title">
+                        {$_("admin.customer_information") ||
+                          "Customer Information"}
+                      </div>
+
+                      <div class="customer-info-grid">
+                        <div class="customer-info-row">
+                          <span class="customer-info-label"
+                            >{$_("PhoneNumber") || "Phone"}</span
+                          >
+                          <span class="customer-info-value"
+                            >{userDetails.phone || "—"}</span
+                          >
+                        </div>
+
+                        <div class="customer-info-row">
+                          <span class="customer-info-label"
+                            >{$_("admin.governorate") || "State"}</span
+                          >
+                          <span class="customer-info-value"
+                            >{userDetails.state || "—"}</span
+                          >
+                        </div>
+
+                        <div class="customer-info-row">
+                          <span class="customer-info-label"
+                            >{$_("Description") || "Address"}</span
+                          >
+                          <span class="customer-info-value"
+                            >{userDetails.address || "—"}</span
+                          >
+                        </div>
+
+                        <div class="customer-info-row">
+                          <span class="customer-info-label"
+                            >{$_("ShortName") || "Shortname"}</span
+                          >
+                          <span class="customer-info-value"
+                            >{userDetails.shortname || "—"}</span
+                          >
+                        </div>
+
+                        <div class="customer-info-row">
+                          <span class="customer-info-label"
+                            >{$_("DisplayName") || "Display Name"}</span
+                          >
+                          <span class="customer-info-value"
+                            >{userDetails.displayname || "—"}</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  {/if}
+
                   <!-- Shipment block (Figma) -->
                   <div class="shipment-block">
                     <div class="shipment-header">
                       <div class="shipment-seller">
                         <div class="shipment-flag">PH</div>
                         <div class="shipment-seller-meta">
-                          <div class="shipment-seller-name">{order.seller_shortname}</div>
-                          <div class="shipment-seller-id">#{order.shortname}</div>
+                          <div class="shipment-seller-name">
+                            {order.seller_shortname}
+                          </div>
+                          <div class="shipment-seller-id">
+                            #{order.shortname}
+                          </div>
                         </div>
                       </div>
 
                       <div class="shipment-right">
-                        <span class="shipment-status {getStatusColor(orderState)}">
+                        <span
+                          class="shipment-status {getStatusColor(orderState)}"
+                        >
                           {getStateLabel(orderState)}
                         </span>
                       </div>
@@ -781,7 +1030,11 @@
                           <div class="shipment-product">
                             <div class="shipment-product-left">
                               <div class="product-image">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                >
                                   <path d="M7 7h10v10H7z" stroke-width="1.5" />
                                   <path
                                     d="M7 14l3-3 3 3 2-2 2 2"
@@ -812,7 +1065,9 @@
                                           variationData.displayname?.ku ||
                                           option.variation_shortname}
                                         <span class="option-badge">
-                                          {variationLabel}: {getOptionDisplayName(resolvedOption) || option.key}
+                                          {variationLabel}: {getOptionDisplayName(
+                                            resolvedOption,
+                                          ) || option.key}
                                         </span>
                                       {:catch}
                                         <span class="option-badge">
@@ -841,43 +1096,178 @@
                     <div class="order-summary">
                       <div class="summary-row">
                         <span>{$_("admin.items_subtotal") || "Items"}</span>
-                        <span>{itemsTotal.toLocaleString()} {$_("admin.currency") || "IQD"}</span>
+                        <span
+                          >{itemsTotal.toLocaleString()}
+                          {$_("admin.currency") || "IQD"}</span
+                        >
                       </div>
                       {#if shippingCost > 0}
                         <div class="summary-row">
                           <span>{$_("admin.shipping") || "Shipping"}</span>
-                          <span>{shippingCost.toLocaleString()} {$_("admin.currency") || "IQD"}</span>
+                          <span
+                            >{shippingCost.toLocaleString()}
+                            {$_("admin.currency") || "IQD"}</span
+                          >
                         </div>
                       {/if}
                       {#if couponDiscount > 0}
                         <div class="summary-row discount">
                           <span>{$_("admin.discount") || "Discount"}</span>
-                          <span>-{couponDiscount.toLocaleString()} {$_("admin.currency") || "IQD"}</span>
+                          <span
+                            >-{couponDiscount.toLocaleString()}
+                            {$_("admin.currency") || "IQD"}</span
+                          >
                         </div>
                       {/if}
                       <div class="summary-row total">
                         <span>{$_("admin.total") || "Total"}</span>
-                        <span>{orderTotal.toLocaleString()} {$_("admin.currency") || "IQD"}</span>
+                        <span
+                          >{orderTotal.toLocaleString()}
+                          {$_("admin.currency") || "IQD"}</span
+                        >
                       </div>
                     </div>
                   </div>
 
-                  <!-- Shipping Info (keep) -->
-                  {#if orderPayload?.shipping}
+                  <!-- Shipping Info (enhanced) -->
+                  {#if shipping}
                     <div class="shipping-info">
                       <div class="shipping-label">
                         <svg viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                          <path
+                            d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"
+                          />
                           <path
                             d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"
                           />
                         </svg>
-                        {$_("admin.shipping_information") || "Shipping Information"}
+                        {$_("admin.shipping_information") ||
+                          "Shipping Information"}
                       </div>
-                      <div class="shipping-details">
-                        {$_("admin.delivery_label") || "Delivery"}:
-                        {orderPayload.shipping.min}-{orderPayload.shipping.max}
-                        {$_("admin.days") || "days"}
+
+                      <div class="shipping-details-grid">
+                        {#if shipping.key}
+                          <div class="shipping-detail-row">
+                            <span class="shipping-detail-label"
+                              >{$_("admin.shipping_key") || "Key"}</span
+                            >
+                            <span class="shipping-detail-value"
+                              >{shipping.key}</span
+                            >
+                          </div>
+                        {/if}
+
+                        <div class="shipping-detail-row">
+                          <span class="shipping-detail-label">
+                            {$_("admin.delivery_label") || "Delivery"}
+                          </span>
+                          <span class="shipping-detail-value">
+                            {shipping.min ?? 0}-{shipping.max ?? 0}
+                            {$_("admin.days") || "days"}
+                          </span>
+                        </div>
+
+                        <div class="shipping-detail-row">
+                          <span class="shipping-detail-label">
+                            {$_("admin.shipping_cost") || "Shipping cost"}
+                          </span>
+                          <span class="shipping-detail-value">
+                            {formatNumberValue(shipping.cost)}
+                            {$_("admin.currency") || "IQD"}
+                          </span>
+                        </div>
+
+                        <div class="shipping-detail-row">
+                          <span class="shipping-detail-label">
+                            {$_("admin.minimum_retail") || "Minimum retail"}
+                          </span>
+                          <span class="shipping-detail-value">
+                            {formatNumberValue(shipping.minimum_retail)}
+                            {$_("admin.currency") || "IQD"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  {/if}
+
+                  {#if coupon}
+                    <div class="coupon-info">
+                      <div class="coupon-label">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                          <path
+                            d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2.17a2 2 0 000 3.66V14a2 2 0 01-2 2H4a2 2 0 01-2-2v-2.17a2 2 0 000-3.66V6z"
+                          />
+                          <path
+                            d="M8 4.5v11"
+                            stroke="currentColor"
+                            stroke-width="1.2"
+                          />
+                        </svg>
+                        {$_("admin.coupon_details") || "Coupon Details"}
+                      </div>
+
+                      <div class="coupon-details-grid">
+                        <div class="coupon-detail-row">
+                          <span class="coupon-detail-label"
+                            >{$_("admin.coupon_code") || "Code"}</span
+                          >
+                          <span class="coupon-detail-value"
+                            >{coupon.code || "—"}</span
+                          >
+                        </div>
+
+                        <div class="coupon-detail-row">
+                          <span class="coupon-detail-label"
+                            >{$_("admin.coupon_type") || "Type"}</span
+                          >
+                          <span class="coupon-detail-value"
+                            >{coupon.type || "—"}</span
+                          >
+                        </div>
+
+                        <div class="coupon-detail-row">
+                          <span class="coupon-detail-label">
+                            {$_("admin.discount_type") || "Discount type"}
+                          </span>
+                          <span class="coupon-detail-value"
+                            >{coupon.discount_type || "—"}</span
+                          >
+                        </div>
+
+                        <div class="coupon-detail-row">
+                          <span class="coupon-detail-label">
+                            {$_("admin.discount_value") || "Discount value"}
+                          </span>
+                          <span class="coupon-detail-value">
+                            {coupon.discount_type === "percentage"
+                              ? `${formatNumberValue(coupon.discount_value)}%`
+                              : `${formatNumberValue(coupon.discount_value)} ${$_("admin.currency") || "IQD"}`}
+                          </span>
+                        </div>
+
+                        <div class="coupon-detail-row">
+                          <span class="coupon-detail-label">
+                            {$_("admin.discount_amount") || "Discount amount"}
+                          </span>
+                          <span
+                            class="coupon-detail-value coupon-discount-value"
+                          >
+                            -{formatNumberValue(coupon.discount_amount)}
+                            {$_("admin.currency") || "IQD"}
+                          </span>
+                        </div>
+
+                        <div class="coupon-detail-row">
+                          <span class="coupon-detail-label">
+                            {$_("admin.applies_to_shipping") ||
+                              "Applies to shipping"}
+                          </span>
+                          <span class="coupon-detail-value">
+                            {coupon.is_shipping
+                              ? $_("common.yes") || "Yes"
+                              : $_("common.no") || "No"}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   {/if}
@@ -889,10 +1279,13 @@
                     </div>
                     <textarea
                       rows="3"
-                      placeholder={$_("admin.comment_placeholder") || "Write a comment..."}
+                      placeholder={$_("admin.comment_placeholder") ||
+                        "Write a comment..."}
                       value={commentDraft.text}
                       oninput={(e) =>
-                        updateCommentDraft(order, { text: e.currentTarget.value })}
+                        updateCommentDraft(order, {
+                          text: e.currentTarget.value,
+                        })}
                     ></textarea>
                     <button
                       class="btn-comment"
@@ -934,8 +1327,11 @@
                                   <button
                                     class="comment-delete"
                                     type="button"
-                                    onclick={() => removeOrderComment(order, comment)}
-                                    disabled={commentDeleteLoading[comment.shortname]}
+                                    onclick={() =>
+                                      removeOrderComment(order, comment)}
+                                    disabled={commentDeleteLoading[
+                                      comment.shortname
+                                    ]}
                                   >
                                     {commentDeleteLoading[comment.shortname]
                                       ? $_("admin.deleting") || "Deleting..."
@@ -988,8 +1384,12 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   .modal-container {
@@ -1008,8 +1408,14 @@
   }
 
   @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 
   /* Header (Figma) */
@@ -1041,7 +1447,7 @@
     font-size: 10px;
     line-height: 24px;
     letter-spacing: 0;
-    color: #4A5565;
+    color: #4a5565;
   }
 
   .close-button {
@@ -1127,27 +1533,27 @@
   }
 
   .order-summary-status.paid {
-    background: #ECFDF5;
-    border-color: #A4F4CF;
+    background: #ecfdf5;
+    border-color: #a4f4cf;
     color: #065f46;
   }
 
   .order-summary-status.pending {
-    background: #FFFBEB;
-    border-color: #FDC700;
+    background: #fffbeb;
+    border-color: #fdc700;
     color: #92400e;
   }
 
   .order-summary-status.failed {
-    background: #FEE2E2;
-    border-color: #FCA5A5;
+    background: #fee2e2;
+    border-color: #fca5a5;
     color: #991b1b;
   }
 
   .order-summary-status.refunded {
-    background: #EEF2FF;
-    border-color: #C7D2FE;
-    color: #3730A3;
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: #3730a3;
   }
 
   .order-summary-info {
@@ -1173,7 +1579,7 @@
   }
 
   .summary-info-label {
-    color: #4A5565;
+    color: #4a5565;
     font-weight: 500;
   }
 
@@ -1318,6 +1724,29 @@
     font-weight: 600;
   }
 
+  .btn-activation-toggle {
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-activation-toggle:hover:not(:disabled) {
+    border-color: #281f51;
+    color: #281f51;
+    background: #f9fafb;
+  }
+
+  .btn-activation-toggle:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   /* Shipment block (Figma) */
   .shipment-block {
     width: 100%;
@@ -1373,7 +1802,7 @@
     font-weight: 400;
     font-size: 10px;
     line-height: 14px;
-    color: #4A5565;
+    color: #4a5565;
   }
 
   .shipment-status {
@@ -1388,7 +1817,7 @@
     font-weight: 600;
     text-transform: capitalize;
     background: #f9fafb;
-    color: #4A5565;
+    color: #4a5565;
   }
 
   .shipment-status.pending {
@@ -1493,7 +1922,7 @@
     font-weight: 400;
     font-size: 10px;
     line-height: 14px;
-    color: #4A5565;
+    color: #4a5565;
   }
 
   .shipment-product-right {
@@ -1507,7 +1936,7 @@
     font-weight: 500;
     font-size: 16px;
     line-height: 24px;
-    color: #6A7282;
+    color: #6a7282;
   }
 
   .product-price {
@@ -1618,6 +2047,48 @@
     background: #c2410c;
   }
 
+  .customer-info-block {
+    margin: 0 0 12px;
+    padding: 12px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .customer-info-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .customer-info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .customer-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .customer-info-label {
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  .customer-info-value {
+    color: #111827;
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+  }
+
   /* Order totals (kept) */
   .order-summary {
     background: #ffffff;
@@ -1653,8 +2124,9 @@
     border-radius: 12px;
     padding: 12px;
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 
   .shipping-label {
@@ -1675,6 +2147,86 @@
   .shipping-details {
     font-size: 14px;
     color: #6b7280;
+  }
+
+  .shipping-details-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .shipping-detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .shipping-detail-label {
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  .shipping-detail-value {
+    color: #111827;
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .coupon-info {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .coupon-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
+  }
+
+  .coupon-label svg {
+    width: 18px;
+    height: 18px;
+    color: #6b7280;
+  }
+
+  .coupon-details-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .coupon-detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .coupon-detail-label {
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  .coupon-detail-value {
+    color: #111827;
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .coupon-discount-value {
+    color: #dc2626;
   }
 
   /* Comments (kept) */
@@ -1838,15 +2390,31 @@
   }
 
   @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   @media (max-width: 768px) {
-    .modal-overlay { padding: 12px; }
-    .modal-body { padding: 12px; }
-    .order-card-header { flex-direction: column; align-items: flex-start; }
-    .order-card-status { width: 100%; justify-content: space-between; }
-    .shipment-product-right { gap: 10px; }
-    .product-name { max-width: 220px; }
+    .modal-overlay {
+      padding: 12px;
+    }
+    .modal-body {
+      padding: 12px;
+    }
+    .order-card-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .order-card-status {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .shipment-product-right {
+      gap: 10px;
+    }
+    .product-name {
+      max-width: 220px;
+    }
   }
 </style>
