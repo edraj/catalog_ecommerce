@@ -556,6 +556,40 @@
   color: #dc2626;
   font-weight: 500;
 }
+
+.coupon-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.coupon-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: #fafafa;
+}
+
+.coupon-detail-item-full {
+  grid-column: 1 / -1;
+}
+
+.coupon-detail-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.coupon-detail-value {
+  font-size: 0.875rem;
+  color: #111827;
+  font-weight: 500;
+  word-break: break-word;
+}
+
 .spinner {
   width: 40px;
   height: 40px;
@@ -601,6 +635,10 @@
   .modal {
     width: 95%;
     max-height: 95vh;
+  }
+
+  .coupon-details-grid {
+    grid-template-columns: 1fr;
   }
 }
 

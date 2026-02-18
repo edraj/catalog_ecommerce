@@ -45,8 +45,8 @@
 
       if (response && response.records) {
         paymentMethods = response.records.sort((a, b) => {
-          const orderA = a.attributes?.payload?.body?.payload?.body?.order || 0;
-          const orderB = b.attributes?.payload?.body?.payload?.body?.order || 0;
+          const orderA = a.attributes?.payload?.body?.order || 0;
+          const orderB = b.attributes?.payload?.body?.order || 0;
           return orderA - orderB;
         });
         successToastMessage(
@@ -70,6 +70,8 @@
       description: { en: "", ar: "", ku: "" },
       order: 0,
       is_active: true,
+      for_single_order: false,
+      for_employees_only: false,
     };
     isEditing = false;
     currentPaymentMethod = null;
@@ -77,13 +79,24 @@
   }
 
   function openEditModal(paymentMethod: any) {
-    const nestedPayload = paymentMethod.attributes?.payload?.body || {};
+    const payloadBody = paymentMethod.attributes?.payload?.body || {};
     formData = {
       shortname: paymentMethod.shortname,
-      displayname: nestedPayload.displayname || { en: "", ar: "", ku: "" },
-      description: nestedPayload.description || { en: "", ar: "", ku: "" },
-      order: nestedPayload.payload?.body?.order || 0,
-      is_active: nestedPayload.is_active ?? true,
+      displayname: paymentMethod.attributes?.displayname || {
+        en: "",
+        ar: "",
+        ku: "",
+      },
+      description: paymentMethod.attributes?.description || {
+        en: "",
+        ar: "",
+        ku: "",
+      },
+      order: payloadBody.order ?? 0,
+      is_active: paymentMethod.attributes?.is_active ?? true,
+      for_single_order: payloadBody.for_single_order ?? false,
+      for_employees_only: payloadBody.for_employees_only ?? false,
+      payload_body: payloadBody,
     };
     isEditing = true;
     currentPaymentMethod = paymentMethod;
@@ -177,17 +190,18 @@
   {:else}
     <div class="payment-methods-grid">
       {#each paymentMethods as paymentMethod}
-        {@const nestedPayload = paymentMethod.attributes?.payload?.body || {}}
+        {@const payloadBody = paymentMethod.attributes?.payload?.body || {}}
         <div class="payment-method-card">
           <div class="payment-method-header">
             <h3 class="payment-method-name">
-              {nestedPayload.displayname?.en || paymentMethod.shortname}
+              {paymentMethod.attributes?.displayname?.en ||
+                paymentMethod.shortname}
             </h3>
             <div
               class="payment-method-badge"
-              class:active={nestedPayload.is_active}
+              class:active={paymentMethod.attributes?.is_active}
             >
-              {nestedPayload.is_active
+              {paymentMethod.attributes?.is_active
                 ? $_("common.active")
                 : $_("common.inactive")}
             </div>
@@ -199,17 +213,53 @@
             <div class="info-item">
               <span class="info-label">{$_("paymentMethod.order")}:</span>
               <span class="info-value">
-                {nestedPayload.payload?.body?.order ?? 0}
+                {payloadBody.order ?? 0}
               </span>
             </div>
 
-            {#if nestedPayload.displayname?.ar}
+            {#if paymentMethod.attributes?.displayname?.ar}
               <div class="info-item">
                 <span class="info-label">{$_("paymentMethod.arabicName")}:</span
                 >
-                <span class="info-value">{nestedPayload.displayname.ar}</span>
+                <span class="info-value"
+                  >{paymentMethod.attributes.displayname.ar}</span
+                >
               </div>
             {/if}
+
+            {#if paymentMethod.attributes?.description?.en}
+              <div class="info-item">
+                <span class="info-label"
+                  >{$_("Description") || "Description"}:</span
+                >
+                <span class="info-value"
+                  >{paymentMethod.attributes.description.en}</span
+                >
+              </div>
+            {/if}
+
+            <div class="info-item">
+              <span class="info-label"
+                >{$_("paymentMethods.singleOrderOnly") ||
+                  "Single order only"}:</span
+              >
+              <span class="info-value">
+                {payloadBody.for_single_order
+                  ? $_("common.yes") || "Yes"
+                  : $_("common.no") || "No"}
+              </span>
+            </div>
+
+            <div class="info-item">
+              <span class="info-label"
+                >{$_("paymentMethods.employeesOnly") || "Employees only"}:</span
+              >
+              <span class="info-value">
+                {payloadBody.for_employees_only
+                  ? $_("common.yes") || "Yes"
+                  : $_("common.no") || "No"}
+              </span>
+            </div>
           </div>
 
           <div class="payment-method-actions">

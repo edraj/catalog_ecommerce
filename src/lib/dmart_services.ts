@@ -14,6 +14,7 @@ import { user } from "@/stores/user";
 import { get } from "svelte/store";
 import type { Translation } from "@edraj/tsdmart/dmart.model";
 import { getFileType } from "./helpers";
+import { getFileExtension, removeFileExtension } from "./fileUtils";
 
 /**
  * Retrieves the current user's profile information
@@ -59,14 +60,10 @@ export async function getAvatar(shortname: string) {
     return null;
   }
 
-  return Dmart.getAttachmentUrl({
-    resource_type: ResourceType.media,
-    space_name: "personal",
-    subpath: `people/${shortname}/protected/`,
-    parent_shortname: "avatar",
-    shortname: results.records[0].attributes.payload.body,
-    ext: null,
-  });
+  const filename = results.records[0].attributes.payload.body;
+  const filenameWithoutExt = removeFileExtension(filename);
+  const ext = getFileExtension(filename);
+  return `${Dmart.axiosDmartInstance.defaults.baseURL}/public/payload/media/personal/people/${shortname}/protected/avatar/${filenameWithoutExt}.${ext}`;
 }
 
 /**
@@ -3175,17 +3172,11 @@ export async function createPaymentMethod(
   spaceName: string,
   data: any,
 ): Promise<string | null> {
-  const nestedPayload = {
-    shortname: data.shortname,
-    displayname: data.displayname,
-    description: data.description || {},
-    is_active: data.is_active ?? true,
-    payload: {
-      body: {
-        order: data.order || 0,
-      },
-      content_type: "json",
-    },
+  const payloadBody = {
+    ...(data.payload_body || {}),
+    order: Number(data.order) || 0,
+    for_single_order: Boolean(data.for_single_order),
+    for_employees_only: Boolean(data.for_employees_only),
   };
 
   const actionRequest: ActionRequest = {
@@ -3197,8 +3188,11 @@ export async function createPaymentMethod(
         subpath: "/settings/payment_methods",
         shortname: data.shortname,
         attributes: {
+          displayname: data.displayname || {},
+          description: data.description || {},
+          is_active: data.is_active ?? true,
           payload: {
-            body: nestedPayload,
+            body: payloadBody,
             content_type: "json",
           },
         },
@@ -3216,17 +3210,11 @@ export async function updatePaymentMethod(
   spaceName: string,
   data: any,
 ): Promise<string | null> {
-  const nestedPayload = {
-    shortname: data.shortname,
-    displayname: data.displayname,
-    description: data.description || {},
-    is_active: data.is_active ?? true,
-    payload: {
-      body: {
-        order: data.order || 0,
-      },
-      content_type: "json",
-    },
+  const payloadBody = {
+    ...(data.payload_body || {}),
+    order: Number(data.order) || 0,
+    for_single_order: Boolean(data.for_single_order),
+    for_employees_only: Boolean(data.for_employees_only),
   };
 
   const actionRequest: ActionRequest = {
@@ -3238,8 +3226,11 @@ export async function updatePaymentMethod(
         subpath: "/settings/payment_methods",
         shortname: data.shortname,
         attributes: {
+          displayname: data.displayname || {},
+          description: data.description || {},
+          is_active: data.is_active ?? true,
           payload: {
-            body: nestedPayload,
+            body: payloadBody,
             content_type: "json",
           },
         },
@@ -3515,6 +3506,36 @@ export async function progressOrderTicket(
     return progressResponse.status === "success";
   } catch (error) {
     console.error("Error progressing order ticket:", error);
+    return false;
+  }
+}
+
+export async function updateOrderActiveStatus(
+  spaceName: string,
+  sellerShortname: string,
+  orderShortname: string,
+  isActive: boolean,
+): Promise<boolean> {
+  try {
+    const actionRequest: ActionRequest = {
+      space_name: spaceName,
+      request_type: RequestType.update,
+      records: [
+        {
+          resource_type: ResourceType.ticket,
+          shortname: orderShortname,
+          subpath: `orders/${sellerShortname}`,
+          attributes: {
+            is_active: isActive,
+          },
+        },
+      ],
+    };
+
+    const response: ActionResponse = await Dmart.request(actionRequest);
+    return response.status === "success";
+  } catch (error) {
+    console.error("Error updating order active status:", error);
     return false;
   }
 }

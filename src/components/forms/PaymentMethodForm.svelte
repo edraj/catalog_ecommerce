@@ -19,6 +19,8 @@
     description: formData.description || { en: "", ar: "", ku: "" },
     order: formData.order ?? 0,
     is_active: formData.is_active ?? true,
+    for_single_order: formData.for_single_order ?? false,
+    for_employees_only: formData.for_employees_only ?? false,
   };
 
   function validate() {
@@ -79,6 +81,20 @@
       <label class="form-label">
         <input type="checkbox" bind:checked={formData.is_active} />
         {$_("common.isActive")}
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">
+        <input type="checkbox" bind:checked={formData.for_single_order} />
+        {$_("paymentMethods.singleOrderOnly") || "Single order only"}
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">
+        <input type="checkbox" bind:checked={formData.for_employees_only} />
+        {$_("paymentMethods.employeesOnly") || "Employees only"}
       </label>
     </div>
   </div>

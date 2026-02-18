@@ -127,6 +127,9 @@
   let deleteModalOpen = $state(false);
   let deletingCoupon = $state<any>(null);
 
+  let detailsModalOpen = $state(false);
+  let selectedCouponDetails = $state<any>(null);
+
   onMount(async () => {
     if (website.main_space) {
       await loadCouponFolders();
@@ -483,6 +486,51 @@
   function openDeleteModal(coupon: any) {
     deletingCoupon = coupon;
     deleteModalOpen = true;
+  }
+
+  function getCouponBody(coupon: any) {
+    return coupon?.attributes?.payload?.body || {};
+  }
+
+  function getCouponDiscountType(coupon: any) {
+    const type = String(
+      getCouponBody(coupon)?.discount_type || "",
+    ).toLowerCase();
+    if (type === "amount") return "fixed_amount";
+    return type || "percentage";
+  }
+
+  function getCouponIsShipping(coupon: any) {
+    const body = getCouponBody(coupon);
+    return Boolean(body?.is_shipping ?? body?.is_shpping ?? false);
+  }
+
+  function formatCouponDiscount(coupon: any) {
+    const body = getCouponBody(coupon);
+    const value = body?.discount_value ?? 0;
+    return getCouponDiscountType(coupon) === "percentage"
+      ? `${value}%`
+      : `$${value}`;
+  }
+
+  function formatCouponNumber(value: any, fallback = "-") {
+    if (value === null || value === undefined || value === "") return fallback;
+    return String(value);
+  }
+
+  function formatAppliesToValue(value: any) {
+    if (!value) return "-";
+    if (Array.isArray(value)) {
+      if (!value.length) return "-";
+      return value.join(", ");
+    }
+    if (typeof value === "string") return value;
+    return "-";
+  }
+
+  function openDetailsModal(coupon: any) {
+    selectedCouponDetails = coupon;
+    detailsModalOpen = true;
   }
 
   async function handleDeleteCoupon() {
@@ -1251,6 +1299,31 @@
                       class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1 right-0"
                       role="menu"
                     >
+                      <button
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
+                        onclick={() => {
+                          closeActions();
+                          openDetailsModal(coupon);
+                        }}
+                        role="menuitem"
+                      >
+                        <svg
+                          class="h-4 w-4 text-gray-500"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            fill-rule="evenodd"
+                            clip-rule="evenodd"
+                            d="M4.0117 12C4.02312 12.0329 4.04406 12.0868 4.08184 12.1644C4.16842 12.3421 4.3101 12.5758 4.51263 12.851C4.91651 13.3997 5.51827 14.0535 6.2742 14.6801C7.80015 15.9449 9.83098 17 12 17C14.169 17 16.1999 15.9449 17.7258 14.6801C18.4817 14.0535 19.0835 13.3997 19.4874 12.851C19.6899 12.5758 19.8316 12.3421 19.9182 12.1644C19.9559 12.0868 19.9769 12.0329 19.9883 12C19.9769 11.9671 19.9559 11.9132 19.9182 11.8356C19.8316 11.6579 19.6899 11.4242 19.4874 11.149C19.0835 10.6003 18.4817 9.94649 17.7258 9.3199C16.1999 8.05506 14.169 7 12 7C9.83098 7 7.80015 8.05506 6.2742 9.3199C5.51827 9.94649 4.91651 10.6003 4.51263 11.149C4.3101 11.4242 4.16842 11.6579 4.08184 11.8356C4.04406 11.9132 4.02312 11.9671 4.0117 12ZM4.99787 7.7801C6.72929 6.34495 9.19846 5 12 5C14.8015 5 17.2707 6.34495 19.0021 7.7801C19.8749 8.50351 20.5911 9.2747 21.0981 9.96347C21.351 10.3071 21.5629 10.6452 21.7161 10.9597C21.8554 11.2456 22 11.6185 22 12C22 12.3815 21.8554 12.7544 21.7161 13.0403C21.5629 13.3548 21.351 13.6929 21.0981 14.0365C20.5911 14.7253 19.8749 15.4965 19.0021 16.2199C17.2707 17.6551 14.8015 19 12 19C9.19846 19 6.72929 17.6551 4.99787 16.2199C4.12513 15.4965 3.40886 14.7253 2.9019 14.0365C2.649 13.6929 2.43705 13.3548 2.28385 13.0403C2.14458 12.7544 2 12.3815 2 12C2 11.6185 2.14458 11.2456 2.28385 10.9597C2.43705 10.6452 2.649 10.3071 2.9019 9.96347C3.40886 9.2747 4.12513 8.50351 4.99787 7.7801ZM12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10ZM8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12Z"
+                            fill="currentColor"
+                          />
+                        </svg>
+
+                        <span>{t("admin.view_details", "View details")}</span>
+                      </button>
+
                       {#if coupon.isGlobal}
                         <!-- Edit -->
                         <button
@@ -1320,30 +1393,6 @@
                           </svg>
 
                           <span>{$_("common.delete") || "Delete"}</span>
-                        </button>
-                      {:else}
-                        <button
-                          class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-gray-600"
-                          onclick={() => {
-                            closeActions();
-                          }}
-                          role="menuitem"
-                        >
-                          <svg
-                            class="h-4 w-4 text-gray-500"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              fill-rule="evenodd"
-                              clip-rule="evenodd"
-                              d="M4.0117 12C4.02312 12.0329 4.04406 12.0868 4.08184 12.1644C4.16842 12.3421 4.3101 12.5758 4.51263 12.851C4.91651 13.3997 5.51827 14.0535 6.2742 14.6801C7.80015 15.9449 9.83098 17 12 17C14.169 17 16.1999 15.9449 17.7258 14.6801C18.4817 14.0535 19.0835 13.3997 19.4874 12.851C19.6899 12.5758 19.8316 12.3421 19.9182 12.1644C19.9559 12.0868 19.9769 12.0329 19.9883 12C19.9769 11.9671 19.9559 11.9132 19.9182 11.8356C19.8316 11.6579 19.6899 11.4242 19.4874 11.149C19.0835 10.6003 18.4817 9.94649 17.7258 9.3199C16.1999 8.05506 14.169 7 12 7C9.83098 7 7.80015 8.05506 6.2742 9.3199C5.51827 9.94649 4.91651 10.6003 4.51263 11.149C4.3101 11.4242 4.16842 11.6579 4.08184 11.8356C4.04406 11.9132 4.02312 11.9671 4.0117 12ZM4.99787 7.7801C6.72929 6.34495 9.19846 5 12 5C14.8015 5 17.2707 6.34495 19.0021 7.7801C19.8749 8.50351 20.5911 9.2747 21.0981 9.96347C21.351 10.3071 21.5629 10.6452 21.7161 10.9597C21.8554 11.2456 22 11.6185 22 12C22 12.3815 21.8554 12.7544 21.7161 13.0403C21.5629 13.3548 21.351 13.6929 21.0981 14.0365C20.5911 14.7253 19.8749 15.4965 19.0021 16.2199C17.2707 17.6551 14.8015 19 12 19C9.19846 19 6.72929 17.6551 4.99787 16.2199C4.12513 15.4965 3.40886 14.7253 2.9019 14.0365C2.649 13.6929 2.43705 13.3548 2.28385 13.0403C2.14458 12.7544 2 12.3815 2 12C2 11.6185 2.14458 11.2456 2.28385 10.9597C2.43705 10.6452 2.649 10.3071 2.9019 9.96347C3.40886 9.2747 4.12513 8.50351 4.99787 7.7801ZM12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10ZM8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12Z"
-                              fill="currentColor"
-                            />
-                          </svg>
-
-                          <span>{t("admin.view_only", "View only")}</span>
                         </button>
                       {/if}
                     </div>
@@ -1513,6 +1562,232 @@
           {loading
             ? t("admin.creating", "Creating...")
             : t("admin.create_coupon", "Create Coupon")}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if detailsModalOpen && selectedCouponDetails}
+  {@const detailsBody = getCouponBody(selectedCouponDetails)}
+  {@const appliesTo = detailsBody?.applies_to || {}}
+  <div class="modal-overlay" onclick={() => (detailsModalOpen = false)}>
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h2>{t("admin.coupon_details", "Coupon Details")}</h2>
+        <button class="close-btn" onclick={() => (detailsModalOpen = false)}>
+          ×
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="coupon-details-grid">
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label">{t("admin.code", "Code")}</span>
+            <span class="coupon-detail-value">{detailsBody?.code || "-"}</span>
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label">{t("admin.type", "Type")}</span>
+            <span class="coupon-detail-value">{detailsBody?.type || "-"}</span>
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label"
+              >{t("admin.discount_type", "Discount Type")}</span
+            >
+            <span class="coupon-detail-value"
+              >{getCouponDiscountType(selectedCouponDetails)}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label"
+              >{t("admin.discount_value", "Discount Value")}</span
+            >
+            <span class="coupon-detail-value"
+              >{formatCouponDiscount(selectedCouponDetails)}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label"
+              >{t("admin.minimum_spend", "Minimum Spend")}</span
+            >
+            <span class="coupon-detail-value"
+              >{formatCouponNumber(detailsBody?.minimum_spend)}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label"
+              >{t("admin.maximum_amount", "Maximum Amount")}</span
+            >
+            <span class="coupon-detail-value"
+              >{formatCouponNumber(detailsBody?.maximum_amount)}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label"
+              >{t("admin.maximum_uses", "Maximum Uses")}</span
+            >
+            <span class="coupon-detail-value"
+              >{formatCouponNumber(detailsBody?.maximum_uses, "∞")}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label"
+              >{t("admin.maximum_per_user", "Maximum Per User")}</span
+            >
+            <span class="coupon-detail-value"
+              >{formatCouponNumber(detailsBody?.maximum_per_user)}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label">{t("admin.usage", "Usage")}</span>
+            <span class="coupon-detail-value">
+              {formatCouponNumber(detailsBody?.usage_count, "0")} / {formatCouponNumber(
+                detailsBody?.maximum_uses,
+                "∞",
+              )}
+            </span>
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label"
+              >{t("admin.is_shipping_coupon", "Is Shipping Coupon")}</span
+            >
+            <span class="coupon-detail-value"
+              >{getCouponIsShipping(selectedCouponDetails)
+                ? t("common.yes", "Yes")
+                : t("common.no", "No")}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label"
+              >{t("admin.valid_from", "Valid From")}</span
+            >
+            <span class="coupon-detail-value"
+              >{formatDateDMY(detailsBody?.validity?.from)}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label"
+              >{t("admin.valid_to", "Valid To")}</span
+            >
+            <span class="coupon-detail-value"
+              >{formatDateDMY(detailsBody?.validity?.to)}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label">UUID</span>
+            <span class="coupon-detail-value"
+              >{selectedCouponDetails?.uuid || "-"}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label">Shortname</span>
+            <span class="coupon-detail-value"
+              >{selectedCouponDetails?.shortname || "-"}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label">{t("common.owner", "Owner")}</span
+            >
+            <span class="coupon-detail-value"
+              >{selectedCouponDetails?.attributes?.owner_shortname || "-"}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label">Subpath</span>
+            <span class="coupon-detail-value"
+              >{selectedCouponDetails?.subpath || "-"}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label"
+              >{t("common.created", "Created")}</span
+            >
+            <span class="coupon-detail-value"
+              >{formatDateDMY(
+                selectedCouponDetails?.attributes?.created_at,
+              )}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item">
+            <span class="coupon-detail-label"
+              >{t("common.updated", "Updated")}</span
+            >
+            <span class="coupon-detail-value"
+              >{formatDateDMY(
+                selectedCouponDetails?.attributes?.updated_at,
+              )}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item coupon-detail-item-full">
+            <span class="coupon-detail-label">Applies to products</span>
+            <span class="coupon-detail-value"
+              >{formatAppliesToValue(appliesTo?.products)}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item coupon-detail-item-full">
+            <span class="coupon-detail-label">Applies to services</span>
+            <span class="coupon-detail-value"
+              >{formatAppliesToValue(appliesTo?.services_keys)}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item coupon-detail-item-full">
+            <span class="coupon-detail-label">Applies to users</span>
+            <span class="coupon-detail-value"
+              >{formatAppliesToValue(appliesTo?.users_shortnames)}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item coupon-detail-item-full">
+            <span class="coupon-detail-label">Applies to brands</span>
+            <span class="coupon-detail-value"
+              >{formatAppliesToValue(
+                appliesTo?.brands_shortnames ?? appliesTo?.brand_shortnames,
+              )}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item coupon-detail-item-full">
+            <span class="coupon-detail-label">Applies to sellers</span>
+            <span class="coupon-detail-value"
+              >{formatAppliesToValue(appliesTo?.sellers_shortname)}</span
+            >
+          </div>
+
+          <div class="coupon-detail-item coupon-detail-item-full">
+            <span class="coupon-detail-label">Applies to categories</span>
+            <span class="coupon-detail-value"
+              >{formatAppliesToValue(appliesTo?.categories_shortnames)}</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button
+          class="btn-secondary"
+          onclick={() => (detailsModalOpen = false)}
+        >
+          {$_("common.cancel") || "Close"}
         </button>
       </div>
     </div>

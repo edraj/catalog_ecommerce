@@ -16,6 +16,7 @@
     errorToastMessage,
     successToastMessage,
   } from "@/lib/toasts_messages";
+  import { getFileExtension, removeFileExtension } from "@/lib/fileUtils";
   import { _, locale } from "@/i18n";
   import { derived } from "svelte/store";
   import {
@@ -97,7 +98,6 @@
   let selectedImages = $state<File[]>([]);
   let imagePreviews = $state<string[]>([]);
   let isUploadingImages = $state(false);
-
   onMount(async () => {
     await Promise.all([
       loadCategories(),
@@ -833,14 +833,17 @@
     if (!imageToUse) return null;
 
     try {
-      return Dmart.getAttachmentUrl({
-        resource_type: ResourceType.media,
-        space_name: website.main_space,
-        subpath: product.subpath + "/",
-        parent_shortname: product.shortname,
-        shortname: imageToUse.attributes.payload.body,
-        ext: null,
-      });
+      return Dmart.getAttachmentUrl(
+        {
+          resource_type: ResourceType.media,
+          space_name: website.main_space,
+          subpath: product.subpath + "/",
+          parent_shortname: product.shortname,
+          shortname: imageToUse.attributes.payload.body,
+          ext: null,
+        },
+        "public",
+      );
     } catch (error) {
       console.error("Error getting thumbnail URL:", error);
       return null;
@@ -1185,7 +1188,9 @@
             <th class="col-category"
               >{$_("admin_dashboard.category") || "Category"}</th
             >
-            <th class="col-tags">{$_("admin_dashboard.tags") || "Tags"}</th>
+            <th class="col-tags"
+              >{$_("admin_dashboard.brand_label") || "Brand"}</th
+            >
             <th class="col-status">{$_("common.status") || "Status"}</th>
           </tr>
         </thead>
@@ -1249,17 +1254,8 @@
               </td>
 
               <td class="col-tags">
-                {#if product.attributes?.tags && product.attributes.tags.length > 0}
-                  <div class="tags-preview">
-                    {#each product.attributes.tags.slice(0, 2) as tag}
-                      <span class="tag-badge">{tag}</span>
-                    {/each}
-                    {#if product.attributes.tags.length > 2}
-                      <span class="tag-more"
-                        >+{product.attributes.tags.length - 2}</span
-                      >
-                    {/if}
-                  </div>
+                {#if getBrandValue(product) && getBrandValue(product) !== "—"}
+                  <span class="brand-text">{getBrandValue(product)}</span>
                 {:else}
                   <span class="text-muted">—</span>
                 {/if}
@@ -1289,14 +1285,17 @@
                           <div class="product-image-card">
                             <img
                               class="product-image-img"
-                              src={Dmart.getAttachmentUrl({
-                                resource_type: ResourceType.media,
-                                space_name: website.main_space,
-                                subpath: product.subpath + "/",
-                                parent_shortname: product.shortname,
-                                shortname: image.attributes.payload.body,
-                                ext: null,
-                              })}
+                              src={Dmart.getAttachmentUrl(
+                                {
+                                  resource_type: ResourceType.media,
+                                  space_name: website.main_space,
+                                  subpath: product.subpath + "/",
+                                  parent_shortname: product.shortname,
+                                  shortname: image.attributes.payload.body,
+                                  ext: null,
+                                },
+                                "public",
+                              )}
                               alt="Product"
                               loading="lazy"
                             />
@@ -1409,6 +1408,24 @@
                             "Item weight"}
                         </div>
                         <div class="spec-text">{getWeightValue(product)}</div>
+                      </div>
+
+                      <!-- Tags -->
+                      <div class="spec-card">
+                        <div class="spec-title">
+                          {$_("admin_dashboard.tags") || "Tags"}
+                        </div>
+                        <div class="spec-text">
+                          {#if product.attributes?.tags && product.attributes.tags.length > 0}
+                            <div class="tags-preview">
+                              {#each product.attributes.tags as tag}
+                                <span class="tag-badge">{tag}</span>
+                              {/each}
+                            </div>
+                          {:else}
+                            —
+                          {/if}
+                        </div>
                       </div>
                     </div>
 
@@ -2697,7 +2714,6 @@
 
   .product-image-img {
     width: 272.75px;
-    height: 80px;
     border-radius: 8px;
     object-fit: cover;
   }

@@ -37,7 +37,8 @@
   let selectedCombinedOrder = $state(null);
   let selectedCombinedOrderDetails = $state(null);
 
-  const t = (key: string, vars?: Record<string, unknown>) => globalThis.$(_)(key, vars);
+  const t = (key: string, vars?: Record<string, unknown>) =>
+    globalThis.$(_)(key, vars);
 
   const paymentStatuses = [
     {
@@ -261,9 +262,10 @@
         }
       }
 
+      const paymentStatus = getCombinedOrderPaymentStatus(order);
       if (
         selectedPaymentStatus !== "all" &&
-        orderPayload.payment_status !== selectedPaymentStatus
+        paymentStatus !== selectedPaymentStatus
       ) {
         return false;
       }
@@ -458,13 +460,100 @@
   }
 
   function getPaymentStatusClass(status: string): string {
+    const normalized = status?.toString().toLowerCase() || "";
     const statusClasses: Record<string, string> = {
-      pending: "bg-yellow-100 text-yellow-800",
-      completed: "bg-green-100 text-green-800",
-      nopaid: "bg-gray-100 text-gray-800",
-      failed: "bg-red-100 text-red-800",
+      pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
+      completed: "bg-green-50 text-green-700 border-green-200",
+      paid: "bg-green-50 text-green-700 border-green-200",
+      success: "bg-green-50 text-green-700 border-green-200",
+      nopaid: "bg-gray-100 text-gray-700 border-gray-200",
+      unpaid: "bg-gray-100 text-gray-700 border-gray-200",
+      failed: "bg-red-50 text-red-700 border-red-200",
+      cancelled: "bg-red-50 text-red-700 border-red-200",
     };
-    return statusClasses[status] || "bg-gray-100 text-gray-800";
+    return (
+      statusClasses[normalized] || "bg-gray-100 text-gray-700 border-gray-200"
+    );
+  }
+
+  function normalizePaymentType(value: unknown): string {
+    return value?.toString().trim().toLowerCase() || "";
+  }
+
+  function normalizePaymentStatus(value: unknown): string {
+    return value?.toString().trim().toLowerCase() || "";
+  }
+
+  function getCombinedOrderPaymentType(order: any): string {
+    const payload = order.attributes?.payload?.body || {};
+    const directType = normalizePaymentType(payload.payment_type);
+    if (directType) return directType;
+
+    const combinedKey = getCombinedOrderKey(order);
+    const suborders = combinedOrderSuborders.get(combinedKey) || [];
+    const subType = suborders
+      .map((suborder) =>
+        normalizePaymentType(suborder.attributes?.payload?.body?.payment_type),
+      )
+      .find(Boolean);
+
+    return subType || "";
+  }
+
+  function getCombinedOrderPaymentStatus(order: any): string {
+    const payload = order.attributes?.payload?.body || {};
+    const directStatus = normalizePaymentStatus(payload.payment_status);
+    if (directStatus) return directStatus;
+
+    const combinedKey = getCombinedOrderKey(order);
+    const suborders = combinedOrderSuborders.get(combinedKey) || [];
+    const statuses = suborders
+      .map((suborder) =>
+        normalizePaymentStatus(
+          suborder.attributes?.payload?.body?.payment_status,
+        ),
+      )
+      .filter(Boolean);
+
+    if (statuses.length === 0) return "";
+    if (statuses.includes("pending")) return "pending";
+    if (statuses.includes("failed")) return "failed";
+    if (
+      statuses.every((status) =>
+        ["completed", "paid", "success"].includes(status),
+      )
+    ) {
+      return "completed";
+    }
+
+    return statuses[0];
+  }
+
+  function isOnlinePaymentOrder(order: any): boolean {
+    return getCombinedOrderPaymentType(order) === "online";
+  }
+
+  function isPendingOnlinePayment(order: any): boolean {
+    if (!isOnlinePaymentOrder(order)) return false;
+    return getCombinedOrderPaymentStatus(order) === "pending";
+  }
+
+  function getPaymentStatusLabel(status: string): string {
+    const normalized = normalizePaymentStatus(status);
+    if (!normalized) return $_("common.not_available") || "N/A";
+    if (normalized === "pending") {
+      return $_("admin.payment_pending") || "Pending";
+    }
+    if (["completed", "paid", "success"].includes(normalized)) {
+      return $_("admin.payment_completed") || "Completed";
+    }
+    if (["nopaid", "unpaid"].includes(normalized)) {
+      return $_("admin.payment_not_paid") || "Not Paid";
+    }
+    if (normalized === "failed") {
+      return $_("admin.payment_failed") || "Failed";
+    }
+    return normalized;
   }
 
   function getCombinedOrderStatus(order: any): string {
@@ -627,8 +716,8 @@
           payload.phone_number ||
           payload.customer_phone ||
           "",
-        payload.payment_status || "",
-        payload.payment_type || "",
+        getCombinedOrderPaymentStatus(order),
+        getCombinedOrderPaymentType(order),
         payload.total_amount || 0,
         payload.order_from || "",
         order.attributes?.created_at || "",
@@ -767,22 +856,22 @@
     }
   }
 
-$effect(() => {
-  selectedPaymentStatus;
-  selectedOrderStatus;
-  selectedSeller;
-  selectedGovernorate;
-  selectedBnpl;
-  dateFrom;
-  dateTo;
-  searchQuery;
-  phoneQuery;
+  $effect(() => {
+    selectedPaymentStatus;
+    selectedOrderStatus;
+    selectedSeller;
+    selectedGovernorate;
+    selectedBnpl;
+    dateFrom;
+    dateTo;
+    searchQuery;
+    phoneQuery;
 
-  if (combinedOrders.length > 0) {
-    applyFilters();
-    currentPage = 1; // ✅ reset pagination when filters change
-  }
-});
+    if (combinedOrders.length > 0) {
+      applyFilters();
+      currentPage = 1; // ✅ reset pagination when filters change
+    }
+  });
 
   // dropdown states
   let isFiltersOpen = $state(false);
@@ -1313,6 +1402,9 @@ $effect(() => {
         </thead>
         <tbody class="bg-white">
           {#each paginatedOrders as order (order.shortname)}
+            {@const paymentStatus = getCombinedOrderPaymentStatus(order)}
+            {@const paymentType = getCombinedOrderPaymentType(order)}
+            {@const hasPendingOnlinePayment = isPendingOnlinePayment(order)}
             <tr
               class="clickable-row hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
               onclick={() => viewCombinedOrder(order)}
@@ -1321,7 +1413,7 @@ $effect(() => {
               <td class="px-6 py-4">
                 <div class="flex items-center gap-2.5">
                   <!-- 44x44 icon -->
-                 
+
                   <div class="min-w-0">
                     <div
                       class="truncate"
@@ -1435,25 +1527,35 @@ $effect(() => {
               <td class="px-6 py-4">
                 <div class="flex flex-col gap-1">
                   <span
-                    class="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 w-fit"
-                    style="height:20px;background:#EEF6FF;border-color:#BEDBFF;"
+                    class={`inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 w-fit ${getPaymentStatusClass(paymentStatus)}`}
+                    style="height:20px;"
                   >
-                    <!-- You can keep your getPaymentStatusClass if you want; here is a design pill -->
                     <span
-                      style="font-weight:500;font-size:12px;line-height:16px;color:#1C398E;"
+                      style="font-weight:500;font-size:12px;line-height:16px;"
                     >
-                      {order.attributes?.payload?.body?.payment_status ||
-                        "pending"}
+                      {getPaymentStatusLabel(paymentStatus)}
                     </span>
                   </span>
 
                   <span
                     style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;"
                   >
-                    {order.attributes?.payload?.body?.payment_type ||
-                      $_("common.not_available") ||
-                      "N/A"}
+                    {paymentType || $_("common.not_available") || "N/A"}
                   </span>
+
+                  {#if hasPendingOnlinePayment}
+                    <span
+                      class="inline-flex items-center rounded-sm border px-2 py-0.5 w-fit"
+                      style="height:20px;background:#FFF8F1;border-color:#FCD9BD;"
+                    >
+                      <span
+                        style="font-weight:500;font-size:12px;line-height:16px;color:#771D1D;"
+                      >
+                        {$_("admin.payment_pending") || "Pending"} ·
+                        {$_("admin.action_required") || "Action required"}
+                      </span>
+                    </span>
+                  {/if}
                 </div>
               </td>
 
@@ -1484,7 +1586,10 @@ $effect(() => {
 
               <!-- ACTIONS (... dropdown) -->
               <td class="px-6 py-4" onclick={(e) => e.stopPropagation()}>
-                <div class="relative flex justify-end" onclick={(e) => e.stopPropagation()}>
+                <div
+                  class="relative flex justify-end"
+                  onclick={(e) => e.stopPropagation()}
+                >
                   <button
                     class="h-8 w-8 inline-flex items-center justify-center rounded-md cursor-pointer rounded-md hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
                     aria-label={$_("admin.actions") || "Actions"}
@@ -1499,7 +1604,7 @@ $effect(() => {
                     <div
                       class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1 right-0"
                       role="menu"
-                      style='top:22px;'
+                      style="top:22px;"
                     >
                       <button
                         class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-gray-600"
@@ -1525,6 +1630,34 @@ $effect(() => {
 
                         <span>{$_("view") || "View"}</span>
                       </button>
+
+                      {#if hasPendingOnlinePayment}
+                        <button
+                          class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-[#771D1D]"
+                          onclick={() => {
+                            closeActions();
+                            viewCombinedOrder(order);
+                          }}
+                          role="menuitem"
+                        >
+                          <svg
+                            class="h-4 w-4"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fill-rule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.5a.75.75 0 10-1.5 0v4a.75.75 0 001.5 0v-4zm-1.5 7a.75.75 0 111.5 0 .75.75 0 01-1.5 0z"
+                              clip-rule="evenodd"
+                            />
+                          </svg>
+                          <span>
+                            {$_("admin.review_pending_payment") ||
+                              "Review pending payment"}
+                          </span>
+                        </button>
+                      {/if}
                     </div>
                   {/if}
                 </div>
@@ -1538,10 +1671,13 @@ $effect(() => {
     <!-- Pagination -->
     <div class="pagination">
       <p class="pagination-text">
-        {$_(
-          "admin.pagination_showing",
-          { values: { start: paginationStart, end: paginationEnd, total: filteredTotal } },
-        ) || `Showing ${paginationStart}-${paginationEnd} of ${filteredTotal}`}
+        {$_("admin.pagination_showing", {
+          values: {
+            start: paginationStart,
+            end: paginationEnd,
+            total: filteredTotal,
+          },
+        }) || `Showing ${paginationStart}-${paginationEnd} of ${filteredTotal}`}
       </p>
       <div class="pagination-controls">
         <button
@@ -1591,20 +1727,20 @@ $effect(() => {
           disabled={currentPage === totalPages}
           aria-label={$_("admin.next_page") || "Next page"}
         >
-         <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
-                d="M11.1381 7.52868C11.3985 7.78903 11.3985 8.21114 11.1381 8.47149L6.47145 13.1382C6.2111 13.3985 5.78899 13.3985 5.52864 13.1382C5.26829 12.8778 5.26829 12.4557 5.52864 12.1953L9.7239 8.00008L5.52864 3.80482C5.26829 3.54447 5.26829 3.12236 5.52864 2.86201C5.78899 2.60166 6.2111 2.60166 6.47145 2.86201L11.1381 7.52868Z"
-                fill="#101828"
-              />
-            </svg>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M11.1381 7.52868C11.3985 7.78903 11.3985 8.21114 11.1381 8.47149L6.47145 13.1382C6.2111 13.3985 5.78899 13.3985 5.52864 13.1382C5.26829 12.8778 5.26829 12.4557 5.52864 12.1953L9.7239 8.00008L5.52864 3.80482C5.26829 3.54447 5.26829 3.12236 5.52864 2.86201C5.78899 2.60166 6.2111 2.60166 6.47145 2.86201L11.1381 7.52868Z"
+              fill="#101828"
+            />
+          </svg>
         </button>
       </div>
     </div>
