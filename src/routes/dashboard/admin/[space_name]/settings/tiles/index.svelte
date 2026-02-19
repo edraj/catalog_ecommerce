@@ -50,6 +50,7 @@
   };
 
   let imageFile: File | null = null;
+  let imagePreviewUrl: string | null = null;
 
   const regions = [
     { value: "hero_region", label: "Hero Region" },
@@ -135,6 +136,11 @@
   }
 
   function openEditModal(tile: any) {
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      imagePreviewUrl = null;
+    }
+    imageFile = null;
     selectedTile = tile;
     const body = tile.attributes.payload?.body || {};
     tileForm = {
@@ -198,6 +204,10 @@
       collection_shortname: "",
       is_active: true,
     };
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      imagePreviewUrl = null;
+    }
     imageFile = null;
     selectedTile = null;
   }
@@ -412,22 +422,41 @@
 
   function handleFileChange(event: Event) {
     const target = event.target as HTMLInputElement;
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      imagePreviewUrl = null;
+    }
+
     if (target.files && target.files[0]) {
       imageFile = target.files[0];
+      imagePreviewUrl = URL.createObjectURL(target.files[0]);
+    } else {
+      imageFile = null;
     }
+  }
+
+  function getEditModalImageUrl(): string | null {
+    if (imagePreviewUrl) return imagePreviewUrl;
+    if (!selectedTile) return null;
+    return getImageUrl(selectedTile);
   }
 
   function getImageUrl(tile: any): string | null {
     const media = tile.attachments?.media?.[0];
     if (!media) return null;
-    return Dmart.getAttachmentUrl({
-      resource_type: ResourceType.media,
-      space_name: "personal",
-      subpath: `people/${tile.shortname}/protected/`,
-      parent_shortname: "avatar",
-      shortname: media.payload?.body || media.shortname,
-      ext: null,
-    });
+    console.log(tile.attachments?.media[0].subpath);
+
+    return Dmart.getAttachmentUrl(
+      {
+        resource_type: ResourceType.media,
+        space_name: website.main_space,
+        subpath: tile.attachments?.media[0].subpath || tile.subpath + "/" || "",
+        parent_shortname: tile.shortname,
+        shortname: media.attributes?.payload?.body || media.shortname,
+        ext: null,
+      },
+      "public",
+    );
   }
 </script>
 
@@ -744,6 +773,7 @@
           </div>
 
           {#if tileForm.shape === "banner"}
+            {@const editImageUrl = getEditModalImageUrl()}
             <div class="form-group">
               <label for="url">{t("common.url", "URL")} *</label>
               <input
@@ -756,6 +786,14 @@
             </div>
 
             <div class="form-group">
+              {#if editImageUrl}
+                <div class="edit-image-preview">
+                  <img
+                    src={editImageUrl}
+                    alt={tileForm.displayname_en || "Tile image"}
+                  />
+                </div>
+              {/if}
               <label for="image">{t("admin.tiles_image", "Image")}</label>
               <input
                 id="image"

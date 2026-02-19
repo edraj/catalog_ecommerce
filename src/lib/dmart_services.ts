@@ -418,9 +418,11 @@ export async function updateEntity(
   };
 
   const response = await Dmart.request(actionRequest);
-  return response.status === "success" && response.records.length > 0
-    ? response.records[0].shortname
-    : null;
+  if (response.status === "success") {
+    return response.records?.[0]?.shortname || shortname;
+  }
+
+  return null;
 }
 export async function replaceEntity(
   shortname,
@@ -1108,7 +1110,7 @@ export async function deleteEntity(
 
   const response: ActionResponse = await Dmart.request(actionRequest);
 
-  return response.status === "success" && response.records.length > 0;
+  return response.status === "success";
 }
 
 export async function getSpaces(

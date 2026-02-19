@@ -68,7 +68,9 @@
   border-radius: 0.75rem;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .tile-card:hover {
@@ -405,6 +407,22 @@
 .form-group input[type="color"] {
   height: 3rem;
   cursor: pointer;
+}
+
+.edit-image-preview {
+  width: 100%;
+  max-height: 180px;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.edit-image-preview img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+  display: block;
 }
 
 /* View Details */
