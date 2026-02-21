@@ -1,0 +1,5807 @@
+{
+  "status": "success",
+  "records": [
+    {
+      "resource_type": "content",
+      "uuid": "a3fc599e-0de2-4a64-8e6e-6fa36f29fe25",
+      "shortname": "colors",
+      "subpath": "variations",
+      "attributes": {
+        "created_at": "2025-12-17T09:48:59.754477",
+        "updated_at": "2026-02-19T09:06:48.234627",
+        "state": null,
+        "owner_shortname": "dmart",
+        "is_open": null,
+        "is_active": true,
+        "owner_group_shortname": null,
+        "reporter": null,
+        "slug": "colors",
+        "acl": null,
+        "workflow_shortname": null,
+        "displayname": {
+          "ar": "",
+          "en": "",
+          "ku": null
+        },
+        "payload": {
+          "body": {
+            "options": [
+              {
+                "key": "none",
+                "name": {
+                  "ar": "بلا لون",
+                  "en": "No color"
+                },
+                "value": "transparent"
+              },
+              {
+                "key": "GoNPFq9THZkdARPwfFHKTh",
+                "name": {
+                  "ar": "ازرقسحيق",
+                  "en": "AbyssalBlue"
+                },
+                "value": "/n/a/navy-blue.jpg"
+              },
+              {
+                "key": "RiTZLsNpoEX9cyaFovzcfu",
+                "name": {
+                  "ar": "AliceBlue",
+                  "en": "AliceBlue"
+                },
+                "value": "#F0F8FF"
+              },
+              {
+                "key": "EtE8LGm62tqJZj4kw5Y9M4",
+                "name": {
+                  "ar": "فستقي",
+                  "en": "Alligator"
+                },
+                "value": "#82c742"
+              },
+              {
+                "key": "Gf4oj5i7Py5CDUCBuKk2HR",
+                "name": {
+                  "ar": "الالوة",
+                  "en": "Aloe"
+                }
+              },
+              {
+                "key": "GTW8cj6ELdg9htrgPQmVhJ",
+                "name": {
+                  "ar": "Amethyst",
+                  "en": "Amethyst"
+                },
+                "value": "#9966CC"
+              },
+              {
+                "key": "66Kw3mkSKkeAkHfPYVoXks",
+                "name": {
+                  "ar": "وردي",
+                  "en": "Amour"
+                },
+                "value": "#f5c7f5"
+              },
+              {
+                "key": "WF2nBAK5mSf2wDGCXaxd75",
+                "name": {
+                  "ar": "ازرقحديدي",
+                  "en": "AnchorBlue"
+                },
+                "value": "#452f8f"
+              },
+              {
+                "key": "Au6dUt8pBMcybyd5iTwWaQ",
+                "name": {
+                  "ar": "روزملائكي",
+                  "en": "AngelRose"
+                },
+                "value": "#e69ce6"
+              },
+              {
+                "key": "X9P3YoBYUBpsDcCAVmy6TD",
+                "name": {
+                  "ar": "انتيكروز",
+                  "en": "AntiqueRose"
+                },
+                "value": "#e39de3"
+              },
+              {
+                "key": "jsJQQQekSUywWrSZqLGJe2",
+                "name": {
+                  "ar": "AntiqueWhite",
+                  "en": "AntiqueWhite"
+                },
+                "value": "#FAEBD7"
+              },
+              {
+                "key": "7K2Zs6agoQT4bW9JTZnTws",
+                "name": {
+                  "ar": "AppleRed",
+                  "en": "AppleRed"
+                },
+                "value": "#d62d2d"
+              },
+              {
+                "key": "K99strDHnMaVis9gr6A3ad",
+                "name": {
+                  "ar": "مشمشي",
+                  "en": "Apricot"
+                },
+                "value": "#eb9567"
+              },
+              {
+                "key": "gbZnVQi2kNTmjmW9fasMzw",
+                "name": {
+                  "ar": "Aqua",
+                  "en": "Aqua"
+                },
+                "value": "#00FFFF"
+              },
+              {
+                "key": "YytSTLvxyYFNExBqErwxZ2",
+                "name": {
+                  "ar": "Aquamarine",
+                  "en": "Aquamarine"
+                },
+                "value": "#7FFFD4"
+              },
+              {
+                "key": "NRHmD8TphgoPRXb5o7BqCA",
+                "name": {
+                  "ar": "برقوق",
+                  "en": "ArabianNight"
+                },
+                "value": "#c43d61"
+              },
+              {
+                "key": "ivpzkarBJEnRLui8JBbnBW",
+                "name": {
+                  "ar": "أشقررمادي",
+                  "en": "AshBlonde"
+                },
+                "value": "#d8d98d"
+              },
+              {
+                "key": "SWKPxHvavExSSnbiQniZGE",
+                "name": {
+                  "ar": "بنيرمادي",
+                  "en": "AshBrown"
+                },
+                "value": "#755f19"
+              },
+              {
+                "key": "8AJDACXSeTscTtj5JwWgwT",
+                "name": {
+                  "ar": "اتاسر",
+                  "en": "Attacer"
+                },
+                "value": "#0a040a"
+              },
+              {
+                "key": "fyMNCyXjHdygkFyYx8hm3Q",
+                "name": {
+                  "ar": "بنيمحمر",
+                  "en": "Auburn"
+                },
+                "value": "#874a34"
+              },
+              {
+                "key": "bRDnVjGo7n4MLesWtKhW7v",
+                "name": {
+                  "ar": "اوراكلو",
+                  "en": "Auraglow"
+                },
+                "value": "/4/7/47848253e68a212370e31cdcbed27f8c.jpg"
+              },
+              {
+                "key": "E5pNNCaEGzoFFjLYnZh2LF",
+                "name": {
+                  "ar": "ارورا",
+                  "en": "Aurora"
+                },
+                "value": "/2/7/2755882315d5f276b5f57b23ac5b8e40_1.jpg"
+              },
+              {
+                "key": "4HkWSNhb3itsexrxCSWaFh",
+                "name": {
+                  "ar": "AuroraPurple",
+                  "en": "AuroraPurple"
+                },
+                "value": "#e0d0e9"
+              },
+              {
+                "key": "ULitHTL42Tc29XbvcQXpoN",
+                "name": {
+                  "ar": "AwesomeLightgray",
+                  "en": "AwesomeLightgray"
+                },
+                "value": "#a1a6a8"
+              },
+              {
+                "key": "CAT4Q5oTj28nboGYvEkVrj",
+                "name": {
+                  "ar": "Azure",
+                  "en": "Azure"
+                },
+                "value": "#F0FFFF"
+              },
+              {
+                "key": "RJRhaMYWip6tb8wZmDWQRF",
+                "name": {
+                  "ar": "بيبيدول",
+                  "en": "BabyDoll"
+                },
+                "value": "#e0a8e0"
+              },
+              {
+                "key": "3A84DRHii2g4AwjbhN58Tn",
+                "name": {
+                  "ar": "ورديفاتح",
+                  "en": "BabyPink"
+                },
+                "value": "#f5c1f5"
+              },
+              {
+                "key": "oUySCuHzJfYYYgouPb5tYH",
+                "name": {
+                  "ar": "BambooGreen",
+                  "en": "BambooGreen"
+                },
+                "value": "#7CFC00"
+              },
+              {
+                "key": "KzBzMcR68zZpDFSnxBtmiK",
+                "name": {
+                  "ar": "بناناساطع",
+                  "en": "BananaBright"
+                },
+                "value": "#f7eb6c"
+              },
+              {
+                "key": "Fvw6n8rCbQNrDX6oW47Zfx",
+                "name": {
+                  "ar": "بوهيمي",
+                  "en": "BareBohemian"
+                },
+                "value": "#ab2671"
+              },
+              {
+                "key": "JcwZxXFabMBYUx7GRVEDLQ",
+                "name": {
+                  "ar": "شاطئالبحر",
+                  "en": "Beach"
+                },
+                "value": "#20a7f5"
+              },
+              {
+                "key": "dq2fpgYwkyQStMjtBHzoDY",
+                "name": {
+                  "ar": "Beige",
+                  "en": "Beige"
+                },
+                "value": "#F5F5DC"
+              },
+              {
+                "key": "QfkUeLQBgNwimT8Z8YsYuV",
+                "name": {
+                  "ar": "بيج",
+                  "en": "BeigeAlbatre"
+                },
+                "value": "#adaa68"
+              },
+              {
+                "key": "8CZmy8TXz7SpswMcnzqZAw",
+                "name": {
+                  "ar": "بيجنقي",
+                  "en": "BeigeClair"
+                },
+                "value": "#e0e086"
+              },
+              {
+                "key": "PZyVfLjhqaD3xQcJgPwhxY",
+                "name": {
+                  "ar": "بيجطبيعي",
+                  "en": "BeigeNature"
+                },
+                "value": "#f0e5a8"
+              },
+              {
+                "key": "LLmMQjfxaNwGo5hCgFZHsq",
+                "name": {
+                  "ar": "بيجنيود",
+                  "en": "BeigeNude"
+                },
+                "value": "#eddd62"
+              },
+              {
+                "key": "dU4mN8PipBGXPwqsVsAzJf",
+                "name": {
+                  "ar": "بيجباستيل",
+                  "en": "BeigePastel"
+                },
+                "value": "#a5b57b"
+              },
+              {
+                "key": "C8MArEmaBYKxWd87LSBH9F",
+                "name": {
+                  "ar": "بورسلينبيج",
+                  "en": "BeigePorcelaine"
+                },
+                "value": "#bdb986"
+              },
+              {
+                "key": "bvPwi6ZhRAcuwR8EBgS7v7",
+                "name": {
+                  "ar": "بيج",
+                  "en": "BeigeSable"
+                },
+                "value": "#ada455"
+              },
+              {
+                "key": "npuF2C5MCEVRqdfDJgN2M6",
+                "name": {
+                  "ar": "توت",
+                  "en": "Berry"
+                },
+                "value": "#802a80"
+              },
+              {
+                "key": "ZXeP4oaY5SX8qcJz2JtpgH",
+                "name": {
+                  "ar": "Bisque",
+                  "en": "Bisque"
+                },
+                "value": "#FFE4C4"
+              },
+              {
+                "key": "mAg7dVk3rxZ2QM5vqAxTBj",
+                "name": {
+                  "ar": "Black",
+                  "en": "Black"
+                },
+                "value": "#000000"
+              },
+              {
+                "key": "hdwZ8qMJExC9SPwJcJcUrq",
+                "name": {
+                  "ar": "اسودبني",
+                  "en": "BlackBrown"
+                },
+                "value": "#444725"
+              },
+              {
+                "key": "KL74fWnsoRYhjSNBMC53SE",
+                "name": {
+                  "ar": "النحاسالاسود",
+                  "en": "BlackCopper"
+                },
+                "value": "#b0a141"
+              },
+              {
+                "key": "YcLrZyEsW9m6r722ELLn9e",
+                "name": {
+                  "ar": "اسودزجاجي",
+                  "en": "BlackGlass"
+                },
+                "value": "#0a060a"
+              },
+              {
+                "key": "2dE2RkBjS3d2yR64Q35zT7",
+                "name": {
+                  "ar": "أسودذهبي",
+                  "en": "BlackGold"
+                },
+                "value": "/8/9/8974fd3cf3611dc84580a3e7c1549071.jpg"
+              },
+              {
+                "key": "KJDjBoucJjrLWZ9MoRRCyY",
+                "name": {
+                  "ar": "BlackOyster",
+                  "en": "BlackOyster"
+                },
+                "value": "#414143"
+              },
+              {
+                "key": "bY7L5wkxkUrDgZqNjhZwWf",
+                "name": {
+                  "ar": "اسودبنفسجي",
+                  "en": "BlackPurple"
+                },
+                "value": "/6/9/6934980b-bb5a-45a1-a58d-a5f4281049c2.jpg"
+              },
+              {
+                "key": "fjvfocQ3p8nwzwYhBPesuH",
+                "name": {
+                  "ar": "BlackTitanium",
+                  "en": "BlackTitanium"
+                },
+                "value": "#68686B"
+              },
+              {
+                "key": "THkzmPYxud9jJ7eHNaHtcU",
+                "name": {
+                  "ar": "اسودشفاف",
+                  "en": "BlackTransparent"
+                },
+                "value": "/a/e/ae433a2f-13a2-483a-bf18-98fdd9996611.jpg"
+              },
+              {
+                "key": "Yk4CLfv7KxTQKsk8Vh6MLN",
+                "name": {
+                  "ar": "توليبالاسود",
+                  "en": "BlackTulip"
+                },
+                "value": "#1a031a"
+              },
+              {
+                "key": "FKR3KiETAb3wYmK9W6hDo5",
+                "name": {
+                  "ar": "أسودبنفسجي",
+                  "en": "BlackViolet"
+                },
+                "value": "#5e1b5e"
+              },
+              {
+                "key": "aBpfF68g7YBkAjbrohNaQs",
+                "name": {
+                  "ar": "أسودأبيض",
+                  "en": "BlackWhite"
+                }
+              },
+              {
+                "key": "bWeMizuY2xMXUUWpBjVCbK",
+                "name": {
+                  "ar": "BladeWhite",
+                  "en": "BladeWhite"
+                },
+                "value": "#dae3e8"
+              },
+              {
+                "key": "jiPgj2wM8NRiBzXZjzFsKC",
+                "name": {
+                  "ar": "BlanchedAlmond",
+                  "en": "BlanchedAlmond"
+                },
+                "value": "#FFEBCD"
+              },
+              {
+                "key": "284tBxyjruVYPMdAauTZW9",
+                "name": {
+                  "ar": "اشقر",
+                  "en": "Blonde"
+                },
+                "value": "#dbe36b"
+              },
+              {
+                "key": "C2egyTev4EjFh7LKtiYNus",
+                "name": {
+                  "ar": "BlossomGlow",
+                  "en": "BlossomGlow"
+                },
+                "value": "#ebcee8"
+              },
+              {
+                "key": "ATqbKfuqtPEm7K7B6vRPd9",
+                "name": {
+                  "ar": "Blue",
+                  "en": "Blue"
+                },
+                "value": "#0000FF"
+              },
+              {
+                "key": "LLWv3w4vGwhM7meieCaZNt",
+                "name": {
+                  "ar": "أخضرأزرق",
+                  "en": "BlueGreen"
+                },
+                "value": "#58bf8b"
+              },
+              {
+                "key": "2gnuuoLD4VyAwnJxKQNr9b",
+                "name": {
+                  "ar": "أزرقلامع",
+                  "en": "BlueLuminous"
+                },
+                "value": "/d/2/d280e5840f87639f4c37fbd783129158_1.jpg"
+              },
+              {
+                "key": "gQXiyjWCFXKzdNmosyn3Ja",
+                "name": {
+                  "ar": "ازرق",
+                  "en": "BlueMoon"
+                },
+                "value": "#4ac7e6"
+              },
+              {
+                "key": "fFqekkQexSyxqNygUCkUaF",
+                "name": {
+                  "ar": "BlueShadow",
+                  "en": "BlueShadow"
+                },
+                "value": "#281354"
+              },
+              {
+                "key": "UzMZ95t2muqfHnto9YXW7n",
+                "name": {
+                  "ar": "ازرقتيتانيوم",
+                  "en": "BlueTitanium"
+                },
+                "value": "/7/0/70aa0f42c67e54f53f63bc1c3b47bc4a.jpg"
+              },
+              {
+                "key": "GUnA9iDsrNrWPPrp6d8cSR",
+                "name": {
+                  "ar": "BlueViolet",
+                  "en": "BlueViolet"
+                },
+                "value": "#8A2BE2"
+              },
+              {
+                "key": "dYPmunQRvkHYyZVCoJxygz",
+                "name": {
+                  "ar": "احمرار",
+                  "en": "Blush"
+                },
+                "value": "#f01a1a"
+              },
+              {
+                "key": "jmBPZJdvSsbWwjcow9dBcx",
+                "name": {
+                  "ar": "ورديناعم",
+                  "en": "Blushpink"
+                },
+                "value": "/4/3/431dd532068bdb013e048ef4a6985276.jpg"
+              },
+              {
+                "key": "dgrVScswDyqsuJoqnxAd8M",
+                "name": {
+                  "ar": "قرميد",
+                  "en": "Brick"
+                },
+                "value": "#ad4500"
+              },
+              {
+                "key": "KGudUJ3HYe8v2QMHcCQng5",
+                "name": {
+                  "ar": "وردي",
+                  "en": "BrickPink"
+                },
+                "value": "#3056d1"
+              },
+              {
+                "key": "PS99TsG8D4q5bddyCiZ5UR",
+                "name": {
+                  "ar": "أحمرقرميدي",
+                  "en": "BrickRed"
+                },
+                "value": "#b02a2a"
+              },
+              {
+                "key": "DkregSW9pUhDBbuzDTyNph",
+                "name": {
+                  "ar": "ازرقساطع",
+                  "en": "BrightBlue"
+                },
+                "value": "#714ce8"
+              },
+              {
+                "key": "bRJQeYzNCAvfPfj5wtqH4p",
+                "name": {
+                  "ar": "برونزي",
+                  "en": "Bronze"
+                },
+                "value": "#c7b94c"
+              },
+              {
+                "key": "CvDNC8cHehpinSdDTY47gR",
+                "name": {
+                  "ar": "Brown",
+                  "en": "Brown"
+                },
+                "value": "#A52A2A"
+              },
+              {
+                "key": "mCWXV8p677GdrGqTFnyXSz",
+                "name": {
+                  "ar": "براونمون",
+                  "en": "BrownMoon"
+                },
+                "value": "#665e2f"
+              },
+              {
+                "key": "HoiFoUPF9U7SFnaghY2tTT",
+                "name": {
+                  "ar": "بنيروز",
+                  "en": "BrownRose"
+                },
+                "value": "#626951"
+              },
+              {
+                "key": "Y4uT3wzKtj43XFXDtfESjC",
+                "name": {
+                  "ar": "بنيداكن",
+                  "en": "Brun"
+                },
+                "value": "#855b08"
+              },
+              {
+                "key": "iA9voLHvqZTTSj2VYwy5Sp",
+                "name": {
+                  "ar": "بني",
+                  "en": "BrunMirifique"
+                },
+                "value": "#735726"
+              },
+              {
+                "key": "G3jfNB7ZmVnod4cnzsmfTK",
+                "name": {
+                  "ar": "اسمر",
+                  "en": "Brunette"
+                },
+                "value": "#bfbdae"
+              },
+              {
+                "key": "Sp6Vhser7EAfenjpDYyNQc",
+                "name": {
+                  "ar": "اساسي",
+                  "en": "BuffBisque"
+                },
+                "value": "#f7d77e"
+              },
+              {
+                "key": "cihWfR5QFZeUwuwVpq9Qzk",
+                "name": {
+                  "ar": "خمري",
+                  "en": "Burgundy"
+                },
+                "value": "/b/c/bcd108ed6268226a93199d000622ba1e_1.jpg"
+              },
+              {
+                "key": "mquzqxZBezC2hMZuikmzMg",
+                "name": {
+                  "ar": "BurlyWood",
+                  "en": "BurlyWood"
+                },
+                "value": "#DEB887"
+              },
+              {
+                "key": "fyh4FG3QFvJHcvn7S3TwMq",
+                "name": {
+                  "ar": "نحاسمحروق",
+                  "en": "BurntCopper"
+                },
+                "value": "/c/7/c76837_solid_color_background_icolorpalette_1.jpg"
+              },
+              {
+                "key": "bYrYVkhoCVTtZsvBBFRQUv",
+                "name": {
+                  "ar": "ورديصافيسي",
+                  "en": "CClearPink"
+                },
+                "value": "#f076f0"
+              },
+              {
+                "key": "k5qQhy93SstWrHa4XZLjbR",
+                "name": {
+                  "ar": "CadetBlue",
+                  "en": "CadetBlue"
+                },
+                "value": "#5F9EA0"
+              },
+              {
+                "key": "FvPxFpfBjy2SPzUr3fx9R6",
+                "name": {
+                  "ar": "قهوة",
+                  "en": "CafeNoir"
+                },
+                "value": "#c238bb"
+              },
+              {
+                "key": "aFcRSZ9jHnVnVyKMDYzAyg",
+                "name": {
+                  "ar": "جملي",
+                  "en": "Camel"
+                },
+                "value": "/c/c/ccca2da9cd8b4867170c414336eed17b.jpg"
+              },
+              {
+                "key": "5Mo7GRosayCcoWi2NGF5bF",
+                "name": {
+                  "ar": "ورديبنفسجي",
+                  "en": "Candyfloss"
+                },
+                "value": "#f2b5f2"
+              },
+              {
+                "key": "bHEHQtzhhaYacuaNKPPh7L",
+                "name": {
+                  "ar": "كابتشينو",
+                  "en": "Cappuccino"
+                },
+                "value": "#ff8c08"
+              },
+              {
+                "key": "nbsHoWrQekxn6xnscThrZ9",
+                "name": {
+                  "ar": "اسودكاربوني",
+                  "en": "CarbonBlack"
+                },
+                "value": "#120612"
+              },
+              {
+                "key": "iZmCk8uEhuNJmXAxmKzPSt",
+                "name": {
+                  "ar": "الكاريبي",
+                  "en": "Caribbean"
+                },
+                "value": "#7fccf0"
+              },
+              {
+                "key": "QupCAeX57svV7hmLjcBdBY",
+                "name": {
+                  "ar": "ابيضسيراميك",
+                  "en": "CeramicWhite"
+                },
+                "value": "/1/2/12_6_1.jpg"
+              },
+              {
+                "key": "RZvY4QdckYksZtEe5vfpGs",
+                "name": {
+                  "ar": "فحمي",
+                  "en": "Charcoal"
+                },
+                "value": "#000000"
+              },
+              {
+                "key": "DgN2aPMC7Sw8xadHLrfw23",
+                "name": {
+                  "ar": "Chartreuse",
+                  "en": "Chartreuse"
+                },
+                "value": "#7FFF00"
+              },
+              {
+                "key": "GT7BtBWuxnaAjXdrKAiqP7",
+                "name": {
+                  "ar": "بيبيروز",
+                  "en": "CheekyBaby"
+                },
+                "value": "#f797f7"
+              },
+              {
+                "key": "ZfnZwQWHC9eF64qHuS8s6V",
+                "name": {
+                  "ar": "كرزي",
+                  "en": "Cherry"
+                },
+                "value": "#f0438e"
+              },
+              {
+                "key": "i6NPF6PTpeSxLuBKmaAeCv",
+                "name": {
+                  "ar": "بنيكرزي",
+                  "en": "CherryBrown"
+                },
+                "value": "#0a4709"
+              },
+              {
+                "key": "NsdGPwHZvzfSrc47EbeWFE",
+                "name": {
+                  "ar": "احمركرزي",
+                  "en": "CherryRed"
+                },
+                "value": "#f55159"
+              },
+              {
+                "key": "RJQX59a2mk3MKrGPbUVf96",
+                "name": {
+                  "ar": "كستنائي",
+                  "en": "Chestnut"
+                },
+                "value": "#735612"
+              },
+              {
+                "key": "aoFoaeb8CGfpBeggbgNsYw",
+                "name": {
+                  "ar": "وردي",
+                  "en": "ChicPink"
+                },
+                "value": "#cc6ecc"
+              },
+              {
+                "key": "a87JMJ9fbPLqDSrXPQwTEM",
+                "name": {
+                  "ar": "Chocolate",
+                  "en": "Chocolate"
+                },
+                "value": "#D2691E"
+              },
+              {
+                "key": "cK9EWAHZdfeNCpXW65qfHR",
+                "name": {
+                  "ar": "بنيشوكولاتي",
+                  "en": "ChocolateBrown"
+                },
+                "value": "#6e593c"
+              },
+              {
+                "key": "Jda3yyiqX9rQhJ2QQhkCXZ",
+                "name": {
+                  "ar": "اشقرنقي",
+                  "en": "ClairBlondes"
+                },
+                "value": "#c9bf4e"
+              },
+              {
+                "key": "EM7qHwG3QYVGjcNzNTf36e",
+                "name": {
+                  "ar": "بنينقي",
+                  "en": "ClairBrunettes"
+                },
+                "value": "#456128"
+              },
+              {
+                "key": "MeiQfEVGUvYwruBwFACsjM",
+                "name": {
+                  "ar": "كلير",
+                  "en": "Clear"
+                },
+                "value": "#fff7ff"
+              },
+              {
+                "key": "693nQ6DKfFLrkNzfHRwte7",
+                "name": {
+                  "ar": "CloudWhite",
+                  "en": "CloudWhite"
+                },
+                "value": "#F5F5F5"
+              },
+              {
+                "key": "Cmig2F4Kyod42q4yLFCWwo",
+                "name": {
+                  "ar": "قهوائي",
+                  "en": "CoffeeCream"
+                },
+                "value": "#e8d8ae"
+              },
+              {
+                "key": "L2QVar4yy7gZ4unTVuBUA4",
+                "name": {
+                  "ar": "ملون",
+                  "en": "Colorful"
+                },
+                "value": "/5/0/5049773823d5f1987cf7d007f7d38a5b_1.jpg"
+              },
+              {
+                "key": "RcdnokNTF6urUEwrsXELDE",
+                "name": {
+                  "ar": "شفاف",
+                  "en": "Colorless"
+                },
+                "value": "#ffffff"
+              },
+              {
+                "key": "452GpJAHnJN6fGTJPpjS92",
+                "name": {
+                  "ar": "CoolBlack",
+                  "en": "CoolBlack"
+                },
+                "value": "#002E2E"
+              },
+              {
+                "key": "TSVqzUECrm4CcVMZ8T7nhd",
+                "name": {
+                  "ar": "Coral",
+                  "en": "Coral"
+                },
+                "value": "#FF9B7A"
+              },
+              {
+                "key": "ACTPp4UpwY4MwLaAZv6xsp",
+                "name": {
+                  "ar": "CoralGreen",
+                  "en": "CoralGreen"
+                },
+                "value": "#a7c796"
+              },
+              {
+                "key": "UhApgfwKhFJdzPvggyprzg",
+                "name": {
+                  "ar": "CoralPink",
+                  "en": "CoralPink"
+                },
+                "value": "#f88379"
+              },
+              {
+                "key": "jnGQAsyNLVxvtcJG6RZxcc",
+                "name": {
+                  "ar": "CoralRed",
+                  "en": "CoralRed"
+                },
+                "value": "#c83b17"
+              },
+              {
+                "key": "SJvpTXgAWAvYAcDnZT8TZi",
+                "name": {
+                  "ar": "CoralTides",
+                  "en": "CoralTides"
+                },
+                "value": "#FF8A7F"
+              },
+              {
+                "key": "867b33LzneiJMPgf69fgC2",
+                "name": {
+                  "ar": "CornflowerBlue",
+                  "en": "CornflowerBlue"
+                },
+                "value": "#6495ED"
+              },
+              {
+                "key": "8C7DMrJHdVgTVfwgxcA8oq",
+                "name": {
+                  "ar": "Cornsilk",
+                  "en": "Cornsilk"
+                },
+                "value": "#FFF8DC"
+              },
+              {
+                "key": "L8x8uSCXHd94WCasSbcDqg",
+                "name": {
+                  "ar": "CosmicOrange",
+                  "en": "CosmicOrange"
+                },
+                "value": "#FF7F50"
+              },
+              {
+                "key": "jgJTP5jWXdS8LKpuFcFgKP",
+                "name": {
+                  "ar": "ورديكثيف",
+                  "en": "Cover"
+                },
+                "value": "#eb5eeb"
+              },
+              {
+                "key": "mStzFeLJBTWhikB4NVZCcT",
+                "name": {
+                  "ar": "اسودانيق",
+                  "en": "CraftedBlack"
+                },
+                "value": "/s/c/screenshot_2024-09-18_121412.png"
+              },
+              {
+                "key": "aS6CYkvEwupYzo75L8FE4C",
+                "name": {
+                  "ar": "كريزيبلو",
+                  "en": "CrazyBlue"
+                },
+                "value": "#2b649c"
+              },
+              {
+                "key": "8qQ26qwQpEJbF5KnJn5WZz",
+                "name": {
+                  "ar": "كريزيشيري",
+                  "en": "CrazyCherry"
+                },
+                "value": "#c91655"
+              },
+              {
+                "key": "NCLonEVU2ZdbYCf6eLXoG8",
+                "name": {
+                  "ar": "كريمي",
+                  "en": "Cream"
+                },
+                "value": "#fffdd0"
+              },
+              {
+                "key": "7LzTFnL5UW689FpfwkwxZE",
+                "name": {
+                  "ar": "Crimson",
+                  "en": "Crimson"
+                },
+                "value": "#DC143C"
+              },
+              {
+                "key": "2DkNYMNs7XdRvDc9BbKk2L",
+                "name": {
+                  "ar": "بنيصريح",
+                  "en": "Crush"
+                },
+                "value": "#8c721c"
+              },
+              {
+                "key": "Ptju4t5jekEEzD3mD5G85C",
+                "name": {
+                  "ar": "كراشنكات",
+                  "en": "CrushingIt"
+                },
+                "value": "#42bd4e"
+              },
+              {
+                "key": "MhczKq9Aboii7QmVterQbc",
+                "name": {
+                  "ar": "كريستال",
+                  "en": "Crystal"
+                },
+                "value": "/5/7/570a5b7096ed43bcefcfcaca1985e9e9.jpg"
+              },
+              {
+                "key": "ESUfGxwuRctMKQoGpoEG7q",
+                "name": {
+                  "ar": "Cyan",
+                  "en": "Cyan"
+                },
+                "value": "#30f2ff"
+              },
+              {
+                "key": "6226NfxLLBY8ynJRTY9QRu",
+                "name": {
+                  "ar": "داليابيتل",
+                  "en": "DahliaPetal"
+                },
+                "value": "#eba74d"
+              },
+              {
+                "key": "hrGdoTRPnv2n5kRqo5ApMn",
+                "name": {
+                  "ar": "ورديجريء",
+                  "en": "DaringPink"
+                },
+                "value": "#d62dd6"
+              },
+              {
+                "key": "NK7N4XA3zpb2fdkASaWYPo",
+                "name": {
+                  "ar": "داكن",
+                  "en": "Dark"
+                },
+                "value": "#000000"
+              },
+              {
+                "key": "GnAG3KHyFZxttWCNauU264",
+                "name": {
+                  "ar": "أشقرداكن",
+                  "en": "DarkBlonde"
+                },
+                "value": "/0/0/0080e95fc000926a38e79ceaa556a6f4.jpg"
+              },
+              {
+                "key": "8wXcf8MsbjLQyBpRtzcxaq",
+                "name": {
+                  "ar": "DarkBlue",
+                  "en": "DarkBlue"
+                },
+                "value": "#00008B"
+              },
+              {
+                "key": "PXfsX8DntVk9x2BYHwTBrF",
+                "name": {
+                  "ar": "أزرقداكنوردي",
+                  "en": "DarkBlueRose"
+                },
+                "value": "/b/5/b5ae46a0adf34cf65a035b91e7ab582b_1.jpg"
+              },
+              {
+                "key": "o3y7vdKMjcGMMwcpxCdDd4",
+                "name": {
+                  "ar": "بنيغامق",
+                  "en": "DarkBrown"
+                },
+                "value": "#5e5527"
+              },
+              {
+                "key": "WDCyf2ixzv6VmviRUNKZBD",
+                "name": {
+                  "ar": "بنيداكن",
+                  "en": "DarkBrunette"
+                },
+                "value": "#574e0b"
+              },
+              {
+                "key": "U9zuHHeBLexgq4RiErqQPr",
+                "name": {
+                  "ar": "معدنيداكن",
+                  "en": "DarkChrome"
+                },
+                "value": "/8/4/84b2f618fc402f17abdeacec79e8f651.jpg"
+              },
+              {
+                "key": "Ahof9zrqVVFPn6ZqCyLRzu",
+                "name": {
+                  "ar": "DarkCyan",
+                  "en": "DarkCyan"
+                },
+                "value": "#008B8B"
+              },
+              {
+                "key": "P8AiEKJcYANtjCsexq3ZWd",
+                "name": {
+                  "ar": "DarkFlare",
+                  "en": "DarkFlare"
+                },
+                "value": "#353537"
+              },
+              {
+                "key": "jLR8hraqsqgsPhUFFpSGuw",
+                "name": {
+                  "ar": "DarkGoldenrod",
+                  "en": "DarkGoldenrod"
+                },
+                "value": "#B8860B"
+              },
+              {
+                "key": "jWSbT5XKWXmUXXq894fir9",
+                "name": {
+                  "ar": "DarkGray",
+                  "en": "DarkGray"
+                },
+                "value": "#A9A9A9"
+              },
+              {
+                "key": "KLnRQ7UjwcLiTMXC66Lupm",
+                "name": {
+                  "ar": "DarkGreen",
+                  "en": "DarkGreen"
+                },
+                "value": "#006400"
+              },
+              {
+                "key": "hMk5q7tF3DfjANE8GktPjb",
+                "name": {
+                  "ar": "DarkKhaki",
+                  "en": "DarkKhaki"
+                },
+                "value": "#BDB76B"
+              },
+              {
+                "key": "PKPUuHpvqYEdMGq6MuVTwJ",
+                "name": {
+                  "ar": "DarkMagenta",
+                  "en": "DarkMagenta"
+                },
+                "value": "#8B008B"
+              },
+              {
+                "key": "V7e4LT6CZafY8hZDGLUkGo",
+                "name": {
+                  "ar": "DarkOliveGreen",
+                  "en": "DarkOliveGreen"
+                },
+                "value": "#556B2F"
+              },
+              {
+                "key": "P3fpTRUMzfk2Usi5wUj5K4",
+                "name": {
+                  "ar": "DarkOrange",
+                  "en": "DarkOrange"
+                },
+                "value": "#FF8C00"
+              },
+              {
+                "key": "aQQ6oHzSNGQtbqLxvmQo6R",
+                "name": {
+                  "ar": "DarkOrchid",
+                  "en": "DarkOrchid"
+                },
+                "value": "#9932CC"
+              },
+              {
+                "key": "UMTR8Raae9NYmX2zYN5p4M",
+                "name": {
+                  "ar": "DarkRed",
+                  "en": "DarkRed"
+                },
+                "value": "#8B0000"
+              },
+              {
+                "key": "7hmuaNGuCXWmbB2UkcGJ6G",
+                "name": {
+                  "ar": "DarkSalmon",
+                  "en": "DarkSalmon"
+                },
+                "value": "#E9967A"
+              },
+              {
+                "key": "TmyCGzF48Mv4MTeUeJVU6G",
+                "name": {
+                  "ar": "DarkSeaGreen",
+                  "en": "DarkSeaGreen"
+                },
+                "value": "#8FBC8F"
+              },
+              {
+                "key": "XtLyyzGyvPkN5E3RL5kVbW",
+                "name": {
+                  "ar": "DarkSlateBlue",
+                  "en": "DarkSlateBlue"
+                },
+                "value": "#483D8B"
+              },
+              {
+                "key": "o3McoEyg6ikH3bwwC8DhWc",
+                "name": {
+                  "ar": "DarkSlateGray",
+                  "en": "DarkSlateGray"
+                },
+                "value": "#2F4F4F"
+              },
+              {
+                "key": "eosUh9TMELgaaUAEWCsUi6",
+                "name": {
+                  "ar": "DarkTurquoise",
+                  "en": "DarkTurquoise"
+                },
+                "value": "#00CED1"
+              },
+              {
+                "key": "ZH6dkZMDnf5HzfX3Y6s4Hi",
+                "name": {
+                  "ar": "DarkViolet",
+                  "en": "DarkViolet"
+                },
+                "value": "#9400D3"
+              },
+              {
+                "key": "U5stvHfxoie2Ef4hLjSZp6",
+                "name": {
+                  "ar": "أصفرداكن",
+                  "en": "DarkYellow"
+                },
+                "value": "#c8d145"
+              },
+              {
+                "key": "b23aCDCdfmfe4EqY97UrMc",
+                "name": {
+                  "ar": "DawnGold",
+                  "en": "DawnGold"
+                },
+                "value": "#888883"
+              },
+              {
+                "key": "GakNcJtTYPebgZQHMAPeNh",
+                "name": {
+                  "ar": "DazzlingBlue",
+                  "en": "DazzlingBlue"
+                },
+                "value": "#3850A0"
+              },
+              {
+                "key": "X86bTNoVtk8PTBkhQwbwXo",
+                "name": {
+                  "ar": "اسودداكن",
+                  "en": "DeepBlack"
+                },
+                "value": "#080208"
+              },
+              {
+                "key": "jixwQ5xVdgaHhGsrHF85X5",
+                "name": {
+                  "ar": "DeepBlue",
+                  "en": "DeepBlue"
+                },
+                "value": "#000066"
+              },
+              {
+                "key": "9zzJweNtLvR3vtcEjBwp7R",
+                "name": {
+                  "ar": "DeepPink",
+                  "en": "DeepPink"
+                },
+                "value": "#FF1493"
+              },
+              {
+                "key": "FU73WcKruB2HkgMsWQnzk3",
+                "name": {
+                  "ar": "بنفسجيغامق",
+                  "en": "DeepPurple"
+                },
+                "value": "#b317b3"
+              },
+              {
+                "key": "fnpGHMmXUJbj68LGibDLiF",
+                "name": {
+                  "ar": "روزداكن",
+                  "en": "DeepRose"
+                },
+                "value": "#994e99"
+              },
+              {
+                "key": "TKjWe3bzk7CQm32EnDuBb9",
+                "name": {
+                  "ar": "نيودناعم",
+                  "en": "DelicateNude"
+                },
+                "value": "#3ec74b"
+              },
+              {
+                "key": "UPqmMPFTMgztL26qjEt9Rt",
+                "name": {
+                  "ar": "ازرقداكن",
+                  "en": "Denim"
+                }
+              },
+              {
+                "key": "dd5YPfpvDa4DQBoCFkGDN4",
+                "name": {
+                  "ar": "صحراء",
+                  "en": "Desert"
+                },
+                "value": "#e09a4a"
+              },
+              {
+                "key": "n3gVEeE7V6PAbuZ7s3u5s6",
+                "name": {
+                  "ar": "DesertGold",
+                  "en": "DesertGold"
+                },
+                "value": "#E1C16E"
+              },
+              {
+                "key": "Q8JH9DyWFLYCeFSsNxwgcp",
+                "name": {
+                  "ar": "DesertTitanium",
+                  "en": "DesertTitanium"
+                },
+                "value": "#dac4af"
+              },
+              {
+                "key": "oCa95aZC5cPrF9x5dcHq3Z",
+                "name": {
+                  "ar": "دايموندكلو",
+                  "en": "DiamondGlow"
+                },
+                "value": "/f/f/ffe395dc10170cf628809acca8c47a49.jpg"
+              },
+              {
+                "key": "LboMavuSVzPxnpxFA2Ftvr",
+                "name": {
+                  "ar": "DimGray",
+                  "en": "DimGray"
+                },
+                "value": "#696969"
+              },
+              {
+                "key": "GWLRHJUt6y4iqkd8ZhgRcX",
+                "name": {
+                  "ar": "DodgerBlue",
+                  "en": "DodgerBlue"
+                },
+                "value": "#1E90FF"
+              },
+              {
+                "key": "Ut7VVswzThHo4q7qqka7rz",
+                "name": {
+                  "ar": "دوفروايت",
+                  "en": "DoverWhite"
+                },
+                "value": "#ffffff"
+              },
+              {
+                "key": "LEhpznhsXrMRVL6cxShjMN",
+                "name": {
+                  "ar": "ورديبنفسجي",
+                  "en": "Dream"
+                },
+                "value": "#e864e8"
+              },
+              {
+                "key": "aXS6DKybAhq8M39LVbYtbm",
+                "name": {
+                  "ar": "DreamyPurple",
+                  "en": "DreamyPurple"
+                },
+                "value": "#dbb8e0"
+              },
+              {
+                "key": "SBhXLUzuv9RGNYWrbScxgV",
+                "name": {
+                  "ar": "البنفسجيالمترب",
+                  "en": "DustyViolet"
+                },
+                "value": "#ba22ba"
+              },
+              {
+                "key": "buPA3HnEg2Bh5CVGhxxF4n",
+                "name": {
+                  "ar": "كسوف",
+                  "en": "Eclipse"
+                },
+                "value": "/d/2/d2829edd3cf6561c1f394fb3354775e8.jpg"
+              },
+              {
+                "key": "83wT3DsspZYFaFLykcsnvW",
+                "name": {
+                  "ar": "EmeraldGlowGreen",
+                  "en": "EmeraldGlowGreen"
+                },
+                "value": "#abe0eb"
+              },
+              {
+                "key": "dmFiHohAHzgKXjPvkszpgg",
+                "name": {
+                  "ar": "ورديمثير",
+                  "en": "ExcitingPink"
+                },
+                "value": "#e053e0"
+              },
+              {
+                "key": "ebZhgKFYFfzh9Ufb9gpC5f",
+                "name": {
+                  "ar": "اسودكثيف",
+                  "en": "ExtraBlack"
+                },
+                "value": "#000000"
+              },
+              {
+                "key": "TUoKbL8zkV4cYMqes5jumd",
+                "name": {
+                  "ar": "ورديعميق",
+                  "en": "ExtremePink"
+                },
+                "value": "#d457d4"
+              },
+              {
+                "key": "HDHjrnz2H8SAkDrPvjsTfT",
+                "name": {
+                  "ar": "روزفاتح",
+                  "en": "Fair"
+                },
+                "value": "#f0bdf0"
+              },
+              {
+                "key": "USyT2bk2M8yGCDPnfWSGNU",
+                "name": {
+                  "ar": "عاجيمعتدل",
+                  "en": "FairIvory"
+                },
+                "value": "#e3e0ad"
+              },
+              {
+                "key": "6MoxfEy7WWf4zdCtXpctYq",
+                "name": {
+                  "ar": "روزمتوسط",
+                  "en": "FairRose"
+                },
+                "value": "#fcabfc"
+              },
+              {
+                "key": "eqCsfdBbiyF2x6C9EmNnBa",
+                "name": {
+                  "ar": "الأزرقالجبليالباهت",
+                  "en": "FarPeakBlue"
+                },
+                "value": "/7/8/782c0bd0e3b12915d37e98910c597a04.jpg"
+              },
+              {
+                "key": "eq57aFw49BWEhkSmGcyQQi",
+                "name": {
+                  "ar": "أحمرصدئي",
+                  "en": "Ferra"
+                },
+                "value": "#ba4d4d"
+              },
+              {
+                "key": "Te6Uou8Ci5SzWRUpse2RAr",
+                "name": {
+                  "ar": "FireBrick",
+                  "en": "FireBrick"
+                },
+                "value": "#B22222"
+              },
+              {
+                "key": "mbRsQgKPeaab9NnRkNJzJG",
+                "name": {
+                  "ar": "فلامنغو",
+                  "en": "Flamingo"
+                },
+                "value": "/3/c/3c3951cd578a1db56bdf35eb11b64c5c.jpg"
+              },
+              {
+                "key": "RD4y6j8YbJV2dCHesCY5mh",
+                "name": {
+                  "ar": "FloralWhite",
+                  "en": "FloralWhite"
+                },
+                "value": "#FFFAF0"
+              },
+              {
+                "key": "3UmiSjZR2Q64NUS6Rmvjkc",
+                "name": {
+                  "ar": "زهريوردي",
+                  "en": "FlowerPink"
+                },
+                "value": "/4/f/4fd67625-f815-47f1-bc8d-db67d574186a.jpg"
+              },
+              {
+                "key": "aB82ciTzu49ynSL6W4xvWP",
+                "name": {
+                  "ar": "وردينيود",
+                  "en": "Fly"
+                },
+                "value": "#e8bae8"
+              },
+              {
+                "key": "oUQijjjcSPtJ7wjd7wFRgc",
+                "name": {
+                  "ar": "ForestGreen",
+                  "en": "ForestGreen"
+                },
+                "value": "#228B22"
+              },
+              {
+                "key": "3tfPwf3k43dGiSx3WNN5Yo",
+                "name": {
+                  "ar": "اخضر",
+                  "en": "FreshGreen"
+                },
+                "value": "#14cc20"
+              },
+              {
+                "key": "WqbimMcoQ6vEFFvzMgkmxP",
+                "name": {
+                  "ar": "لافندرفاتح",
+                  "en": "FreshLavender"
+                },
+                "value": "/1/2/123456_1.jpg"
+              },
+              {
+                "key": "WZaiSduCQFmPirHQSaHfdS",
+                "name": {
+                  "ar": "فريشروز",
+                  "en": "FreshRose"
+                },
+                "value": "#d19dc6"
+              },
+              {
+                "key": "fXDbmFAVcZFoXfcaU74L4q",
+                "name": {
+                  "ar": "FrostBlue",
+                  "en": "FrostBlue"
+                },
+                "value": "#d4e8ec"
+              },
+              {
+                "key": "AwX5TY7zfAWh2o9aDjsUU8",
+                "name": {
+                  "ar": "Fuchsia",
+                  "en": "Fuchsia"
+                },
+                "value": "#FF00FF"
+              },
+              {
+                "key": "RMUyNHYR58onuQ5ABbH3bL",
+                "name": {
+                  "ar": "Gainsboro",
+                  "en": "Gainsboro"
+                },
+                "value": "#DCDCDC"
+              },
+              {
+                "key": "Zfxz6y3QvTkyUNMgWdSacP",
+                "name": {
+                  "ar": "GalaxyBlack",
+                  "en": "GalaxyBlack"
+                },
+                "value": "#535158"
+              },
+              {
+                "key": "LhsbzBWHthhFWeSECGP2RQ",
+                "name": {
+                  "ar": "الأحمرالطوبي",
+                  "en": "Gentlebrick"
+                },
+                "value": "#cc2f49"
+              },
+              {
+                "key": "X9eBY3WYbfbTuv8QXdwmdJ",
+                "name": {
+                  "ar": "GhostWhite",
+                  "en": "GhostWhite"
+                },
+                "value": "#F8F8FF"
+              },
+              {
+                "key": "WoZCwTGLydQU7eVCVxyK4v",
+                "name": {
+                  "ar": "ازرقرماديغامق",
+                  "en": "GibraltarSea"
+                },
+                "value": "/8/b/8bac5845-6c37-4772-ac3b-a159f6c4135e.jpg"
+              },
+              {
+                "key": "nyTejyVss3u28RvdNwsCxk",
+                "name": {
+                  "ar": "ازرقجليدي",
+                  "en": "GlacierBlue"
+                },
+                "value": "/c/2/c2961779-a700-485a-a406-8ddb0e63e667.jpg"
+              },
+              {
+                "key": "Tt7uL497U4SvbehXxsrB7K",
+                "name": {
+                  "ar": "GlacierWhite",
+                  "en": "GlacierWhite"
+                },
+                "value": "#cbd0e4"
+              },
+              {
+                "key": "EEZ2fZ6aXCootQTpzSkpgZ",
+                "name": {
+                  "ar": "زجاجي",
+                  "en": "Glass"
+                },
+                "value": "#f6feff"
+              },
+              {
+                "key": "36h9SMGosGWJREcDB2dVAp",
+                "name": {
+                  "ar": "مرجانيلامع",
+                  "en": "GlowyCoral"
+                },
+                "value": "#db8adb"
+              },
+              {
+                "key": "NJkYwA9gGbRSzHMKgQ8vjs",
+                "name": {
+                  "ar": "نيودداكن",
+                  "en": "GoNaked"
+                },
+                "value": "#383438"
+              },
+              {
+                "key": "LUzzJJVzCcpaJGSXreK6qw",
+                "name": {
+                  "ar": "Gold",
+                  "en": "Gold"
+                },
+                "value": "#FFD700"
+              },
+              {
+                "key": "C5WnqddTnqbCvPrdExejeQ",
+                "name": {
+                  "ar": "ذهبيزجاجي",
+                  "en": "GoldGlass"
+                },
+                "value": "#d9d94e"
+              },
+              {
+                "key": "dsP9NYizhATijrx7aT7tkY",
+                "name": {
+                  "ar": "ذهبيمعتق",
+                  "en": "GoldTone"
+                },
+                "value": "#d6d465"
+              },
+              {
+                "key": "KaUsXrfCYBEng4xZ6THPKr",
+                "name": {
+                  "ar": "ياقوتيذهبي",
+                  "en": "GoldenRuby"
+                },
+                "value": "#cbde60"
+              },
+              {
+                "key": "bHrfGre9dYBUH53eM7UDiW",
+                "name": {
+                  "ar": "Goldenrod",
+                  "en": "Goldenrod"
+                },
+                "value": "#DAA520"
+              },
+              {
+                "key": "JHtHQv9hyUmS2po5pXL5je",
+                "name": {
+                  "ar": "ازرق",
+                  "en": "GottheBlue"
+                },
+                "value": "#8d8ff0"
+              },
+              {
+                "key": "A6zNMKsRg8NSbrKHUhgEz3",
+                "name": {
+                  "ar": "GraphiteGray",
+                  "en": "GraphiteGray"
+                },
+                "value": "#383838"
+              },
+              {
+                "key": "ivhKoxUGBo4qaSugMrWZ7C",
+                "name": {
+                  "ar": "رماديجرافيت",
+                  "en": "GraphiteGrey"
+                },
+                "value": "/4/7/474a50.jpg"
+              },
+              {
+                "key": "aqbrGPSpmzuN76dnDymVB4",
+                "name": {
+                  "ar": "GravityGrey",
+                  "en": "GravityGrey"
+                },
+                "value": "#3D4040"
+              },
+              {
+                "key": "9pP9a3uKj9mhQbnVArwtEz",
+                "name": {
+                  "ar": "Gray",
+                  "en": "Gray"
+                },
+                "value": "#808080"
+              },
+              {
+                "key": "dgbCZUxgLvaXLUHNgAUSmk",
+                "name": {
+                  "ar": "رماديواسود",
+                  "en": "GrayBlack"
+                },
+                "value": "/3/3/333333_1.jpg"
+              },
+              {
+                "key": "fqdcWVvgrBHY4TV7dT3q6G",
+                "name": {
+                  "ar": "رمادياخضر",
+                  "en": "GrayGreen"
+                },
+                "value": "/9/7/979b5b4a-ff52-4e93-a777-0eeeaaea5bb0.jpg"
+              },
+              {
+                "key": "PTzFzq6iyHn85ygRqddRuw",
+                "name": {
+                  "ar": "GrayMist",
+                  "en": "GrayMist"
+                },
+                "value": "#E6E6E6"
+              },
+              {
+                "key": "LtjfZx3rCMdYUDnkkDaDxX",
+                "name": {
+                  "ar": "Green",
+                  "en": "Green"
+                },
+                "value": "#008000"
+              },
+              {
+                "key": "DLbpeFnRBhWjTizVnNo5pU",
+                "name": {
+                  "ar": "اخضرواسود",
+                  "en": "GreenBlack"
+                },
+                "value": "/0/0/006400.jpg"
+              },
+              {
+                "key": "7VLGeWgzNH5yNrdeQLsTL4",
+                "name": {
+                  "ar": "أخضرلامع",
+                  "en": "GreenLuminous"
+                },
+                "value": "/0/3/03714b0a3308fe9a24eba30d0a7a25cc_1.jpg"
+              },
+              {
+                "key": "gzkCETFRr8NUNKvxqChVsH",
+                "name": {
+                  "ar": "GreenYellow",
+                  "en": "GreenYellow"
+                },
+                "value": "#ADFF2F"
+              },
+              {
+                "key": "VaXd9Tts3bWpPvyFkv5hgq",
+                "name": {
+                  "ar": "رماديمخضر",
+                  "en": "GreenishGray"
+                },
+                "value": "#4d8065"
+              },
+              {
+                "key": "jQDPL8929Ci3BYzT9PDDdo",
+                "name": {
+                  "ar": "رمادي",
+                  "en": "Grey"
+                },
+                "value": "#99988e"
+              },
+              {
+                "key": "fcxLjoP6HZdCvCHMAcEVbN",
+                "name": {
+                  "ar": "بنيرمادي",
+                  "en": "GreyBrown"
+                },
+                "value": "#5e3b0a"
+              },
+              {
+                "key": "bvZTH336j9XhBgYbbeTVtS",
+                "name": {
+                  "ar": "رماديمعدنيداكن",
+                  "en": "Gunmetal"
+                },
+                "value": "#706a70"
+              },
+              {
+                "key": "GWvhsr7c82qLFidXVepRbz",
+                "name": {
+                  "ar": "رماديحجري",
+                  "en": "Hematite"
+                },
+                "value": "#8a827f"
+              },
+              {
+                "key": "cJTnNfwXUeFujFSkYLh3J5",
+                "name": {
+                  "ar": "الخوخيالدافئ",
+                  "en": "HolaPeach"
+                },
+                "value": "#de85de"
+              },
+              {
+                "key": "68ohmTLW6pSZYCHJWp3DmC",
+                "name": {
+                  "ar": "عسلي",
+                  "en": "Honey"
+                },
+                "value": "#b8ba58"
+              },
+              {
+                "key": "YJP4Dt7LWrKCKgCjS6e7ja",
+                "name": {
+                  "ar": "Honeydew",
+                  "en": "Honeydew"
+                },
+                "value": "#F0FFF0"
+              },
+              {
+                "key": "WLed78JPHgmsXWQHgEk8S9",
+                "name": {
+                  "ar": "مرجانيلاذع",
+                  "en": "HotCoral"
+                },
+                "value": "#d658d6"
+              },
+              {
+                "key": "kFDcoMozguvrKJ8N9TRMzr",
+                "name": {
+                  "ar": "نيودوردي",
+                  "en": "HotKiss"
+                },
+                "value": "#e6a6e6"
+              },
+              {
+                "key": "R2DLDzzVcXzoqG8sxTcqdM",
+                "name": {
+                  "ar": "HotPink",
+                  "en": "HotPink"
+                },
+                "value": "#FF69B4"
+              },
+              {
+                "key": "KUxHUPyQHmBnzMuqacfExu",
+                "name": {
+                  "ar": "HyperTitanium",
+                  "en": "HyperTitanium"
+                },
+                "value": "#A09F9A"
+              },
+              {
+                "key": "XvKRLEuALYFVZtrWauDQRs",
+                "name": {
+                  "ar": "فيروزي",
+                  "en": "ISeaYou"
+                },
+                "value": "#cf7acf"
+              },
+              {
+                "key": "74eBrk2xrMjMoBt2rpaKpK",
+                "name": {
+                  "ar": "عاجي",
+                  "en": "IVORY"
+                },
+                "value": "#e3e0ad"
+              },
+              {
+                "key": "FTG2XRGynhs24QEhXGFQ84",
+                "name": {
+                  "ar": "IceBlue",
+                  "en": "IceBlue"
+                },
+                "value": "#D6E5F3"
+              },
+              {
+                "key": "NoiCUAfcf2cXHLkcycubaL",
+                "name": {
+                  "ar": "أزرقمثلج",
+                  "en": "IcyBlue"
+                },
+                "value": "/d/5/d5ebee.png"
+              },
+              {
+                "key": "duedBY93rFs44euq4MHMT9",
+                "name": {
+                  "ar": "IguanaGreen",
+                  "en": "IguanaGreen"
+                },
+                "value": "9CB071"
+              },
+              {
+                "key": "K3frnuVo62Q3JGhSHt6biW",
+                "name": {
+                  "ar": "كهرماني",
+                  "en": "Imber"
+                },
+                "value": "/b/d/bd3ae8ecbbc4e96dae77f3553d2ec3f9.jpg"
+              },
+              {
+                "key": "Sxas5eMDQ8NvffuHgLzBqg",
+                "name": {
+                  "ar": "احمرملكي",
+                  "en": "ImperialRed"
+                },
+                "value": "#fa2a2a"
+              },
+              {
+                "key": "KjknExWecG6wauhgFQASUf",
+                "name": {
+                  "ar": "IndianRed",
+                  "en": "IndianRed"
+                },
+                "value": "#CD5C5C"
+              },
+              {
+                "key": "UkTGHiVmvGrVNVJaXP8eWn",
+                "name": {
+                  "ar": "Indigo",
+                  "en": "Indigo"
+                },
+                "value": "#4B0082"
+              },
+              {
+                "key": "cjm9RfhHj6DL3cpTu9zriD",
+                "name": {
+                  "ar": "ايونكس",
+                  "en": "Inox"
+                },
+                "value": "#6d705c"
+              },
+              {
+                "key": "mj8ZHRYTcQVNW4rGmVKiqD",
+                "name": {
+                  "ar": "ورديكثيف",
+                  "en": "IntenceRose"
+                },
+                "value": "#f28af2"
+              },
+              {
+                "key": "DRYtovczQHeLCpHy2nb5ZV",
+                "name": {
+                  "ar": "أسودمكثف",
+                  "en": "IntenseBlack"
+                },
+                "value": "#0f030f"
+              },
+              {
+                "key": "KQWyy4VoAoZnjdt7H2f5k7",
+                "name": {
+                  "ar": "خوخيمكثف",
+                  "en": "IntensePeach"
+                },
+                "value": "#ad39bf"
+              },
+              {
+                "key": "f79MdSCeqkq5E7Awwo2ZKP",
+                "name": {
+                  "ar": "IrisBlue",
+                  "en": "IrisBlue"
+                },
+                "value": "#a6b3e8"
+              },
+              {
+                "key": "iaMydax9x2jfdYxEVU6oeS",
+                "name": {
+                  "ar": "معدني",
+                  "en": "Iron"
+                },
+                "value": "#a19e94"
+              },
+              {
+                "key": "AiotpBJvGRbWoVpSEoXAXN",
+                "name": {
+                  "ar": "عاجيمتوهج",
+                  "en": "IvoryGlow"
+                },
+                "value": "#e3e0ad"
+              },
+              {
+                "key": "bDoKUWpyB8pst49gEtkq2A",
+                "name": {
+                  "ar": "IvoryWhite",
+                  "en": "IvoryWhite"
+                },
+                "value": "#FFFFF0"
+              },
+              {
+                "key": "jb2AX8apTE633RCoPLsvPq",
+                "name": {
+                  "ar": "IvyGreen",
+                  "en": "IvyGreen"
+                },
+                "value": "#dfecda"
+              },
+              {
+                "key": "nSNksAm7uhGXHTStxTwvbi",
+                "name": {
+                  "ar": "JadeGreen",
+                  "en": "JadeGreen"
+                },
+                "value": "#cee5c8"
+              },
+              {
+                "key": "UaF6TKB2DvjavjybQBCaAK",
+                "name": {
+                  "ar": "الرماديالصياد",
+                  "en": "JaegerGray"
+                },
+                "value": "#7a7763"
+              },
+              {
+                "key": "3HNpE3xeUtCP3Jpdgh99RB",
+                "name": {
+                  "ar": "JaipurPink",
+                  "en": "JaipurPink"
+                },
+                "value": "#d7b3e7"
+              },
+              {
+                "key": "UpufkHTzHKNi5Lc9wfZ6mv",
+                "name": {
+                  "ar": "JetBlack",
+                  "en": "JetBlack"
+                },
+                "value": "#343434"
+              },
+              {
+                "key": "7SaGL6gEzeUkf8DyLUhLvA",
+                "name": {
+                  "ar": "اخضر",
+                  "en": "JungleBreath"
+                },
+                "value": "/u/n/untitled345.jpg"
+              },
+              {
+                "key": "BmETxCaDcLmas9tdUDVgus",
+                "name": {
+                  "ar": "Khaki",
+                  "en": "Khaki"
+                },
+                "value": "#F0E68C"
+              },
+              {
+                "key": "URHnMcQ4tCUHYtKyzz4GQm",
+                "name": {
+                  "ar": "LakeGreen",
+                  "en": "LakeGreen"
+                },
+                "value": "#4C9A2A"
+              },
+              {
+                "key": "bqLeDpeYh38oJpqJfzJHqx",
+                "name": {
+                  "ar": "لافندر",
+                  "en": "Lavendar"
+                },
+                "value": "/2/7/275fb6ee821fc420c662f5b05d143905.jpg"
+              },
+              {
+                "key": "FfhmaRWqdAk2MUvdy8iCSE",
+                "name": {
+                  "ar": "Lavender",
+                  "en": "Lavender"
+                },
+                "value": "#E6E6FA"
+              },
+              {
+                "key": "6Yk7U8yzcgp5qSEZTVQEAy",
+                "name": {
+                  "ar": "LavenderBlush",
+                  "en": "LavenderBlush"
+                },
+                "value": "#FFF0F5"
+              },
+              {
+                "key": "4xkp3rojTxX6tiqRj9DN54",
+                "name": {
+                  "ar": "LavenderPurple",
+                  "en": "LavenderPurple"
+                },
+                "value": "#eadaf4"
+              },
+              {
+                "key": "m5eSezdC7vBkgWqumvahSM",
+                "name": {
+                  "ar": "LeatherBlue",
+                  "en": "LeatherBlue"
+                },
+                "value": "#384c65"
+              },
+              {
+                "key": "L9XmUtRdYrQZnobbg74L94",
+                "name": {
+                  "ar": "LemonChiffon",
+                  "en": "LemonChiffon"
+                },
+                "value": "#FFFACD"
+              },
+              {
+                "key": "BawPmCBxmihG5rXs4NLwwP",
+                "name": {
+                  "ar": "فاتح",
+                  "en": "Light"
+                },
+                "value": "#e8e5e8"
+              },
+              {
+                "key": "DQaKgMVShXAA6FnWe2AAhG",
+                "name": {
+                  "ar": "بيجفاتح",
+                  "en": "LightBeige"
+                },
+                "value": "#dde39d"
+              },
+              {
+                "key": "kEVHoZ4T9DJx8wU4qaVGBn",
+                "name": {
+                  "ar": "LightBlue",
+                  "en": "LightBlue"
+                },
+                "value": "#ADD8E6"
+              },
+              {
+                "key": "QJwJWpQumxrQyw7VQKPah7",
+                "name": {
+                  "ar": "بنيفاتح",
+                  "en": "LightBrown"
+                },
+                "value": "#737346"
+              },
+              {
+                "key": "MMqh95yaP4hUXXiD39wqHp",
+                "name": {
+                  "ar": "LightCoral",
+                  "en": "LightCoral"
+                },
+                "value": "#F08080"
+              },
+              {
+                "key": "PDMtwxYh3bqZ6zrSdU8RQj",
+                "name": {
+                  "ar": "LightCyan",
+                  "en": "LightCyan"
+                },
+                "value": "#E0FFFF"
+              },
+              {
+                "key": "Wa2LmS2ESbvPgJ36pJLyZE",
+                "name": {
+                  "ar": "LightGold",
+                  "en": "LightGold"
+                },
+                "value": "#FFECB3"
+              },
+              {
+                "key": "4JagY5bq9EnXeFeizoRL7R",
+                "name": {
+                  "ar": "LightGoldenrodYellow",
+                  "en": "LightGoldenrodYellow"
+                },
+                "value": "#FAFAD2"
+              },
+              {
+                "key": "jUqvYoQAdw9MsAaCFd2SuS",
+                "name": {
+                  "ar": "رماديفاتح",
+                  "en": "LightGray"
+                },
+                "value": "/3/a/3aa109898f72d552b312d85a7e57f3ec.jpg"
+              },
+              {
+                "key": "GvkVio2XH9VbsbvWqYju55",
+                "name": {
+                  "ar": "LightGreen",
+                  "en": "LightGreen"
+                },
+                "value": "#90EE90"
+              },
+              {
+                "key": "RnbYfmLkFg8sfrMftSvkJr",
+                "name": {
+                  "ar": "LightGrey",
+                  "en": "LightGrey"
+                },
+                "value": "#D3D3D3"
+              },
+              {
+                "key": "E2pqHJRQTBUsRpVQySoy7X",
+                "name": {
+                  "ar": "فاتحمتوسط",
+                  "en": "LightMedium"
+                },
+                "value": "#f2f2f2"
+              },
+              {
+                "key": "ZiPqCGuVvFPZg3xf2cv7gs",
+                "name": {
+                  "ar": "نيودفاتح",
+                  "en": "LightNude"
+                },
+                "value": "#ededed"
+              },
+              {
+                "key": "QwR5ZGjGVAGgSu5jU2nhRZ",
+                "name": {
+                  "ar": "برتقاليفاتح",
+                  "en": "LightOrange"
+                }
+              },
+              {
+                "key": "mXbhNsrJwJqCkNYFafTSGT",
+                "name": {
+                  "ar": "LightPink",
+                  "en": "LightPink"
+                },
+                "value": "#FFB6C1"
+              },
+              {
+                "key": "YbjnD6EQjNrRFSfChsR6Gi",
+                "name": {
+                  "ar": "روزفاتح",
+                  "en": "LightRose"
+                },
+                "value": "/l/i/light_rose_2.png"
+              },
+              {
+                "key": "huygTi5HRvvpq7NxsZZeWe",
+                "name": {
+                  "ar": "LightSalmon",
+                  "en": "LightSalmon"
+                },
+                "value": "#FFA07A"
+              },
+              {
+                "key": "BLtCTDkSbhAUXajjWdKTAc",
+                "name": {
+                  "ar": "LightSalmon2",
+                  "en": "LightSalmon2"
+                },
+                "value": "#FFA07B"
+              },
+              {
+                "key": "3i6ZZX4oGTida7fgXLzhMb",
+                "name": {
+                  "ar": "LightSeaGreen",
+                  "en": "LightSeaGreen"
+                },
+                "value": "#20B2AA"
+              },
+              {
+                "key": "iBMVERncBjTNWYKTfGBDaY",
+                "name": {
+                  "ar": "البشرةالفاتحة",
+                  "en": "LightSkin"
+                },
+                "value": "#e6e3e6"
+              },
+              {
+                "key": "9GPLEy7TMCwQDvG7bNrPfo",
+                "name": {
+                  "ar": "LightSkyBlue",
+                  "en": "LightSkyBlue"
+                },
+                "value": "#87CEFA"
+              },
+              {
+                "key": "iTNbeLyGNePRW3aWcHUeF7",
+                "name": {
+                  "ar": "LightSlateGray",
+                  "en": "LightSlateGray"
+                },
+                "value": "#778899"
+              },
+              {
+                "key": "UoEuWYpgeZqKRUaAncZrSN",
+                "name": {
+                  "ar": "LightSteelBlue",
+                  "en": "LightSteelBlue"
+                },
+                "value": "#B0C4DE"
+              },
+              {
+                "key": "Za3xnUNwZ5DhzPcJsDRvuE",
+                "name": {
+                  "ar": "LightViolet",
+                  "en": "LightViolet"
+                },
+                "value": "#D8BFD8"
+              },
+              {
+                "key": "QEd8Kwu6GyAa9JQ5pxGaxf",
+                "name": {
+                  "ar": "دافئمضيء",
+                  "en": "LightWarm"
+                },
+                "value": "#ededed"
+              },
+              {
+                "key": "bat6P9hpZY5gCQYcPYKNEH",
+                "name": {
+                  "ar": "LightYellow",
+                  "en": "LightYellow"
+                },
+                "value": "#FFFFE0"
+              },
+              {
+                "key": "hboZugMpJQmuXnV2gzpHj8",
+                "name": {
+                  "ar": "ارجواني",
+                  "en": "Lilac"
+                },
+                "value": "#c23cc2"
+              },
+              {
+                "key": "do4UCvpm954mAeXYhcSwai",
+                "name": {
+                  "ar": "Lime",
+                  "en": "Lime"
+                },
+                "value": "#00FF00"
+              },
+              {
+                "key": "k8HZEP3cWs6S8TzQojPQDf",
+                "name": {
+                  "ar": "LimeGreen",
+                  "en": "LimeGreen"
+                },
+                "value": "#32CD32"
+              },
+              {
+                "key": "6pNxNFC6Vd3tRjtcTcKAJe",
+                "name": {
+                  "ar": "Linen",
+                  "en": "Linen"
+                },
+                "value": "#FAF0E6"
+              },
+              {
+                "key": "JD5eGEhPKgLfibtPzrsYzZ",
+                "name": {
+                  "ar": "بيجمضيء",
+                  "en": "LuminousBeige"
+                },
+                "value": "#ebebaa"
+              },
+              {
+                "key": "LaREyC7U5Sb8Jd5p6zyibj",
+                "name": {
+                  "ar": "ازرقمضيء",
+                  "en": "LuminousBlue"
+                },
+                "value": "/7/e/7e9bda1c-b584-4d65-9718-4a9d1ddfedd2.jpg"
+              },
+              {
+                "key": "eY9SiqNdXMVYpkvUd5nirE",
+                "name": {
+                  "ar": "LuminousGreen",
+                  "en": "LuminousGreen"
+                },
+                "value": "#00B612"
+              },
+              {
+                "key": "g5e4D54tC4Qk7e3rwNCRwk",
+                "name": {
+                  "ar": "عاجيمضيء",
+                  "en": "LuminousIvory"
+                },
+                "value": "#e3e0ad"
+              },
+              {
+                "key": "kvqXjKJomoxVRSBwTAxCkc",
+                "name": {
+                  "ar": "رماديناعم",
+                  "en": "LunaGrey"
+                },
+                "value": "/b/8/b8740e4a83777355cf3ff326a55bc210.jpg"
+              },
+              {
+                "key": "moiwpsMGrFpiJeGewQUzDL",
+                "name": {
+                  "ar": "Lunargray",
+                  "en": "Lunargray"
+                },
+                "value": "#8A8D91"
+              },
+              {
+                "key": "UJyWoAodCQz63XHRyHMXMv",
+                "name": {
+                  "ar": "Magenta",
+                  "en": "Magenta"
+                },
+                "value": "#7567ed"
+              },
+              {
+                "key": "b8H8LnjoSVHRQsh4TojzWv",
+                "name": {
+                  "ar": "MagicSilver",
+                  "en": "MagicSilver"
+                },
+                "value": "#f3f2f7"
+              },
+              {
+                "key": "o4iyH8tYwWNMsr96Uhjt6S",
+                "name": {
+                  "ar": "خشبي",
+                  "en": "Mahogany"
+                },
+                "value": "#b58753"
+              },
+              {
+                "key": "nyGvHsSm3xsf8rzbUf5euz",
+                "name": {
+                  "ar": "MarbleBlack",
+                  "en": "MarbleBlack"
+                },
+                "value": "#1c1c1c"
+              },
+              {
+                "key": "i2CQczp4aqN67cR6QGmqXi",
+                "name": {
+                  "ar": "ازرقبحري",
+                  "en": "MarineBlue"
+                },
+                "value": "/1/d/1d4e89_solid_color_background_icolorpalette.jpg"
+              },
+              {
+                "key": "6tf7RfU3XkwjqHvLwDJPhz",
+                "name": {
+                  "ar": "Maroon",
+                  "en": "Maroon"
+                },
+                "value": "#800000"
+              },
+              {
+                "key": "Gg3AAKwVHiGf4KLNWYkogV",
+                "name": {
+                  "ar": "MarrsGreen",
+                  "en": "MarrsGreen"
+                },
+                "value": "#9fe9e4"
+              },
+              {
+                "key": "XGeHFBNk4f5RhvLemb4v3M",
+                "name": {
+                  "ar": "اسودمطفي",
+                  "en": "MattBlack"
+                },
+                "value": "#080708"
+              },
+              {
+                "key": "H3U8h3HD3fFzKRyBWpz7kv",
+                "name": {
+                  "ar": "بنيغيرلامع",
+                  "en": "MatteBrown"
+                },
+                "value": "#8a7433"
+              },
+              {
+                "key": "RNJaLWdNJb4Xn3Dxu9UqE2",
+                "name": {
+                  "ar": "خاكيغيرلامع",
+                  "en": "MatteKhaki"
+                },
+                "value": "#c25179"
+              },
+              {
+                "key": "EkQVAydsxNA9SyBmBB6EZa",
+                "name": {
+                  "ar": "ورديغيرلامع",
+                  "en": "MattePink"
+                },
+                "value": "#e6b8e6"
+              },
+              {
+                "key": "gsXo88oEw2p8bV7cpv3pEy",
+                "name": {
+                  "ar": "برقوقغيرلامع",
+                  "en": "MattePlum"
+                },
+                "value": "#c4abc4"
+              },
+              {
+                "key": "SX8WK8okamMxemScygGW4Q",
+                "name": {
+                  "ar": "MeadowGreen",
+                  "en": "MeadowGreen"
+                },
+                "value": "#8cec75"
+              },
+              {
+                "key": "8CXWZVo8T4esZ3JiJqHoLB",
+                "name": {
+                  "ar": "MechaSilver",
+                  "en": "MechaSilver"
+                },
+                "value": "#A5A5A5"
+              },
+              {
+                "key": "LGAHQt6Ju6f4NPho4pHL6F",
+                "name": {
+                  "ar": "متوسط",
+                  "en": "Medium"
+                },
+                "value": "#d6c3d6"
+              },
+              {
+                "key": "Nkk3WJsvpL7xfELPDWguLZ",
+                "name": {
+                  "ar": "MediumAquamarine",
+                  "en": "MediumAquamarine"
+                },
+                "value": "#66CDAA"
+              },
+              {
+                "key": "kTdi7DZ5f4icGLNLqYeb3B",
+                "name": {
+                  "ar": "بيجمتوسط",
+                  "en": "MediumBeige"
+                },
+                "value": "#a3a867"
+              },
+              {
+                "key": "Px3aTLe5MWszyn7eFKqESk",
+                "name": {
+                  "ar": "MediumBlue",
+                  "en": "MediumBlue"
+                },
+                "value": "#0000CD"
+              },
+              {
+                "key": "E3J6szavSL7ZRXFWXzPhCq",
+                "name": {
+                  "ar": "بنيمتوسط",
+                  "en": "MediumBrown"
+                },
+                "value": "#874f2c"
+              },
+              {
+                "key": "bMMasnVd9snYwoZeMDD3U3",
+                "name": {
+                  "ar": "MediumOrchid",
+                  "en": "MediumOrchid"
+                },
+                "value": "#BA55D3"
+              },
+              {
+                "key": "QRabuMsgcUecZmve2gSiDN",
+                "name": {
+                  "ar": "MediumPurple",
+                  "en": "MediumPurple"
+                },
+                "value": "#9370DB"
+              },
+              {
+                "key": "Hn9bPicyWE8SBn2Rccxsfu",
+                "name": {
+                  "ar": "MediumSeaGreen",
+                  "en": "MediumSeaGreen"
+                },
+                "value": "#3CB371"
+              },
+              {
+                "key": "esYtF5BuVagdvav3cP4PeU",
+                "name": {
+                  "ar": "بشرةمتوسطة",
+                  "en": "MediumSkin"
+                },
+                "value": "#70cc68"
+              },
+              {
+                "key": "WWv8u2aVBpGAwjyLRzarLP",
+                "name": {
+                  "ar": "MediumSlateBlue",
+                  "en": "MediumSlateBlue"
+                },
+                "value": "#7B68EE"
+              },
+              {
+                "key": "ACvyZBfpVLE9J2EfUyzDfg",
+                "name": {
+                  "ar": "MediumSlateBlue2",
+                  "en": "MediumSlateBlue2"
+                },
+                "value": "#7B68ED"
+              },
+              {
+                "key": "X5zMHrNJXEWPmZkFkxSXxX",
+                "name": {
+                  "ar": "MediumSpringGreen",
+                  "en": "MediumSpringGreen"
+                },
+                "value": "#00FA9A"
+              },
+              {
+                "key": "ezDMqid4EYdvXfnfhLzjff",
+                "name": {
+                  "ar": "MediumTurquoise",
+                  "en": "MediumTurquoise"
+                },
+                "value": "#48D1CC"
+              },
+              {
+                "key": "3A75B2THZf268cdVKirwfT",
+                "name": {
+                  "ar": "MediumVioletRed",
+                  "en": "MediumVioletRed"
+                },
+                "value": "#C71585"
+              },
+              {
+                "key": "2ALwSwv9NqExTmd4cy7t7t",
+                "name": {
+                  "ar": "فضيزئبقي",
+                  "en": "MercurySilver"
+                },
+                "value": "/f/4/f46f52ac2ce7a3a15daafc994cb4d373.jpg"
+              },
+              {
+                "key": "UDAW8AsiwZecworQFMsFjn",
+                "name": {
+                  "ar": "رماديمعدني",
+                  "en": "MetalicGray"
+                },
+                "value": "#a4a8a8"
+              },
+              {
+                "key": "HCLMRy9VQF2RWT6L7YPD9q",
+                "name": {
+                  "ar": "MetallicBlack",
+                  "en": "MetallicBlack"
+                },
+                "value": "#2F2F2F"
+              },
+              {
+                "key": "fGzM4H8o9XLXrR9JZTh2d5",
+                "name": {
+                  "ar": "MeteorSilver",
+                  "en": "MeteorSilver"
+                },
+                "value": "#CED2D2"
+              },
+              {
+                "key": "4cJMkp7kPAdSn5dp9vVm3H",
+                "name": {
+                  "ar": "Midnight",
+                  "en": "Midnight"
+                },
+                "value": "#1c232d"
+              },
+              {
+                "key": "ahx9TqKTh2E6kDKtJ87kG8",
+                "name": {
+                  "ar": "MidnightBlack",
+                  "en": "MidnightBlack"
+                },
+                "value": "#1c1a1d"
+              },
+              {
+                "key": "eYLou4nydZUHbHZ7Hn4zow",
+                "name": {
+                  "ar": "MidnightBlue",
+                  "en": "MidnightBlue"
+                },
+                "value": "#191970"
+              },
+              {
+                "key": "CdeXMvZ52xshoHL92C2Ucd",
+                "name": {
+                  "ar": "MidnightGray",
+                  "en": "MidnightGray"
+                },
+                "value": "#2C2C2C"
+              },
+              {
+                "key": "4kp8rg38abAQJdeGczT9DA",
+                "name": {
+                  "ar": "عسكري",
+                  "en": "Military"
+                },
+                "value": "/1/9/19633.png"
+              },
+              {
+                "key": "9aDiTzVicuHEus5qpw66vx",
+                "name": {
+                  "ar": "كريمةالحليب",
+                  "en": "MilkyCream"
+                },
+                "value": "#f7fffd"
+              },
+              {
+                "key": "VRFzyKsM8tL5TgbbPyCZGV",
+                "name": {
+                  "ar": "ورديليلكي",
+                  "en": "MilkyLilacPink"
+                },
+                "value": "#de3375"
+              },
+              {
+                "key": "UxfriwwBgcTKGZz5KHp3fh",
+                "name": {
+                  "ar": "حليبينيود",
+                  "en": "MilkyNude"
+                },
+                "value": "#f5ebf5"
+              },
+              {
+                "key": "QLFehSHwcDD7iJUaqWmvCa",
+                "name": {
+                  "ar": "وردي",
+                  "en": "MilkyPink"
+                },
+                "value": "#e061e0"
+              },
+              {
+                "key": "EWX4xk4KDdp5tPxmCBPKAL",
+                "name": {
+                  "ar": "ابيضحليبي",
+                  "en": "MilkyWhite"
+                },
+                "value": "/2/b/2bfa848af2caf74a15df51fdbdf6184d.jpg"
+              },
+              {
+                "key": "SjtQkdTgYcxXGYLQEuxfSN",
+                "name": {
+                  "ar": "ازرقعسكري",
+                  "en": "MineralCamo"
+                },
+                "value": "/m/i/mineral_camo1111.jpg"
+              },
+              {
+                "key": "EZsmmfKxNKirumn2kwYbtB",
+                "name": {
+                  "ar": "رماديمعدني",
+                  "en": "MineralGray"
+                },
+                "value": "/c/a/ca4b74f2f6b7c5b72985b8f4ad96c738.jpg"
+              },
+              {
+                "key": "M9dSM84Dn5hdcjmrv2byib",
+                "name": {
+                  "ar": "بنيرمادي",
+                  "en": "Mink"
+                },
+                "value": "/1/8/18a8ccbc3554f261ddd3a40681290257.jpg"
+              },
+              {
+                "key": "Bs3W2E5Hi2LX33iJWgLCdo",
+                "name": {
+                  "ar": "Mint",
+                  "en": "Mint"
+                },
+                "value": "#bdf0e1"
+              },
+              {
+                "key": "MncsrAC7Gj3LHopMzcs27u",
+                "name": {
+                  "ar": "MintCream",
+                  "en": "MintCream"
+                },
+                "value": "#F5FFFA"
+              },
+              {
+                "key": "fWVifrFAG3rkTcMthMB4Pd",
+                "name": {
+                  "ar": "MintGreen",
+                  "en": "MintGreen"
+                },
+                "value": "#b6dfe3"
+              },
+              {
+                "key": "MFc837jL9xkrpooZgnNk5f",
+                "name": {
+                  "ar": "مرآة",
+                  "en": "Mirror"
+                },
+                "value": "#d4e1ec"
+              },
+              {
+                "key": "MZpjV3z2AoGtNdnkfV45yU",
+                "name": {
+                  "ar": "MistBlue",
+                  "en": "MistBlue"
+                },
+                "value": "#B4CDED"
+              },
+              {
+                "key": "QvTEcHpn3RW5LsCKScneVo",
+                "name": {
+                  "ar": "MistyBlue",
+                  "en": "MistyBlue"
+                },
+                "value": "#28214b"
+              },
+              {
+                "key": "h6CZXTTVVNBubaLAyykJYx",
+                "name": {
+                  "ar": "MistyRose",
+                  "en": "MistyRose"
+                },
+                "value": "#FFE4E1"
+              },
+              {
+                "key": "XyjeWxsuUSEV7d3VnswGai",
+                "name": {
+                  "ar": "MistyViolet",
+                  "en": "MistyViolet"
+                },
+                "value": "#C4A3D1"
+              },
+              {
+                "key": "FmyvrMSXXuho8y3t6czedu",
+                "name": {
+                  "ar": "Moccasin",
+                  "en": "Moccasin"
+                },
+                "value": "#FFE4B5"
+              },
+              {
+                "key": "D43onEPyne5nqt5EPKAoM5",
+                "name": {
+                  "ar": "موكا",
+                  "en": "Mocha"
+                },
+                "value": "#8c7869"
+              },
+              {
+                "key": "7EhkhSVk8UehBF7UncXxkv",
+                "name": {
+                  "ar": "بنيموكا",
+                  "en": "MochaBrown"
+                },
+                "value": "/8/3/837060.jpg"
+              },
+              {
+                "key": "4cSPRhbD2y8nKsNZUQ6NWu",
+                "name": {
+                  "ar": "MochaGold",
+                  "en": "MochaGold"
+                },
+                "value": "#BFA06A"
+              },
+              {
+                "key": "NinxoX2hmyKNjFRBR9JoSA",
+                "name": {
+                  "ar": "MocoCyberGreen",
+                  "en": "MocoCyberGreen"
+                },
+                "value": "#4e7851"
+              },
+              {
+                "key": "CVyLNRBv598wFkcJXNE4jX",
+                "name": {
+                  "ar": "مولي",
+                  "en": "Mole"
+                },
+                "value": "#57511c"
+              },
+              {
+                "key": "2CiNvb2BSwJ4YtrQED6YqM",
+                "name": {
+                  "ar": "MoonGrey",
+                  "en": "MoonGrey"
+                },
+                "value": "#4B4B4D"
+              },
+              {
+                "key": "H956T8ma5j6xvQSACdqvA9",
+                "name": {
+                  "ar": "MoonTitanium",
+                  "en": "MoonTitanium"
+                },
+                "value": "#d8d9da"
+              },
+              {
+                "key": "aidVw5YwCkKT3s9Gyso3Uz",
+                "name": {
+                  "ar": "MoonlightBlue",
+                  "en": "MoonlightBlue"
+                },
+                "value": "#1a2f4f"
+              },
+              {
+                "key": "9GCkVXd5aUpHCrFZ3PKqkk",
+                "name": {
+                  "ar": "MoonlightWhite",
+                  "en": "MoonlightWhite"
+                },
+                "value": "#fdfdfd"
+              },
+              {
+                "key": "d245MFwcaWofsLAUJGGQJe",
+                "name": {
+                  "ar": "برونزي",
+                  "en": "Moonstone"
+                },
+                "value": "#c7b94c"
+              },
+              {
+                "key": "6ZBLmoTWHMvRmgTLhoKUkF",
+                "name": {
+                  "ar": "MovingTitanium",
+                  "en": "MovingTitanium"
+                },
+                "value": "#dee0d6"
+              },
+              {
+                "key": "NWgjBN2uaHGJbyLvxnGFqY",
+                "name": {
+                  "ar": "متعددالألوان",
+                  "en": "MultiColor"
+                },
+                "value": "/0/2/02850af933028633146c457a0d0d1a1a.jpg"
+              },
+              {
+                "key": "m6HyQMCiuCcMB5vVAVwCMc",
+                "name": {
+                  "ar": "خردل",
+                  "en": "Mustard"
+                },
+                "value": "#cd7b00"
+              },
+              {
+                "key": "T8X4kqiJMZzvm6fCBx8cFi",
+                "name": {
+                  "ar": "MykonosBlue",
+                  "en": "MykonosBlue"
+                },
+                "value": "#007bbb"
+              },
+              {
+                "key": "8eGioGiyhBXo9UQcR57vYR",
+                "name": {
+                  "ar": "برقوق",
+                  "en": "NakedKiss"
+                },
+                "value": "#e83c50"
+              },
+              {
+                "key": "fmsdvCG4rXCaiXMWxceYiB",
+                "name": {
+                  "ar": "نيكيدنيود",
+                  "en": "NakedNude"
+                },
+                "value": "#c9c9c9"
+              },
+              {
+                "key": "7W2jS7sdGCD8exLKCyiX47",
+                "name": {
+                  "ar": "طبيعي",
+                  "en": "Natural"
+                },
+                "value": "#ffffff"
+              },
+              {
+                "key": "QXVmUesn8zTAC3Xw8296Cz",
+                "name": {
+                  "ar": "بيجطبيعي",
+                  "en": "NaturalBeige"
+                },
+                "value": "#b5b069"
+              },
+              {
+                "key": "ThAuy49cKcD5xTPhhP22EQ",
+                "name": {
+                  "ar": "بنيطبيعي",
+                  "en": "NaturalBrown"
+                },
+                "value": "#574a20"
+              },
+              {
+                "key": "Xz7Qtzfr8StQSBfZpYT6DB",
+                "name": {
+                  "ar": "نيود",
+                  "en": "NaturalKiss"
+                },
+                "value": "#67c26b"
+              },
+              {
+                "key": "8YCGptqQxyvNrCvYtLZwMD",
+                "name": {
+                  "ar": "نيودطبيعي",
+                  "en": "NaturalNude"
+                },
+                "value": "#f5d5f5"
+              },
+              {
+                "key": "k5wxFqqVu5bJSzktmGGbke",
+                "name": {
+                  "ar": "NaturalTitanium",
+                  "en": "NaturalTitanium"
+                },
+                "value": "#c5c0ba"
+              },
+              {
+                "key": "EHwRP9iMKEccKkR5T5WQvs",
+                "name": {
+                  "ar": "بورسلينطبيعي",
+                  "en": "Naturalporcelain"
+                },
+                "value": "/p/o/porcelaine_3.png"
+              },
+              {
+                "key": "7xxYC3Xa7V5AYSFU3yoH9c",
+                "name": {
+                  "ar": "اشقرطبيعي",
+                  "en": "NaturelBlondes"
+                },
+                "value": "#f5f5a9"
+              },
+              {
+                "key": "NEEgMYr7N4xo8xrDYFrGnr",
+                "name": {
+                  "ar": "NavajoWhite",
+                  "en": "NavajoWhite"
+                },
+                "value": "#FFDEAD"
+              },
+              {
+                "key": "NrigerH9iSYVBAACzTWP7m",
+                "name": {
+                  "ar": "Navy",
+                  "en": "Navy"
+                },
+                "value": "#000080"
+              },
+              {
+                "key": "Hfbr4BRr6xpnnALLkWoxHz",
+                "name": {
+                  "ar": "NeoTitanium",
+                  "en": "NeoTitanium"
+                },
+                "value": "#cdbfb6"
+              },
+              {
+                "key": "hbxZbSVMAQe5Ntupsmba4R",
+                "name": {
+                  "ar": "NeonRed",
+                  "en": "NeonRed"
+                },
+                "value": "#eba3b8"
+              },
+              {
+                "key": "c2ya3J6kXJ2VcNDNgjbpjY",
+                "name": {
+                  "ar": "اشقرمحايد",
+                  "en": "NeutralBlonde"
+                },
+                "value": "#d3db9b"
+              },
+              {
+                "key": "BBJMaWSYtHEJGEynXPbYb6",
+                "name": {
+                  "ar": "نيكل",
+                  "en": "Nickel"
+                },
+                "value": "/7/2/727473.jpg"
+              },
+              {
+                "key": "ENe3XikWqF4zM2GGaecAQZ",
+                "name": {
+                  "ar": "فضيمعدني",
+                  "en": "NickelCopper"
+                },
+                "value": "#b5a7b5"
+              },
+              {
+                "key": "L2pbu7AfaAjDmWHFS5DxpW",
+                "name": {
+                  "ar": "الليل",
+                  "en": "Night"
+                },
+                "value": "#000000"
+              },
+              {
+                "key": "D9cWJCReo6Tzzeh3iSDbEM",
+                "name": {
+                  "ar": "أسودكثيف",
+                  "en": "NoirIntense"
+                },
+                "value": "#030003"
+              },
+              {
+                "key": "m9JtwiPdhitntRX4xtVCiL",
+                "name": {
+                  "ar": "اسود",
+                  "en": "NoirMirifique"
+                },
+                "value": "#000000"
+              },
+              {
+                "key": "hs7yGTPzkA3nC6XWeQSkcc",
+                "name": {
+                  "ar": "نوجا",
+                  "en": "Nougat"
+                },
+                "value": "#edf7ee"
+              },
+              {
+                "key": "ihLSofMt8NRxjSNemchXyX",
+                "name": {
+                  "ar": "قرنفلي",
+                  "en": "NougatCrisp"
+                },
+                "value": "#544718"
+              },
+              {
+                "key": "KvHK5DfbAKLNGUxhupMfoz",
+                "name": {
+                  "ar": "ارجوانيمتوسط",
+                  "en": "NougatFudge"
+                },
+                "value": "#db9bdb"
+              },
+              {
+                "key": "cjM8y2cLj4XQDPpFMzsYUU",
+                "name": {
+                  "ar": "نيود",
+                  "en": "Nude"
+                },
+                "value": "#f5edf5"
+              },
+              {
+                "key": "KgNrTfhbc97JyMaCtBYGAR",
+                "name": {
+                  "ar": "بيجنيود",
+                  "en": "NudeBeige"
+                },
+                "value": "#a2ab54"
+              },
+              {
+                "key": "KusoaMFywr4Sgj97swHrZ6",
+                "name": {
+                  "ar": "عاجينيود",
+                  "en": "NudeIvory"
+                },
+                "value": "#e3e0ad"
+              },
+              {
+                "key": "gtpssbuu2adVwPVXTsnQPS",
+                "name": {
+                  "ar": "عنابي",
+                  "en": "NudeKiss"
+                },
+                "value": "#b576b5"
+              },
+              {
+                "key": "mXkycLj2fVrjeZf7nHJToc",
+                "name": {
+                  "ar": "جوزةالطيب",
+                  "en": "Nutmeg"
+                },
+                "value": "#c2b848"
+              },
+              {
+                "key": "ga6SK5WMZDLvdJcnybCnZ6",
+                "name": {
+                  "ar": "OasisGreen",
+                  "en": "OasisGreen"
+                },
+                "value": "#5caea3"
+              },
+              {
+                "key": "ZGM6L8EDYHdB3uqzSUpEAR",
+                "name": {
+                  "ar": "OceanCyan",
+                  "en": "OceanCyan"
+                },
+                "value": "#00BFFF"
+              },
+              {
+                "key": "LhBZU9ANAySV8ehGtEd5cQ",
+                "name": {
+                  "ar": "سمائي",
+                  "en": "OceanMist"
+                },
+                "value": "#3af4fa"
+              },
+              {
+                "key": "EBVCXsgwKAdiUtYsjf38Qr",
+                "name": {
+                  "ar": "OceanicBlue",
+                  "en": "OceanicBlue"
+                },
+                "value": "#1ca9c9"
+              },
+              {
+                "key": "SgDJZmTua9wWTyFzcT3Gdt",
+                "name": {
+                  "ar": "اوفوايت",
+                  "en": "OffWhite"
+                },
+                "value": "#f5f5f5"
+              },
+              {
+                "key": "gUwtwQLjyxTv2KkpjSs4jD",
+                "name": {
+                  "ar": "OldLace",
+                  "en": "OldLace"
+                },
+                "value": "#FDF5E6"
+              },
+              {
+                "key": "Ww58zp4NqdCZVTXVjVbHbq",
+                "name": {
+                  "ar": "Olive",
+                  "en": "Olive"
+                },
+                "value": "#808000"
+              },
+              {
+                "key": "dZYfHYmSbKZgX9Th7fREtN",
+                "name": {
+                  "ar": "OliveDrab",
+                  "en": "OliveDrab"
+                },
+                "value": "#6B8E23"
+              },
+              {
+                "key": "DxTgEWE4NpoUQU2S6PvE3A",
+                "name": {
+                  "ar": "اخضرزيتوني",
+                  "en": "OliveGreen"
+                },
+                "value": "#51b031"
+              },
+              {
+                "key": "KYRYchku55sNq8TjejAdFf",
+                "name": {
+                  "ar": "رماديغامق",
+                  "en": "OnyxGrey"
+                },
+                "value": "/d/7/d71ef5cf900f69fe33f079933d1fc496.jpg"
+              },
+              {
+                "key": "SAs6mtGzKYMyY9BHpzHpzz",
+                "name": {
+                  "ar": "OpalWhite",
+                  "en": "OpalWhite"
+                },
+                "value": "#F9FFFE"
+              },
+              {
+                "key": "emxTd6Q7dsG6fhmJFNVYWN",
+                "name": {
+                  "ar": "Orange",
+                  "en": "Orange"
+                },
+                "value": "#FFA500"
+              },
+              {
+                "key": "WCes5FzQqg6jq2HKPvAbGS",
+                "name": {
+                  "ar": "OrangeRed",
+                  "en": "OrangeRed"
+                },
+                "value": "#FF4500"
+              },
+              {
+                "key": "jVdxwAwPqxzeKKVfQ9zJdv",
+                "name": {
+                  "ar": "برتقاليوردي",
+                  "en": "OrangeRose"
+                },
+                "value": "/f/f/ff4d4f.jpg"
+              },
+              {
+                "key": "PAChREzbiGcfwpb6N5rDuz",
+                "name": {
+                  "ar": "Orbits",
+                  "en": "Orbits"
+                },
+                "value": "#6FA8CD"
+              },
+              {
+                "key": "VWhZg2znHH9waGBcwgip76",
+                "name": {
+                  "ar": "Orchid",
+                  "en": "Orchid"
+                },
+                "value": "#DA70D6"
+              },
+              {
+                "key": "225Fi8a4P5WFNMnJBCiAVa",
+                "name": {
+                  "ar": "فاتح",
+                  "en": "Pale"
+                },
+                "value": "#ede6ed"
+              },
+              {
+                "key": "LQi8mWzXW2qsftiiJAC4EX",
+                "name": {
+                  "ar": "PaleGoldenrod",
+                  "en": "PaleGoldenrod"
+                },
+                "value": "#EEE8AA"
+              },
+              {
+                "key": "VJP62ForuK5RqwVGbZYWct",
+                "name": {
+                  "ar": "PaleGreen",
+                  "en": "PaleGreen"
+                },
+                "value": "#98FB98"
+              },
+              {
+                "key": "j2Bj58pY5fqAvuNEqHViDm",
+                "name": {
+                  "ar": "PaleTurquoise",
+                  "en": "PaleTurquoise"
+                },
+                "value": "#AFEEEE"
+              },
+              {
+                "key": "NG43JV29AFYqhvrfx9S2RA",
+                "name": {
+                  "ar": "PaleVioletRed",
+                  "en": "PaleVioletRed"
+                },
+                "value": "#DB7093"
+              },
+              {
+                "key": "CMYRtvCFeY28dwWiEVfrfy",
+                "name": {
+                  "ar": "PantoneDillGreen",
+                  "en": "PantoneDillGreen"
+                },
+                "value": "#B6AC4B"
+              },
+              {
+                "key": "Rvdb2GJVA6roPtCKa56KnX",
+                "name": {
+                  "ar": "PantoneGibraltarSea",
+                  "en": "PantoneGibraltarSea"
+                },
+                "value": "#474757"
+              },
+              {
+                "key": "RJhfj7BuTnrnPzZ4PX6W3d",
+                "name": {
+                  "ar": "PapayaWhip",
+                  "en": "PapayaWhip"
+                },
+                "value": "#FFEFD5"
+              },
+              {
+                "key": "huvf52X56pz4TXEKbt2EPx",
+                "name": {
+                  "ar": "الببغاء",
+                  "en": "Parrot"
+                },
+                "value": "/s/c/screenshot2022-10-07at16-21-49peagreencolourws_1.png"
+              },
+              {
+                "key": "nmw2hJ6W63qsYiuPKmFq7V",
+                "name": {
+                  "ar": "بنفسجينيود",
+                  "en": "Passion"
+                },
+                "value": "#c754c7"
+              },
+              {
+                "key": "9TWaRs8t3QZ9SBq6iLZv25",
+                "name": {
+                  "ar": "خوخي",
+                  "en": "Peach"
+                },
+                "value": "#c24bc2"
+              },
+              {
+                "key": "UeaUEMWorTDURMEH8UAfax",
+                "name": {
+                  "ar": "PeachPuff",
+                  "en": "PeachPuff"
+                },
+                "value": "#FFDAB9"
+              },
+              {
+                "key": "nKeQDqxDAW5Y5dfdXrbkYu",
+                "name": {
+                  "ar": "نيودخوخي",
+                  "en": "PeachyNude"
+                },
+                "value": "#f7f4f7"
+              },
+              {
+                "key": "5LcH8yuuvHAMjTDsGNJruE",
+                "name": {
+                  "ar": "ازرقالطاووس",
+                  "en": "PeacockBlue"
+                },
+                "value": "/0/f/0f2cb3.jpg"
+              },
+              {
+                "key": "PLmXiBBLiXUfFXTuKMy9E5",
+                "name": {
+                  "ar": "PearlWhite",
+                  "en": "PearlWhite"
+                },
+                "value": "#F8F6F0"
+              },
+              {
+                "key": "DyzUTx5ioHzPtq4pQHceLu",
+                "name": {
+                  "ar": "لؤلؤي",
+                  "en": "PearlyClear"
+                },
+                "value": "#dcf5f5"
+              },
+              {
+                "key": "Atioz6LCLHQGoXw6W39SLi",
+                "name": {
+                  "ar": "ورديلؤلؤي",
+                  "en": "PearlyPink"
+                },
+                "value": "#f5c1f5"
+              },
+              {
+                "key": "QBZSbx8TNbXqmBcpVox48J",
+                "name": {
+                  "ar": "Peru",
+                  "en": "Peru"
+                },
+                "value": "#CD853F"
+              },
+              {
+                "key": "XrFqcyZpshwsvg8GAW3HUT",
+                "name": {
+                  "ar": "نفطي",
+                  "en": "Petroleum"
+                },
+                "value": "/c/e/cefa0f757f6ab0cc8ed9506f707ee7dd.jpg"
+              },
+              {
+                "key": "ibnnHhZ3kvdFAmbvAe8HMq",
+                "name": {
+                  "ar": "نيودمركز",
+                  "en": "PielIntense"
+                },
+                "value": "#e3c6e3"
+              },
+              {
+                "key": "AzAjYH87V3uxa9n72fsxZ5",
+                "name": {
+                  "ar": "Pink",
+                  "en": "Pink"
+                },
+                "value": "#FFC0CB"
+              },
+              {
+                "key": "ARYLxXkZNFmaMEr2UKgB4N",
+                "name": {
+                  "ar": "بيجوردي",
+                  "en": "PinkBeige"
+                },
+                "value": "#bfb679"
+              },
+              {
+                "key": "9XAoRvn839NZ3kTPBoEZQ2",
+                "name": {
+                  "ar": "ورديصريح",
+                  "en": "PinkExaltation"
+                },
+                "value": "#e057e0"
+              },
+              {
+                "key": "B2hWgMdfQ98digdspmfAz5",
+                "name": {
+                  "ar": "وردي",
+                  "en": "PinkInLove"
+                },
+                "value": "#eb84eb"
+              },
+              {
+                "key": "S2s32HMVdGH6m4wNschXAP",
+                "name": {
+                  "ar": "وردي",
+                  "en": "PinkMagnolia"
+                },
+                "value": "#f07ff0"
+              },
+              {
+                "key": "hBMpuyMWzSxU4zTWvxFUZo",
+                "name": {
+                  "ar": "وردي",
+                  "en": "PinkPeony"
+                },
+                "value": "#cb37d6"
+              },
+              {
+                "key": "4FwaNJX76ASw8UxA8rGDm4",
+                "name": {
+                  "ar": "ورديساتان",
+                  "en": "PinkSatin"
+                },
+                "value": "#e092e0"
+              },
+              {
+                "key": "o2qCoqarptnPMXkzmXkz4k",
+                "name": {
+                  "ar": "ورديجذاب",
+                  "en": "PinkSeduction"
+                },
+                "value": "#d15cd1"
+              },
+              {
+                "key": "NGg6C6kh9EcbYriRx5C53J",
+                "name": {
+                  "ar": "يينكسويد",
+                  "en": "PinkSuede"
+                },
+                "value": "#cf65cf"
+              },
+              {
+                "key": "eyoK8pR2ygwjLx7aBSxjnB",
+                "name": {
+                  "ar": "وردي",
+                  "en": "PinkTourmaline"
+                },
+                "value": "#c96ac9"
+              },
+              {
+                "key": "KBCNQsB4mACQ9XiSNtGRjm",
+                "name": {
+                  "ar": "ورديداكن",
+                  "en": "PinkoDark"
+                },
+                "value": "#cc47cc"
+              },
+              {
+                "key": "5QtLvRu46zHoDaW28yDPxa",
+                "name": {
+                  "ar": "ورديلامع",
+                  "en": "PinkySky"
+                },
+                "value": "#c95fc9"
+              },
+              {
+                "key": "6XUZSui9FHq6RhpL6RnzbV",
+                "name": {
+                  "ar": "أخضرفستقي",
+                  "en": "PistachioGreen"
+                },
+                "value": "/8/3/83323b2e7c5197d656c81d79325f91e5.jpg"
+              },
+              {
+                "key": "jvxCPuacytRzDW3W8GTYZ4",
+                "name": {
+                  "ar": "اخضربيكسل",
+                  "en": "PixelGreen"
+                },
+                "value": "/g/r/green111.jpg"
+              },
+              {
+                "key": "Mh2NPZcGQKsgoc4WXAHfgM",
+                "name": {
+                  "ar": "PlatinumSilver",
+                  "en": "PlatinumSilver"
+                },
+                "value": "#E5E4E2"
+              },
+              {
+                "key": "AsTbCoYkQscTSvD6UP55qN",
+                "name": {
+                  "ar": "Plum",
+                  "en": "Plum"
+                },
+                "value": "#DDA0DD"
+              },
+              {
+                "key": "PHSnsehpuA8RFtpq7NNWC5",
+                "name": {
+                  "ar": "PlumRed",
+                  "en": "PlumRed"
+                },
+                "value": "#8e4585"
+              },
+              {
+                "key": "VeVYRdadreLqGV5DJiHkgu",
+                "name": {
+                  "ar": "بنفسجيريشة",
+                  "en": "PlumePurple"
+                },
+                "value": "/b/4/b4a8d3.jpg"
+              },
+              {
+                "key": "Ps7MVeQ2HQ5dKyjYRiMUJx",
+                "name": {
+                  "ar": "بني",
+                  "en": "PopBrown"
+                },
+                "value": "#7d6c29"
+              },
+              {
+                "key": "WFEEkvUCYmGM27RNGdt3an",
+                "name": {
+                  "ar": "بورسلين",
+                  "en": "Porcelain"
+                },
+                "value": "/p/o/porcelaine_5.png"
+              },
+              {
+                "key": "f7Nya6BD2CDCYCnzMxshBP",
+                "name": {
+                  "ar": "بورسلينعاجي",
+                  "en": "PorcelainIvory"
+                },
+                "value": "#e3e0ad"
+              },
+              {
+                "key": "3HmgMzEnAcvHwXH6CC8ywp",
+                "name": {
+                  "ar": "بورسيلين",
+                  "en": "Porcelaine"
+                },
+                "value": "/p/o/porcelaine.png"
+              },
+              {
+                "key": "kVXrzGaQPw6arC63NivBVP",
+                "name": {
+                  "ar": "وردينيود",
+                  "en": "PralineNudePink"
+                },
+                "value": "#edb6ed"
+              },
+              {
+                "key": "5yPq3DcouYirMREDFoE7EU",
+                "name": {
+                  "ar": "ورديباهت",
+                  "en": "PressedRose"
+                },
+                "value": "/f/2/f2b9f7b54b87aa1b0a024c5133cae8e4.jpg"
+              },
+              {
+                "key": "Pgt9wKYyB2RXd2WdThnRu4",
+                "name": {
+                  "ar": "اسود",
+                  "en": "PureBlack"
+                },
+                "value": "#0f030f"
+              },
+              {
+                "key": "XmiUbtF3jeSy2DfzVdR42S",
+                "name": {
+                  "ar": "بورسليننقي",
+                  "en": "PurePorcelaine"
+                },
+                "value": "/p/o/porcelaine_4.png"
+              },
+              {
+                "key": "fSE6nWKQnFGeBtcoXbdioD",
+                "name": {
+                  "ar": "Purple",
+                  "en": "Purple"
+                },
+                "value": "#800080"
+              },
+              {
+                "key": "gpT6LeVYKXBNuktEodwCaF",
+                "name": {
+                  "ar": "أرجوانيلامع",
+                  "en": "PurpleLuminous"
+                },
+                "value": "/4/9/496350867c73fac9e1f4cd7bc2678b7e_1.jpg"
+              },
+              {
+                "key": "XZmrkyi7eRoTu5YiQTTNVi",
+                "name": {
+                  "ar": "ارفانيليا",
+                  "en": "RVanilla"
+                },
+                "value": "/v/a/vanilla.png"
+              },
+              {
+                "key": "CEmy8G4CwRb6YuJJ8J4QXu",
+                "name": {
+                  "ar": "RacingEdition",
+                  "en": "RacingEdition"
+                },
+                "value": "#dcdbdf"
+              },
+              {
+                "key": "HhxcCeeehyEvWXMz5qfvZP",
+                "name": {
+                  "ar": "قوسقزح",
+                  "en": "Rainbow"
+                },
+                "value": "/1/2/12fe5973db96e36b73f97978523b59ef.jpg"
+              },
+              {
+                "key": "knkPJF52vEvY4sFAdN7mdw",
+                "name": {
+                  "ar": "Red",
+                  "en": "Red"
+                },
+                "value": "#FF0000"
+              },
+              {
+                "key": "AEuQJTNQsBwRq3uanrujGn",
+                "name": {
+                  "ar": "احمر",
+                  "en": "RedCarpet"
+                },
+                "value": "#f21f34"
+              },
+              {
+                "key": "H6Sd3eFHQidUhWsw4JBQKj",
+                "name": {
+                  "ar": "احمرداكن",
+                  "en": "RedClaret"
+                },
+                "value": "#940d31"
+              },
+              {
+                "key": "JPbhd92iwzG36b9kYHanLw",
+                "name": {
+                  "ar": "احمرزجاجي",
+                  "en": "RedGlass"
+                },
+                "value": "#f25454"
+              },
+              {
+                "key": "fKid4dcraaN7cBFAnW4gUF",
+                "name": {
+                  "ar": "وردياحمر",
+                  "en": "RedRose"
+                },
+                "value": "#f55656"
+              },
+              {
+                "key": "3JyZbqkAUoxRPRnFZHmFKq",
+                "name": {
+                  "ar": "ReddishBrown",
+                  "en": "ReddishBrown"
+                },
+                "value": "#5c0d0d"
+              },
+              {
+                "key": "JTVNQBcvKqUQZgADW9GrQ4",
+                "name": {
+                  "ar": "RockBlack",
+                  "en": "RockBlack"
+                },
+                "value": "#141614"
+              },
+              {
+                "key": "JLrrecg3rbXNCnr4kBCkoJ",
+                "name": {
+                  "ar": "ورديناعم",
+                  "en": "RomanticPink"
+                },
+                "value": "#f593f5"
+              },
+              {
+                "key": "diDstGztoK7NnRGjx9jT6z",
+                "name": {
+                  "ar": "Rose",
+                  "en": "Rose"
+                },
+                "value": "#FF007F"
+              },
+              {
+                "key": "BSVbUokXm2hTBRkX98aZWk",
+                "name": {
+                  "ar": "روزفريس",
+                  "en": "RoseFrais"
+                },
+                "value": "#e39de3"
+              },
+              {
+                "key": "5aySY2tDhonKK5ncxvJ2EY",
+                "name": {
+                  "ar": "ورديمتوهج",
+                  "en": "RoseGlow"
+                },
+                "value": "#ed62ed"
+              },
+              {
+                "key": "UHVzjvAgz37MYkSxDL2iZ4",
+                "name": {
+                  "ar": "روز",
+                  "en": "RoseGold"
+                },
+                "value": "#7fe1f0"
+              },
+              {
+                "key": "Xg5qmhF6SeC95W64KyUhzH",
+                "name": {
+                  "ar": "روزعاجي",
+                  "en": "RoseIvory"
+                },
+                "value": "#e3e0ad"
+              },
+              {
+                "key": "8KzYjHpyVbGXMZQ9fLH3gF",
+                "name": {
+                  "ar": "صاج",
+                  "en": "Rosewood"
+                },
+                "value": "/a/c/ace2a0288d207b5e2c6ec1d5714fd147.jpg"
+              },
+              {
+                "key": "mJdhSAMPiToyN73MQrdWxo",
+                "name": {
+                  "ar": "RosyBrown",
+                  "en": "RosyBrown"
+                },
+                "value": "#BC8F8F"
+              },
+              {
+                "key": "LAygWnVUHASf2gZthZnvay",
+                "name": {
+                  "ar": "بنفسجي",
+                  "en": "RougeMaroon"
+                },
+                "value": "#a82fa8"
+              },
+              {
+                "key": "37qMSHcvHALcXzc4JVZfB9",
+                "name": {
+                  "ar": "ملكي",
+                  "en": "Royal"
+                },
+                "value": "/6/6/661ea2aad78e5746745c71a6144dc620_1.jpg"
+              },
+              {
+                "key": "SGYCNoaWCBeAzfGnLHu9dq",
+                "name": {
+                  "ar": "RoyalBlue",
+                  "en": "RoyalBlue"
+                },
+                "value": "#4169E1"
+              },
+              {
+                "key": "YSxS7aTMknVxks3CsVDa7U",
+                "name": {
+                  "ar": "ياقوتي",
+                  "en": "RubyPassion"
+                },
+                "value": "#ba8eba"
+              },
+              {
+                "key": "H8iUmKYHrvFvbEH6waVbQL",
+                "name": {
+                  "ar": "RubyRed",
+                  "en": "RubyRed"
+                },
+                "value": "#9B111E"
+              },
+              {
+                "key": "8hoHq9dLj7cwMnjpqrDkB5",
+                "name": {
+                  "ar": "ورديمغبر",
+                  "en": "RustyPink"
+                },
+                "value": "#d996d9"
+              },
+              {
+                "key": "nASCP9VJVBL3eHgPDWfo7k",
+                "name": {
+                  "ar": "SHAMROCKPANTS",
+                  "en": "SHAMROCKPANTS"
+                },
+                "value": "#33B87F"
+              },
+              {
+                "key": "PEr42ohUmdAppwbLboZJTz",
+                "name": {
+                  "ar": "SaddleBrown",
+                  "en": "SaddleBrown"
+                },
+                "value": "#8B4513"
+              },
+              {
+                "key": "j7oRXFvsrbGjyfH4GeYnUa",
+                "name": {
+                  "ar": "Sage",
+                  "en": "Sage"
+                },
+                "value": "#9CAF88"
+              },
+              {
+                "key": "PHAXFYoZKPgWHbh7minUQL",
+                "name": {
+                  "ar": "SageGreen",
+                  "en": "SageGreen"
+                },
+                "value": "#92b39b"
+              },
+              {
+                "key": "oNm7vTzPgGM9RFH6YXG3kr",
+                "name": {
+                  "ar": "Salmon",
+                  "en": "Salmon"
+                },
+                "value": "#FA8072"
+              },
+              {
+                "key": "3e4WCkNgfixmv4nTmimwyY",
+                "name": {
+                  "ar": "رملي",
+                  "en": "Sand"
+                },
+                "value": "#dcdebd"
+              },
+              {
+                "key": "HkXshhq5zedDmixVaWLZSC",
+                "name": {
+                  "ar": "SandstonGold",
+                  "en": "SandstonGold"
+                },
+                "value": "#f1d4a1"
+              },
+              {
+                "key": "EXtwnMhmJwVfsbAsMECHj3",
+                "name": {
+                  "ar": "SandyBrown",
+                  "en": "SandyBrown"
+                },
+                "value": "#F4A460"
+              },
+              {
+                "key": "jfYoGvT5tFZ6djMFe84aTK",
+                "name": {
+                  "ar": "SandyGold",
+                  "en": "SandyGold"
+                },
+                "value": "#D4AF37"
+              },
+              {
+                "key": "YrGff3TdTQkcfntEmDDBmu",
+                "name": {
+                  "ar": "SatinBlack",
+                  "en": "SatinBlack"
+                },
+                "value": "#0F0F0F"
+              },
+              {
+                "key": "4yfZD3UoYadLHpuZdQ3BYH",
+                "name": {
+                  "ar": "قرمزي",
+                  "en": "ScarletKiss"
+                },
+                "value": "#d4133d"
+              },
+              {
+                "key": "Cx7kgD5WSwYJTN2KshvDQj",
+                "name": {
+                  "ar": "SeaGreen",
+                  "en": "SeaGreen"
+                },
+                "value": "#2E8B57"
+              },
+              {
+                "key": "4LvsSupyZVWi3GLUpZqwpB",
+                "name": {
+                  "ar": "Seashell",
+                  "en": "Seashell"
+                },
+                "value": "#FFF5EE"
+              },
+              {
+                "key": "njQRKqZatr4UJupNM9Ucsu",
+                "name": {
+                  "ar": "بني",
+                  "en": "SexyBrown"
+                },
+                "value": "#565e1d"
+              },
+              {
+                "key": "E95UfP2fZVYxBGkyCRf2Lm",
+                "name": {
+                  "ar": "ShadowAsh",
+                  "en": "ShadowAsh"
+                },
+                "value": "#0a0319"
+              },
+              {
+                "key": "D7aVuoUYrLb7kvnEEGGUbm",
+                "name": {
+                  "ar": "Shamrock",
+                  "en": "Shamrock"
+                },
+                "value": "#009e60"
+              },
+              {
+                "key": "FG8NScxyXWfUukr4LfB3fh",
+                "name": {
+                  "ar": "أشقرشفاف",
+                  "en": "SheerBlonde"
+                },
+                "value": "#e8e79c"
+              },
+              {
+                "key": "MBxFgi43CcNUPPtg95hGhU",
+                "name": {
+                  "ar": "شوكنكبينك",
+                  "en": "ShockingPink"
+                },
+                "value": "#ed87ed"
+              },
+              {
+                "key": "cFYxT5yUeuRGSuweZyQumV",
+                "name": {
+                  "ar": "Sienna",
+                  "en": "Sienna"
+                },
+                "value": "#A0522D"
+              },
+              {
+                "key": "Lszza9MvaocuMQ8DAbRL3w",
+                "name": {
+                  "ar": "SilkPink",
+                  "en": "SilkPink"
+                },
+                "value": "#F3C6D1"
+              },
+              {
+                "key": "PvVuqaZrePJBz7cy3XqKZh",
+                "name": {
+                  "ar": "SilkPurple",
+                  "en": "SilkPurple"
+                },
+                "value": "#C9A0DC"
+              },
+              {
+                "key": "n8qpiH5y8c8Fxpap5fQZrW",
+                "name": {
+                  "ar": "Silver",
+                  "en": "Silver"
+                },
+                "value": "#C0C0C0"
+              },
+              {
+                "key": "ngvRHUxnYnka5askoMZxHc",
+                "name": {
+                  "ar": "SilverFrost",
+                  "en": "SilverFrost"
+                },
+                "value": "#CFCFCF"
+              },
+              {
+                "key": "V2cEfNp6qCPpQYjV3asfdz",
+                "name": {
+                  "ar": "فضي",
+                  "en": "SilverScreen"
+                },
+                "value": "#a5a6a1"
+              },
+              {
+                "key": "5V7zcLNqpzn7qWAtp6xkDp",
+                "name": {
+                  "ar": "SilverShadow",
+                  "en": "SilverShadow"
+                },
+                "value": "#9b989f"
+              },
+              {
+                "key": "iph7uSyqSi8artRdT52rSD",
+                "name": {
+                  "ar": "فضي",
+                  "en": "SilverStone"
+                },
+                "value": "#89888f"
+              },
+              {
+                "key": "aXAHyyRV56YamA8wjYAJ2p",
+                "name": {
+                  "ar": "فضيشفاف",
+                  "en": "SilverTransparent"
+                },
+                "value": "/i/m/images.jpeg"
+              },
+              {
+                "key": "Ecy4RHpKuwWK5VtPEaAH2C",
+                "name": {
+                  "ar": "سكينيديب",
+                  "en": "SkinnyDip"
+                },
+                "value": "/s/k/skinny_dip.png"
+              },
+              {
+                "key": "cyhLXhojRZHteGKrwY2KLU",
+                "name": {
+                  "ar": "سماوي",
+                  "en": "SkuBlue"
+                },
+                "value": "/g/j/gjgjgnggjk.jpg"
+              },
+              {
+                "key": "WiYYVJrYSkAwDNYnMRubqs",
+                "name": {
+                  "ar": "SkyBlue",
+                  "en": "SkyBlue"
+                },
+                "value": "#87CEEB"
+              },
+              {
+                "key": "nvPTUhWJn3StZKho46EhsQ",
+                "name": {
+                  "ar": "سمائي",
+                  "en": "SkyHigh"
+                },
+                "value": "#87dff5"
+              },
+              {
+                "key": "GubgLTUJcLWjNDrwqpaqY2",
+                "name": {
+                  "ar": "SlateBlue",
+                  "en": "SlateBlue"
+                },
+                "value": "#6A5ACD"
+              },
+              {
+                "key": "W4CEWeKz4qgKn4FuhiawCY",
+                "name": {
+                  "ar": "SlateGray",
+                  "en": "SlateGray"
+                },
+                "value": "#708090"
+              },
+              {
+                "key": "htxJZ9sXzojTPfsCGVTEx5",
+                "name": {
+                  "ar": "SleekBlack",
+                  "en": "SleekBlack"
+                },
+                "value": "#222124"
+              },
+              {
+                "key": "DKgHHrcLU4RBkqPiLwBPqG",
+                "name": {
+                  "ar": "SlimWhite",
+                  "en": "SlimWhite"
+                },
+                "value": "#F9F9F9"
+              },
+              {
+                "key": "ddCQ8iGa53zxkNRAFBLw8G",
+                "name": {
+                  "ar": "Slipstream",
+                  "en": "Slipstream"
+                },
+                "value": "#85c0cf"
+              },
+              {
+                "key": "hRA3hw2qtVf8NWEkz6MQ5U",
+                "name": {
+                  "ar": "جلدثعبان",
+                  "en": "SnakePrint"
+                },
+                "value": "/7/c/7cd46622ced8b310c2273e086c6cec69.jpg"
+              },
+              {
+                "key": "2Fcn8oazd7t7D37Kfz9TCZ",
+                "name": {
+                  "ar": "Snow",
+                  "en": "Snow"
+                },
+                "value": "#FFFAFA"
+              },
+              {
+                "key": "QQuUSyjyngTF2zNEmQYDat",
+                "name": {
+                  "ar": "ابيضثلجي",
+                  "en": "Snowfall"
+                },
+                "value": "/f/f/fffcfa2.png"
+              },
+              {
+                "key": "c2rTL5aHXmN7KFH6QNisK9",
+                "name": {
+                  "ar": "اسودناعم",
+                  "en": "SoftBlack"
+                },
+                "value": "#000000"
+              },
+              {
+                "key": "CkUwtLUrxMGaW8TuReMvCh",
+                "name": {
+                  "ar": "بنيناعم",
+                  "en": "SoftBrown"
+                },
+                "value": "#6e4023"
+              },
+              {
+                "key": "GbzfTirhJb2ppQ5sc6q534",
+                "name": {
+                  "ar": "SonicYellow",
+                  "en": "SonicYellow"
+                },
+                "value": "#dbdb91"
+              },
+              {
+                "key": "bfNKpK4kv2AnoDywghC7wV",
+                "name": {
+                  "ar": "بنفسجيغامقعميق",
+                  "en": "SoulEyePurple"
+                },
+                "value": "/4/e/4e4280.jpg"
+              },
+              {
+                "key": "DGYgGYPWdjY9fRb8EH53xK",
+                "name": {
+                  "ar": "SpaceBlack",
+                  "en": "SpaceBlack"
+                },
+                "value": "#0b0b0b"
+              },
+              {
+                "key": "KZcACcaBYCNHFgaFEXVJ5z",
+                "name": {
+                  "ar": "SpaceGrey",
+                  "en": "SpaceGrey"
+                },
+                "value": "#4B4B4B"
+              },
+              {
+                "key": "UArKe7i4mmywAgh7h9iP5S",
+                "name": {
+                  "ar": "SparkleGold",
+                  "en": "SparkleGold"
+                },
+                "value": "#e1ddc2"
+              },
+              {
+                "key": "R5eSiaYRYAro9MspWrwYYs",
+                "name": {
+                  "ar": "برتقاليمتلألئ",
+                  "en": "SparklingOrange"
+                },
+                "value": "#f0b85d"
+              },
+              {
+                "key": "QQupHg77R37Exp6JwJpUxP",
+                "name": {
+                  "ar": "SpringGreen",
+                  "en": "SpringGreen"
+                },
+                "value": "#00FF7F"
+              },
+              {
+                "key": "Y3H6WcaDikEhYpRQWUq2FR",
+                "name": {
+                  "ar": "سبرينكلز",
+                  "en": "Sprinkles"
+                },
+                "value": "/s/p/sprinkles.jpg"
+              },
+              {
+                "key": "44KxMwNKVnCvAYdUXnYjM3",
+                "name": {
+                  "ar": "Squad",
+                  "en": "Squad"
+                },
+                "value": "#a8e3e9"
+              },
+              {
+                "key": "KUki6KUkEvHuenHFVoSpQX",
+                "name": {
+                  "ar": "ستانلسستيل",
+                  "en": "StainlessSteel"
+                },
+                "value": "#e0dfdb"
+              },
+              {
+                "key": "UCg8GaiYxy4c79pPP6diHT",
+                "name": {
+                  "ar": "StarfallGrey",
+                  "en": "StarfallGrey"
+                },
+                "value": "#4A4A4D"
+              },
+              {
+                "key": "UXQscvD7sEHavb3rAVB3QC",
+                "name": {
+                  "ar": "فضيجليدي",
+                  "en": "StarfrostSilver"
+                },
+                "value": "/d/8/d8e3e7.jpg"
+              },
+              {
+                "key": "MwKHxPtxsNC7asUUtnHrM7",
+                "name": {
+                  "ar": "Starlight",
+                  "en": "Starlight"
+                },
+                "value": "#f8f5f0"
+              },
+              {
+                "key": "VrwpiERv93bPgzbykeKeM9",
+                "name": {
+                  "ar": "ابيضمضيء",
+                  "en": "StarlightWhite"
+                },
+                "value": "/i/m/images_2_.jpg"
+              },
+              {
+                "key": "k5MTk485uGnDBADTVMpX8S",
+                "name": {
+                  "ar": "بنفسجينجمي",
+                  "en": "StarryPurple"
+                },
+                "value": "/u/n/untitled_56.jpg"
+              },
+              {
+                "key": "TmQZQSq8hUMrSzhVr2jt2g",
+                "name": {
+                  "ar": "ستيل",
+                  "en": "Steel"
+                },
+                "value": "#caccce"
+              },
+              {
+                "key": "EmXce6aANzvUAM2HrXZiJG",
+                "name": {
+                  "ar": "SteelBlue",
+                  "en": "SteelBlue"
+                },
+                "value": "#4682B4"
+              },
+              {
+                "key": "nfnfWoXix7K2Wb8KNxypc6",
+                "name": {
+                  "ar": "رماديحجري",
+                  "en": "Stone"
+                },
+                "value": "/2/b/2b4d23ea08ccb0fa13bd7cc22f8c5479.jpg"
+              },
+              {
+                "key": "CTjA5G5C7gLReYWiFBV6wJ",
+                "name": {
+                  "ar": "StormTitanium",
+                  "en": "StormTitanium"
+                },
+                "value": "#7D7F7C"
+              },
+              {
+                "key": "KARDxTcUQpfPBSx4cueM6W",
+                "name": {
+                  "ar": "البرونزيالفراولي",
+                  "en": "StrawberryBronze"
+                },
+                "value": "#ed749c"
+              },
+              {
+                "key": "8wc2Zaamv4PBMLGMLBBdJT",
+                "name": {
+                  "ar": "احمرفراولة",
+                  "en": "StrawberryRed"
+                },
+                "value": "#f73956"
+              },
+              {
+                "key": "4zhrTMViz6gWWuxEE6Wjp2",
+                "name": {
+                  "ar": "مقلم",
+                  "en": "Striped"
+                },
+                "value": "/9/a/9a38f5b313dadf364ddb473edc367101.jpg"
+              },
+              {
+                "key": "P9jgcN8jahvPo2DKyysb4Y",
+                "name": {
+                  "ar": "SuedeGrey",
+                  "en": "SuedeGrey"
+                },
+                "value": "#6a696b"
+              },
+              {
+                "key": "J5p5vEmwkMFKpz2uptteE2",
+                "name": {
+                  "ar": "SunriseGold",
+                  "en": "SunriseGold"
+                },
+                "value": "#E6BE8A"
+              },
+              {
+                "key": "BKGqd3hBM2qj7ZcCvpWVsg",
+                "name": {
+                  "ar": "SunriseOrange",
+                  "en": "SunriseOrange"
+                },
+                "value": "#FF9E4F"
+              },
+              {
+                "key": "4qkqyd4iKi96xXPQT35D6Y",
+                "name": {
+                  "ar": "بني",
+                  "en": "SweetKiss"
+                },
+                "value": "#7d4d25"
+              },
+              {
+                "key": "2TiHmQLUtT5ejZCw4T7omi",
+                "name": {
+                  "ar": "Tan",
+                  "en": "Tan"
+                },
+                "value": "#D2B48C"
+              },
+              {
+                "key": "8NHswxstTf8EG9YnyiLvXv",
+                "name": {
+                  "ar": "تابو",
+                  "en": "Taupe"
+                }
+              },
+              {
+                "key": "8GKLYVRgvkKhGRvYLeeDqa",
+                "name": {
+                  "ar": "نيود",
+                  "en": "Tawney"
+                },
+                "value": "#ffffff"
+              },
+              {
+                "key": "PbbdDwPHBXKsNP3knuBbLt",
+                "name": {
+                  "ar": "أسمرمصفر",
+                  "en": "Tawny"
+                },
+                "value": "#f0f266"
+              },
+              {
+                "key": "8JRgzxqhdYwdJtAmdJZFQT",
+                "name": {
+                  "ar": "تيروز",
+                  "en": "TeaRose"
+                },
+                "value": "#999e65"
+              },
+              {
+                "key": "UcoAgNeSg4uTC22hjrBtjJ",
+                "name": {
+                  "ar": "Teal",
+                  "en": "Teal"
+                },
+                "value": "#008080"
+              },
+              {
+                "key": "HULjnX297natC6yvFSfbMh",
+                "name": {
+                  "ar": "نحاسي",
+                  "en": "Tigre"
+                },
+                "value": "#e0eb7c"
+              },
+              {
+                "key": "iiN2Qoo82MVE9CD5spP26w",
+                "name": {
+                  "ar": "TitanGray",
+                  "en": "TitanGray"
+                },
+                "value": "#9C9C9C"
+              },
+              {
+                "key": "9gXDjSbJhT6of3WgK7CTvU",
+                "name": {
+                  "ar": "تيتانيوم",
+                  "en": "Titanium"
+                },
+                "value": "/c/h/chatgpt_image_oct_15_2025_10_41_12_pm.png"
+              },
+              {
+                "key": "mvp2FN3rkHZ9wjV2NJ6wiy",
+                "name": {
+                  "ar": "TitaniumBlack",
+                  "en": "TitaniumBlack"
+                },
+                "value": "#61605e"
+              },
+              {
+                "key": "gqNRJoqzRjEDnyyaN6pGTs",
+                "name": {
+                  "ar": "TitaniumGray",
+                  "en": "TitaniumGray"
+                },
+                "value": "#5f6363"
+              },
+              {
+                "key": "jZfLxz85ATXBrNYGZNGuMq",
+                "name": {
+                  "ar": "TitaniumGrey",
+                  "en": "TitaniumGrey"
+                },
+                "value": "#aba299"
+              },
+              {
+                "key": "2r8ubRXUHgD2BgwdVeP4WD",
+                "name": {
+                  "ar": "تيتانيوماخضر",
+                  "en": "TitaniumJadegreen"
+                },
+                "value": "/t/i/titanium_jadegreen_-_copy_1.jpg"
+              },
+              {
+                "key": "DBaasWuofNTkaFwNgpzSQx",
+                "name": {
+                  "ar": "تيتانيومجيتبلاك",
+                  "en": "TitaniumJetblack"
+                },
+                "value": "/t/i/titanium_jetblack.jpg"
+              },
+              {
+                "key": "dzHm2TA2T4mdMuJsoBQtFG",
+                "name": {
+                  "ar": "تيتانيومورديذهبي",
+                  "en": "TitaniumPinkgold"
+                },
+                "value": "/t/i/titanium_pinkgold.jpg"
+              },
+              {
+                "key": "bVeFJPPwTFvFb7ukemTSzp",
+                "name": {
+                  "ar": "TitaniumSilver",
+                  "en": "TitaniumSilver"
+                },
+                "value": "#A0A09A"
+              },
+              {
+                "key": "QR4PBvQ8rRBD69rTRzr4px",
+                "name": {
+                  "ar": "تيتانيومسلفرازرق",
+                  "en": "TitaniumSilverBlue"
+                },
+                "value": "/t/i/titanium_silverblue7_-_copy.jpg"
+              },
+              {
+                "key": "RGvVkSHRm3aDn3NVssBLxP",
+                "name": {
+                  "ar": "TitaniumSkyBlue",
+                  "en": "TitaniumSkyBlue"
+                },
+                "value": "#5B92E5"
+              },
+              {
+                "key": "QB6NCcChNPPibgnzScYh9z",
+                "name": {
+                  "ar": "TitaniumViolet",
+                  "en": "TitaniumViolet"
+                },
+                "value": "#4d4f5e"
+              },
+              {
+                "key": "NLtZ8CETEUq3J3Ki5Z6AEb",
+                "name": {
+                  "ar": "تيتانيومابيضسلفر",
+                  "en": "TitaniumWhiteSilver"
+                },
+                "value": "/t/i/titanium_whitesilver7_-_copy.jpg"
+              },
+              {
+                "key": "LobxUKAd73E72znyChRFoA",
+                "name": {
+                  "ar": "TitaniumYellow",
+                  "en": "TitaniumYellow"
+                },
+                "value": "#eee600"
+              },
+              {
+                "key": "nGLSSugJ8EVWxcaVYL57q3",
+                "name": {
+                  "ar": "توفي",
+                  "en": "Toffee"
+                },
+                "value": "#baa988"
+              },
+              {
+                "key": "dqha3U9NNeRmt5MvLWjdLr",
+                "name": {
+                  "ar": "Tomato",
+                  "en": "Tomato"
+                },
+                "value": "#FF6347"
+              },
+              {
+                "key": "eMraGHRtc9F2fREdFJDcSr",
+                "name": {
+                  "ar": "شفاف",
+                  "en": "Transpare"
+                },
+                "value": "#ffffff"
+              },
+              {
+                "key": "DP7a6K3KdAdeeUpLnkZqQa",
+                "name": {
+                  "ar": "شفاف",
+                  "en": "Transparent"
+                },
+                "value": "#ffffff"
+              },
+              {
+                "key": "3ufLEM3UGSZYdKAQYa5At3",
+                "name": {
+                  "ar": "اسودشفاش",
+                  "en": "TransparentBlack"
+                },
+                "value": "/a/0/a091fa710760580a33e66656120e93ce.jpg"
+              },
+              {
+                "key": "SGgYa6DuBRNP367gze8X3F",
+                "name": {
+                  "ar": "بيجحقيقي",
+                  "en": "TrueBeige"
+                },
+                "value": "/t/r/true_beige.jpg"
+              },
+              {
+                "key": "mFhZFfp5jNjdZ9LTJDGNZq",
+                "name": {
+                  "ar": "تركوازي",
+                  "en": "Turquoise"
+                },
+                "value": "#ffffff"
+              },
+              {
+                "key": "ASwh6tYExH926FzCYZyXmY",
+                "name": {
+                  "ar": "TurquoiseGreen",
+                  "en": "TurquoiseGreen"
+                },
+                "value": "#40E0D0"
+              },
+              {
+                "key": "3b36hquWYgXxFogAqD527P",
+                "name": {
+                  "ar": "TwilightOrange",
+                  "en": "TwilightOrange"
+                },
+                "value": "#ff8c42"
+              },
+              {
+                "key": "Sd5Mre6muuuMCB56Zoctny",
+                "name": {
+                  "ar": "اسودكثيف",
+                  "en": "UltraBlack"
+                },
+                "value": "#030303"
+              },
+              {
+                "key": "eweEarbuTnsxcfJ6kwjdKU",
+                "name": {
+                  "ar": "Ultramarine",
+                  "en": "Ultramarine"
+                },
+                "value": "#7183c5"
+              },
+              {
+                "key": "4dab8JQgA2kUUGzWdvrFp6",
+                "name": {
+                  "ar": "وحيدالقرن",
+                  "en": "Unicorn"
+                },
+                "value": "/b/2/b2fbaa9b233ca55d8bcb277e0940b0ad_1.jpg"
+              },
+              {
+                "key": "KFPghFgnkiSMCxKwqqcB8s",
+                "name": {
+                  "ar": "ورديمحايد",
+                  "en": "Universalpink"
+                },
+                "value": "#d695d6"
+              },
+              {
+                "key": "2fsHTXwruTSNb7Kmo2RsxS",
+                "name": {
+                  "ar": "يونيفيرسال",
+                  "en": "Universelle"
+                },
+                "value": "#dcf2f2"
+              },
+              {
+                "key": "bnd43UA6HNAe3aj8ZrbpjP",
+                "name": {
+                  "ar": "فانيليا",
+                  "en": "Vanilla"
+                },
+                "value": "/v/a/vanilla_5.png"
+              },
+              {
+                "key": "3ZqrZ8MUSHzsjLznHibBFL",
+                "name": {
+                  "ar": "فانيلاسويرل",
+                  "en": "VanillaSwirl"
+                },
+                "value": "/v/a/vanilla_6.png"
+              },
+              {
+                "key": "cT9oCkAXY95wijUZt3f5N9",
+                "name": {
+                  "ar": "الفانيلياالباتشولي",
+                  "en": "VanillePatchouli"
+                }
+              },
+              {
+                "key": "c6jCuXMaBGfLrDkorHmmkn",
+                "name": {
+                  "ar": "فيجاسجراي",
+                  "en": "VegasGray"
+                }
+              },
+              {
+                "key": "SKWHiHoizfU2CVGJZtNd9x",
+                "name": {
+                  "ar": "فيغاسبيرل",
+                  "en": "VegasPearl"
+                }
+              },
+              {
+                "key": "Jfjo4yDnVgY4f9hfZNNFjh",
+                "name": {
+                  "ar": "نباتي",
+                  "en": "Vegetal"
+                },
+                "value": "#269943"
+              },
+              {
+                "key": "fBrqcotZbXNPo5Xd7UDci5",
+                "name": {
+                  "ar": "VeilWhite",
+                  "en": "VeilWhite"
+                },
+                "value": "#F8F8F8"
+              },
+              {
+                "key": "KMKGRoxjoWG3dD8RKxdTFa",
+                "name": {
+                  "ar": "VelvetBlack",
+                  "en": "VelvetBlack"
+                },
+                "value": "#38373b"
+              },
+              {
+                "key": "8BzCJmkM3V9yx5euyvCYst",
+                "name": {
+                  "ar": "VelvetGreen",
+                  "en": "VelvetGreen"
+                },
+                "value": "#006A4E"
+              },
+              {
+                "key": "ndtzxgmirRqs3ukZy2a4Ku",
+                "name": {
+                  "ar": "VelvetGrey",
+                  "en": "VelvetGrey"
+                },
+                "value": "#716f74"
+              },
+              {
+                "key": "cTKiid4sJfpoEjiyiHWNLE",
+                "name": {
+                  "ar": "فيلفتبيتالزلوكس",
+                  "en": "VelvetPetalsLuxe"
+                }
+              },
+              {
+                "key": "jTaJTWEfLK4rpyCXiFmmA5",
+                "name": {
+                  "ar": "ياقوتيناعم",
+                  "en": "VelvetRuby"
+                },
+                "value": "#cfa3cf"
+              },
+              {
+                "key": "ndqTkXtkwgXspDqbXW3zzT",
+                "name": {
+                  "ar": "فيرتبوم",
+                  "en": "VertPomme"
+                }
+              },
+              {
+                "key": "2URngPRJEzmwNYQRWvYfYH",
+                "name": {
+                  "ar": "توت",
+                  "en": "VeryBerry"
+                },
+                "value": "#cf5dcf"
+              },
+              {
+                "key": "m34Zfid4qvnYni8gADsWqF",
+                "name": {
+                  "ar": "اسود",
+                  "en": "VeryBlack"
+                },
+                "value": "#000000"
+              },
+              {
+                "key": "TdvvTLcCsW5KqZoxmtMA6j",
+                "name": {
+                  "ar": "بني",
+                  "en": "VeryBrown"
+                },
+                "value": "#6b571c"
+              },
+              {
+                "key": "aMs3pnVWV4QxobPST4TxTe",
+                "name": {
+                  "ar": "فاتحجداً",
+                  "en": "VeryLight"
+                },
+                "value": "#ffffff"
+              },
+              {
+                "key": "ZqFhTkf8PirzkkiKKNTxmZ",
+                "name": {
+                  "ar": "نجيلالهندجينسنغ",
+                  "en": "VetiverGinseng"
+                }
+              },
+              {
+                "key": "gzkNTx8dzv6teEkXFEyiEP",
+                "name": {
+                  "ar": "البرغموت",
+                  "en": "VibrantBergamot"
+                }
+              },
+              {
+                "key": "EKEfGarryDBLcTLjegLbpK",
+                "name": {
+                  "ar": "VibrantBlue",
+                  "en": "VibrantBlue"
+                },
+                "value": "6a80ab"
+              },
+              {
+                "key": "J24AUTVJfRSrVsdM2nQ56M",
+                "name": {
+                  "ar": "ليلك",
+                  "en": "VibrantLilac"
+                },
+                "value": "#c447c4"
+              },
+              {
+                "key": "892zMcza6FsKTP3JbkYKpT",
+                "name": {
+                  "ar": "فيكتور",
+                  "en": "Victor"
+                }
+              },
+              {
+                "key": "AUrjzxsonazvyNhLnQRHNQ",
+                "name": {
+                  "ar": "فيينا",
+                  "en": "Vienna"
+                }
+              },
+              {
+                "key": "oR5vChZQLxDHn3TG8Kfxu2",
+                "name": {
+                  "ar": "VintageGreen",
+                  "en": "VintageGreen"
+                },
+                "value": "#1c3c26"
+              },
+              {
+                "key": "R5Qv9kXHpiDqY3SC6mEreW",
+                "name": {
+                  "ar": "وردي",
+                  "en": "VintagePink"
+                },
+                "value": "#d683d6"
+              },
+              {
+                "key": "HEqKvkmSaqFBpwv59zbDd3",
+                "name": {
+                  "ar": "فنتجروز",
+                  "en": "VintageRose"
+                },
+                "value": "#b375b3"
+              },
+              {
+                "key": "oLRFECcM7GBY4r2X8EKmb2",
+                "name": {
+                  "ar": "Violet",
+                  "en": "Violet"
+                },
+                "value": "#EE82EE"
+              },
+              {
+                "key": "CQSrBDh3zZbhqAEhsMWVU8",
+                "name": {
+                  "ar": "زهرةالبنفسج",
+                  "en": "VioletFlower"
+                },
+                "value": "#bd40bd"
+              },
+              {
+                "key": "YKYH5JasmHZe26THjmBrTj",
+                "name": {
+                  "ar": "زهرةالبنفسجالمسك",
+                  "en": "VioletFlowerMusk"
+                },
+                "value": "#ba30ba"
+              },
+              {
+                "key": "6KnDGokXnaSZyARev52Lpy",
+                "name": {
+                  "ar": "VioletGarden",
+                  "en": "VioletGarden"
+                },
+                "value": "#dbb3d7"
+              },
+              {
+                "key": "NfaC48XYXQknRiyLXm4Hn8",
+                "name": {
+                  "ar": "الوردالبنفسجي",
+                  "en": "VioletRoses"
+                },
+                "value": "#a33cc2"
+              },
+              {
+                "key": "cqwzJ3cTKvWDGXzJjVsTyG",
+                "name": {
+                  "ar": "فيتاسيل",
+                  "en": "Vitacell"
+                }
+              },
+              {
+                "key": "f3DN48s8NSJXymcX2a6ajd",
+                "name": {
+                  "ar": "فيتاليتي",
+                  "en": "Vitality"
+                }
+              },
+              {
+                "key": "bEJdDPs8H3svMZMoMs7qqM",
+                "name": {
+                  "ar": "VitalityGreen",
+                  "en": "VitalityGreen"
+                },
+                "value": "#3CB043"
+              },
+              {
+                "key": "FmJfNSJUMrwwWTYDCZEmGc",
+                "name": {
+                  "ar": "فيتامينسي",
+                  "en": "VitaminC"
+                }
+              },
+              {
+                "key": "QGoKoNTErPAyhzr9VwZdt5",
+                "name": {
+                  "ar": "فيتامينهـ",
+                  "en": "VitaminE"
+                }
+              },
+              {
+                "key": "d8HgATuFfPFHTKbhQM9xiJ",
+                "name": {
+                  "ar": "الفاوانيا",
+                  "en": "Vivacious"
+                }
+              },
+              {
+                "key": "YYNoPFVTBsfdMH2ef2rh4p",
+                "name": {
+                  "ar": "فيفيدكاتبلو",
+                  "en": "VividCatBlue"
+                }
+              },
+              {
+                "key": "gZsSHwxqSkahYskt9weeJ4",
+                "name": {
+                  "ar": "ورديزاهي",
+                  "en": "VividPink"
+                },
+                "value": "#dba4db"
+              },
+              {
+                "key": "BPw5iKag3jRfPPtDRRPPNw",
+                "name": {
+                  "ar": "فيكسن",
+                  "en": "Vixen"
+                }
+              },
+              {
+                "key": "UkNaaZmJZipQx52VWzwzkw",
+                "name": {
+                  "ar": "فوليومكرييشن",
+                  "en": "VolumeCreation"
+                }
+              },
+              {
+                "key": "KeJiZr3wNVjR2YGstyP2ZZ",
+                "name": {
+                  "ar": "",
+                  "en": "Voyager"
+                }
+              },
+              {
+                "key": "hbLSQ4fHpJb7JGyCgyin75",
+                "name": {
+                  "ar": "دبليو",
+                  "en": "W"
+                }
+              },
+              {
+                "key": "Hrku9K62592PgRnkaztY5A",
+                "name": {
+                  "ar": "ويكيكيبيتشكوكونات",
+                  "en": "WaikikiBeachCoconut"
+                },
+                "value": "#bfbe8e"
+              },
+              {
+                "key": "6ukZBcXGkUgKNdT8XquRkr",
+                "name": {
+                  "ar": "جوزي",
+                  "en": "Walnut"
+                },
+                "value": "#f56511"
+              },
+              {
+                "key": "DHgfneWnBZ5LJnQuu2nvy6",
+                "name": {
+                  "ar": "بيجدافئ",
+                  "en": "WarmBeige"
+                },
+                "value": "#919644"
+              },
+              {
+                "key": "SCe2KTCyxsQcAAvixLRf6j",
+                "name": {
+                  "ar": "أشقردافئ",
+                  "en": "WarmBlonde"
+                },
+                "value": "#f2eb85"
+              },
+              {
+                "key": "L86H2JqbVvpp4DCrS33A3s",
+                "name": {
+                  "ar": "بنيفاتح",
+                  "en": "WarmBrown"
+                },
+                "value": "#9c7c3d"
+              },
+              {
+                "key": "BeNJiUob4fEuD3YAzhnVaP",
+                "name": {
+                  "ar": "وورمهورايزون",
+                  "en": "WarmHorizon"
+                },
+                "value": "#d7e0a8"
+              },
+              {
+                "key": "JxcB4HLDiYjgJsm5tjuSDn",
+                "name": {
+                  "ar": "وارمهورايزونز",
+                  "en": "WarmHorizons"
+                }
+              },
+              {
+                "key": "c5dZhuxFZkTohgvxS5NQz9",
+                "name": {
+                  "ar": "وارمايفوري",
+                  "en": "WarmIvory"
+                },
+                "value": "#e3e0ad"
+              },
+              {
+                "key": "9TE3oV7n8prtGmpzEQefUh",
+                "name": {
+                  "ar": "المسكالدافئالحمضيات",
+                  "en": "WarmMuskCitrus"
+                },
+                "value": "#e8e860"
+              },
+              {
+                "key": "n3kSa2FCN9a7qvFwwyqa4L",
+                "name": {
+                  "ar": "نوددافيء",
+                  "en": "WarmNude"
+                }
+              },
+              {
+                "key": "Ggkf36kkbwpBffEC4nhGeY",
+                "name": {
+                  "ar": "خوخيفاتح",
+                  "en": "WarmPeach"
+                },
+                "value": "#f087f0"
+              },
+              {
+                "key": "SquQDWcwrE6dMkEsZWmNT2",
+                "name": {
+                  "ar": "وارمبورسلين",
+                  "en": "WarmPorcelain"
+                }
+              },
+              {
+                "key": "fkXadmE8to3LmFCfYDDrv7",
+                "name": {
+                  "ar": "فانيليادافئة",
+                  "en": "WarmVanilla"
+                },
+                "value": "/v/a/vanilla_2.png"
+              },
+              {
+                "key": "JWipRKTo3mTdo7FgAbJEdT",
+                "name": {
+                  "ar": "وورمفانيلاشوكر",
+                  "en": "WarmVanillaSugar"
+                },
+                "value": "/v/a/vanilla_4.png"
+              },
+              {
+                "key": "MkdpvcKE3oJC6cm2KRzZ75",
+                "name": {
+                  "ar": "ووارمويشيز",
+                  "en": "WarmWishes"
+                },
+                "value": "#d6cb53"
+              },
+              {
+                "key": "RmuRgM9fPjXwrY4XyVh8Fj",
+                "name": {
+                  "ar": "بطيخ",
+                  "en": "Watermelon"
+                },
+                "value": "#f5253d"
+              },
+              {
+                "key": "ZX4b22NSyzmJE7zTZjwyDX",
+                "name": {
+                  "ar": "بطيخوكيوي",
+                  "en": "WatermelonKiwi"
+                }
+              },
+              {
+                "key": "7AG3vFE87wDqbpSmgjDdwH",
+                "name": {
+                  "ar": "البطيخ",
+                  "en": "WatermelonPop"
+                },
+                "value": "#eb2c59"
+              },
+              {
+                "key": "aTzQta5REAHGiPaUzg6SsJ",
+                "name": {
+                  "ar": "سكري",
+                  "en": "WatermelonSugar"
+                }
+              },
+              {
+                "key": "eXArjrW8Azd2eKYsA6Lybf",
+                "name": {
+                  "ar": "متموج",
+                  "en": "Wavey"
+                },
+                "value": "/a/2/a2742900d0ca014aae721bdc736f67a3_2.jpg"
+              },
+              {
+                "key": "2oj5FjLb6JbRWRKVBL7538",
+                "name": {
+                  "ar": "ويدنجداي",
+                  "en": "WeddingDay"
+                },
+                "value": "#000000"
+              },
+              {
+                "key": "K7CFoZDQm4KvkuHHjpMbkc",
+                "name": {
+                  "ar": "ونسداي",
+                  "en": "Wednesday"
+                }
+              },
+              {
+                "key": "UPBEvDMpgf8DGrnJC3MsRN",
+                "name": {
+                  "ar": "فرويو",
+                  "en": "WednesdayFroYo"
+                }
+              },
+              {
+                "key": "Y3gesmKttmGsAKZ3gMsdvj",
+                "name": {
+                  "ar": "ويكند",
+                  "en": "Weekend"
+                },
+                "value": "#4dbceb"
+              },
+              {
+                "key": "Vech2RVRvX6TpxAbcmQhEZ",
+                "name": {
+                  "ar": "ويكإندزين",
+                  "en": "WeekendZen"
+                }
+              },
+              {
+                "key": "YdUoJcBudbLu9uaYtXej2P",
+                "name": {
+                  "ar": "Wheat",
+                  "en": "Wheat"
+                },
+                "value": "#F5DEB3"
+              },
+              {
+                "key": "o9LGbRuKxfhcB5pTD7ZSHq",
+                "name": {
+                  "ar": "ويبدروزفانيلا",
+                  "en": "WhippedRoseVanilla"
+                },
+                "value": "/v/a/vanilla_3.png"
+              },
+              {
+                "key": "d2T5Qg587fmJ993u2HiQgF",
+                "name": {
+                  "ar": "وارل",
+                  "en": "Whirl"
+                }
+              },
+              {
+                "key": "YxoDKpSKLrgsR2py5Xs6Wv",
+                "name": {
+                  "ar": "White",
+                  "en": "White"
+                },
+                "value": "#FFFFFF"
+              },
+              {
+                "key": "ef2sqq3jAJbEnodDFeecVL",
+                "name": {
+                  "ar": "ذهبأبيض",
+                  "en": "WhiteGold"
+                },
+                "value": "/u/n/untitled234.jpg"
+              },
+              {
+                "key": "NwBNocLevJMsZnozsySD9h",
+                "name": {
+                  "ar": "أبيضلامع",
+                  "en": "WhiteLuminous"
+                },
+                "value": "/5/e/5e855e7777554bb28ec994ec433368f3_1.jpg"
+              },
+              {
+                "key": "XmX4GsqZyaBfCxHMAcN55G",
+                "name": {
+                  "ar": "وايتمسك",
+                  "en": "WhiteMusk"
+                },
+                "value": "/w/h/white_musk.jpg"
+              },
+              {
+                "key": "Pz3rFiRB4JJe9NWgbiHZZ3",
+                "name": {
+                  "ar": "WhiteTitanium",
+                  "en": "WhiteTitanium"
+                },
+                "value": "#e0dfe3"
+              },
+              {
+                "key": "ARrtuAqx7XKP9tW4LTNAXn",
+                "name": {
+                  "ar": "أبيضبنفسجي",
+                  "en": "WhiteViolet"
+                },
+                "value": "#f7c9f7"
+              },
+              {
+                "key": "XcGkbTZkb5WKAXsSSJnQWj",
+                "name": {
+                  "ar": "وايفي",
+                  "en": "Wifey"
+                }
+              },
+              {
+                "key": "Ujk6nzbDnkCFv9ZwPcJaCx",
+                "name": {
+                  "ar": "أرغانبري",
+                  "en": "WildArgan"
+                }
+              },
+              {
+                "key": "dVxuJEihRMQyD5ZZVgXs2G",
+                "name": {
+                  "ar": "وايلدبيري",
+                  "en": "WildBerry"
+                },
+                "value": "#a341a3"
+              },
+              {
+                "key": "Y89ch87dsYY9MYw4DfgqgS",
+                "name": {
+                  "ar": "وايلدجايلد",
+                  "en": "WildChild"
+                }
+              },
+              {
+                "key": "apaKQBQQVFDv7zKKZmWUNY",
+                "name": {
+                  "ar": "ويلدليك",
+                  "en": "WildLake"
+                },
+                "value": "#7fbd53"
+              },
+              {
+                "key": "NJQM6PdxZWpkt4viVfy2oB",
+                "name": {
+                  "ar": "الاوركيدالبري",
+                  "en": "WildOrchid"
+                }
+              },
+              {
+                "key": "SutUPFG3HFCaSJqjgm65zk",
+                "name": {
+                  "ar": "وايلدروزز",
+                  "en": "WildRoses"
+                }
+              },
+              {
+                "key": "i37wQnj8S2vNNYZUPziGXF",
+                "name": {
+                  "ar": "وايلدسيند",
+                  "en": "WildSand"
+                }
+              },
+              {
+                "key": "n94iBgLBpNvkRhcrHnucAU",
+                "name": {
+                  "ar": "التوابلالخشب",
+                  "en": "WildSpice"
+                },
+                "value": "#666218"
+              },
+              {
+                "key": "JX3uzhigKjr47LhYY5WW5K",
+                "name": {
+                  "ar": "وايلدوودز",
+                  "en": "WildWoods"
+                }
+              },
+              {
+                "key": "BosQ5caALdCnTBJqytrU4F",
+                "name": {
+                  "ar": "WildernessGreen",
+                  "en": "WildernessGreen"
+                },
+                "value": "#4b6f44"
+              },
+              {
+                "key": "jmw3LYBaeY3juJQPevnA4U",
+                "name": {
+                  "ar": "واين",
+                  "en": "Wine"
+                }
+              },
+              {
+                "key": "Ac4ZBF6Sw29KtSkZYZivvn",
+                "name": {
+                  "ar": "وينتركانديابل",
+                  "en": "WinterCandyApple"
+                },
+                "value": "#4ba30c"
+              },
+              {
+                "key": "o56cXK3mGrkfsoNY5HRxvu",
+                "name": {
+                  "ar": "ولفثورن",
+                  "en": "Wolfthorn"
+                },
+                "value": "#c6d1aa"
+              },
+              {
+                "key": "UUWYGSc7JRSa8Jqrp5ZYUy",
+                "name": {
+                  "ar": "خشبي",
+                  "en": "Wood"
+                },
+                "value": "#b76e20"
+              },
+              {
+                "key": "Gyok6gXcBDcp9mPwJxJ7EN",
+                "name": {
+                  "ar": "شديدالسواد",
+                  "en": "XtraBlack"
+                }
+              },
+              {
+                "key": "WigNfhFLTSCb5wFDtcyxQB",
+                "name": {
+                  "ar": "بني",
+                  "en": "XtraBrown"
+                },
+                "value": "#8a6e12"
+              },
+              {
+                "key": "QxiohnHZCuQZ4EfZifujyn",
+                "name": {
+                  "ar": "اكستراكول",
+                  "en": "Xtracool"
+                }
+              },
+              {
+                "key": "Z8hJ9yoT5LBKw6LYPDs7MX",
+                "name": {
+                  "ar": "واي",
+                  "en": "YDarkSand"
+                }
+              },
+              {
+                "key": "VPHjfFmEFxYCGBh9kHmcpT",
+                "name": {
+                  "ar": "واي",
+                  "en": "YFlesh"
+                }
+              },
+              {
+                "key": "oNSXSh4yYYw8UkMtvvuVqk",
+                "name": {
+                  "ar": "واي",
+                  "en": "YSoftSand"
+                }
+              },
+              {
+                "key": "dSi4qrgEhBLaXPN55hQbmB",
+                "name": {
+                  "ar": "Yellow",
+                  "en": "Yellow"
+                },
+                "value": "#FFFF00"
+              },
+              {
+                "key": "XdCZE7FWoQUjJEgRDGhkaF",
+                "name": {
+                  "ar": "YellowGreen",
+                  "en": "YellowGreen"
+                },
+                "value": "#9ACD32"
+              },
+              {
+                "key": "WzA67a9kt9k2Ti6ccZsKe5",
+                "name": {
+                  "ar": "الأصفرالمتلألئ",
+                  "en": "YellowLuminous"
+                },
+                "value": "/i/m/images.jpg"
+              },
+              {
+                "key": "7UdYmKeALS72PMvH86nEqg",
+                "name": {
+                  "ar": "اصفرذهبي",
+                  "en": "YelowGold"
+                },
+                "value": "#eaed3b"
+              },
+              {
+                "key": "nAPNu8JZueycsnaEUvsVMU",
+                "name": {
+                  "ar": "حنيمشمشي",
+                  "en": "YouBuyIllFly"
+                },
+                "value": "#c4b637"
+              },
+              {
+                "key": "TfFcrX6i9E5DpCzegVyRDj",
+                "name": {
+                  "ar": "يوريفريشيد",
+                  "en": "YouRefreshed"
+                }
+              },
+              {
+                "key": "VD3JSqes6nv9aztQJbFnDq",
+                "name": {
+                  "ar": "يوودنتجيتات",
+                  "en": "YouWouldntGetIt"
+                }
+              },
+              {
+                "key": "VRY6GS2YZUbNUifg6EUixb",
+                "name": {
+                  "ar": "يواربيوتفل",
+                  "en": "YouareBeautiful"
+                }
+              },
+              {
+                "key": "g8CV2vFXfEvn8ftVqBrEh9",
+                "name": {
+                  "ar": "يوآرذاوان",
+                  "en": "YoureTheOne"
+                }
+              },
+              {
+                "key": "bjpoALDDvcgTdZ4y2c9QXp",
+                "name": {
+                  "ar": "يميميم",
+                  "en": "YumYumYum"
+                }
+              },
+              {
+                "key": "Qa8ZFay3ff6CdCX24GevCK",
+                "name": {
+                  "ar": "أبيضوأسودمخطط",
+                  "en": "Zebra"
+                },
+                "value": "/8/f/8ff85cead3f8c6c6bdffa377d0fbaa81.jpg"
+              },
+              {
+                "key": "XaJZeEDPRakRqiAKMJKaSW",
+                "name": {
+                  "ar": "زينةالفراش",
+                  "en": "ZeenatAlFarsh"
+                }
+              },
+              {
+                "key": "6DnoYPEr5Do8cTVsMjbydL",
+                "name": {
+                  "ar": "زينون",
+                  "en": "Zenon"
+                },
+                "value": "#4b851c"
+              },
+              {
+                "key": "Q6KJViYHWKevYqMWJ5ZbPG",
+                "name": {
+                  "ar": "Zephyr",
+                  "en": "Zephyr"
+                },
+                "value": "#B0E0E6"
+              },
+              {
+                "key": "QDMhrCnVVbEH9tkxdRqTiu",
+                "name": {
+                  "ar": "زيرو",
+                  "en": "Zero"
+                }
+              },
+              {
+                "key": "RZsV6468ekLqcgrEXaTi7j",
+                "name": {
+                  "ar": "زينة",
+                  "en": "Zina"
+                }
+              },
+              {
+                "key": "KMPfS7nAvfNNAJUyjUFJLe",
+                "name": {
+                  "ar": "اوكسيدالزنك",
+                  "en": "ZincOxide"
+                },
+                "value": "#d1c649"
+              },
+              {
+                "key": "GoLzJ2EMPPojCW6GxFzNps",
+                "name": {
+                  "ar": "زودياك",
+                  "en": "Zodiac"
+                }
+              },
+              {
+                "key": "VdEZWo3Ff3szrJD9vxwuat",
+                "name": {
+                  "ar": "بنيكستنائي",
+                  "en": "chestnutbrown"
+                },
+                "value": "#916b24"
+              },
+              {
+                "key": "BgNuHm3g6PQR6yssSEhf4o",
+                "name": {
+                  "ar": "بنيالقهوة",
+                  "en": "coffeebrown"
+                },
+                "value": "#6b5d27"
+              },
+              {
+                "key": "aThUkuH53rfALR3idtSvxi",
+                "name": {
+                  "ar": "exceptionallightgray",
+                  "en": "exceptionallightgray"
+                },
+                "value": "#a6a3a3"
+              },
+              {
+                "key": "KNG2Z6yb2dLAbfoUeeaZGT",
+                "name": {
+                  "ar": "extraordinarypink",
+                  "en": "extraordinarypink"
+                },
+                "value": "#edb5ec"
+              },
+              {
+                "key": "dX9Tdy66neHj8U6htkmJE9",
+                "name": {
+                  "ar": "ورديباهت",
+                  "en": "lychesoda"
+                },
+                "value": "#f3a1f7"
+              },
+              {
+                "key": "7bG5yLnG4Q3UqpYEWHwChy",
+                "name": {
+                  "ar": "إيفسانلوران",
+                  "en": "yvesSaintLaurent"
+                }
+              },
+              {
+                "key": "M8t4hh98oPL5XHDDGjeuCu",
+                "name": {
+                  "ar": "أخضر",
+                  "en": "أخضر"
+                },
+                "value": "#4fb345"
+              },
+              {
+                "key": "BFNQB23sqhcvehtKhoSvTS",
+                "name": {
+                  "ar": "StayBeige",
+                  "en": "بيج"
+                },
+                "value": "#ccc566"
+              },
+              {
+                "key": "EqzhAwjGgXfm2aeHoM3Fp8",
+                "name": {
+                  "ar": "عاجي",
+                  "en": "عاجي"
+                },
+                "value": "#edf0d1"
+              },
+              {
+                "key": "WsNLc7hqzCHyymwsg6FzuM5tVY",
+                "name": {
+                  "en": "plink",
+                  "ar": "بلينك"
+                },
+                "value": "#8b4646"
+              }
+            ]
+          },
+          "checksum": "86781583034729df772ae74685813a9b6353abcc",
+          "content_type": "json",
+          "client_checksum": null,
+          "content_sub_type": null,
+          "schema_shortname": null
+        },
+        "collaborators": null,
+        "space_name": "zainmart",
+        "description": {
+          "ar": "",
+          "en": "",
+          "ku": ""
+        },
+        "relationships": [],
+        "resolution_reason": null,
+        "tags": [],
+        "last_checksum_history": "a531de918bb8322001105336d16795b7f23a1e3c"
+      },
+      "attachments": {},
+      "retrieve_lock_status": false
+    },
+    {
+      "resource_type": "content",
+      "uuid": "45ab0d84-210e-439b-904c-c95ceb72e6f7",
+      "shortname": "storages",
+      "subpath": "variations",
+      "attributes": {
+        "created_at": "2025-12-17T09:49:29.830951",
+        "updated_at": "2026-02-19T07:05:52.365889",
+        "state": null,
+        "owner_shortname": "dmart",
+        "is_open": null,
+        "is_active": true,
+        "owner_group_shortname": null,
+        "reporter": null,
+        "slug": "storages",
+        "acl": null,
+        "workflow_shortname": null,
+        "displayname": {
+          "ar": "",
+          "en": "",
+          "ku": null
+        },
+        "payload": {
+          "body": {
+            "options": [
+              {
+                "key": "none",
+                "name": {
+                  "ar": "غير معلوم السعة",
+                  "en": "Unspecified storage"
+                }
+              },
+              {
+                "key": "YDs2mCAVN3p5XU92P74KKP",
+                "name": {
+                  "ar": "3 جِيغابايت",
+                  "en": "3 GB"
+                }
+              },
+              {
+                "key": "Tj6bC2WxGNqjJWAmkcMCzv",
+                "name": {
+                  "ar": "10 جِيغابايت",
+                  "en": "10 GB"
+                }
+              },
+              {
+                "key": "bxrUTRke3BuKdyRXyLuFwn",
+                "name": {
+                  "ar": "100 جِيغابايت",
+                  "en": "100 GB"
+                }
+              },
+              {
+                "key": "Ac9uqCu3x4QppMtiGs9JBt",
+                "name": {
+                  "ar": "250 جِيغابايت",
+                  "en": "250 GB"
+                }
+              },
+              {
+                "key": "nLs2yJ4eUoPywMZPb4BQ2u",
+                "name": {
+                  "ar": "1 تِيرابايت",
+                  "en": "1 TB"
+                }
+              },
+              {
+                "key": "mRHPcyTGuBVCzkheezWJMQ",
+                "name": {
+                  "ar": "128 جِيغابايت",
+                  "en": "128 GB"
+                }
+              },
+              {
+                "key": "K7V9TeMJVbUKoR5MGkNfRT",
+                "name": {
+                  "ar": "256 جِيغابايت",
+                  "en": "256 GB"
+                }
+              },
+              {
+                "key": "4LhayCUopcwBm6BTRaPYWV",
+                "name": {
+                  "ar": "512 جِيغابايت",
+                  "en": "512 GB"
+                }
+              },
+              {
+                "key": "VHQY6J7aThcAG3Ww8daieF",
+                "name": {
+                  "ar": "64 جِيغابايت",
+                  "en": "64 GB"
+                }
+              }
+            ]
+          },
+          "checksum": "dec4088537b561a7fee212f993d6541d3fd2c2ce",
+          "content_type": "json",
+          "client_checksum": null,
+          "content_sub_type": null,
+          "schema_shortname": null
+        },
+        "collaborators": null,
+        "space_name": "zainmart",
+        "description": {
+          "ar": "",
+          "en": "",
+          "ku": ""
+        },
+        "relationships": [],
+        "resolution_reason": null,
+        "tags": [],
+        "last_checksum_history": "23f2f85fd73947985738e1752adc29e2b1277543"
+      },
+      "attachments": {},
+      "retrieve_lock_status": false
+    }
+  ],
+  "attributes": {
+    "total": 2,
+    "returned": 2
+  }
+}

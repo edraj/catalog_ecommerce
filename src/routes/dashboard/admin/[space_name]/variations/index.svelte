@@ -61,27 +61,29 @@
   }
 
   let colorsVariation = $derived.by(() => getVariationByShortname("colors"));
-  let storagesVariation = $derived.by(() => getVariationByShortname("storages"));
+  let storagesVariation = $derived.by(() =>
+    getVariationByShortname("storages"),
+  );
 
- function getOptionsSafe(variation: any) {
-  if (!variation) return [];
-  return getVariationOptions(variation) || [];
-}
+  function getOptionsSafe(variation: any) {
+    if (!variation) return [];
+    return getVariationOptions(variation) || [];
+  }
 
-function filterOptions(variation: any) {
-  if (!variation) return [];
-  const options = getOptionsSafe(variation);
+  function filterOptions(variation: any) {
+    if (!variation) return [];
+    const options = getOptionsSafe(variation);
 
-  const q = (searchQuery || "").trim().toLowerCase();
-  if (!q) return options;
+    const q = (searchQuery || "").trim().toLowerCase();
+    if (!q) return options;
 
-  return options.filter((option: any) => {
-    const nameEn = option.name?.en?.toLowerCase() || "";
-    const nameAr = option.name?.ar?.toLowerCase() || "";
-    const value = option.value?.toLowerCase?.() || "";
-    return nameEn.includes(q) || nameAr.includes(q) || value.includes(q);
-  });
-}
+    return options.filter((option: any) => {
+      const nameEn = option.name?.en?.toLowerCase() || "";
+      const nameAr = option.name?.ar?.toLowerCase() || "";
+      const value = option.value?.toLowerCase?.() || "";
+      return nameEn.includes(q) || nameAr.includes(q) || value.includes(q);
+    });
+  }
 
   let activeVariation = $derived.by(() =>
     activeTab === "colors" ? colorsVariation : storagesVariation,
@@ -136,7 +138,9 @@ function filterOptions(variation: any) {
   });
 
   let totalColors = $derived.by(() => getOptionsSafe(colorsVariation).length);
-  let totalStorages = $derived.by(() => getOptionsSafe(storagesVariation).length);
+  let totalStorages = $derived.by(
+    () => getOptionsSafe(storagesVariation).length,
+  );
 
   // Stats (keep info)
   let statLeftLabel = $derived.by(
@@ -184,7 +188,10 @@ function filterOptions(variation: any) {
         variations = response.records;
 
         // Default tab if one is missing
-        if (!getVariationByShortname("colors") && getVariationByShortname("storages")) {
+        if (
+          !getVariationByShortname("colors") &&
+          getVariationByShortname("storages")
+        ) {
           activeTab = "storages";
         } else {
           activeTab = "colors";
@@ -334,7 +341,8 @@ function filterOptions(variation: any) {
         name: { en: formData.name_en, ar: formData.name_ar },
       };
 
-      if (selectedVariation.shortname === "colors") newOption.value = formData.value;
+      if (selectedVariation.shortname === "colors")
+        newOption.value = formData.value;
 
       const updatedOptions = [...currentOptions, newOption];
 
@@ -352,7 +360,7 @@ function filterOptions(variation: any) {
         website.main_space,
         selectedVariation.subpath,
         selectedVariation.resource_type,
-        JSON.stringify(variationData),
+        variationData.payload.body,
         "",
         "",
       );
@@ -401,7 +409,8 @@ function filterOptions(variation: any) {
           name: { en: formData.name_en, ar: formData.name_ar },
         };
 
-        if (selectedVariation.shortname === "colors") updated.value = formData.value;
+        if (selectedVariation.shortname === "colors")
+          updated.value = formData.value;
         return updated;
       });
 
@@ -443,7 +452,9 @@ function filterOptions(variation: any) {
 
     try {
       const currentOptions = getOptionsSafe(selectedVariation);
-      const updatedOptions = currentOptions.filter((opt: any) => opt.key !== selectedOption.key);
+      const updatedOptions = currentOptions.filter(
+        (opt: any) => opt.key !== selectedOption.key,
+      );
 
       const payloadBody = selectedVariation.attributes?.payload?.body || {};
       const variationData = {
@@ -510,10 +521,20 @@ function filterOptions(variation: any) {
     <div class="stats-grid" style="margin-bottom: 16px;">
       <div class="stat-card">
         <div class="bg-icon rounded-lg flex items-center justify-center">
-          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746ZM10.2033 7.5L7.86992 18H11.1624C11.7452 18.0015 12.3148 18.1735 12.8011 18.4948C13.2873 18.8161 13.6689 19.2727 13.8988 19.8082C14.2443 20.6086 14.8166 21.2904 15.5449 21.7696C16.2739 22.2492 17.1274 22.5048 18 22.5048C18.8726 22.5048 19.7261 22.2492 20.4551 21.7696C21.1837 21.2903 21.7561 20.608 22.1016 19.8072C22.3316 19.2721 22.713 18.8159 23.1989 18.4948C23.6852 18.1735 24.2548 18.0015 24.8376 18L24.8415 18L28.1301 18L25.7967 7.5H10.2033ZM28.5 21H24.8543C24.2766 22.3368 23.3205 23.4755 22.1038 24.2759C20.8853 25.0776 19.4586 25.5048 18 25.5048C16.5414 25.5048 15.1147 25.0776 13.8962 24.2759C12.6795 23.4755 11.7234 22.3368 11.1457 21H7.5V28.5H28.5V21ZM12 10.5C12 9.67157 12.6716 9 13.5 9H22.5C23.3284 9 24 9.67157 24 10.5C24 11.3284 23.3284 12 22.5 12H13.5C12.6716 12 12 11.3284 12 10.5ZM10.5 15C10.5 14.1716 11.1716 13.5 12 13.5H24C24.8284 13.5 25.5 14.1716 25.5 15C25.5 15.8284 24.8284 16.5 24 16.5H12C11.1716 16.5 10.5 15.8284 10.5 15Z" fill="#3C307F"/>
-</svg>
-
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M7.53572 5.6746C7.68823 4.9883 8.29695 4.5 9 4.5H27C27.703 4.5 28.3118 4.9883 28.4643 5.6746L31.4643 19.1746C31.488 19.2814 31.5 19.3906 31.5 19.5V28.5C31.5 29.2956 31.1839 30.0587 30.6213 30.6213C30.0587 31.1839 29.2956 31.5 28.5 31.5H7.5C6.70435 31.5 5.94129 31.1839 5.37868 30.6213C4.81607 30.0587 4.5 29.2956 4.5 28.5V19.5C4.5 19.3906 4.51198 19.2814 4.53572 19.1746L7.53572 5.6746ZM10.2033 7.5L7.86992 18H11.1624C11.7452 18.0015 12.3148 18.1735 12.8011 18.4948C13.2873 18.8161 13.6689 19.2727 13.8988 19.8082C14.2443 20.6086 14.8166 21.2904 15.5449 21.7696C16.2739 22.2492 17.1274 22.5048 18 22.5048C18.8726 22.5048 19.7261 22.2492 20.4551 21.7696C21.1837 21.2903 21.7561 20.608 22.1016 19.8072C22.3316 19.2721 22.713 18.8159 23.1989 18.4948C23.6852 18.1735 24.2548 18.0015 24.8376 18L24.8415 18L28.1301 18L25.7967 7.5H10.2033ZM28.5 21H24.8543C24.2766 22.3368 23.3205 23.4755 22.1038 24.2759C20.8853 25.0776 19.4586 25.5048 18 25.5048C16.5414 25.5048 15.1147 25.0776 13.8962 24.2759C12.6795 23.4755 11.7234 22.3368 11.1457 21H7.5V28.5H28.5V21ZM12 10.5C12 9.67157 12.6716 9 13.5 9H22.5C23.3284 9 24 9.67157 24 10.5C24 11.3284 23.3284 12 22.5 12H13.5C12.6716 12 12 11.3284 12 10.5ZM10.5 15C10.5 14.1716 11.1716 13.5 12 13.5H24C24.8284 13.5 25.5 14.1716 25.5 15C25.5 15.8284 24.8284 16.5 24 16.5H12C11.1716 16.5 10.5 15.8284 10.5 15Z"
+              fill="#3C307F"
+            />
+          </svg>
         </div>
         <div class="stat-content">
           <h3 class="stat-title">{statLeftLabel}</h3>
@@ -523,7 +544,13 @@ function filterOptions(variation: any) {
 
       <div class="stat-card">
         <div class="bg-icon rounded-lg flex items-center justify-center">
-          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             <path
               fill-rule="evenodd"
               clip-rule="evenodd"
@@ -540,7 +567,13 @@ function filterOptions(variation: any) {
 
       <div class="stat-card">
         <div class="bg-icon rounded-lg flex items-center justify-center">
-          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             <path
               fill-rule="evenodd"
               clip-rule="evenodd"
@@ -557,12 +590,20 @@ function filterOptions(variation: any) {
     </div>
 
     <!-- Controls header (Orders layout) -->
-    <div class="flex flex-col search-table_header md:flex-row md:items-end justify-between bg-white rounded-t-xl gap-3 w-full p-6">
+    <div
+      class="flex flex-col search-table_header md:flex-row md:items-end justify-between bg-white rounded-t-xl gap-3 w-full p-6"
+    >
       <!-- SEARCH -->
       <div>
         <div class="relative w-[256px]">
-          <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-            <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+          <div
+            class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none"
+          >
+            <svg
+              class="w-4 h-4 text-gray-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
               <path
                 fill-rule="evenodd"
                 d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
@@ -590,20 +631,20 @@ function filterOptions(variation: any) {
       <!-- RIGHT: FILTERS + ACTIONS -->
       <div class="flex items-end gap-3 justify-end">
         {#if activeVariation}
-                <button
-                  type="button"
-                  class="inline-flex items-center justify-center mx-2 h-9 cursor-pointer px-3 py-2 bg-[#3C307F] text-white text-sm font-medium rounded-[12px] shadow-[0px_1px_0.5px_0.05px_#1D293D05] hover:bg-[#2f2666] transition-colors duration-200 s-YJT1Gee9Kcm3"
-                  onclick={() => {
-                    isActionsOpen = false;
-                    openAddOptionModal(activeVariation);
-                  }}
-                >
-                  <PlusOutline size="sm" />
-                  <span>
-                    {$_("admin_dashboard.add_option") || "Add Option"} ({activeTabTitle()})
-                  </span>
-                </button>
-              {/if}
+          <button
+            type="button"
+            class="inline-flex items-center justify-center mx-2 h-9 cursor-pointer px-3 py-2 bg-[#3C307F] text-white text-sm font-medium rounded-[12px] shadow-[0px_1px_0.5px_0.05px_#1D293D05] hover:bg-[#2f2666] transition-colors duration-200 s-YJT1Gee9Kcm3"
+            onclick={() => {
+              isActionsOpen = false;
+              openAddOptionModal(activeVariation);
+            }}
+          >
+            <PlusOutline size="sm" />
+            <span>
+              {$_("admin_dashboard.add_option") || "Add Option"} ({activeTabTitle()})
+            </span>
+          </button>
+        {/if}
 
         <!-- FILTERS DROPDOWN -->
         <div class="relative" onclick={(e) => e.stopPropagation()}>
@@ -618,7 +659,13 @@ function filterOptions(variation: any) {
               text-sm text-gray-700 hover:bg-gray-50"
           >
             <span class="truncate inline-flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <path
                   fill-rule="evenodd"
                   clip-rule="evenodd"
@@ -628,13 +675,25 @@ function filterOptions(variation: any) {
               </svg>
 
               {$_("admin.filters") || "Filters"}
-              <span class="inline-flex items-center justify-center px-2 h-5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+              <span
+                class="inline-flex items-center justify-center px-2 h-5 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
+              >
                 {activeFiltersCount()}
               </span>
             </span>
 
-            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            <svg
+              class="w-4 h-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </button>
 
@@ -668,7 +727,9 @@ function filterOptions(variation: any) {
                 </div>
               </div>
 
-              <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+              <div
+                class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100"
+              >
                 <button
                   type="button"
                   onclick={() => {
@@ -700,7 +761,6 @@ function filterOptions(variation: any) {
             </div>
           {/if}
         </div>
-
       </div>
     </div>
 
@@ -709,18 +769,23 @@ function filterOptions(variation: any) {
       {#if !activeVariation}
         <EmptyState
           icon="⚠️"
-          title={$_("admin_dashboard.variation_not_found") || "Variation not found"}
+          title={$_("admin_dashboard.variation_not_found") ||
+            "Variation not found"}
           description={activeTab === "colors"
-            ? $_("admin_dashboard.missing_colors_variation") || "Missing 'colors' variation"
-            : $_("admin_dashboard.missing_storages_variation") || "Missing 'storages' variation"}
+            ? $_("admin_dashboard.missing_colors_variation") ||
+              "Missing 'colors' variation"
+            : $_("admin_dashboard.missing_storages_variation") ||
+              "Missing 'storages' variation"}
         />
       {:else if activeOptions.length === 0}
         <EmptyState
           icon={activeTabEmptyIcon()}
           title={activeTabEmptyText()}
           description={searchQuery
-            ? $_("admin_dashboard.no_search_results") || "No results match your search."
-            : $_("admin_dashboard.add_option_hint") || "Use Actions → Add Option to create one."}
+            ? $_("admin_dashboard.no_search_results") ||
+              "No results match your search."
+            : $_("admin_dashboard.add_option_hint") ||
+              "Use Actions → Add Option to create one."}
         />
       {:else}
         <div class="items-table-container">
@@ -751,7 +816,10 @@ function filterOptions(variation: any) {
                 <tr class="item-row">
                   <td class="col-name">
                     <div class="option-cell">
-                      <div class="option-title" title={getOptionName(option, $locale)}>
+                      <div
+                        class="option-title"
+                        title={getOptionName(option, $locale)}
+                      >
                         {getOptionName(option, $locale)}
                       </div>
                       <div class="option-sub mono" title={option.key}>
@@ -779,7 +847,10 @@ function filterOptions(variation: any) {
                   {/if}
 
                   <td class="col-actions" onclick={(e) => e.stopPropagation()}>
-                    <div class="relative flex justify-end" onclick={(e) => e.stopPropagation()}>
+                    <div
+                      class="relative flex justify-end"
+                      onclick={(e) => e.stopPropagation()}
+                    >
                       <button
                         class="h-8 w-8 inline-flex items-center justify-center rounded-md cursor-pointer hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
                         aria-label={$_("admin.actions") || "Actions"}
@@ -791,7 +862,9 @@ function filterOptions(variation: any) {
                       {#if openDropdownKey === option.key}
                         <div
                           class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1"
-                          style={$isRTL ? "right:0; top:22px;" : "right:0; top:22px;"}
+                          style={$isRTL
+                            ? "right:0; top:22px;"
+                            : "right:0; top:22px;"}
                           role="menu"
                         >
                           <button
@@ -802,7 +875,12 @@ function filterOptions(variation: any) {
                             }}
                             role="menuitem"
                           >
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500">
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              class="w-4 h-4 text-gray-500"
+                            >
                               <path
                                 fill-rule="evenodd"
                                 clip-rule="evenodd"
@@ -821,8 +899,15 @@ function filterOptions(variation: any) {
                             }}
                             role="menuitem"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v10h-2V9zm4 0h2v10h-2V9zM7 9h2v10H7V9z" />
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              class="w-4 h-4"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path
+                                d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v10h-2V9zm4 0h2v10h-2V9zM7 9h2v10H7V9z"
+                              />
                             </svg>
                             <span>{$_("common.delete") || "Delete"}</span>
                           </button>
@@ -838,99 +923,101 @@ function filterOptions(variation: any) {
 
         <!-- Pagination (Orders style) -->
         {#if totalPages > 1}
-  <div class="pagination">
-    <!-- Left info -->
-    <div class="pagination-info">
-      <span class="pagination-info__label">
-        {$_("common.showing") || "Showing"}
-      </span>
+          <div class="pagination">
+            <!-- Left info -->
+            <div class="pagination-info">
+              <span class="pagination-info__label">
+                {$_("common.showing") || "Showing"}
+              </span>
 
-      <span class="pagination-info__strong">
-        {formatNumber((currentPage - 1) * itemsPerPage + 1, $locale)}
-      </span>
+              <span class="pagination-info__strong">
+                {formatNumber((currentPage - 1) * itemsPerPage + 1, $locale)}
+              </span>
 
-      <span class="pagination-info__label">-</span>
+              <span class="pagination-info__label">-</span>
 
-      <span class="pagination-info__strong">
-        {formatNumber(
-          Math.min(currentPage * itemsPerPage, totalOptionsCount),
-          $locale,
-        )}
-      </span>
+              <span class="pagination-info__strong">
+                {formatNumber(
+                  Math.min(currentPage * itemsPerPage, totalOptionsCount),
+                  $locale,
+                )}
+              </span>
 
-      <span class="pagination-info__label">
-        {$_("common.of") || "of"}
-      </span>
+              <span class="pagination-info__label">
+                {$_("common.of") || "of"}
+              </span>
 
-      <span class="pagination-info__strong">
-        {formatNumber(totalOptionsCount, $locale)}
-      </span>
+              <span class="pagination-info__strong">
+                {formatNumber(totalOptionsCount, $locale)}
+              </span>
 
-      <span class="pagination-info__label">
-        {activeTab === "colors"
-          ? $_("admin_dashboard.colors") || "colors"
-          : $_("admin_dashboard.storages") || "storages"}
-      </span>
-    </div>
+              <span class="pagination-info__label">
+                {activeTab === "colors"
+                  ? $_("admin_dashboard.colors") || "colors"
+                  : $_("admin_dashboard.storages") || "storages"}
+              </span>
+            </div>
 
-    <!-- Right controls -->
-    <div class="pagination-controls" onclick={(e) => e.stopPropagation()}>
-      <!-- Left arrow -->
-      <button
-        class="pager-arrow pager-arrow--left"
-        onclick={previousPage}
-        disabled={currentPage === 1}
-        aria-label="Previous page"
-      >
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-          <path
-            d="M12.5 15L7.5 10L12.5 5"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </button>
-
-      <!-- Page numbers -->
-      <div class="pagination-pages">
-        {#each visiblePageNumbers as p}
-          {#if p === "ellipsis"}
-            <span class="page-ellipsis">...</span>
-          {:else}
-            <button
-              class="page-chip"
-              class:active={currentPage === p}
-              onclick={() => goToPage(p)}
+            <!-- Right controls -->
+            <div
+              class="pagination-controls"
+              onclick={(e) => e.stopPropagation()}
             >
-              {formatNumber(p, $locale)}
-            </button>
-          {/if}
-        {/each}
-      </div>
+              <!-- Left arrow -->
+              <button
+                class="pager-arrow pager-arrow--left"
+                onclick={previousPage}
+                disabled={currentPage === 1}
+                aria-label="Previous page"
+              >
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                  <path
+                    d="M12.5 15L7.5 10L12.5 5"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
 
-      <!-- Right arrow -->
-      <button
-        class="pager-arrow pager-arrow--right"
-        onclick={nextPage}
-        disabled={currentPage === totalPages}
-        aria-label="Next page"
-      >
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-          <path
-            d="M7.5 5L12.5 10L7.5 15"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </button>
-    </div>
-  </div>
-{/if}
+              <!-- Page numbers -->
+              <div class="pagination-pages">
+                {#each visiblePageNumbers as p}
+                  {#if p === "ellipsis"}
+                    <span class="page-ellipsis">...</span>
+                  {:else}
+                    <button
+                      class="page-chip"
+                      class:active={currentPage === p}
+                      onclick={() => goToPage(p)}
+                    >
+                      {formatNumber(p, $locale)}
+                    </button>
+                  {/if}
+                {/each}
+              </div>
 
+              <!-- Right arrow -->
+              <button
+                class="pager-arrow pager-arrow--right"
+                onclick={nextPage}
+                disabled={currentPage === totalPages}
+                aria-label="Next page"
+              >
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                  <path
+                    d="M7.5 5L12.5 10L7.5 15"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        {/if}
       {/if}
     </div>
   {/if}
@@ -984,7 +1071,7 @@ function filterOptions(variation: any) {
     font-size: 13px;
     color: #374151;
   }
- .pagination {
+  .pagination {
     display: flex;
     justify-content: space-between;
     align-items: center;

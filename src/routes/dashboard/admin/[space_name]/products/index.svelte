@@ -183,6 +183,7 @@
     isLoading = true;
     try {
       const offset = (currentPage - 1) * itemsPerPage;
+      const search = buildProductsSearchQuery();
       const response = await getSpaceContents(
         website.main_space,
         "products",
@@ -191,7 +192,7 @@
         offset,
         true,
         undefined,
-        searchQuery,
+        search,
       );
       if (response?.records) {
         products = response.records;
@@ -591,6 +592,7 @@
   });
   function handleCategoryFilterChange() {
     currentPage = 1;
+    void loadProducts();
   }
 
   const filteredColors = $derived.by(() => {
@@ -607,14 +609,6 @@
 
   function triggerUpload() {
     fileInput?.click();
-  }
-
-  function onUploadFile(e: Event) {
-    const input = e.currentTarget as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-
-    // optional: allow selecting same file again later
-    input.value = "";
   }
   const filteredStorages = $derived.by(() => {
     if (!storageSearchTerm) return variations.storages;
@@ -779,6 +773,8 @@
         });
       }
     }
+
+    input.value = "";
   }
 
   function removeImage(index: number) {
@@ -788,6 +784,8 @@
   }
 
   async function uploadProductImages(productShortname: string) {
+    console.log("adding image");
+
     const uploadPromises = selectedImages.map(async (file) => {
       try {
         const result = await attachAttachmentsToEntity(
@@ -854,6 +852,69 @@
     return product.attachments?.media || [];
   }
 
+  function getProductImageUrl(product: any, image: any): string | null {
+    if (!product || !image) return null;
+    try {
+      return Dmart.getAttachmentUrl(
+        {
+          resource_type: ResourceType.media,
+          space_name: website.main_space,
+          subpath: product.subpath + "/",
+          parent_shortname: product.shortname,
+          shortname: image.attributes?.payload?.body,
+          ext: null,
+        },
+        "public",
+      );
+    } catch (error) {
+      console.error("Error getting attachment URL:", error);
+      return null;
+    }
+  }
+
+  async function removeExistingImage(image: any) {
+    if (!selectedProduct || !image?.shortname) return;
+
+    const confirmed = window.confirm(
+      $_("common.confirm_delete") || "Remove this image?",
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteEntity(
+        image.shortname,
+        website.main_space,
+        `/products/${selectedProduct.shortname}`,
+        image.resource_type || ResourceType.media,
+      );
+
+      const nextImages = getProductImages(selectedProduct).filter(
+        (item) => item.shortname !== image.shortname,
+      );
+
+      selectedProduct = {
+        ...selectedProduct,
+        attachments: {
+          ...(selectedProduct.attachments || {}),
+          media: nextImages,
+        },
+      };
+
+      products = products.map((product) =>
+        product.shortname === selectedProduct.shortname
+          ? selectedProduct
+          : product,
+      );
+
+      successToastMessage(
+        $_("common.deleted_successfully") || "Image removed successfully",
+      );
+    } catch (error) {
+      console.error("Error removing image:", error);
+      errorToastMessage($_("common.delete_failed") || "Failed to remove image");
+    }
+  }
+
   function goToPage(page: number) {
     if (page >= 1 && page <= totalPages) {
       currentPage = page;
@@ -869,25 +930,24 @@
   }
 
   const filteredProducts = $derived.by(() => {
-    let filtered = products;
+    return products;
+  });
 
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((product) => {
-        const displayname = getLocalizedDisplayName(product).toLowerCase();
-        const shortname = (product.shortname || "").toLowerCase();
-        return displayname.includes(query) || shortname.includes(query);
-      });
+  function buildProductsSearchQuery(): string {
+    const parts: string[] = [];
+
+    if (searchQuery && searchQuery.trim()) {
+      parts.push(searchQuery.trim());
     }
 
     if (selectedCategoryFilter !== "all") {
-      filtered = filtered.filter((product) =>
-        getProductCategories(product).includes(selectedCategoryFilter),
+      parts.push(
+        `@payload.body.categories_shortnames:${selectedCategoryFilter}`,
       );
     }
 
-    return filtered;
-  });
+    return parts.join(" ").trim();
+  }
 
   function stripHtmlTags(html: string): string {
     if (!html) return "";
@@ -1100,7 +1160,7 @@
       </button>
 
       <div class="mx-2">
-        <details class="relative">
+        <details class="relative category-filter">
           <summary
             class="list-none cursor-pointer select-none h-9 inline-flex items-center justify-between px-3 py-2 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] shadow-[0px_1px_0.5px_0.05px_#1D293D05] text-sm text-gray-700 hover:bg-gray-50"
           >
@@ -1128,7 +1188,7 @@
             </svg>
           </summary>
           <div
-            class="absolute z-20 mt-2 w-[220px] rounded-[12px] border border-gray-200 bg-white shadow-lg p-2"
+            class="absolute z-20 mt-2 w-[220px] rounded-[12px] border border-gray-200 bg-white shadow-lg p-2 category-filter-menu"
           >
             <button
               type="button"
@@ -1952,9 +2012,84 @@
                   bind:this={fileInput}
                   class="upload-input"
                   type="file"
-                  onchange={onUploadFile}
+                  accept="image/*"
+                  multiple
+                  onchange={handleImageSelect}
                   hidden
                 />
+
+                {#if imagePreviews.length > 0}
+                  <div class="image-previews-grid">
+                    {#each imagePreviews as preview, index}
+                      <div class="image-preview-card">
+                        <img src={preview} alt="Selected image preview" />
+                        <button
+                          type="button"
+                          class="remove-preview-btn"
+                          onclick={() => removeImage(index)}
+                          aria-label={$_("common.remove") || "Remove"}
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <path d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+
+                {#if showEditModal && getProductImages(selectedProduct).length > 0}
+                  <div class="image-previews-grid">
+                    {#each getProductImages(selectedProduct) as image}
+                      <div class="image-preview-card">
+                        {#if getProductImageUrl(selectedProduct, image)}
+                          <img
+                            src={getProductImageUrl(selectedProduct, image)}
+                            alt="Existing product image"
+                          />
+                        {:else}
+                          <div class="product-image-placeholder">
+                            <svg
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path
+                                d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
+                              />
+                            </svg>
+                          </div>
+                        {/if}
+
+                        <button
+                          type="button"
+                          class="remove-preview-btn"
+                          onclick={() => removeExistingImage(image)}
+                          aria-label={$_("common.remove") || "Remove"}
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <path d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
               </div>
             </div>
           {:else if activeTab === "categories"}
@@ -2698,7 +2833,6 @@
   }
 
   .product-image-card {
-    height: 160px;
     min-width: 208px;
     border-radius: 12px;
     padding: 16px;
@@ -2766,7 +2900,6 @@
   }
 
   .spec-card {
-    height: 84px;
     min-width: 264px;
     border-radius: 12px;
     padding: 16px;

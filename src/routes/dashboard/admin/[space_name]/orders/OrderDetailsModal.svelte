@@ -647,6 +647,48 @@
     return statusMap[status] || "pending";
   }
 
+  function getPaymentStatusLabel(status: string): string {
+    const normalized = status?.toString().trim().toLowerCase() || "";
+    if (!normalized) return t("common.not_available") || "N/A";
+    if (normalized === "pending") {
+      return t("admin.payment_pending") || "Pending";
+    }
+    if (["completed", "paid", "success"].includes(normalized)) {
+      return t("admin.payment_completed") || "Completed";
+    }
+    if (["nopaid", "unpaid"].includes(normalized)) {
+      return t("admin.payment_not_paid") || "Not Paid";
+    }
+    if (normalized === "failed") {
+      return t("admin.payment_failed") || "Failed";
+    }
+    if (normalized === "refunded") {
+      return t("admin.payment_refunded") || "Refunded";
+    }
+    return normalized;
+  }
+
+  function getCombinedOrderStatus(order: any): string {
+    if (!order) return "";
+    const payload = order.attributes?.payload?.body || {};
+    const directStatus =
+      order.attributes?.state || payload.order_status || payload.state || "";
+    if (directStatus) return directStatus;
+
+    const individualOrders = order.individualOrders || [];
+    const fallbackStatus = individualOrders
+      .map(
+        (item: any) =>
+          item.attributes?.state ||
+          item.attributes?.payload?.body?.order_status ||
+          item.attributes?.payload?.body?.state ||
+          "",
+      )
+      .find(Boolean);
+
+    return fallbackStatus || "";
+  }
+
   function formatNumberValue(value: unknown): string {
     const numberValue = Number(value);
     if (!Number.isFinite(numberValue)) return "0";
@@ -702,18 +744,28 @@
           {@const isLoadingOrders = combinedOrder.isLoadingOrders || false}
 
           <!-- Order Summary (Figma) -->
+          {@const combinedOrderStatus = getCombinedOrderStatus(combinedOrder)}
           <div class="order-summary-block">
             <div class="order-summary-header">
               <div class="order-summary-title">
                 {$_("admin.order_details") || "Order Details"}
               </div>
 
-              <div
-                class="order-summary-status {getPaymentStatusColor(
-                  payload?.payment_status || 'pending',
-                )}"
-              >
-                {payload?.payment_status || "pending"}
+              <div class="order-summary-statuses">
+                {#if combinedOrderStatus}
+                  <div class="status-stack">
+                    <span class="status-label">
+                      {$_("admin.order_status") || "Order"}
+                    </span>
+                    <div
+                      class="order-summary-status order-status {getStatusColor(
+                        combinedOrderStatus,
+                      )}"
+                    >
+                      {getStateLabel(combinedOrderStatus)}
+                    </div>
+                  </div>
+                {/if}
               </div>
             </div>
 
@@ -798,6 +850,8 @@
               {#each individualOrders as order, index}
                 {@const orderPayload = order.attributes?.payload?.body}
                 {@const orderState = order.attributes?.state || "pending"}
+                {@const paymentStatus =
+                  orderPayload?.payment_status || "pending"}
                 {@const transitions = getTransitions(orderState)}
                 {@const cancellationPending =
                   pendingCancellations[order.shortname]}
@@ -829,14 +883,30 @@
                         <div class="order-shortname">{order.shortname}</div>
                       </div>
                     </div>
-
-                    <div class="order-card-status">
-                      <span class="status-badge {getStatusColor(orderState)}">
-                        <svg viewBox="0 0 8 8" fill="currentColor">
-                          <circle cx="4" cy="4" r="3" />
-                        </svg>
-                        {getStateLabel(orderState)}
+                    <div class="status-stack">
+                      <span class="status-label">
+                        {$_("admin.payment_status") || "Payment"}
                       </span>
+                      <span
+                        class="status-badge payment-status {getPaymentStatusColor(
+                          paymentStatus,
+                        )}"
+                      >
+                        {getPaymentStatusLabel(paymentStatus)}
+                      </span>
+                    </div>
+                    <div class="order-card-status">
+                      <div class="status-stack">
+                        <span class="status-label">
+                          {$_("admin.order_status") || "Order"}
+                        </span>
+                        <span class="status-badge {getStatusColor(orderState)}">
+                          <svg viewBox="0 0 8 8" fill="currentColor">
+                            <circle cx="4" cy="4" r="3" />
+                          </svg>
+                          {getStateLabel(orderState)}
+                        </span>
+                      </div>
 
                       {#if transitions.length > 0}
                         <select
@@ -1517,8 +1587,6 @@
   }
 
   .order-summary-status {
-    width: 110px;
-    height: 24px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1530,6 +1598,29 @@
     font-size: 12px;
     font-weight: 600;
     text-transform: capitalize;
+  }
+
+  .order-summary-statuses {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .status-stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .status-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
   .order-summary-status.paid {
@@ -1554,6 +1645,36 @@
     background: #eef2ff;
     border-color: #c7d2fe;
     color: #3730a3;
+  }
+
+  .order-summary-status.order-status.pending {
+    background: #fffbeb;
+    border-color: #fdc700;
+    color: #92400e;
+  }
+
+  .order-summary-status.order-status.processing {
+    background: #dbeafe;
+    border-color: #bfdbfe;
+    color: #1e40af;
+  }
+
+  .order-summary-status.order-status.shipped {
+    background: #e0e7ff;
+    border-color: #c7d2fe;
+    color: #5b21b6;
+  }
+
+  .order-summary-status.order-status.delivered {
+    background: #ecfdf5;
+    border-color: #a4f4cf;
+    color: #065f46;
+  }
+
+  .order-summary-status.order-status.cancelled {
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #991b1b;
   }
 
   .order-summary-info {
@@ -1678,6 +1799,10 @@
     text-transform: capitalize;
   }
 
+  .status-badge.payment-status {
+    border: 1px solid;
+  }
+
   .status-badge svg {
     width: 8px;
     height: 8px;
@@ -1706,6 +1831,30 @@
   .status-badge.cancelled {
     background: #fee2e2;
     color: #991b1b;
+  }
+
+  .status-badge.payment-status.paid {
+    background: #ecfdf5;
+    border-color: #a4f4cf;
+    color: #065f46;
+  }
+
+  .status-badge.payment-status.pending {
+    background: #fffbeb;
+    border-color: #fdc700;
+    color: #92400e;
+  }
+
+  .status-badge.payment-status.failed {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #991b1b;
+  }
+
+  .status-badge.payment-status.refunded {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: #3730a3;
   }
 
   .state-select-inline {

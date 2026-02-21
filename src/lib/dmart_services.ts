@@ -379,16 +379,17 @@ export async function updateEntity(
   schema_shortname: string,
 ) {
   const contentType = data.content_type || "html";
+  console.log("dmart ", data.body || data);
 
   const attributes: any = {
     is_active: data.is_active,
     displayname: {
-      en: data.displayname_en || "",
-      ar: data.displayname_ar || "",
+      en: data.displayname_en || data.displayname?.en || "",
+      ar: data.displayname_ar || data.displayname?.ar || "",
     },
     description: {
-      en: data.description_en || "",
-      ar: data.description_ar || "",
+      en: data.description_en || data.description?.en || "",
+      ar: data.description_ar || data.description?.ar || "",
       ku: data.description_ku || "",
     },
     relationships: [],

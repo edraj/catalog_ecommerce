@@ -45,7 +45,6 @@
     ($locale) => $locale === "ar" || $locale === "ku",
   );
 
-  let categories = $state([]);
   let specifications = $state([]);
   let isLoading = $state(true);
   let showCreateModal = $state(false);
@@ -55,54 +54,27 @@
   let selectedCategory = $state(null);
   let selectedCategoryForDetails = $state(null);
   let selectedParentFilter = $state("all");
-  let expandedCategories = $state(new Set());
+  let selectedStatusFilter = $state("all");
   let editFormData = $state<CategoryFormData | undefined>(undefined);
-  let totalCategoriesCount = $state(0);
   let allCategoriesCache = $state([]);
+  let allCategoriesForHierarchy = $state([]);
   let searchTerm = $state("");
+  let totalCategoriesCount = $state(0);
+  let totalActiveCategories = $state(0);
+  let totalInactiveCategories = $state(0);
   let openDropdownId = $state<string | null>(null);
   let currentPage = $state(1);
   let itemsPerPage = $state(10);
 
   onMount(async () => {
-    await Promise.all([
-      loadAllCategoriesCache(),
-      loadCategories(),
-      loadSpecifications(),
-    ]);
+    await Promise.all([loadCategories(), loadSpecifications()]);
+    void loadAllCategoriesForHierarchy();
   });
-
-  async function loadAllCategoriesCache() {
-    try {
-      const response = await getSpaceContents(
-        website.main_space,
-        "categories",
-        "managed",
-        1000,
-        0,
-        true,
-      );
-
-      if (response?.records) {
-        allCategoriesCache = response.records;
-      }
-    } catch (error) {
-      console.error("Error loading categories cache:", error);
-      errorToastMessage("Failed to load categories");
-    }
-  }
 
   async function loadCategories() {
     isLoading = true;
-    const offset = (currentPage - 1) * itemsPerPage;
-    const hasFilters = searchTerm.trim() || selectedParentFilter !== "all";
-
     try {
-      if (hasFilters) {
-        updateFilteredCategories();
-        return;
-      }
-
+      const offset = (currentPage - 1) * itemsPerPage;
       const response = await getSpaceContents(
         website.main_space,
         "categories",
@@ -110,14 +82,20 @@
         itemsPerPage,
         offset,
         true,
+        undefined,
+        searchTerm,
       );
 
       if (response?.records) {
-        categories = response.records;
+        allCategoriesCache = response.records;
         totalCategoriesCount =
-          response.attributes?.total ||
-          allCategoriesCache.length ||
-          response.records.length;
+          response.attributes?.total || response.records.length;
+
+        totalActiveCategories = response.records.filter(
+          (c) => c.attributes?.is_active === true,
+        ).length;
+        totalInactiveCategories =
+          response.records.length - totalActiveCategories;
       }
     } catch (error) {
       console.error("Error loading categories:", error);
@@ -125,37 +103,6 @@
     } finally {
       isLoading = false;
     }
-  }
-
-  function updateFilteredCategories() {
-    let filtered = allCategoriesCache;
-
-    if (selectedParentFilter === "root") {
-      filtered = filtered.filter((c) => isParentCategory(c));
-    } else if (selectedParentFilter !== "all") {
-      filtered = getSubCategories(selectedParentFilter, allCategoriesCache);
-    } else {
-      filtered = filtered.filter((c) => isParentCategory(c));
-    }
-
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter((cat) => {
-        const displayname = getLocalizedDisplayName(cat, $locale).toLowerCase();
-        const shortname = cat.shortname?.toLowerCase() || "";
-        const description = (
-          cat.attributes?.payload?.body?.meta_description || ""
-        ).toLowerCase();
-        return (
-          displayname.includes(term) ||
-          shortname.includes(term) ||
-          description.includes(term)
-        );
-      });
-    }
-
-    categories = filtered;
-    totalCategoriesCount = filtered.length;
   }
 
   async function loadSpecifications() {
@@ -175,6 +122,37 @@
     } catch (error) {
       console.error("Error loading specifications:", error);
       errorToastMessage("Failed to load specifications");
+    }
+  }
+
+  async function loadAllCategoriesForHierarchy() {
+    const pageSize = 200;
+    let offset = 0;
+    let total = 0;
+    const allRecords = [];
+
+    try {
+      do {
+        const response = await getSpaceContents(
+          website.main_space,
+          "categories",
+          "managed",
+          pageSize,
+          offset,
+          true,
+        );
+
+        const records = response?.records ?? [];
+        allRecords.push(...records);
+
+        total = response?.attributes?.total ?? records.length;
+        offset += records.length;
+      } while (offset < total && total > 0);
+
+      allCategoriesForHierarchy = allRecords;
+    } catch (error) {
+      console.error("Error loading all categories:", error);
+      errorToastMessage("Failed to load all categories");
     }
   }
 
@@ -243,13 +221,22 @@
     if (selectedParentFilter === "root")
       return $_("common.parent_categories_only") || "Parent Categories Only";
 
-    const found =
-      parentCategories?.find((c) => c.shortname === selectedParentFilter) ??
-      categories?.find((c) => c.shortname === selectedParentFilter);
+    const found = allCategoriesCache?.find(
+      (c) => c.shortname === selectedParentFilter,
+    );
 
     return found
       ? getLocalizedDisplayName(found, $locale)
       : selectedParentFilter;
+  }
+
+  function getCategorySubCategories(category: any) {
+    if (!category?.shortname) return [];
+    const source =
+      allCategoriesForHierarchy.length > 0
+        ? allCategoriesForHierarchy
+        : allCategoriesCache;
+    return getSubCategories(category.shortname, source);
   }
 
   function getLevelColor(level: number): string {
@@ -295,7 +282,8 @@
 
       successToastMessage("Category created successfully!");
       closeCreateModal();
-      await Promise.all([loadAllCategoriesCache(), loadCategories()]);
+      await loadCategories();
+      void loadAllCategoriesForHierarchy();
     } catch (error) {
       console.error("Error creating category:", error);
       errorToastMessage("Failed to create category");
@@ -311,9 +299,22 @@
     if (!selectedCategory) return;
 
     try {
+      const localeKey = $locale || "en";
+      const existingDisplayname =
+        selectedCategory.attributes?.displayname || {};
+      const existingDescription =
+        selectedCategory.attributes?.description || {};
       const categoryData = {
-        displayname: formData.displayname,
-        description: formData.description,
+        displayname: {
+          ...existingDisplayname,
+          en: formData.displayname,
+          [localeKey]: formData.displayname,
+        },
+        description: {
+          ...existingDescription,
+          en: formData.description,
+          [localeKey]: formData.description,
+        },
         body: {
           name: formData.displayname,
           description: formData.description,
@@ -338,7 +339,8 @@
 
       successToastMessage("Category updated successfully!");
       closeEditModal();
-      await Promise.all([loadAllCategoriesCache(), loadCategories()]);
+      await loadCategories();
+      void loadAllCategoriesForHierarchy();
     } catch (error) {
       console.error("Error updating category:", error);
       errorToastMessage("Failed to update category");
@@ -362,51 +364,56 @@
 
       successToastMessage("Category deleted successfully!");
       closeDeleteModal();
-      await Promise.all([loadAllCategoriesCache(), loadCategories()]);
+      await loadCategories();
+      void loadAllCategoriesForHierarchy();
     } catch (error) {
       console.error("Error deleting category:", error);
       errorToastMessage("Failed to delete category");
     }
   }
 
-  function toggleCategory(categoryId) {
-    if (expandedCategories.has(categoryId)) {
-      expandedCategories.delete(categoryId);
-      expandedCategories = new Set(expandedCategories);
-    } else {
-      expandedCategories.add(categoryId);
-      expandedCategories = new Set(expandedCategories);
-    }
-  }
+  const filteredCategories = $derived.by(() => {
+    let filtered = allCategoriesCache;
 
-  function isExpanded(categoryId) {
-    return expandedCategories.has(categoryId);
-  }
+    if (selectedParentFilter !== "all" && selectedParentFilter !== "root") {
+      filtered = filtered.filter((c) => c.shortname === selectedParentFilter);
+    }
+
+    if (selectedStatusFilter !== "all") {
+      filtered = filtered.filter((category) => {
+        if (selectedStatusFilter === "active") {
+          return category.attributes?.is_active === true;
+        }
+        if (selectedStatusFilter === "inactive") {
+          return category.attributes?.is_active !== true;
+        }
+        if (selectedStatusFilter === "pending") {
+          return (
+            String(category.attributes?.status ?? "").toLowerCase() ===
+            "pending"
+          );
+        }
+        return true;
+      });
+    }
+
+    return filtered;
+  });
 
   const parentCategories = $derived.by(() => {
-    return allCategoriesCache.filter((c) => isParentCategory(c));
-  });
-
-  const activeCategories = $derived.by(() => {
-    return allCategoriesCache.filter((c) => c.attributes?.is_active === true);
-  });
-
-  const inactiveCategories = $derived.by(() => {
-    return allCategoriesCache.filter((c) => c.attributes?.is_active !== true);
+    const source =
+      allCategoriesForHierarchy.length > 0
+        ? allCategoriesForHierarchy
+        : allCategoriesCache;
+    return source.filter((c) => isParentCategory(c));
   });
 
   let paginatedCategories = $derived.by(() => {
-    const hasFilters = searchTerm.trim() || selectedParentFilter !== "all";
-    if (!hasFilters) return categories;
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return categories.slice(startIndex, endIndex);
+    return filteredCategories;
   });
 
   let totalPages = $derived.by(() => {
-    const hasFilters = searchTerm.trim() || selectedParentFilter !== "all";
-    const total = hasFilters ? categories.length : totalCategoriesCount;
-    return Math.ceil(total / itemsPerPage);
+    return Math.max(1, Math.ceil(totalCategoriesCount / itemsPerPage));
   });
 
   function handlePageChange(page: number) {
@@ -417,6 +424,12 @@
 
   function handleSearchOrFilterChange() {
     currentPage = 1;
+    void loadCategories();
+  }
+
+  function handleSearch() {
+    currentPage = 1;
+    void loadCategories();
   }
 
   function toggleDropdown(shortname: string) {
@@ -430,8 +443,6 @@
   $effect(() => {
     currentPage;
     itemsPerPage;
-    searchTerm;
-    selectedParentFilter;
     void loadCategories();
   });
 
@@ -499,7 +510,7 @@
           {$_("admin_dashboard.total_categories") || "Total Categories"}
         </h3>
         <p class="stat-value">
-          {formatNumber(allCategoriesCache.length, $locale)}
+          {formatNumber(totalCategoriesCount, $locale)}
         </p>
       </div>
     </div>
@@ -526,7 +537,7 @@
           {$_("admin_dashboard.active_categories") || "Active Categories"}
         </h3>
         <p class="stat-value">
-          {formatNumber(activeCategories.length, $locale)}
+          {formatNumber(totalActiveCategories, $locale)}
         </p>
       </div>
     </div>
@@ -553,7 +564,7 @@
           {$_("admin_dashboard.inactive_categories") || "Inactive Categories"}
         </h3>
         <p class="stat-value">
-          {formatNumber(inactiveCategories.length, $locale)}
+          {formatNumber(totalInactiveCategories, $locale)}
         </p>
       </div>
     </div>
@@ -584,7 +595,7 @@
           type="text"
           bind:value={searchTerm}
           placeholder={$_("admin_dashboard.search_categories")}
-          oninput={handleSearchOrFilterChange}
+          onkeydown={(e) => e.key === "Enter" && handleSearch()}
           class="w-full h-9 pl-9 pr-3 py-2
                bg-[#F9FAFB]
                border border-[#E5E7EB]
@@ -615,6 +626,96 @@
           {$_("admin_dashboard.create_category") || "Create Category"}
         </span>
       </button>
+
+      <!-- STATUS FILTER DROPDOWN -->
+      <div class="mx-2">
+        <details class="relative">
+          <summary
+            class="list-none cursor-pointer select-none
+               h-9
+               inline-flex items-center justify-between
+               px-3 py-2
+               bg-[#F9FAFB]
+               border border-[#E5E7EB]
+               rounded-[12px]
+               shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+               text-sm text-gray-700
+               hover:bg-gray-50"
+          >
+            <span>
+              {selectedStatusFilter === "all"
+                ? $_("common.status") || "Status"
+                : selectedStatusFilter === "active"
+                  ? $_("common.active") || "Active"
+                  : selectedStatusFilter === "inactive"
+                    ? $_("common.inactive") || "Inactive"
+                    : $_("admin_dashboard.status.pending") || "Pending"}
+            </span>
+
+            <svg
+              class="w-4 h-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </summary>
+
+          <div
+            class="absolute z-20 mt-2 w-[180px] rounded-[12px] border border-gray-200 bg-white shadow-lg p-2"
+          >
+            <button
+              type="button"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+              onclick={() => {
+                selectedStatusFilter = "all";
+                handleSearchOrFilterChange();
+              }}
+            >
+              {$_("common.all") || "All"}
+            </button>
+
+            <button
+              type="button"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+              onclick={() => {
+                selectedStatusFilter = "active";
+                handleSearchOrFilterChange();
+              }}
+            >
+              {$_("common.active") || "Active"}
+            </button>
+
+            <button
+              type="button"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+              onclick={() => {
+                selectedStatusFilter = "inactive";
+                handleSearchOrFilterChange();
+              }}
+            >
+              {$_("common.inactive") || "Inactive"}
+            </button>
+
+            <button
+              type="button"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
+              onclick={() => {
+                selectedStatusFilter = "pending";
+                handleSearchOrFilterChange();
+              }}
+            >
+              {$_("admin_dashboard.status.pending") || "Pending"}
+            </button>
+          </div>
+        </details>
+      </div>
       <!-- <div class="mx-2">
         <details class="relative">
           <summary
@@ -761,7 +862,7 @@
         >
       </button>
     </div>
-  {:else if categories.length === 0}
+  {:else if filteredCategories.length === 0}
     <div class="empty-state">
       <div class="empty-icon">🔍</div>
       <h3>{$_("common.no_results") || "No results found"}</h3>
@@ -787,11 +888,11 @@
           {#each paginatedCategories as category}
             <tr
               class="category-row"
-              class:expanded={isExpanded(category.shortname)}
-              class:has-children={getSubCategories(
-                category.shortname,
-                allCategoriesCache,
-              ).length > 0}
+              class:has-children={getCategorySubCategories(category).length > 0}
+              onclick={() => openDetailsModal(category)}
+              role="button"
+              tabindex="0"
+              onkeydown={(e) => e.key === "Enter" && openDetailsModal(category)}
             >
               <!-- Category (avatar + name + description) -->
               <td class="col-category">
@@ -823,15 +924,14 @@
                     </div>
                   </div>
 
-                  {#if getSubCategories(category.shortname, allCategoriesCache).length > 0}
+                  {#if getCategorySubCategories(category).length > 0}
                     <span
                       class="ml-auto"
                       class:mr-auto={$isRTL}
                       style="font-weight:500;font-size:12px;line-height:16px;color:#101828;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:8px;padding:2px 8px;"
                     >
                       {formatNumber(
-                        getSubCategories(category.shortname, allCategoriesCache)
-                          .length,
+                        getCategorySubCategories(category).length,
                         $locale,
                       )}
                     </span>
@@ -979,10 +1079,10 @@
               <td class="col-actions">
                 <div class="relative" onclick={(e) => e.stopPropagation()}>
                   <button
-                    class="h-8 w-8 inline-flex items-center cursor-pointer justify-center rounded-md
+                    class="h-8 w-8 inline-flex items-center justify-center rounded-md
        border border-transparent
        hover:bg-[#f4f5fe] hover:border-[#3C307F]
-       transition"
+       transition cursor-pointer"
                     aria-label={$_("common.actions") || "Actions"}
                     aria-haspopup="menu"
                     aria-expanded={openActionsFor === getRowId(category)}
@@ -1105,229 +1205,6 @@
                 </div>
               </td>
             </tr>
-
-            <!-- Sub categories -->
-            {#if isExpanded(category.shortname) && getSubCategories(category.shortname, allCategoriesCache).length > 0}
-              {#each getSubCategories(category.shortname, allCategoriesCache) as subCategory}
-                <tr class="category-row sub-category">
-                  <td class="col-expand"></td>
-
-                  <!-- repeat same layout for subCategory -->
-                  <td class="col-category">
-                    <div
-                      class="flex items-center gap-2.5"
-                      class:flex-row-reverse={$isRTL}
-                    >
-                      <div
-                        class="shrink-0 rounded-full flex items-center justify-center"
-                        style="width:44px;height:44px;padding:10px 5px;background:#F3F4F6;"
-                        aria-hidden="true"
-                      >
-                        <span
-                          style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
-                        >
-                          {(
-                            getLocalizedDisplayName(subCategory, $locale) || "C"
-                          )
-                            .charAt(0)
-                            .toUpperCase()}
-                        </span>
-                      </div>
-
-                      <div class="min-w-0">
-                        <div
-                          class="truncate"
-                          style="font-weight:500;font-size:16px;line-height:16px;color:#101828;"
-                          title={getLocalizedDisplayName(
-                            subCategory,
-                            $locale,
-                          ) || ""}
-                        >
-                          {getLocalizedDisplayName(subCategory, $locale)}
-                        </div>
-
-                        <div
-                          class="truncate mt-1"
-                          style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;"
-                          title={subCategory.attributes?.payload?.body
-                            ?.description || ""}
-                        >
-                          {subCategory.attributes?.payload?.body?.description ||
-                            $_("admin_dashboard.no_description_available") ||
-                            "No description available"}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td class="col-level">
-                    <span
-                      class="level-badge"
-                      style="background-color: {getLevelColor(
-                        getCategoryLevel(subCategory),
-                      )}15; color: {getLevelColor(
-                        getCategoryLevel(subCategory),
-                      )};"
-                    >
-                      L{getCategoryLevel(subCategory)}
-                    </span>
-                  </td>
-
-                  <td
-                    class="col-description"
-                    style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
-                  >
-                    <span
-                      class="truncate block"
-                      title={subCategory.attributes?.payload?.body
-                        ?.description || ""}
-                    >
-                      {subCategory.attributes?.payload?.body?.description ||
-                        $_("admin_dashboard.no_description_available") ||
-                        "No description available"}
-                    </span>
-                  </td>
-
-                  <td class="col-status">
-                    {#if getStatus(subCategory) === "pending"}
-                      <span
-                        class="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5"
-                        style="height:20px;background:#EEF6FF;border-color:#BEDBFF;"
-                      >
-                        <span
-                          style="font-weight:500;font-size:12px;line-height:16px;color:#1C398E;"
-                        >
-                          {$_("admin_dashboard.status.pending") || "Pending"}
-                        </span>
-                      </span>
-                    {:else if getStatus(subCategory) === "active"}
-                      <span
-                        class="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5"
-                        style="height:20px;background:#ECFDF5;border-color:#A4F4CF;"
-                      >
-                        <span
-                          style="font-weight:500;font-size:12px;line-height:16px;color:#004F3B;"
-                        >
-                          {$_("common.active") || "Active"}
-                        </span>
-                      </span>
-                    {:else}
-                      <span
-                        class="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5"
-                        style="height:20px;background:#FFF8F1;border-color:#FCD9BD;"
-                      >
-                        <span
-                          style="font-weight:500;font-size:12px;line-height:16px;color:#771D1D;"
-                        >
-                          {$_("common.inactive") || "Inactive"}
-                        </span>
-                      </span>
-                    {/if}
-                  </td>
-
-                  <td class="col-created">
-                    <div
-                      class="inline-flex items-center gap-2"
-                      style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
-                      class:flex-row-reverse={$isRTL}
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z"
-                          fill="#6A7282"
-                        />
-                      </svg>
-
-                      <span
-                        >{formatDateDMY(
-                          subCategory.attributes?.created_at,
-                        )}</span
-                      >
-                    </div>
-                  </td>
-
-                  <td class="col-actions">
-                    <div class="relative" onclick={(e) => e.stopPropagation()}>
-                      <button
-                        class="h-8 w-8 inline-flex items-center justify-center rounded-md cursor-pointer rounded-md hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
-                        aria-label={$_("common.actions") || "Actions"}
-                        aria-haspopup="menu"
-                        aria-expanded={openActionsFor === getRowId(subCategory)}
-                        onclick={() => toggleActions(subCategory)}
-                      >
-                        <svg
-                          class="text-gray-500 w-4 h-4"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            fill-rule="evenodd"
-                            clip-rule="evenodd"
-                            d="M4.0117 12C4.02312 12.0329 4.04406 12.0868 4.08184 12.1644C4.16842 12.3421 4.3101 12.5758 4.51263 12.851C4.91651 13.3997 5.51827 14.0535 6.2742 14.6801C7.80015 15.9449 9.83098 17 12 17C14.169 17 16.1999 15.9449 17.7258 14.6801C18.4817 14.0535 19.0835 13.3997 19.4874 12.851C19.6899 12.5758 19.8316 12.3421 19.9182 12.1644C19.9559 12.0868 19.9769 12.0329 19.9883 12C19.9769 11.9671 19.9559 11.9132 19.9182 11.8356C19.8316 11.6579 19.6899 11.4242 19.4874 11.149C19.0835 10.6003 18.4817 9.94649 17.7258 9.3199C16.1999 8.05506 14.169 7 12 7C9.83098 7 7.80015 8.05506 6.2742 9.3199C5.51827 9.94649 4.91651 10.6003 4.51263 11.149C4.3101 11.4242 4.16842 11.6579 4.08184 11.8356C4.04406 11.9132 4.02312 11.9671 4.0117 12ZM4.99787 7.7801C6.72929 6.34495 9.19846 5 12 5C14.8015 5 17.2707 6.34495 19.0021 7.7801C19.8749 8.50351 20.5911 9.2747 21.0981 9.96347C21.351 10.3071 21.5629 10.6452 21.7161 10.9597C21.8554 11.2456 22 11.6185 22 12C22 12.3815 21.8554 12.7544 21.7161 13.0403C21.5629 13.3548 21.351 13.6929 21.0981 14.0365C20.5911 14.7253 19.8749 15.4965 19.0021 16.2199C17.2707 17.6551 14.8015 19 12 19C9.19846 19 6.72929 17.6551 4.99787 16.2199C4.12513 15.4965 3.40886 14.7253 2.9019 14.0365C2.649 13.6929 2.43705 13.3548 2.28385 13.0403C2.14458 12.7544 2 12.3815 2 12C2 11.6185 2.14458 11.2456 2.28385 10.9597C2.43705 10.6452 2.649 10.3071 2.9019 9.96347C3.40886 9.2747 4.12513 8.50351 4.99787 7.7801ZM12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10ZM8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12Z"
-                            fill="currentColor"
-                          />
-                        </svg>
-
-                        <span class="text-xl leading-none">…</span>
-                      </button>
-
-                      {#if openActionsFor === getRowId(subCategory)}
-                        <div
-                          class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1"
-                          style={$isRTL ? "right:0;" : "left:0;"}
-                          role="menu"
-                        >
-                          <button
-                            class="w-full px-3 py-2 text-sm hover:bg-gray-50"
-                            class:text-right={$isRTL}
-                            onclick={() => {
-                              closeActions();
-                              openDetailsModal(subCategory);
-                            }}
-                            role="menuitem"
-                          >
-                            {$_("common.details") || "Details"}
-                          </button>
-
-                          <button
-                            class="w-full px-3 py-2 text-sm hover:bg-gray-50"
-                            class:text-right={$isRTL}
-                            onclick={() => {
-                              closeActions();
-                              openEditModal(subCategory);
-                            }}
-                            role="menuitem"
-                          >
-                            {$_("common.edit") || "Edit"}
-                          </button>
-
-                          <button
-                            class="w-full px-3 py-2 text-sm hover:bg-gray-50 text-red-600"
-                            class:text-right={$isRTL}
-                            onclick={() => {
-                              closeActions();
-                              openDeleteModal(subCategory);
-                            }}
-                            role="menuitem"
-                          >
-                            {$_("common.delete") || "Delete"}
-                          </button>
-                        </div>
-                      {/if}
-                    </div>
-                  </td>
-                </tr>
-              {/each}
-            {/if}
           {/each}
         </tbody>
       </table>
@@ -1569,8 +1446,7 @@
               >{$_("common.description") || "Description"}:</span
             >
             <span class="detail-value">
-              {selectedCategoryForDetails.attributes?.payload?.body
-                ?.meta_description ||
+              {selectedCategoryForDetails.attributes?.description.en ||
                 $_("admin_dashboard.no_description_available") ||
                 "No description available"}
             </span>
@@ -1632,6 +1508,27 @@
           {:else}
             <p class="empty-text">
               {$_("common.no_specifications") || "No specifications assigned"}
+            </p>
+          {/if}
+        </div>
+
+        <div class="detail-section">
+          <h3 class="detail-section-title">
+            {$_("common.sub_categories") || "Sub Categories"}
+          </h3>
+
+          {#if getCategorySubCategories(selectedCategoryForDetails).length > 0}
+            <div class="specifications-list">
+              {#each getCategorySubCategories(selectedCategoryForDetails) as subCategory}
+                <span class="specification-chip"
+                  >{getLocalizedDisplayName(subCategory, $locale)}</span
+                >
+              {/each}
+            </div>
+          {:else}
+            <p class="empty-text">
+              {$_("admin_dashboard.no_sub_categories") ||
+                "No sub categories available"}
             </p>
           {/if}
         </div>

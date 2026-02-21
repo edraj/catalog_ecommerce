@@ -17,7 +17,7 @@ export function getCategoryParentId(category: any): string | null {
   if (typeof body === "string") {
     try {
       const parsed = JSON.parse(body);
-      return parsed?.content?.parent_category_id || null;
+      return parsed?.content?.parent_category_shortname || null;
     } catch {
       return null;
     }
@@ -25,7 +25,7 @@ export function getCategoryParentId(category: any): string | null {
 
   // Handle object format
   const content = body.content || body;
-  return content?.parent_category_id || null;
+  return content?.parent_category_shortname || null;
 }
 
 /**
@@ -38,7 +38,7 @@ export function getCategoryParentId(category: any): string | null {
 export function getParentCategoryName(
   parentId: string | null,
   categories: any[],
-  locale: string = "en"
+  locale: string = "en",
 ): string | null {
   if (!parentId) return null;
   const parent = categories.find((c: any) => c.shortname === parentId);
@@ -95,7 +95,7 @@ export function getSpecificationProduct(specification: any): string | null {
  * @returns Attributes object or empty object
  */
 export function getSpecificationAttributes(
-  specification: any
+  specification: any,
 ): Record<string, any> {
   const content =
     typeof specification.attributes?.payload?.body === "string"
@@ -114,7 +114,7 @@ export function getSpecificationAttributes(
 export function getProductName(
   productId: string,
   products: any[],
-  locale: string = "en"
+  locale: string = "en",
 ): string {
   const product = products.find((p: any) => p.shortname === productId);
   if (!product) return productId;
@@ -164,11 +164,11 @@ export function getOptionName(option: any, locale: string = "en"): string {
  */
 export function filterSpecificationsByProduct(
   specifications: any[],
-  productId: string
+  productId: string,
 ): any[] {
   if (productId === "all") return specifications;
   return specifications.filter(
-    (spec: any) => getSpecificationProduct(spec) === productId
+    (spec: any) => getSpecificationProduct(spec) === productId,
   );
 }
 
@@ -180,7 +180,7 @@ export function filterSpecificationsByProduct(
  */
 export function filterCategoriesByParent(
   categories: any[],
-  parentFilter: string
+  parentFilter: string,
 ): any[] {
   if (parentFilter === "all") {
     return categories.filter((c: any) => isParentCategory(c));
@@ -188,7 +188,7 @@ export function filterCategoriesByParent(
     return categories.filter((c: any) => isParentCategory(c));
   } else {
     return categories.filter(
-      (c: any) => getCategoryParentId(c) === parentFilter
+      (c: any) => getCategoryParentId(c) === parentFilter,
     );
   }
 }
@@ -238,7 +238,7 @@ export function buildEntityPayload(content: any): any {
  */
 export function countSubCategories(
   parentId: string,
-  categories: any[]
+  categories: any[],
 ): number {
   return getSubCategories(parentId, categories).length;
 }
