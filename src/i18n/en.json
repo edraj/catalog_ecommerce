@@ -836,7 +836,7 @@
   "admin.total_amount": "Total Amount",
   "admin.items": "Items",
   "pagination.total_items": "Total Items",
-
+  "admin.add_shipping_item": "Add Shipping Item",
   "admin.seller_discounts": "Seller Discounts",
   "admin.view_manage_sellers_discounts": "View and manage discount rules from all sellers",
   "admin.choose_seller": "Choose a seller...",

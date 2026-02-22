@@ -209,6 +209,62 @@
     if (currentPage < 1) currentPage = 1;
   });
 
+  // ------- state validation -------
+  /**
+   * Returns a Set of states that are already used in OTHER rules (excluding the specified index)
+   * Used to prevent state duplication across rules
+   */
+  function getUsedStates(config: any, excludeItemIndex?: number): Set<string> {
+    const usedStates = new Set<string>();
+    const items = config?.attributes?.payload?.body?.items || [];
+
+    items.forEach((item: any, idx: number) => {
+      if (
+        idx !== excludeItemIndex &&
+        item.states &&
+        Array.isArray(item.states)
+      ) {
+        item.states.forEach((state: string) => {
+          usedStates.add(state);
+        });
+      }
+    });
+
+    return usedStates;
+  }
+
+  /**
+   * Checks if there are any duplicate states across all rules in a config
+   * Returns true if no duplicates found, false if duplicates exist
+   */
+  function checkStateIntersections(config: any): boolean {
+    const items = config?.attributes?.payload?.body?.items || [];
+    const seenStates = new Set<string>();
+
+    for (const item of items) {
+      const states = item.states || [];
+      for (const state of states) {
+        if (seenStates.has(state)) {
+          return false; // Duplicate found
+        }
+        seenStates.add(state);
+      }
+    }
+
+    return true; // No duplicates
+  }
+
+  /**
+   * Calculates which states are available to select (not used in other rules)
+   * When editing, the current rule's states remain available
+   */
+  let availableStates = $derived.by(() => {
+    const configToCheck = modalShippingConfig || shippingConfig;
+    if (!configToCheck) return new Set<string>();
+
+    return getUsedStates(configToCheck, editingShippingItemIndex ?? undefined);
+  });
+
   // ------- lifecycle -------
   onMount(async () => {
     await loadSellers();
@@ -564,6 +620,24 @@
       return;
     }
 
+    // Validate state intersection - prevent duplicate states across rules
+    const selectedStates = shippingItemForm.states || [];
+    const usedStatesInOtherRules = getUsedStates(
+      modalShippingConfig || shippingConfig,
+      editingShippingItemIndex ?? undefined,
+    );
+
+    const conflictingStates = selectedStates.filter((state) =>
+      usedStatesInOtherRules.has(state),
+    );
+
+    if (conflictingStates.length > 0) {
+      errorToastMessage(
+        `States already used in another rule: ${conflictingStates.join(", ")}`,
+      );
+      return;
+    }
+
     try {
       isSavingShipping = true;
 
@@ -590,6 +664,14 @@
           newItem;
       } else {
         configToUpdate.attributes.payload.body.items.push(newItem);
+      }
+
+      // Safety check: verify no duplicate states exist in the final config
+      if (!checkStateIntersections(configToUpdate)) {
+        errorToastMessage(
+          "Configuration contains duplicate states across rules. Please resolve before saving.",
+        );
+        return;
       }
 
       await saveShippingConfigForSeller(
@@ -758,7 +840,6 @@
       </div>
     </div>
 
-    <!-- Controls header (past tables layout) -->
     <div
       class="flex flex-col search-table_header md:flex-row md:items-end justify-between bg-white rounded-t-xl gap-3 w-full p-6"
     >
@@ -1219,6 +1300,7 @@
   onSellerChange={handleModalSellerChange}
   getLocalizedDisplayName={getSellerDisplayName}
   isEditMode={editingShippingItemIndex !== null}
+  usedStates={availableStates}
 />
 
 <!-- Details Modal -->
@@ -1352,18 +1434,10 @@
     justify-content: center;
     color: #4a5565;
   }
-  :not(:disabled) {
-    background: #f4f5fe;
-  }
 
   .icon-action:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-  }
-
-  .icon-action--danger:hover:not(:disabled) {
-    background: #f4f5fe;
-    border-color: #3c307f;
   }
 
   .icon-action--danger:hover {

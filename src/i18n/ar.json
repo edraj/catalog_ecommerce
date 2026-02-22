@@ -753,6 +753,7 @@
   "admin.folder": "المجلد",
   "admin.services.delete_success": "تم حذف الخدمة بنجاح!",
   "admin.services.view_service": "عرض الخدمة",
+  "admin.add_shipping_item": "إضافة عنصر شحن",
   "admin.services.delete_error": "فشل في حذف الخدمة. يرجى المحاولة مرة أخرى.",
   "admin.services.delete_service": "حذف الخدمة",
   "admin.services.delete_confirmation": "هل أنت متأكد من حذف هذه الخدمة؟ لا يمكن التراجع عن هذا الإجراء.",

@@ -13,6 +13,7 @@
     onSellerChange = () => {},
     getLocalizedDisplayName = (item: any) => item.shortname || "",
     isEditMode = false,
+    usedStates = new Set<string>(),
   }: {
     show: boolean;
     form: any;
@@ -23,6 +24,7 @@
     onSellerChange?: (sellerShortname: string) => void;
     getLocalizedDisplayName?: (item: any) => string;
     isEditMode?: boolean;
+    usedStates?: Set<string>;
   } = $props();
 
   const iraqStates = [
@@ -195,14 +197,23 @@
 
             <div class="states-grid">
               {#each iraqStates as state (state.shortname)}
+                {@const isSelected = form.states.includes(state.shortname)}
+                {@const isConflicting =
+                  usedStates.has(state.shortname) && !isSelected}
                 <label
                   class="state-checkbox"
-                  class:checked={form.states.includes(state.shortname)}
+                  class:checked={isSelected}
+                  class:disabled={isConflicting}
+                  title={isConflicting
+                    ? "This state is already used in another rule"
+                    : ""}
                 >
                   <input
                     type="checkbox"
-                    checked={form.states.includes(state.shortname)}
-                    onchange={() => toggleState(state.shortname)}
+                    checked={isSelected}
+                    disabled={isConflicting}
+                    onchange={() =>
+                      !isConflicting && toggleState(state.shortname)}
                   />
                   <span>{getStateDisplayName(state.shortname)}</span>
                 </label>
@@ -493,7 +504,7 @@
     background: #fff;
   }
 
-  .state-checkbox:hover {
+  .state-checkbox:hover:not(.disabled) {
     background: #f9fafb;
     border-color: #3c307f;
   }
@@ -503,8 +514,24 @@
     background: rgba(60, 48, 127, 0.04);
   }
 
+  .state-checkbox.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    background: #f9fafb;
+    border-color: #d1d5db;
+  }
+
+  .state-checkbox.disabled:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+  }
+
   .state-checkbox input {
     cursor: pointer;
+  }
+
+  .state-checkbox.disabled input {
+    cursor: not-allowed;
   }
 
   /* Tier header row */
