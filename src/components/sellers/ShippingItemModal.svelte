@@ -92,7 +92,8 @@
         max: "",
         cost: "",
         minimum_retail: "",
-        note: "",
+        note_en: "",
+        note_ar: "",
         is_active: true,
       },
     ];
@@ -356,13 +357,25 @@
                     <div class="field">
                       <label class="field-label">
                         {$_("seller_dashboard.note_translation_key") ||
-                          "Note / translation key"}
+                          "Note (EN)"}
                       </label>
                       <input
                         class="text-input"
                         type="text"
                         placeholder={$_("common.optional") || "Optional"}
-                        bind:value={setting.note}
+                        bind:value={setting.note_en}
+                      />
+                    </div>
+
+                    <div class="field">
+                      <label class="field-label">
+                        {$_("admin.note") || "Note"} (AR)
+                      </label>
+                      <input
+                        class="text-input"
+                        type="text"
+                        placeholder={$_("common.optional") || "Optional"}
+                        bind:value={setting.note_ar}
                       />
                     </div>
 

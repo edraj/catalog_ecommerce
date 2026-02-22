@@ -1031,6 +1031,7 @@
   "admin.services.folder": "Folder",
   "admin.services.service_name": "Service Name",
   "admin.services.create_service": "Create Service",
+  "admin.note": "Note",
   "dashboard": "Dashboard",
   "contact_messages": "Contact Messages",
   "entries": "Entries",

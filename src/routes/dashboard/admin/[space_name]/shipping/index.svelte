@@ -44,7 +44,8 @@
         max: "",
         cost: "",
         minimum_retail: "",
-        note: "",
+        note_en: "",
+        note_ar: "",
         is_active: true,
       },
     ],
@@ -110,6 +111,38 @@
       config.attributes.payload.body = { items: [] };
     if (!config.attributes.payload.body.items)
       config.attributes.payload.body.items = [];
+  }
+
+  function parseSettingNotes(note: any) {
+    if (note && typeof note === "object") {
+      return {
+        note_en: note.en || "",
+        note_ar: note.ar || "",
+      };
+    }
+
+    if (typeof note === "string") {
+      if (note === "TRANSLATION_KEY_ONLY") {
+        return { note_en: "", note_ar: "" };
+      }
+      return { note_en: note, note_ar: "" };
+    }
+
+    return { note_en: "", note_ar: "" };
+  }
+
+  function getSettingNoteByLocale(note: any): string {
+    if (!note) return "";
+
+    if (typeof note === "string") {
+      return note === "TRANSLATION_KEY_ONLY" ? "" : note;
+    }
+
+    if (typeof note === "object") {
+      return note[$locale] || note.en || note.ar || "";
+    }
+
+    return "";
   }
 
   // ------- filters / derived -------
@@ -510,11 +543,11 @@
             sellerShortname: option.seller_shortname,
             states: item.states || [],
             settings: item.settings.map((s) => ({
+              ...parseSettingNotes(s.note),
               min: s.min?.toString() || "",
               max: s.max?.toString() || "",
               cost: s.cost?.toString() || "",
               minimum_retail: s.minimum_retail?.toString() || "",
-              note: s.note || "",
               is_active: s.is_active ?? true,
             })),
           };
@@ -533,11 +566,11 @@
           sellerShortname: selectedSeller,
           states: item.states || [],
           settings: item.settings.map((s) => ({
+            ...parseSettingNotes(s.note),
             min: s.min?.toString() || "",
             max: s.max?.toString() || "",
             cost: s.cost?.toString() || "",
             minimum_retail: s.minimum_retail?.toString() || "",
-            note: s.note || "",
             is_active: s.is_active ?? true,
           })),
         };
@@ -556,7 +589,8 @@
             max: "",
             cost: "",
             minimum_retail: "",
-            note: "",
+            note_en: "",
+            note_ar: "",
             is_active: true,
           },
         ],
@@ -592,7 +626,8 @@
           max: "",
           cost: "",
           minimum_retail: "",
-          note: "",
+          note_en: "",
+          note_ar: "",
           is_active: true,
         },
       ],
@@ -650,7 +685,13 @@
           max: parseFloat(s.max),
           cost: parseFloat(s.cost),
           minimum_retail: s.minimum_retail ? parseFloat(s.minimum_retail) : 0,
-          note: s.note || "TRANSLATION_KEY_ONLY",
+          note:
+            (s.note_en || "").trim() || (s.note_ar || "").trim()
+              ? {
+                  en: (s.note_en || "").trim(),
+                  ar: (s.note_ar || "").trim(),
+                }
+              : "TRANSLATION_KEY_ONLY",
           is_active: s.is_active,
         })),
       };
@@ -1402,12 +1443,14 @@
                         : $_("admin.inactive") || "Inactive"}
                     </span>
                   </div>
-                  {#if setting.note && setting.note !== "TRANSLATION_KEY_ONLY"}
+                  {#if getSettingNoteByLocale(setting.note)}
                     <div class="tier-field">
                       <span class="tier-field-label"
                         >{$_("admin.note") || "Note"}</span
                       >
-                      <span class="tier-field-value">{setting.note}</span>
+                      <span class="tier-field-value"
+                        >{getSettingNoteByLocale(setting.note)}</span
+                      >
                     </div>
                   {/if}
                 </div>

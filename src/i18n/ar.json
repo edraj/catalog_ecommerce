@@ -751,6 +751,7 @@
   "admin.select_category": "اختر فئة",
   "admin.select_folder": "اختر مجلدًا",
   "admin.folder": "المجلد",
+  "admin.note": "ملاحظة",
   "admin.services.delete_success": "تم حذف الخدمة بنجاح!",
   "admin.services.view_service": "عرض الخدمة",
   "admin.add_shipping_item": "إضافة عنصر شحن",
