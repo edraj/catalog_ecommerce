@@ -6,6 +6,7 @@
     show: boolean;
     isRTL: boolean;
     discountForm: {
+      sellerShortname: string;
       type: string;
       typeShortname: string;
       value: string;
@@ -13,6 +14,7 @@
       validFrom: string;
       validTo: string;
     };
+    sellers: any[];
     brands: any[];
     categories: any[];
     isLoadingBrands: boolean;
@@ -27,6 +29,7 @@
     show = $bindable(),
     isRTL,
     discountForm = $bindable(),
+    sellers = [],
     brands = [],
     categories = [],
     isLoadingBrands = false,
@@ -53,6 +56,31 @@
 >
   {#snippet body()}
     <div class="discount-form">
+      <!-- SELLER SELECTION -->
+      <div class="form-group">
+        <label class="form-label" class:rtl={isRTL}>
+          <span>
+            {$_("admin.seller") || "Seller"} *
+          </span>
+        </label>
+        <select
+          bind:value={discountForm.sellerShortname}
+          class="form-select"
+          class:rtl={isRTL}
+          disabled={isEditMode}
+          required
+        >
+          <option value="">
+            {$_("admin.choose_seller") || "Choose a seller..."}
+          </option>
+          {#each sellers as seller (seller.shortname)}
+            <option value={seller.shortname}>
+              {getLocalizedDisplayName(seller)}
+            </option>
+          {/each}
+        </select>
+      </div>
+
       <div class="form-group">
         <label class="form-label" class:rtl={isRTL}>
           <span>
@@ -191,6 +219,13 @@
           max={discountForm.discountType === "percentage" ? "100" : ""}
           step={discountForm.discountType === "percentage" ? "1" : "100"}
           bind:value={discountForm.value}
+          oninput={(e) => {
+            if (discountForm.discountType === "percentage") {
+              const val = parseFloat(e.currentTarget.value);
+              if (val > 100) e.currentTarget.value = "100";
+              if (val < 0) e.currentTarget.value = "0";
+            }
+          }}
           class="form-input"
           class:rtl={isRTL}
           placeholder={discountForm.discountType === "percentage"
@@ -233,7 +268,7 @@
   {/snippet}
 
   {#snippet footer()}
-    <Button variant="primary" class='w-full' onclick={handleSubmit}>
+    <Button variant="primary" class="w-full" onclick={handleSubmit}>
       {isEditMode
         ? $_("common.save") || "Save"
         : $_("seller_dashboard.create") || "Create"}
@@ -290,6 +325,12 @@
   .form-select.rtl {
     direction: rtl;
     text-align: right;
+  }
+
+  .form-select:disabled {
+    background-color: #f3f4f6;
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 
   .loading-text {

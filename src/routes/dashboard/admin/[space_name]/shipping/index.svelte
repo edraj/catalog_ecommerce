@@ -32,8 +32,11 @@
   let showShippingItemModal = $state(false);
   let editingShippingItemIndex = $state<number | null>(null);
   let showFilters = $state(false);
+  let showDetailsModal = $state(false);
+  let selectedShippingDetails = $state<any>(null);
 
   let shippingItemForm = $state<any>({
+    sellerShortname: "",
     states: [],
     settings: [
       {
@@ -46,6 +49,7 @@
       },
     ],
   });
+  let modalShippingConfig = $state<any>(null);
 
   let isSavingShipping = $state(false);
 
@@ -78,18 +82,18 @@
 
       if (items.length > 0) {
         for (const [itemIndex, item] of items.entries()) {
-          if (item.settings && Array.isArray(item.settings)) {
-            for (const setting of item.settings) {
-              options.push({
-                ...setting,
-                states: item.states || [],
-                seller_shortname: sellerShortname,
-                seller_displayname: sellerDisplayname,
-                record_shortname: record.shortname,
-                item_index: itemIndex,
-              });
-            }
-          }
+          // Show one row per item, not per setting
+          const primarySetting = item.settings?.[0] || {};
+          options.push({
+            ...primarySetting,
+            states: item.states || [],
+            seller_shortname: sellerShortname,
+            seller_displayname: sellerDisplayname,
+            record_shortname: record.shortname,
+            item_index: itemIndex,
+            settings_count: item.settings?.length || 0,
+            all_settings: item.settings || [],
+          });
         }
       }
     }
@@ -428,32 +432,67 @@
   }
 
   // ------- modal handlers -------
-  function openShippingItemModal(itemIndex: number | null = null) {
-    if (!shippingConfig || selectedSeller === "all") {
-      errorToastMessage("Select a seller to manage shipping options");
-      return;
-    }
-
-    editingShippingItemIndex = itemIndex;
+  async function openShippingItemModal(option: any = null) {
     showShippingItemModal = true;
+    modalShippingConfig = null;
 
-    ensureShippingConfigBody(shippingConfig);
+    if (option && option.item_index !== undefined) {
+      // Editing existing item
+      editingShippingItemIndex = option.item_index;
 
-    if (itemIndex !== null) {
-      const item = shippingConfig.attributes.payload.body.items[itemIndex];
-      shippingItemForm = {
-        states: item.states || [],
-        settings: item.settings.map((s) => ({
-          min: s.min?.toString() || "",
-          max: s.max?.toString() || "",
-          cost: s.cost?.toString() || "",
-          minimum_retail: s.minimum_retail?.toString() || "",
-          note: s.note || "",
-          is_active: s.is_active ?? true,
-        })),
-      };
+      // Load the seller's config if we're in "all sellers" view
+      if (selectedSeller === "all") {
+        try {
+          const config = await loadSellerShippingConfig(
+            option.seller_shortname,
+          );
+          modalShippingConfig = config;
+          ensureShippingConfigBody(config);
+          const item = config.attributes.payload.body.items[option.item_index];
+
+          shippingItemForm = {
+            sellerShortname: option.seller_shortname,
+            states: item.states || [],
+            settings: item.settings.map((s) => ({
+              min: s.min?.toString() || "",
+              max: s.max?.toString() || "",
+              cost: s.cost?.toString() || "",
+              minimum_retail: s.minimum_retail?.toString() || "",
+              note: s.note || "",
+              is_active: s.is_active ?? true,
+            })),
+          };
+        } catch (error) {
+          console.error("Error loading seller config for edit:", error);
+          errorToastMessage("Failed to load shipping configuration");
+          showShippingItemModal = false;
+          return;
+        }
+      } else {
+        // Editing with a specific seller already selected
+        ensureShippingConfigBody(shippingConfig);
+        const item =
+          shippingConfig.attributes.payload.body.items[option.item_index];
+        shippingItemForm = {
+          sellerShortname: selectedSeller,
+          states: item.states || [],
+          settings: item.settings.map((s) => ({
+            min: s.min?.toString() || "",
+            max: s.max?.toString() || "",
+            cost: s.cost?.toString() || "",
+            minimum_retail: s.minimum_retail?.toString() || "",
+            note: s.note || "",
+            is_active: s.is_active ?? true,
+          })),
+        };
+        modalShippingConfig = shippingConfig;
+      }
     } else {
+      // Creating new item - user will select seller in modal
+      editingShippingItemIndex = null;
       shippingItemForm = {
+        sellerShortname:
+          selectedSeller && selectedSeller !== "all" ? selectedSeller : "",
         states: [],
         settings: [
           {
@@ -469,19 +508,59 @@
     }
   }
 
-  function closeShippingItemModal() {
-    showShippingItemModal = false;
-    editingShippingItemIndex = null;
-  }
-
-  async function submitShippingItem() {
-    if (shippingItemForm.settings.some((s) => !s.min || !s.max || !s.cost)) {
-      errorToastMessage("Please fill in all required fields (min, max, cost)");
+  async function handleModalSellerChange(sellerShortname: string) {
+    if (!sellerShortname) {
+      modalShippingConfig = null;
       return;
     }
 
-    if (!selectedSeller || selectedSeller === "all") {
-      errorToastMessage("Select a seller to manage shipping options");
+    try {
+      const config = await loadSellerShippingConfig(sellerShortname);
+      modalShippingConfig = config;
+    } catch (error) {
+      console.error("Error loading seller config:", error);
+      errorToastMessage("Error loading seller configuration");
+    }
+  }
+
+  function closeShippingItemModal() {
+    showShippingItemModal = false;
+    editingShippingItemIndex = null;
+    modalShippingConfig = null;
+    shippingItemForm = {
+      sellerShortname: "",
+      states: [],
+      settings: [
+        {
+          min: "",
+          max: "",
+          cost: "",
+          minimum_retail: "",
+          note: "",
+          is_active: true,
+        },
+      ],
+    };
+  }
+
+  function openDetailsModal(option: any) {
+    selectedShippingDetails = option;
+    showDetailsModal = true;
+  }
+
+  function closeDetailsModal() {
+    showDetailsModal = false;
+    selectedShippingDetails = null;
+  }
+
+  async function submitShippingItem() {
+    if (!shippingItemForm.sellerShortname) {
+      errorToastMessage("Please select a seller");
+      return;
+    }
+
+    if (shippingItemForm.settings.some((s) => !s.min || !s.max || !s.cost)) {
+      errorToastMessage("Please fill in all required fields (min, max, cost)");
       return;
     }
 
@@ -502,16 +581,21 @@
         })),
       };
 
-      ensureShippingConfigBody(shippingConfig);
+      // Use modal config if available, otherwise use main shippingConfig
+      const configToUpdate = modalShippingConfig || shippingConfig;
+      ensureShippingConfigBody(configToUpdate);
 
       if (editingShippingItemIndex !== null) {
-        shippingConfig.attributes.payload.body.items[editingShippingItemIndex] =
+        configToUpdate.attributes.payload.body.items[editingShippingItemIndex] =
           newItem;
       } else {
-        shippingConfig.attributes.payload.body.items.push(newItem);
+        configToUpdate.attributes.payload.body.items.push(newItem);
       }
 
-      await saveShippingConfigForSeller(selectedSeller, shippingConfig);
+      await saveShippingConfigForSeller(
+        shippingItemForm.sellerShortname,
+        configToUpdate,
+      );
       successToastMessage("Shipping options saved successfully!");
 
       closeShippingItemModal();
@@ -524,22 +608,34 @@
     }
   }
 
-  async function deleteShippingItem(itemIndex: number) {
-    if (!shippingConfig || !selectedSeller || selectedSeller === "all") {
-      errorToastMessage("Select a seller to manage shipping options");
-      return;
-    }
-
+  async function deleteShippingItem(option: any) {
     try {
       isSavingShipping = true;
 
-      ensureShippingConfigBody(shippingConfig);
-      shippingConfig.attributes.payload.body.items =
-        shippingConfig.attributes.payload.body.items.filter(
-          (_: any, i: number) => i !== itemIndex,
+      // Load the seller's config if we're in "all sellers" view
+      let configToUpdate;
+      if (selectedSeller === "all") {
+        configToUpdate = await loadSellerShippingConfig(
+          option.seller_shortname,
+        );
+      } else {
+        if (!shippingConfig || !selectedSeller) {
+          errorToastMessage("Select a seller to manage shipping options");
+          return;
+        }
+        configToUpdate = shippingConfig;
+      }
+
+      ensureShippingConfigBody(configToUpdate);
+      configToUpdate.attributes.payload.body.items =
+        configToUpdate.attributes.payload.body.items.filter(
+          (_: any, i: number) => i !== option.item_index,
         );
 
-      await saveShippingConfigForSeller(selectedSeller, shippingConfig);
+      await saveShippingConfigForSeller(
+        option.seller_shortname || selectedSeller,
+        configToUpdate,
+      );
       successToastMessage("Shipping option deleted successfully!");
       await loadSellerShipping(true);
     } catch (error) {
@@ -703,7 +799,7 @@
 
       <!-- RIGHT -->
       <div class="flex items-end gap-3 justify-end">
-          <!-- Add shipping -->
+        <!-- Add shipping -->
         <button
           class="h-9 inline-flex items-center justify-center gap-2
             px-3 py-2
@@ -844,8 +940,6 @@
             </div>
           {/if}
         </div>
-
-      
       </div>
     </div>
 
@@ -921,14 +1015,19 @@
                       {/if}
                     {:else}
                       <span class="empty-text"
-                        >{$_("admin.all_states") || "All States"}</span
+                        >{$_("admin.none") || "None"}</span
                       >
                     {/if}
                   </div>
                 </td>
 
                 <td class="mono">
+                  {" "}
                   {formatWeight(option.min)} - {formatWeight(option.max)}
+                  {#if option.settings_count > 1}
+                    <span class="tier-badge">{option.settings_count} tiers</span
+                    >
+                  {/if}
                 </td>
 
                 <td class="mono">
@@ -957,49 +1056,67 @@
                   style="text-align:right;"
                   onclick={(e) => e.stopPropagation()}
                 >
-                  {#if selectedSeller && selectedSeller !== "all"}
-                    <div class="inline-flex items-center gap-2 justify-end">
-                      <!-- Edit -->
-                      <button
-                        class="icon-action"
-                        type="button"
-                        aria-label={$_("common.edit") || "Edit"}
-                        onclick={() => openShippingItemModal(option.item_index)}
+                  <div class="inline-flex items-center gap-2 justify-end">
+                    <!-- View Details -->
+                    <button
+                      class="icon-action"
+                      type="button"
+                      aria-label="View details"
+                      onclick={() => openDetailsModal(option)}
+                      title="View all tiers"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
                       >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <path
-                            d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 2.83H5v-.92l9.06-9.06.92.92L5.92 20.08zM20.71 7.04a1.003 1.003 0 000-1.42l-2.34-2.34a1.003 1.003 0 00-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
-                          />
-                        </svg>
-                      </button>
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                        ></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    </button>
 
-                      <!-- Delete -->
-                      <button
-                        class="icon-action icon-action--danger"
-                        type="button"
-                        aria-label={$_("common.delete") || "Delete"}
-                        onclick={() => deleteShippingItem(option.item_index)}
+                    <!-- Edit -->
+                    <button
+                      class="icon-action"
+                      type="button"
+                      aria-label={$_("common.edit") || "Edit"}
+                      onclick={() => openShippingItemModal(option)}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
                       >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <path
-                            d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v10h-2V9zm4 0h2v10h-2V9zM7 9h2v10H7V9z"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  {:else}
-                    <span class="empty-text">-</span>
-                  {/if}
+                        <path
+                          d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 2.83H5v-.92l9.06-9.06.92.92L5.92 20.08zM20.71 7.04a1.003 1.003 0 000-1.42l-2.34-2.34a1.003 1.003 0 00-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
+                        />
+                      </svg>
+                    </button>
+
+                    <!-- Delete -->
+                    <button
+                      class="icon-action icon-action--danger"
+                      type="button"
+                      aria-label={$_("common.delete") || "Delete"}
+                      onclick={() => deleteShippingItem(option)}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path
+                          d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v10h-2V9zm4 0h2v10h-2V9zM7 9h2v10H7V9z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             {/each}
@@ -1098,10 +1215,130 @@
   isLoading={isSavingShipping}
   onClose={closeShippingItemModal}
   onSubmit={submitShippingItem}
+  {sellers}
+  onSellerChange={handleModalSellerChange}
+  getLocalizedDisplayName={getSellerDisplayName}
+  isEditMode={editingShippingItemIndex !== null}
 />
 
+<!-- Details Modal -->
+{#if showDetailsModal && selectedShippingDetails}
+  <div class="modal-overlay" onclick={closeDetailsModal}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h2 class="modal-title">
+          {$_("admin.shipping_tiers") || "Shipping Tiers"}
+        </h2>
+        <button
+          class="modal-close"
+          onclick={closeDetailsModal}
+          type="button"
+          aria-label="Close"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="details-section">
+          <h3 class="details-label">{$_("admin.seller") || "Seller"}</h3>
+          <p class="details-value">
+            {selectedShippingDetails.seller_displayname ||
+              selectedShippingDetails.seller_shortname}
+          </p>
+        </div>
+
+        <div class="details-section">
+          <h3 class="details-label">{$_("admin.states") || "States"}</h3>
+          <div class="states-display">
+            {#if selectedShippingDetails.states?.length > 0}
+              {#each selectedShippingDetails.states as state}
+                <span class="state-tag">{state}</span>
+              {/each}
+            {:else}
+              <span class="empty-text"
+                >{$_("admin.all_states") || "All States"}</span
+              >
+            {/if}
+          </div>
+        </div>
+
+        <div class="details-section">
+          <h3 class="details-label">{$_("admin.tiers") || "Tiers"}</h3>
+          <div class="tiers-list">
+            {#each selectedShippingDetails.all_settings as setting, idx}
+              <div class="tier-row">
+                <div class="tier-number">Tier {idx + 1}</div>
+                <div class="tier-details">
+                  <div class="tier-field">
+                    <span class="tier-field-label"
+                      >{$_("admin.weight_range") || "Weight"}</span
+                    >
+                    <span class="tier-field-value">
+                      {formatWeight(setting.min)} - {formatWeight(setting.max)} kg
+                    </span>
+                  </div>
+                  <div class="tier-field">
+                    <span class="tier-field-label"
+                      >{$_("admin.shipping_cost") || "Cost"}</span
+                    >
+                    <span class="tier-field-value"
+                      >{formatCurrency(setting.cost)}</span
+                    >
+                  </div>
+                  <div class="tier-field">
+                    <span class="tier-field-label"
+                      >{$_("admin.minimum_order") || "Min Order"}</span
+                    >
+                    <span class="tier-field-value">
+                      {setting.minimum_retail > 0
+                        ? formatCurrency(setting.minimum_retail)
+                        : "-"}
+                    </span>
+                  </div>
+                  <div class="tier-field">
+                    <span class="tier-field-label"
+                      >{$_("common.status") || "Status"}</span
+                    >
+                    <span
+                      class="status-pill"
+                      class:active={setting.is_active}
+                      class:inactive={!setting.is_active}
+                    >
+                      {setting.is_active
+                        ? $_("admin.active") || "Active"
+                        : $_("admin.inactive") || "Inactive"}
+                    </span>
+                  </div>
+                  {#if setting.note && setting.note !== "TRANSLATION_KEY_ONLY"}
+                    <div class="tier-field">
+                      <span class="tier-field-label"
+                        >{$_("admin.note") || "Note"}</span
+                      >
+                      <span class="tier-field-value">{setting.note}</span>
+                    </div>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
-  /* actions button style like past tables (32x32, rounded 12, border, bg, shadow) */
   .icon-action {
     width: 32px;
     height: 32px;
@@ -1114,11 +1351,17 @@
     align-items: center;
     justify-content: center;
     color: #4a5565;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  }
+  :not(:disabled) {
+    background: #f4f5fe;
   }
 
-  .icon-action:hover {
+  .icon-action:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .icon-action--danger:hover:not(:disabled) {
     background: #f4f5fe;
     border-color: #3c307f;
   }
@@ -1152,5 +1395,166 @@
     background: rgba(239, 68, 68, 0.1);
     border-color: rgba(239, 68, 68, 0.35);
     color: #dc2626;
+  }
+
+  .tier-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: rgba(60, 48, 127, 0.1);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #3c307f;
+    white-space: nowrap;
+  }
+
+  /* Details Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    transition: color 0.2s;
+  }
+
+  .modal-close:hover {
+    color: #1f2937;
+  }
+
+  .modal-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .details-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .details-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  .details-value {
+    font-size: 14px;
+    color: #1f2937;
+    margin: 0;
+  }
+
+  .tiers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .tier-row {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    background: #f9fafb;
+  }
+
+  .tier-number {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #3c307f;
+    margin-bottom: 12px;
+  }
+
+  .tier-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+
+  .tier-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tier-field-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+  }
+
+  .tier-field-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1f2937;
+    font-family: "Courier New", monospace;
+  }
+
+  .states-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .state-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: rgba(60, 48, 127, 0.1);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #3c307f;
+    white-space: nowrap;
+  }
+
+  .empty-text {
+    color: #9ca3af;
+    font-size: 14px;
   }
 </style>

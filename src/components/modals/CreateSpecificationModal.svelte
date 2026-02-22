@@ -5,6 +5,27 @@
   import { PlusOutline, TrashBinOutline } from "flowbite-svelte-icons";
   import { getLocalizedDisplayName } from "@/lib/utils/adminUtils";
 
+  // Language validation helpers
+  function filterEnglishOnly(text: string): string {
+    // Keep English letters, numbers, spaces, and common punctuation
+    return text
+      .split("")
+      .filter((char) =>
+        /[a-zA-Z0-9\s\-_.,!?'"()\[\]{}<>:;/\\@#$%^&*+=~`|]/.test(char),
+      )
+      .join("");
+  }
+
+  function filterArabicOnly(text: string): string {
+    // Keep Arabic characters, numbers, spaces, and common punctuation
+    return text
+      .split("")
+      .filter((char) =>
+        /[\u0600-\u06FF0-9\s\-_.,!?'"()\[\]{}<>:;/\\@#$%^&*+=~`|]/.test(char),
+      )
+      .join("");
+  }
+
   export interface SpecificationFormData {
     displayname: string;
     displayname_ar?: string;
@@ -84,6 +105,9 @@
         placeholder={$_("admin_dashboard.enter_specification_name") ||
           "Enter specification name (e.g., 'RAM', 'Operating System')"}
         class="form-input"
+        oninput={(e) => {
+          formData.displayname = filterEnglishOnly(formData.displayname);
+        }}
       />
     </div>
 
@@ -98,6 +122,9 @@
         placeholder="أدخل اسم المواصفة"
         class="form-input"
         dir="rtl"
+        oninput={(e) => {
+          formData.displayname_ar = filterArabicOnly(formData.displayname_ar);
+        }}
       />
     </div>
 
@@ -126,6 +153,9 @@
               bind:value={option.name.en}
               placeholder="English (e.g., '4 GB')"
               class="form-input"
+              oninput={(e) => {
+                option.name.en = filterEnglishOnly(option.name.en);
+              }}
             />
             <input
               type="text"
@@ -133,6 +163,9 @@
               placeholder="Arabic (e.g., '4 جيجابايت')"
               class="form-input"
               dir="rtl"
+              oninput={(e) => {
+                option.name.ar = filterArabicOnly(option.name.ar);
+              }}
             />
           </div>
         </div>
@@ -145,8 +178,7 @@
   {/snippet}
 
   {#snippet footer()}
-   
-    <Button variant="primary" class='w-full' onclick={handleSubmit}>
+    <Button variant="primary" class="w-full" onclick={handleSubmit}>
       {$_("common.create") || "Create"}
     </Button>
   {/snippet}

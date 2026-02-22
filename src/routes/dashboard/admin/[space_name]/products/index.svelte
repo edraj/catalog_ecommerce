@@ -1478,9 +1478,14 @@
                         <div class="spec-text">
                           {#if product.attributes?.tags && product.attributes.tags.length > 0}
                             <div class="tags-preview">
-                              {#each product.attributes.tags as tag}
+                              {#each product.attributes.tags.slice(0, 6) as tag}
                                 <span class="tag-badge">{tag}</span>
                               {/each}
+                              {#if product.attributes.tags.length > 6}
+                                <span class="tag-more"
+                                  >+{product.attributes.tags.length - 6}</span
+                                >
+                              {/if}
                             </div>
                           {:else}
                             —

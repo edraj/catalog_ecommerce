@@ -9,33 +9,62 @@
     isLoading,
     onClose,
     onSubmit,
+    sellers = [],
+    onSellerChange = () => {},
+    getLocalizedDisplayName = (item: any) => item.shortname || "",
+    isEditMode = false,
   }: {
     show: boolean;
     form: any;
     isLoading: boolean;
     onClose: () => void;
     onSubmit: () => void;
+    sellers?: any[];
+    onSellerChange?: (sellerShortname: string) => void;
+    getLocalizedDisplayName?: (item: any) => string;
+    isEditMode?: boolean;
   } = $props();
 
   const iraqStates = [
     { shortname: "baghdad", name: { en: "Baghdad", ar: "بغداد", ku: "بەغدا" } },
     { shortname: "basra", name: { en: "Basra", ar: "البصرة", ku: "بەسرە" } },
-    { shortname: "nineveh", name: { en: "Nineveh", ar: "نينوى", ku: "نەینەوا" } },
+    {
+      shortname: "nineveh",
+      name: { en: "Nineveh", ar: "نينوى", ku: "نەینەوا" },
+    },
     { shortname: "erbil", name: { en: "Erbil", ar: "أربيل", ku: "هەولێر" } },
-    { shortname: "sulaymaniyah", name: { en: "Sulaymaniyah", ar: "السليمانية", ku: "سلێمانی" } },
+    {
+      shortname: "sulaymaniyah",
+      name: { en: "Sulaymaniyah", ar: "السليمانية", ku: "سلێمانی" },
+    },
     { shortname: "dohuk", name: { en: "Dohuk", ar: "دهوك", ku: "دهۆک" } },
     { shortname: "anbar", name: { en: "Anbar", ar: "الأنبار", ku: "ئەنبار" } },
     { shortname: "diyala", name: { en: "Diyala", ar: "ديالى", ku: "دیالە" } },
-    { shortname: "salahuddin", name: { en: "Salah al-Din", ar: "صلاح الدين", ku: "سەلاحەدین" } },
+    {
+      shortname: "salahuddin",
+      name: { en: "Salah al-Din", ar: "صلاح الدين", ku: "سەلاحەدین" },
+    },
     { shortname: "kirkuk", name: { en: "Kirkuk", ar: "كركوك", ku: "کەرکووک" } },
     { shortname: "najaf", name: { en: "Najaf", ar: "النجف", ku: "نەجەف" } },
-    { shortname: "karbala", name: { en: "Karbala", ar: "كربلاء", ku: "کەربەلا" } },
+    {
+      shortname: "karbala",
+      name: { en: "Karbala", ar: "كربلاء", ku: "کەربەلا" },
+    },
     { shortname: "babil", name: { en: "Babil", ar: "بابل", ku: "بابل" } },
     { shortname: "wasit", name: { en: "Wasit", ar: "واسط", ku: "واست" } },
     { shortname: "maysan", name: { en: "Maysan", ar: "ميسان", ku: "مەیسان" } },
-    { shortname: "dhi_qar", name: { en: "Dhi Qar", ar: "ذي قار", ku: "زیقار" } },
-    { shortname: "muthanna", name: { en: "Al-Muthanna", ar: "المثنى", ku: "موسەنا" } },
-    { shortname: "qadisiyyah", name: { en: "Al-Qadisiyyah", ar: "القادسية", ku: "قادسیە" } },
+    {
+      shortname: "dhi_qar",
+      name: { en: "Dhi Qar", ar: "ذي قار", ku: "زیقار" },
+    },
+    {
+      shortname: "muthanna",
+      name: { en: "Al-Muthanna", ar: "المثنى", ku: "موسەنا" },
+    },
+    {
+      shortname: "qadisiyyah",
+      name: { en: "Al-Qadisiyyah", ar: "القادسية", ku: "قادسیە" },
+    },
   ];
 
   const getStateDisplayName = (stateShortname: string) => {
@@ -85,11 +114,16 @@
     tabindex="0"
     onkeydown={(e) => e.key === "Escape" && onClose()}
   >
-    <div class="modal-container modal-large" onclick={(e) => e.stopPropagation()}>
+    <div
+      class="modal-container modal-large"
+      onclick={(e) => e.stopPropagation()}
+    >
       <!-- Header (match previous modal header design) -->
       <div class="product-modal-header">
         <h2 class="product-modal-title">
-          { "Add Shipping Item"}
+          {isEditMode
+            ? $_("admin.edit_shipping_item") || "Edit Shipping Item"
+            : $_("admin.add_shipping_item") || "Add Shipping Item"}
         </h2>
 
         <button
@@ -118,6 +152,34 @@
 
       <!-- Body -->
       <div class="product-modal-body">
+        <!-- Seller Selection -->
+        <div class="form-content">
+          <div class="form-block">
+            <div class="block-head">
+              <h3 class="block-title">
+                {$_("admin.seller") || "Seller"} *
+              </h3>
+            </div>
+
+            <select
+              bind:value={form.sellerShortname}
+              onchange={(e) => onSellerChange(e.currentTarget.value)}
+              class="form-select"
+              required
+              disabled={isEditMode}
+            >
+              <option value="">
+                {$_("admin.choose_seller") || "Choose a seller..."}
+              </option>
+              {#each sellers as seller (seller.shortname)}
+                <option value={seller.shortname}>
+                  {getLocalizedDisplayName(seller)}
+                </option>
+              {/each}
+            </select>
+          </div>
+        </div>
+
         <!-- States Selection -->
         <div class="form-content">
           <div class="form-block">
@@ -179,7 +241,7 @@
                     />
                   </svg>
                 </span>
-                { "Add Tier"}
+                {"Add Tier"}
               </button>
             </div>
 
@@ -188,7 +250,8 @@
                 <div class="tier-card">
                   <div class="tier-header">
                     <div class="tier-title">
-                      {$_("seller_dashboard.tier") || "Tier"} {index + 1}
+                      {$_("seller_dashboard.tier") || "Tier"}
+                      {index + 1}
                     </div>
 
                     {#if form.settings.length > 1}
@@ -315,8 +378,6 @@
 
       <!-- Footer (match previous modal footer: primary full width if you want like product modal) -->
       <div class="modal-footer">
-       
-
         <button
           class="btn-primary w-full"
           onclick={handleSave}

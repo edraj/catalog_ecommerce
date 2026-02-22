@@ -1418,11 +1418,10 @@
                     <div
                       class="truncate"
                       style="font-weight:500;font-size:16px;line-height:16px;color:#101828;"
-                      title={"#" +
-                        (order.attributes?.payload?.body?.combined_order_id ||
-                          order.shortname)}
+                      title={order.attributes?.payload?.body
+                        ?.combined_order_id || order.shortname}
                     >
-                      #{order.attributes?.payload?.body?.combined_order_id ||
+                      {order.attributes?.payload?.body?.combined_order_id ||
                         order.shortname}
                     </div>
 

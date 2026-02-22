@@ -21,6 +21,7 @@
   let selectedFolder = $state("all");
   let previousFolder = $state("all");
   let services = $state<any[]>([]);
+  let categories = $state<any[]>([]);
   let isLoadingFolders = $state(true);
   let isLoadingServices = $state(false);
 
@@ -48,6 +49,12 @@
     state_shortname: "optional",
     category_shortname: "",
   });
+
+  let selectedServiceFolder = $state("");
+  let editingService = $state<any>(null);
+  let showEditModal = $state(false);
+  let showViewModal = $state(false);
+  let showDeleteModal = $state(false);
 
   // -----------------------------
   // RTL
@@ -222,7 +229,7 @@
   // Loading
   // -----------------------------
   onMount(async () => {
-    await loadServiceFolders();
+    await Promise.all([loadServiceFolders(), loadCategories()]);
   });
 
   async function loadServiceFolders() {
@@ -247,6 +254,35 @@
       errorToastMessage($_("admin.services.error_loading"));
     } finally {
       isLoadingFolders = false;
+    }
+  }
+
+  async function loadCategories() {
+    try {
+      const response: any = await getSpaceContents(
+        website.main_space,
+        "categories",
+        "managed",
+        1000,
+        0,
+        true,
+      );
+
+      if (response?.records) {
+        categories = response.records
+          .filter(
+            (r: any) => r.subpath === "categories" && r.attributes?.is_active,
+          )
+          .map((r: any) => ({
+            shortname: r.shortname,
+            displayname:
+              r.attributes?.displayname?.en ||
+              r.attributes?.displayname?.ar ||
+              r.shortname,
+          }));
+      }
+    } catch (error) {
+      console.error("Error loading categories:", error);
     }
   }
 
@@ -352,19 +388,18 @@
   }
 
   $effect(() => {
-  // wait until folders are loaded
-  if (isLoadingFolders) return;
+    // wait until folders are loaded
+    if (isLoadingFolders) return;
 
-  // ensure default
-  if (!selectedFolder) selectedFolder = "all";
+    // ensure default
+    if (!selectedFolder) selectedFolder = "all";
 
-  const loadKey = `${selectedFolder}-${serviceFolders.length}`;
-  if (loadKey === previousFolder) return;
+    const loadKey = `${selectedFolder}-${serviceFolders.length}`;
+    if (loadKey === previousFolder) return;
 
-  previousFolder = loadKey;
-  loadFolderServices(true);
-});
-
+    previousFolder = loadKey;
+    loadFolderServices(true);
+  });
 
   // -----------------------------
   // Create modal
@@ -378,11 +413,167 @@
       state_shortname: "optional",
       category_shortname: "",
     };
+    selectedServiceFolder = "";
     showCreateModal = true;
   }
 
   function closeCreateModal() {
     showCreateModal = false;
+  }
+
+  function openViewModal(service: any) {
+    editingService = service;
+    showViewModal = true;
+  }
+
+  function closeViewModal() {
+    showViewModal = false;
+    editingService = null;
+  }
+
+  function openEditModal(service: any) {
+    editingService = JSON.parse(JSON.stringify(service));
+    showEditModal = true;
+  }
+
+  function closeEditModal() {
+    showEditModal = false;
+    editingService = null;
+  }
+
+  function openDeleteModal(service: any) {
+    editingService = service;
+    showDeleteModal = true;
+  }
+
+  function closeDeleteModal() {
+    showDeleteModal = false;
+    editingService = null;
+  }
+
+  async function saveEditService() {
+    if (!editingService.name.en || editingService.cost <= 0) {
+      errorToastMessage($_("admin.services.validation_error"));
+      return;
+    }
+
+    isSaving = true;
+    try {
+      const folderPath =
+        editingService.folder_shortname === "global"
+          ? "service/global"
+          : `service/${editingService.folder_shortname}`;
+      const response: any = await getSpaceContents(
+        website.main_space,
+        folderPath,
+        "managed",
+        100,
+        0,
+        true,
+      );
+
+      let existingConfig = null;
+      if (response?.records) {
+        existingConfig = response.records.find(
+          (record: any) => record.shortname === "config",
+        );
+      }
+
+      if (existingConfig) {
+        const items = existingConfig.attributes?.payload?.body?.items || [];
+        const updatedItems = items.map((item: any) =>
+          item.key === editingService.key ? editingService : item,
+        );
+
+        try {
+          await updateDmartEntity(
+            "config",
+            website.main_space,
+            folderPath,
+            ResourceType.content,
+            {
+              payload: {
+                body: { items: updatedItems },
+              },
+            },
+            false,
+          );
+
+          successToastMessage($_("admin.services.save_success"));
+          closeEditModal();
+          await loadFolderServices(true);
+        } catch (updateError) {
+          console.error("Error updating service:", updateError);
+          errorToastMessage($_("admin.services.save_error"));
+        }
+      }
+    } catch (error) {
+      console.error("Error saving service:", error);
+      errorToastMessage($_("admin.services.save_error"));
+    } finally {
+      isSaving = false;
+    }
+  }
+
+  async function deleteService() {
+    if (!editingService) return;
+
+    isSaving = true;
+    try {
+      const folderPath =
+        editingService.folder_shortname === "global"
+          ? "service/global"
+          : `service/${editingService.folder_shortname}`;
+      const response: any = await getSpaceContents(
+        website.main_space,
+        folderPath,
+        "managed",
+        100,
+        0,
+        true,
+      );
+
+      let existingConfig = null;
+      if (response?.records) {
+        existingConfig = response.records.find(
+          (record: any) => record.shortname === "config",
+        );
+      }
+
+      if (existingConfig) {
+        const items = existingConfig.attributes?.payload?.body?.items || [];
+        const updatedItems = items.filter(
+          (item: any) => item.key !== editingService.key,
+        );
+
+        try {
+          await updateDmartEntity(
+            "config",
+            website.main_space,
+            folderPath,
+            ResourceType.content,
+            {
+              payload: {
+                body: { items: updatedItems },
+              },
+            },
+            false,
+          );
+
+          successToastMessage($_("admin.services.delete_success"));
+          closeDeleteModal();
+          await loadFolderServices(true);
+        } catch (updateError) {
+          console.error("Error deleting service:", updateError);
+          errorToastMessage($_("admin.services.delete_error"));
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      errorToastMessage($_("admin.services.delete_error"));
+    } finally {
+      isSaving = false;
+    }
   }
 
   async function createService() {
@@ -391,11 +582,20 @@
       return;
     }
 
+    if (!selectedServiceFolder) {
+      errorToastMessage($_("admin.services.select_folder_error"));
+      return;
+    }
+
     isSaving = true;
     try {
+      const folderPath =
+        selectedServiceFolder === "global"
+          ? "service/global"
+          : `service/${selectedServiceFolder}`;
       const response: any = await getSpaceContents(
         website.main_space,
-        "service/global",
+        folderPath,
         "managed",
         100,
         0,
@@ -414,45 +614,61 @@
         }
       }
 
-      const updatedItems = [...existingItems, { ...newService }];
+      const updatedItems = [
+        ...existingItems,
+        {
+          ...newService,
+          folder_shortname: selectedServiceFolder,
+        },
+      ];
 
       if (existingConfig) {
-        const result = await updateDmartEntity(
-          "config",
-          website.main_space,
-          "service/global",
-          ResourceType.content,
-          { body: { items: updatedItems } },
-          false,
-        );
+        try {
+          await updateDmartEntity(
+            "config",
+            website.main_space,
+            folderPath,
+            ResourceType.content,
+            {
+              payload: {
+                body: { items: updatedItems },
+              },
+            },
+            false,
+          );
 
-        if (result) {
           successToastMessage($_("admin.services.save_success"));
           showCreateModal = false;
           await loadFolderServices(true);
-        } else {
+        } catch (updateError) {
+          console.error("Error updating service:", updateError);
           errorToastMessage($_("admin.services.save_error"));
         }
       } else {
-        const result = await createEntity(
-          {
-            shortname: "config",
-            body: { items: updatedItems },
-            is_active: true,
-          },
-          website.main_space,
-          "service/global",
-          ResourceType.content,
-          "",
-          "",
-          "json",
-        );
+        try {
+          await createEntity(
+            {
+              shortname: "config",
+              attributes: {
+                payload: {
+                  body: { items: updatedItems },
+                },
+              },
+              is_active: true,
+            },
+            website.main_space,
+            folderPath,
+            ResourceType.content,
+            "",
+            "",
+            "json",
+          );
 
-        if (result) {
           successToastMessage($_("admin.services.save_success"));
           showCreateModal = false;
           await loadFolderServices(true);
-        } else {
+        } catch (createError) {
+          console.error("Error creating service:", createError);
           errorToastMessage($_("admin.services.save_error"));
         }
       }
@@ -612,35 +828,35 @@
 
         <div class="flex flex-wrap items-end justify-end gap-3">
           <!-- CREATE SERVICE (only global like your old logic) -->
-            <button
-              type="button"
-              onclick={openCreateModal}
-              class="inline-flex items-center justify-center
+          <button
+            type="button"
+            onclick={openCreateModal}
+            class="inline-flex items-center justify-center
                 h-9 px-3 py-2
                 bg-[#3C307F] text-white text-sm font-medium
                 rounded-[12px]
                 shadow-[0px_1px_0.5px_0.05px_#1D293D05]
                 hover:bg-[#2f2666]
                 transition-colors duration-200"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              <span class="ml-2"
-                >{$_("admin.services.create_service") || "Create Service"}</span
-              >
-            </button>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            <span class="ml-2"
+              >{$_("admin.services.create_service") || "Create Service"}</span
+            >
+          </button>
           <!-- FOLDER SELECT -->
           <div class="min-w-[240px]">
             <select
@@ -654,10 +870,10 @@
                 text-sm"
             >
               <option value="">
-                {$_("admin.services.choose_folder") || "Choose a folder..."}
+                {$_("admin.choose_seller") || "Choose a seller..."}
               </option>
               <option value="all">
-                {$_("admin.services.all_folders") || "All Folders"}
+                {$_("admin.all_sellers") || "All Sellers"}
               </option>
               {#each serviceFolders as folder}
                 <option value={folder.shortname}>
@@ -791,8 +1007,6 @@
               </div>
             {/if}
           </div>
-
-          
         </div>
       </div>
     </div>
@@ -840,7 +1054,6 @@
         <p>{$_("admin.services.no_services_description")}</p>
       </div>
     {:else}
-      
       <div class="items-table-container overflow-x-auto">
         <table class="items-table w-full">
           <thead class="bg-gray-50 border-b border-gray-200">
@@ -1051,58 +1264,62 @@
                   {/if}
                 </td>
 
-                <!-- Actions: only allow edit/delete on global folder -->
+                <!-- Actions -->
                 <td class="px-6 py-4" onclick={(e) => e.stopPropagation()}>
-                  {#if selectedFolder === "global"}
-                    <div class="relative flex justify-end" onclick={(e) => e.stopPropagation()}>
-                      <button
-                        class="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-gray-100 transition"
-                        aria-label="Actions"
-                        aria-haspopup="menu"
-                        aria-expanded={openRowActionsFor === rowId}
-                        onclick={(e) => toggleRowActions(rowId, e)}
+                  <div
+                    class="relative flex justify-end"
+                    onclick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      class="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-gray-100 transition"
+                      aria-label="Actions"
+                      aria-haspopup="menu"
+                      aria-expanded={openRowActionsFor === rowId}
+                      onclick={(e) => toggleRowActions(rowId, e)}
+                    >
+                      <span class="text-xl leading-none">…</span>
+                    </button>
+
+                    {#if openRowActionsFor === rowId}
+                      <div
+                        class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1 right-0"
+                        role="menu"
                       >
-                        <span class="text-xl leading-none">…</span>
-                      </button>
-
-                      {#if openRowActionsFor === rowId}
-                        <div
-                          class="absolute z-20 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg py-1 right-0"
-                          role="menu"
+                        <button
+                          class="w-full px-3 py-2 text-sm hover:bg-gray-50 text-left"
+                          onclick={() => {
+                            closeAllDropdowns();
+                            openViewModal(service);
+                          }}
+                          role="menuitem"
                         >
-                          <button
-                            class="w-full px-3 py-2 text-sm hover:bg-gray-50 text-left"
-                            onclick={() => {
-                              closeAllDropdowns();
-                              // Hook your edit flow here if you have it
-                              successToastMessage(
-                                "Edit action (hook your modal).",
-                              );
-                            }}
-                            role="menuitem"
-                          >
-                            {$_("common.edit") || "Edit"}
-                          </button>
+                          {$_("common.view") || "View"}
+                        </button>
 
-                          <button
-                            class="w-full px-3 py-2 text-sm hover:bg-gray-50 text-left text-red-600"
-                            onclick={() => {
-                              closeAllDropdowns();
-                              // Hook your delete flow here if you have it
-                              successToastMessage(
-                                "Delete action (hook your modal).",
-                              );
-                            }}
-                            role="menuitem"
-                          >
-                            {$_("common.delete") || "Delete"}
-                          </button>
-                        </div>
-                      {/if}
-                    </div>
-                  {:else}
-                    <span class="text-gray-400">-</span>
-                  {/if}
+                        <button
+                          class="w-full px-3 py-2 text-sm hover:bg-gray-50 text-left"
+                          onclick={() => {
+                            closeAllDropdowns();
+                            openEditModal(service);
+                          }}
+                          role="menuitem"
+                        >
+                          {$_("common.edit") || "Edit"}
+                        </button>
+
+                        <button
+                          class="w-full px-3 py-2 text-sm hover:bg-gray-50 text-left text-red-600"
+                          onclick={() => {
+                            closeAllDropdowns();
+                            openDeleteModal(service);
+                          }}
+                          role="menuitem"
+                        >
+                          {$_("common.delete") || "Delete"}
+                        </button>
+                      </div>
+                    {/if}
+                  </div>
                 </td>
               </tr>
             {/each}
@@ -1192,7 +1409,10 @@
 
 {#if showCreateModal}
   <div class="modal-overlay" onclick={closeCreateModal}>
-    <div class="modal-container w-1/2 bg-white" onclick={(e) => e.stopPropagation()}>
+    <div
+      class="modal-container w-1/2 bg-white"
+      onclick={(e) => e.stopPropagation()}
+    >
       <div class="modal-header">
         <h2>{$_("admin.services.add_service")}</h2>
         <button onclick={closeCreateModal} class="modal-close">
@@ -1216,6 +1436,7 @@
             type="text"
             bind:value={newService.name.en}
             placeholder={$_("admin.services.service_name_placeholder")}
+            lang="en"
           />
         </div>
 
@@ -1228,7 +1449,30 @@
             type="text"
             bind:value={newService.name.ar}
             placeholder={$_("admin.services.service_name_ar_placeholder")}
+            lang="ar"
+            dir="rtl"
           />
+        </div>
+
+        <div class="form-group">
+          <label for="service-folder">{$_("admin.folder") || "Folder"} *</label>
+          <select
+            id="service-folder"
+            bind:value={selectedServiceFolder}
+            class="w-full"
+          >
+            <option value=""
+              >-- {$_("admin.select_folder") || "Select Folder"} --</option
+            >
+            <option value="global"
+              >{$_("admin.services.global_services") || "Global"}</option
+            >
+            {#each serviceFolders as folder (folder.shortname)}
+              <option value={folder.shortname}>
+                {folder.displayname || folder.shortname}
+              </option>
+            {/each}
+          </select>
         </div>
 
         <div class="form-group">
@@ -1244,12 +1488,20 @@
 
         <div class="form-group">
           <label for="service-category">{$_("admin.services.category")}</label>
-          <input
+          <select
             id="service-category"
-            type="text"
             bind:value={newService.category_shortname}
-            placeholder={$_("admin.services.category_placeholder")}
-          />
+            class="w-full"
+          >
+            <option value="">
+              -- {$_("admin.select_category") || "Select Category"} --
+            </option>
+            {#each categories as category (category.shortname)}
+              <option value={category.shortname}>
+                {category.displayname}
+              </option>
+            {/each}
+          </select>
         </div>
 
         <div class="form-group">
@@ -1276,6 +1528,246 @@
         >
         <button onclick={createService} disabled={isSaving} class="btn-primary">
           {isSaving ? $_("saving") : $_("add")}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- VIEW MODAL -->
+{#if showViewModal && editingService}
+  <div class="modal-overlay" onclick={closeViewModal}>
+    <div
+      class="modal-container w-1/2 bg-white"
+      onclick={(e) => e.stopPropagation()}
+    >
+      <div class="modal-header">
+        <h2>{$_("admin.services.view_service")}</h2>
+        <button onclick={closeViewModal} class="modal-close">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fill-rule="evenodd"
+              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>{$_("admin.services.folder") || "Folder"}</label>
+          <p>
+            {editingService.folder_displayname ||
+              editingService.folder_shortname}
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label>{$_("admin.services.service_name_en")}</label>
+          <p>{editingService.name?.en || "-"}</p>
+        </div>
+
+        <div class="form-group">
+          <label>{$_("admin.services.service_name_ar")}</label>
+          <p>{editingService.name?.ar || "-"}</p>
+        </div>
+
+        <div class="form-group">
+          <label>{$_("admin.services.cost")} (IQD)</label>
+          <p>{formatCurrency(editingService.cost)}</p>
+        </div>
+
+        <div class="form-group">
+          <label>{$_("admin.services.category")}</label>
+          <p>{editingService.category_shortname || "-"}</p>
+        </div>
+
+        <div class="form-group">
+          <label>{$_("admin.services.state")}</label>
+          <p>{editingService.state_shortname}</p>
+        </div>
+
+        <div class="form-group">
+          <label>{$_("admin.services.is_active")}</label>
+          <p>
+            {editingService.is_active
+              ? $_("admin.active")
+              : $_("admin.inactive")}
+          </p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button onclick={closeViewModal} class="btn-secondary">
+          {$_("close")}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- EDIT MODAL -->
+{#if showEditModal && editingService}
+  <div class="modal-overlay" onclick={closeEditModal}>
+    <div
+      class="modal-container w-1/2 bg-white"
+      onclick={(e) => e.stopPropagation()}
+    >
+      <div class="modal-header">
+        <h2>{$_("admin.services.edit_service")}</h2>
+        <button onclick={closeEditModal} class="modal-close">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fill-rule="evenodd"
+              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>{$_("admin.services.folder")}</label>
+          <p>
+            {editingService.folder_displayname ||
+              editingService.folder_shortname}
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-service-name-en"
+            >{$_("admin.services.service_name_en")} *</label
+          >
+          <input
+            id="edit-service-name-en"
+            type="text"
+            bind:value={editingService.name.en}
+            placeholder={$_("admin.services.service_name_placeholder")}
+            lang="en"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="edit-service-name-ar"
+            >{$_("admin.services.service_name_ar")}</label
+          >
+          <input
+            id="edit-service-name-ar"
+            type="text"
+            bind:value={editingService.name.ar}
+            placeholder={$_("admin.services.service_name_ar_placeholder")}
+            lang="ar"
+            dir="rtl"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="edit-service-cost"
+            >{$_("admin.services.cost")} * (IQD)</label
+          >
+          <input
+            id="edit-service-cost"
+            type="number"
+            bind:value={editingService.cost}
+            min="0"
+            step="1000"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="edit-service-category"
+            >{$_("admin.services.category")}</label
+          >
+          <select
+            id="edit-service-category"
+            bind:value={editingService.category_shortname}
+            class="w-full"
+          >
+            <option value="">
+              -- {$_("admin.select_category") || "Select Category"} --
+            </option>
+            {#each categories as category (category.shortname)}
+              <option value={category.shortname}>
+                {category.displayname}
+              </option>
+            {/each}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-service-state">{$_("admin.services.state")}</label>
+          <select
+            id="edit-service-state"
+            bind:value={editingService.state_shortname}
+          >
+            <option value="optional">{$_("admin.services.optional")}</option>
+            <option value="required">{$_("admin.services.required")}</option>
+          </select>
+        </div>
+
+        <div class="form-group-checkbox">
+          <input
+            id="edit-service-active"
+            type="checkbox"
+            bind:checked={editingService.is_active}
+          />
+          <label for="edit-service-active"
+            >{$_("admin.services.is_active")}</label
+          >
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button onclick={closeEditModal} class="btn-secondary"
+          >{$_("cancel")}</button
+        >
+        <button
+          onclick={saveEditService}
+          disabled={isSaving}
+          class="btn-primary"
+        >
+          {isSaving ? $_("saving") : $_("save")}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- DELETE MODAL -->
+{#if showDeleteModal && editingService}
+  <div class="modal-overlay" onclick={closeDeleteModal}>
+    <div
+      class="modal-container w-1/2 bg-white"
+      onclick={(e) => e.stopPropagation()}
+    >
+      <div class="modal-header">
+        <h2>{$_("admin.services.delete_service")}</h2>
+        <button onclick={closeDeleteModal} class="modal-close">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fill-rule="evenodd"
+              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p>
+          {$_("admin.services.delete_confirmation")}
+          <strong>{editingService.name?.en || editingService.name?.ar}</strong>?
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button onclick={closeDeleteModal} class="btn-secondary"
+          >{$_("cancel")}</button
+        >
+        <button onclick={deleteService} disabled={isSaving} class="btn-danger">
+          {isSaving ? $_("deleting") : $_("delete")}
         </button>
       </div>
     </div>
@@ -1377,6 +1869,26 @@
 
   .btn-secondary:hover:not(:disabled) {
     background: #e5e7eb;
+  }
+
+  .btn-primary {
+    background: #3c307f;
+    color: white;
+    border: 1px solid #3c307f;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #2f2666;
+  }
+
+  .btn-danger {
+    background: #dc2626;
+    color: white;
+    border: 1px solid #dc2626;
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: #b91c1c;
   }
 
   /* Ensure borders show under each row like the other pages */

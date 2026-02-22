@@ -3513,6 +3513,47 @@ export async function progressOrderTicket(
   }
 }
 
+function mapAvailableProductStateToWorkflowAction(
+  targetState: string,
+): string | null {
+  const normalizedState =
+    targetState?.toLowerCase() === "rejected"
+      ? "canceled"
+      : targetState?.toLowerCase();
+
+  if (normalizedState === "approved") return "approve";
+  if (normalizedState === "canceled") return "cancel";
+  return null;
+}
+
+export async function progressAvailableProductTicket(
+  spaceName: string,
+  sellerShortname: string,
+  productShortname: string,
+  targetState: string,
+): Promise<boolean> {
+  try {
+    const action = mapAvailableProductStateToWorkflowAction(targetState);
+    console.log(action);
+
+    if (!action) {
+      return false;
+    }
+
+    const response = await Dmart.progressTicket({
+      space_name: spaceName,
+      subpath: `available_products/${sellerShortname}`,
+      shortname: productShortname,
+      action,
+    });
+
+    return response.status === "success";
+  } catch (error) {
+    console.error("Error progressing available product ticket:", error);
+    return false;
+  }
+}
+
 export async function updateOrderActiveStatus(
   spaceName: string,
   sellerShortname: string,

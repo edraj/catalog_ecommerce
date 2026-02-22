@@ -716,7 +716,7 @@
           {#if combinedOrder}
             {@const payload = combinedOrder.attributes?.payload?.body}
             <div class="modal-subtitle">
-              #{payload?.combined_order_id || combinedOrder.shortname}
+              {payload?.combined_order_id || combinedOrder.shortname}
             </div>
           {/if}
         </div>
@@ -874,7 +874,7 @@
                   <!-- Top row: seller + status + actions select (keep logic) -->
                   <div class="order-card-header">
                     <div class="order-card-title">
-                      <span class="order-number">#{index + 1}</span>
+                      <span class="order-number">{index + 1}</span>
                       <div>
                         <div class="seller-name">
                           {$_("admin.seller") || "Seller"}:
@@ -1080,7 +1080,7 @@
                             {order.seller_shortname}
                           </div>
                           <div class="shipment-seller-id">
-                            #{order.shortname}
+                            {order.shortname}
                           </div>
                         </div>
                       </div>

@@ -430,6 +430,29 @@
   accent-color: #4f46e5;
 }
 
+.form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  color: #1f2937;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.form-select:hover {
+  border-color: #9ca3af;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #281f51;
+  box-shadow: 0 0 0 3px rgba(40, 31, 81, 0.1);
+}
+
 .modal-footer {
   padding: 1.5rem 2rem;
   background: white;

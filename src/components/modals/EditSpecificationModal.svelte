@@ -6,6 +6,27 @@
   import { getLocalizedDisplayName } from "@/lib/utils/adminUtils";
   import type { SpecificationFormData } from "./CreateSpecificationModal.svelte";
 
+  // Language validation helpers
+  function filterEnglishOnly(text: string): string {
+    // Keep English letters, numbers, spaces, and common punctuation
+    return text
+      .split("")
+      .filter((char) =>
+        /[a-zA-Z0-9\s\-_.,!?'"()\[\]{}<>:;/\\@#$%^&*+=~`|]/.test(char),
+      )
+      .join("");
+  }
+
+  function filterArabicOnly(text: string): string {
+    // Keep Arabic characters, numbers, spaces, and common punctuation
+    return text
+      .split("")
+      .filter((char) =>
+        /[\u0600-\u06FF0-9\s\-_.,!?'"()\[\]{}<>:;/\\@#$%^&*+=~`|]/.test(char),
+      )
+      .join("");
+  }
+
   interface Props {
     show: boolean;
     onClose: () => void;
@@ -74,6 +95,9 @@
         placeholder={$_("admin_dashboard.enter_specification_name") ||
           "Enter specification name (e.g., 'RAM', 'Operating System')"}
         class="form-input"
+        oninput={(e) => {
+          formData.displayname = filterEnglishOnly(formData.displayname);
+        }}
       />
     </div>
 
@@ -88,6 +112,9 @@
         placeholder="أدخل اسم المواصفة"
         class="form-input"
         dir="rtl"
+        oninput={(e) => {
+          formData.displayname_ar = filterArabicOnly(formData.displayname_ar);
+        }}
       />
     </div>
 
@@ -116,6 +143,9 @@
               bind:value={option.name.en}
               placeholder="English"
               class="form-input"
+              oninput={(e) => {
+                option.name.en = filterEnglishOnly(option.name.en);
+              }}
             />
             <input
               type="text"
@@ -123,6 +153,9 @@
               placeholder="Arabic"
               class="form-input"
               dir="rtl"
+              oninput={(e) => {
+                option.name.ar = filterArabicOnly(option.name.ar);
+              }}
             />
           </div>
         </div>
@@ -135,7 +168,7 @@
   {/snippet}
 
   {#snippet footer()}
-    <Button variant="primary" class='w-full' onclick={handleSubmit}>
+    <Button variant="primary" class="w-full" onclick={handleSubmit}>
       {$_("common.save") || "Save Changes"}
     </Button>
   {/snippet}

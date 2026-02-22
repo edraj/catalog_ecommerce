@@ -6,7 +6,10 @@
   } from "@/lib/toasts_messages";
   import { _, locale } from "@/i18n";
   import { derived } from "svelte/store";
-  import { getSpaceContents, updateEntity } from "@/lib/dmart_services";
+  import {
+    getSpaceContents,
+    progressAvailableProductTicket,
+  } from "@/lib/dmart_services";
   import { getLocalizedDisplayName } from "@/lib/utils/sellerUtils";
   import { formatNumber } from "@/lib/helpers";
   import "./index.css";
@@ -14,7 +17,7 @@
 
   let sellers = $state<any[]>([]);
   let selectedSeller = $state("all");
-  let previousSeller = $state("");
+  let previousSeller = $state("all");
   let products = $state<any[]>([]);
   let isLoadingSellers = $state(true);
   let isLoadingProducts = $state(false);
@@ -27,8 +30,9 @@
   let currentPage = $state(1);
   let itemsPerPage = 20;
 
-  // dropdown state (like orders page)
   let isFiltersOpen = $state(false);
+  let isDetailsModalOpen = $state(false);
+  let selectedProductDetails = $state<any | null>(null);
 
   const isRTL = derived(
     locale,
@@ -76,9 +80,40 @@
     if (!value) return "";
     return value.length > maxLength ? value.slice(0, maxLength) + "..." : value;
   }
-  // ---------------------------
-  // Filters + Pagination logic (unchanged)
-  // ---------------------------
+
+  function normalizeProductState(state: string): string {
+    if (state === "canceled") return "rejected";
+    return state || "pending";
+  }
+
+  function toWorkflowState(state: string): string {
+    if (state === "rejected") return "canceled";
+    return state;
+  }
+
+  function formatDateTime(value?: string): string {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString();
+  }
+
+  function openDetailsModal(item: any) {
+    selectedProductDetails = item;
+    isDetailsModalOpen = true;
+  }
+
+  function closeDetailsModal() {
+    isDetailsModalOpen = false;
+    selectedProductDetails = null;
+  }
+
+  function onDetailsBackdropClick(e: MouseEvent) {
+    if (e.target === e.currentTarget) {
+      closeDetailsModal();
+    }
+  }
+
   let filteredProducts = $derived.by(() => {
     let filtered = [...products];
 
@@ -97,11 +132,11 @@
 
     if (statusFilter !== "all") {
       filtered = filtered.filter(
-        (item) => item.attributes?.state === statusFilter,
+        (item) =>
+          normalizeProductState(item.attributes?.state) === statusFilter,
       );
     }
 
-    // NOTE: seller filter is server-side (loadSellerProducts) via selectedSeller
     return filtered;
   });
 
@@ -168,9 +203,6 @@
     return pages;
   });
 
-  // ---------------------------
-  // Stats (new, requested)
-  // ---------------------------
   let statsTotalProducts = $derived.by(() => totalDisplayCount);
 
   let statsTotalSellers = $derived.by(() => {
@@ -196,12 +228,8 @@
     );
   });
 
-  // ---------------------------
-  // Data loading (unchanged)
-  // ---------------------------
   onMount(async () => {
     await Promise.all([loadSellers(), loadAllVariations(), loadAllProducts()]);
-    // initial load
     await loadSellerProducts();
     window.addEventListener("click", onWindowClick);
   });
@@ -328,20 +356,40 @@
 
   async function updateProductStatus(item: any, newStatus: string) {
     try {
+      const currentState = normalizeProductState(item.attributes?.state);
+      if (currentState === newStatus) {
+        return;
+      }
+
+      if (newStatus === "pending") {
+        errorToastMessage(
+          "Pending is an initial state and cannot be selected from here",
+        );
+        return;
+      }
+
+      const sellerShortname = item.subpath?.split("/")?.[1];
+      if (!sellerShortname) {
+        errorToastMessage("Invalid seller path for product ticket");
+        return;
+      }
+
+      const success = await progressAvailableProductTicket(
+        website.main_space,
+        sellerShortname,
+        item.shortname,
+        newStatus,
+      );
+
+      if (!success) {
+        errorToastMessage("Failed to update product status");
+        return;
+      }
+
       const updatedAttributes = {
         ...item.attributes,
-        state: newStatus,
+        state: toWorkflowState(newStatus),
       };
-
-      await updateEntity(
-        item.shortname,
-        website.main_space,
-        item.subpath,
-        item.resource_type,
-        updatedAttributes,
-        "",
-        "",
-      );
 
       successToastMessage(`Product status updated to ${newStatus}`);
 
@@ -351,6 +399,13 @@
       if (productIndex !== -1) {
         products[productIndex] = {
           ...products[productIndex],
+          attributes: updatedAttributes,
+        };
+      }
+
+      if (selectedProductDetails?.shortname === item.shortname) {
+        selectedProductDetails = {
+          ...selectedProductDetails,
           attributes: updatedAttributes,
         };
       }
@@ -762,7 +817,7 @@
                         ),
                       }
                     : { min: 0, max: 0 }}
-                {@const state = item.attributes?.state || "pending"}
+                {@const state = normalizeProductState(item.attributes?.state)}
                 {@const sellerShortname = item.subpath.split("/")[1]}
                 {@const seller = sellers.find(
                   (s) => s.shortname === sellerShortname,
@@ -770,6 +825,15 @@
 
                 <tr
                   class="clickable-row hover:bg-gray-50 transition-colors duration-200"
+                  role="button"
+                  tabindex="0"
+                  onclick={() => openDetailsModal(item)}
+                  onkeydown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openDetailsModal(item);
+                    }
+                  }}
                 >
                   <td class="px-6 py-4">
                     <div
@@ -880,6 +944,8 @@
                       class:pending={state === "pending"}
                       class:rejected={state === "rejected"}
                       value={state}
+                      onclick={(e) => e.stopPropagation()}
+                      onkeydown={(e) => e.stopPropagation()}
                       onchange={(e) =>
                         updateProductStatus(item, e.currentTarget.value)}
                     >
@@ -1092,3 +1158,207 @@
     {/if}
   </div>
 </div>
+
+{#if isDetailsModalOpen && selectedProductDetails}
+  {@const details = selectedProductDetails}
+  {@const payloadBody = details.attributes?.payload?.body || {}}
+  {@const detailVariants = payloadBody?.variants || []}
+  {@const detailState = normalizeProductState(
+    details.attributes?.state || "pending",
+  )}
+  {@const detailTotalStock = detailVariants.reduce(
+    (sum, variant) => sum + (variant?.qty || 0),
+    0,
+  )}
+  {@const detailPriceRange =
+    detailVariants.length > 0
+      ? {
+          min: Math.min(
+            ...detailVariants.map((variant) => variant?.retail_price || 0),
+          ),
+          max: Math.max(
+            ...detailVariants.map((variant) => variant?.retail_price || 0),
+          ),
+        }
+      : { min: 0, max: 0 }}
+  <div
+    class="modal-overlay"
+    role="button"
+    tabindex="0"
+    aria-label={$_("common.close") || "Close"}
+    onclick={onDetailsBackdropClick}
+    onkeydown={(e) => {
+      if (e.key === "Escape") closeDetailsModal();
+      if (
+        e.target === e.currentTarget &&
+        (e.key === "Enter" || e.key === " ")
+      ) {
+        e.preventDefault();
+        closeDetailsModal();
+      }
+    }}
+  >
+    <div class="modal-container" style="max-width: 880px;">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <h2 class="modal-title">
+            {$_("admin.available_product_details") ||
+              "Available Product Details"}
+          </h2>
+          <div class="modal-subtitle">
+            {getProductName(payloadBody?.product_shortname || "")}
+          </div>
+        </div>
+        <button
+          class="close-button"
+          type="button"
+          onclick={closeDetailsModal}
+          aria-label={$_("common.close") || "Close"}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path
+              d="M18 6L6 18M6 6l12 12"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="details-hero">
+          <div>
+            <div class="details-label">{$_("admin.product") || "Product"}</div>
+            <div class="details-value details-primary">
+              {getProductName(payloadBody?.product_shortname || "-")}
+            </div>
+            <div class="details-sub">#{details.shortname}</div>
+          </div>
+          <span class={`details-state state-${detailState}`}>
+            {detailState}
+          </span>
+        </div>
+
+        <div class="modal-section">
+          <div class="section-title-small">
+            {$_("admin.quick_overview") || "Quick Overview"}
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="details-card">
+              <div class="details-label">{$_("admin.seller") || "Seller"}</div>
+              <div class="details-value">
+                {details.attributes?.owner_shortname ||
+                  details.subpath?.split("/")?.[1] ||
+                  "-"}
+              </div>
+            </div>
+            <div class="details-card">
+              <div class="details-label">{$_("admin.price") || "Price"}</div>
+              <div class="details-value">
+                {#if detailPriceRange.min === detailPriceRange.max}
+                  {detailPriceRange.min.toLocaleString()}
+                  {$_("admin.currency") || "IQD"}
+                {:else}
+                  {detailPriceRange.min.toLocaleString()} - {detailPriceRange.max.toLocaleString()}
+                  {$_("admin.currency") || "IQD"}
+                {/if}
+              </div>
+            </div>
+            <div class="details-card">
+              <div class="details-label">{$_("admin.stock") || "Stock"}</div>
+              <div class="details-value">{detailTotalStock}</div>
+            </div>
+            <div class="details-card">
+              <div class="details-label">
+                {$_("admin.shipping") || "Shipping"}
+              </div>
+              <div class="details-value">
+                {payloadBody?.has_fast_delivery
+                  ? $_("admin.fast_delivery") || "Fast Delivery"
+                  : "-"}
+                {#if payloadBody?.has_fast_delivery && payloadBody?.has_free_shipping}
+                  ·
+                {/if}
+                {payloadBody?.has_free_shipping
+                  ? $_("admin.free_shipping") || "Free Shipping"
+                  : ""}
+                {#if !payloadBody?.has_fast_delivery && !payloadBody?.has_free_shipping}
+                  {$_("common.not_available") || "Not available"}
+                {/if}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <div class="section-title-small">
+            {$_("common.status") || "Status"}
+          </div>
+          <div class="details-actions">
+            <select
+              class="status-select"
+              class:approved={detailState === "approved"}
+              class:rejected={detailState === "rejected"}
+              value={detailState}
+              onchange={(e) =>
+                updateProductStatus(details, e.currentTarget.value)}
+            >
+              <option value="approved"
+                >{$_("admin.approved") || "Approved"}</option
+              >
+              <option value="rejected"
+                >{$_("admin.rejected") || "Rejected"}</option
+              >
+            </select>
+            <div class="details-sub">
+              {$_("admin.last_updated") || "Last Updated"}: {formatDateTime(
+                details.attributes?.updated_at,
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <div class="section-title-small">
+            {$_("admin.variants") || "Variants"} ({detailVariants.length})
+          </div>
+          {#if detailVariants.length > 0}
+            <div class="variants-list">
+              {#each detailVariants as variant, index}
+                <div class="variant-row">
+                  <div class="variant-main">
+                    <div class="variant-index">#{index + 1}</div>
+                    <div class="variant-meta">
+                      <div class="variant-sku">
+                        {#each variant?.options || [] as option}
+                          <div>
+                            {resolveOptionKey(
+                              option.key,
+                              option.variation_shortname,
+                            )}
+                          </div>
+                        {/each}
+                      </div>
+                      <div class="details-sub">
+                        {variant?.sku || "-"}
+                      </div>
+                      <div class="details-sub">
+                        {$_("admin.stock") || "Stock"}: {variant?.qty ?? 0}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="variant-price">
+                    {(variant?.retail_price ?? 0).toLocaleString()}
+                    {$_("admin.currency") || "IQD"}
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <div class="details-sub">-</div>
+          {/if}
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}

@@ -2,6 +2,27 @@
   import { _ } from "@/i18n";
   import { Modal, Button } from "@/components/ui";
 
+  // Language validation helpers
+  function filterEnglishOnly(text: string): string {
+    // Keep English letters, numbers, spaces, and common punctuation
+    return text
+      .split("")
+      .filter((char) =>
+        /[a-zA-Z0-9\s\-_.,!?'"()\[\]{}<>:;/\\@#$%^&*+=~`|]/.test(char),
+      )
+      .join("");
+  }
+
+  function filterArabicOnly(text: string): string {
+    // Keep Arabic characters, numbers, spaces, and common punctuation
+    return text
+      .split("")
+      .filter((char) =>
+        /[\u0600-\u06FF0-9\s\-_.,!?'"()\[\]{}<>:;/\\@#$%^&*+=~`|]/.test(char),
+      )
+      .join("");
+  }
+
   type Props = {
     show: boolean;
     isRTL: boolean;
@@ -14,8 +35,11 @@
       descriptionKu: string;
       isGlobal: boolean;
       brandShortname: string;
+      sellerShortname: string;
+      isActive: boolean;
     };
     brands: any[];
+    sellers: any[];
     isLoadingBrands: boolean;
     onClose: () => void;
     onSubmit: () => void;
@@ -28,6 +52,7 @@
     isRTL,
     warrantyForm = $bindable(),
     brands = [],
+    sellers = [],
     isLoadingBrands = false,
     onClose,
     onSubmit,
@@ -71,12 +96,53 @@
           onclick={() => (activeLang = "en")}
           type="button"
         >
-        English
+          English
         </button>
       </div>
 
       <!-- Fields -->
       <div class="form-content">
+        <!-- Seller Selection (for create mode only) -->
+        {#if !isEditMode}
+          <div class="form-section">
+            <h3 class="section-title">
+              {$_("seller_dashboard.seller") || "Seller"}
+            </h3>
+
+            <div class="form-group">
+              <label class="form-label" class:rtl={isRTL} for="seller-select">
+                <span>
+                  {$_("seller_dashboard.select_seller") || "Select Seller"} *
+                </span>
+              </label>
+
+              {#if sellers.length === 0}
+                <p class="loading-text">
+                  {$_("seller_dashboard.no_sellers") || "No sellers available"}
+                </p>
+              {:else}
+                <select
+                  id="seller-select"
+                  bind:value={warrantyForm.sellerShortname}
+                  class="form-select"
+                  class:rtl={isRTL}
+                  required
+                >
+                  <option value="">
+                    {$_("seller_dashboard.choose_seller") ||
+                      "Choose a seller..."}
+                  </option>
+                  {#each sellers as seller (seller.shortname)}
+                    <option value={seller.shortname}>
+                      {getLocalizedDisplayName(seller)}
+                    </option>
+                  {/each}
+                </select>
+              {/if}
+            </div>
+          </div>
+        {/if}
+
         <div class="form-section">
           <h3 class="section-title">
             {$_("seller_dashboard.warranty_name") || "Warranty Name"}
@@ -98,6 +164,11 @@
                 class="form-input rtl"
                 placeholder="مثال: سنة واحدة - النبأ"
                 required
+                oninput={(e) => {
+                  warrantyForm.displaynameAr = filterArabicOnly(
+                    warrantyForm.displaynameAr,
+                  );
+                }}
               />
             {:else}
               <input
@@ -106,6 +177,11 @@
                 class="form-input"
                 placeholder="e.g., 1 Year - Al-Nabaa"
                 required
+                oninput={(e) => {
+                  warrantyForm.displaynameEn = filterEnglishOnly(
+                    warrantyForm.displaynameEn,
+                  );
+                }}
               />
             {/if}
           </div>
@@ -135,6 +211,11 @@
                 rows="4"
                 placeholder="أدخل شروط وأحكام الضمان..."
                 required
+                oninput={(e) => {
+                  warrantyForm.descriptionAr = filterArabicOnly(
+                    warrantyForm.descriptionAr,
+                  );
+                }}
               ></textarea>
             {:else}
               <textarea
@@ -143,6 +224,11 @@
                 rows="4"
                 placeholder="Enter warranty terms and conditions..."
                 required
+                oninput={(e) => {
+                  warrantyForm.descriptionEn = filterEnglishOnly(
+                    warrantyForm.descriptionEn,
+                  );
+                }}
               ></textarea>
             {/if}
           </div>
@@ -198,13 +284,36 @@
             </div>
           {/if}
         </div>
+
+        <!-- Status -->
+        <div class="form-section">
+          <h3 class="section-title">
+            {$_("seller_dashboard.status") || "Status"}
+          </h3>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                bind:checked={warrantyForm.isActive}
+                class="form-checkbox"
+              />
+              <span>
+                {$_("seller_dashboard.is_active_warranty") ||
+                  "Warranty is active"}
+              </span>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
   {/snippet}
 
   {#snippet footer()}
-    <Button variant="primary" class='w-full' onclick={handleSubmit}>
-      {isEditMode ? $_("common.save") || "Save" : $_("seller_dashboard.create") || "Create"}
+    <Button variant="primary" class="w-full" onclick={handleSubmit}>
+      {isEditMode
+        ? $_("common.save") || "Save"
+        : $_("seller_dashboard.create") || "Create"}
     </Button>
   {/snippet}
 </Modal>
@@ -237,7 +346,7 @@
     font-size: 14px;
     cursor: pointer;
     transition: all 0.15s ease;
-     background: #f9fafb;
+    background: #f9fafb;
     border-color: #e5e7eb;
     box-shadow: 0px 1px 0.5px 0.05px #1d293d05;
   }
