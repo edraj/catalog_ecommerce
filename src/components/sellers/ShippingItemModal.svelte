@@ -10,6 +10,8 @@
     onClose,
     onSubmit,
     sellers = [],
+    categories = [],
+    brands = [],
     onSellerChange = () => {},
     getLocalizedDisplayName = (item: any) => item.shortname || "",
     isEditMode = false,
@@ -21,6 +23,8 @@
     onClose: () => void;
     onSubmit: () => void;
     sellers?: any[];
+    categories?: any[];
+    brands?: any[];
     onSellerChange?: (sellerShortname: string) => void;
     getLocalizedDisplayName?: (item: any) => string;
     isEditMode?: boolean;
@@ -94,6 +98,8 @@
         minimum_retail: "",
         note_en: "",
         note_ar: "",
+        brand_shortname: "",
+        category_shortname: "",
         is_active: true,
       },
     ];
@@ -349,15 +355,64 @@
                         class="text-input"
                         type="number"
                         min="0"
-                        placeholder={$_("common.optional") || "Optional"}
+                        placeholder={$_(
+                          "seller_dashboard.minimum_retail_price",
+                        ) || "Optional"}
                         bind:value={setting.minimum_retail}
                       />
                     </div>
 
                     <div class="field">
                       <label class="field-label">
-                        {$_("seller_dashboard.note_translation_key") ||
-                          "Note (EN)"}
+                        {$_("admin.brand") || "Brand"}
+                        <span class="muted"
+                          >({$_("common.optional") || "Optional"})</span
+                        >
+                      </label>
+                      <select
+                        class="form-select"
+                        bind:value={setting.brand_shortname}
+                      >
+                        <option value="">
+                          {$_("admin.none") || "None"}
+                        </option>
+                        {#each brands as brand (brand.shortname)}
+                          <option value={brand.shortname}>
+                            {brand.attributes?.displayname?.en ||
+                              brand.shortname}
+                          </option>
+                        {/each}
+                      </select>
+                    </div>
+
+                    <div class="field">
+                      <label class="field-label">
+                        {$_("admin.category") || "Category"}
+                        <span class="muted"
+                          >({$_("common.optional") || "Optional"})</span
+                        >
+                      </label>
+                      <select
+                        class="form-select"
+                        bind:value={setting.category_shortname}
+                      >
+                        <option value="">
+                          {$_("admin.none") || "None"}
+                        </option>
+                        {#each categories as category (category.shortname)}
+                          <option value={category.shortname}>
+                            {category.attributes?.displayname?.en ||
+                              category.shortname}
+                          </option>
+                        {/each}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="grid-3">
+                    <div class="field">
+                      <label class="field-label">
+                        {$_("admin.note") || "Note"} (EN)
                       </label>
                       <input
                         class="text-input"
@@ -377,20 +432,6 @@
                         placeholder={$_("common.optional") || "Optional"}
                         bind:value={setting.note_ar}
                       />
-                    </div>
-
-                    <div class="field switch-field">
-                      <label class="field-label">
-                        {$_("seller_dashboard.status") || "Status"}
-                      </label>
-
-                      <label class="checkbox-inline">
-                        <input
-                          type="checkbox"
-                          bind:checked={setting.is_active}
-                        />
-                        <span>{$_("seller_dashboard.active") || "Active"}</span>
-                      </label>
                     </div>
                   </div>
                 </div>
@@ -642,6 +683,24 @@
   }
 
   .text-input:focus {
+    border-color: #3c307f;
+    box-shadow: 0 0 0 3px rgba(60, 48, 127, 0.1);
+  }
+
+  .form-select {
+    height: 40px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0 12px;
+    font-size: 14px;
+    color: #111827;
+    background: #fff;
+    outline: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .form-select:focus {
     border-color: #3c307f;
     box-shadow: 0 0 0 3px rgba(60, 48, 127, 0.1);
   }

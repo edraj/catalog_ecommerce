@@ -13,12 +13,15 @@
   } from "@/lib/dmart_services";
   import { getLocalizedDisplayName } from "@/lib/utils/sellerUtils";
   import { formatNumber } from "@/lib/helpers";
+  import { generateUUID } from "@/lib/uuid";
   import { ResourceType } from "@edraj/tsdmart";
   import "./index.css";
   import { website } from "@/config";
   import ShippingItemModal from "@/components/sellers/ShippingItemModal.svelte";
 
   let sellers = $state<any[]>([]);
+  let categories = $state<any[]>([]);
+  let brands = $state<any[]>([]);
   let selectedSeller = $state("");
   let previousSeller = $state("");
   let shippingOptions = $state<any[]>([]);
@@ -78,24 +81,28 @@
   ) {
     const options: any[] = [];
 
-    for (const record of records) {
-      const items = resolveShippingItems(record);
+    // Only process the "config" record, ignore "notes" and other records
+    const configRecord = records.find(
+      (record) => record.shortname === "config",
+    );
+    if (!configRecord) return options;
 
-      if (items.length > 0) {
-        for (const [itemIndex, item] of items.entries()) {
-          // Show one row per item, not per setting
-          const primarySetting = item.settings?.[0] || {};
-          options.push({
-            ...primarySetting,
-            states: item.states || [],
-            seller_shortname: sellerShortname,
-            seller_displayname: sellerDisplayname,
-            record_shortname: record.shortname,
-            item_index: itemIndex,
-            settings_count: item.settings?.length || 0,
-            all_settings: item.settings || [],
-          });
-        }
+    const items = resolveShippingItems(configRecord);
+
+    if (items.length > 0) {
+      for (const [itemIndex, item] of items.entries()) {
+        // Show one row per item, not per setting
+        const primarySetting = item.settings?.[0] || {};
+        options.push({
+          ...primarySetting,
+          states: item.states || [],
+          seller_shortname: sellerShortname,
+          seller_displayname: sellerDisplayname,
+          record_shortname: configRecord.shortname,
+          item_index: itemIndex,
+          settings_count: item.settings?.length || 0,
+          all_settings: item.settings || [],
+        });
       }
     }
 
@@ -300,7 +307,7 @@
 
   // ------- lifecycle -------
   onMount(async () => {
-    await loadSellers();
+    await Promise.all([loadSellers(), loadCategories(), loadBrands()]);
     if (!selectedSeller) {
       selectedSeller = "all";
       await loadSellerShipping(true);
@@ -333,6 +340,42 @@
       errorToastMessage("Error loading sellers");
     } finally {
       isLoadingSellers = false;
+    }
+  }
+
+  async function loadCategories() {
+    try {
+      const response = await getSpaceContents(
+        website.main_space,
+        "categories",
+        "managed",
+        1000,
+        0,
+        true,
+      );
+      if (response?.records) {
+        categories = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading categories:", error);
+    }
+  }
+
+  async function loadBrands() {
+    try {
+      const response = await getSpaceContents(
+        website.main_space,
+        "brands",
+        "managed",
+        1000,
+        0,
+        true,
+      );
+      if (response?.records) {
+        brands = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading brands:", error);
     }
   }
 
@@ -437,9 +480,9 @@
     return Number(amount).toLocaleString();
   }
 
-  function formatWeight(weight: number): string {
-    if (!weight || Number.isNaN(weight)) return "0.0";
-    return Number(weight).toFixed(1);
+  function formatDays(days: number): string {
+    if (!days || Number.isNaN(days)) return "0";
+    return Number(days).toString();
   }
 
   // ------- pagination handlers -------
@@ -543,11 +586,14 @@
             sellerShortname: option.seller_shortname,
             states: item.states || [],
             settings: item.settings.map((s) => ({
+              key: s.key || "",
               ...parseSettingNotes(s.note),
               min: s.min?.toString() || "",
               max: s.max?.toString() || "",
               cost: s.cost?.toString() || "",
               minimum_retail: s.minimum_retail?.toString() || "",
+              brand_shortname: s.brand_shortname || "",
+              category_shortname: s.category_shortname || "",
               is_active: s.is_active ?? true,
             })),
           };
@@ -566,11 +612,14 @@
           sellerShortname: selectedSeller,
           states: item.states || [],
           settings: item.settings.map((s) => ({
+            key: s.key || "",
             ...parseSettingNotes(s.note),
             min: s.min?.toString() || "",
             max: s.max?.toString() || "",
             cost: s.cost?.toString() || "",
             minimum_retail: s.minimum_retail?.toString() || "",
+            brand_shortname: s.brand_shortname || "",
+            category_shortname: s.category_shortname || "",
             is_active: s.is_active ?? true,
           })),
         };
@@ -591,6 +640,8 @@
             minimum_retail: "",
             note_en: "",
             note_ar: "",
+            brand_shortname: "",
+            category_shortname: "",
             is_active: true,
           },
         ],
@@ -628,6 +679,8 @@
           minimum_retail: "",
           note_en: "",
           note_ar: "",
+          brand_shortname: "",
+          category_shortname: "",
           is_active: true,
         },
       ],
@@ -650,7 +703,11 @@
       return;
     }
 
-    if (shippingItemForm.settings.some((s) => !s.min || !s.max || !s.cost)) {
+    if (
+      shippingItemForm.settings.some(
+        (s) => s.min === "" || s.max === "" || s.cost === "",
+      )
+    ) {
       errorToastMessage("Please fill in all required fields (min, max, cost)");
       return;
     }
@@ -676,11 +733,32 @@
     try {
       isSavingShipping = true;
 
+      const configToUpdate = modalShippingConfig || shippingConfig;
+      ensureShippingConfigBody(configToUpdate);
+
+      const isGlobalItem = !shippingItemForm.states?.length;
+      if (isGlobalItem) {
+        const hasAnotherGlobalItem =
+          configToUpdate.attributes.payload.body.items.some(
+            (item: any, idx: number) =>
+              idx !== editingShippingItemIndex &&
+              (!item.states || item.states.length === 0),
+          );
+
+        if (hasAnotherGlobalItem) {
+          errorToastMessage(
+            "Only one global shipping rule is allowed per seller",
+          );
+          return;
+        }
+      }
+
       const newItem = {
         ...(shippingItemForm.states.length > 0
           ? { states: shippingItemForm.states }
           : {}),
         settings: shippingItemForm.settings.map((s) => ({
+          key: s.key || generateUUID(),
           min: parseFloat(s.min),
           max: parseFloat(s.max),
           cost: parseFloat(s.cost),
@@ -692,13 +770,13 @@
                   ar: (s.note_ar || "").trim(),
                 }
               : "TRANSLATION_KEY_ONLY",
+          ...(s.brand_shortname ? { brand_shortname: s.brand_shortname } : {}),
+          ...(s.category_shortname
+            ? { category_shortname: s.category_shortname }
+            : {}),
           is_active: s.is_active,
         })),
       };
-
-      // Use modal config if available, otherwise use main shippingConfig
-      const configToUpdate = modalShippingConfig || shippingConfig;
-      ensureShippingConfigBody(configToUpdate);
 
       if (editingShippingItemIndex !== null) {
         configToUpdate.attributes.payload.body.items[editingShippingItemIndex] =
@@ -773,7 +851,7 @@
 <div class="admin-page-container">
   <div>
     <!-- Stats (past tables style) -->
-    <div class="stats-grid" style="margin-bottom: 16px;">
+    <!-- <div class="stats-grid" style="margin-bottom: 16px;">
       <div class="stat-card">
         <div class="bg-icon rounded-lg flex items-center justify-center">
           <svg
@@ -879,7 +957,7 @@
           </p>
         </div>
       </div>
-    </div>
+    </div> -->
 
     <div
       class="flex flex-col search-table_header md:flex-row md:items-end justify-between bg-white rounded-t-xl gap-3 w-full p-6"
@@ -1090,9 +1168,12 @@
               <th>{$_("admin.seller") || "Seller"}</th>
               <th>{$_("admin.shipping_type") || "Type"}</th>
               <th>{$_("admin.states") || "States"}</th>
-              <th>{$_("admin.weight_range") || "Weight Range (kg)"}</th>
+              <th>{$_("admin.days_range") || "Days Range"}</th>
               <th>{$_("admin.shipping_cost") || "Shipping Cost"}</th>
-              <th>{$_("admin.minimum_order") || "Min. Order"}</th>
+              <th
+                >{$_("seller_dashboard.minimum_retail_price") ||
+                  "Minimum Retail Price"}</th
+              >
               <th>{$_("common.status") || "Status"}</th>
               <th style="text-align:right;"
                 >{$_("common.actions") || "Actions"}</th
@@ -1144,8 +1225,7 @@
                 </td>
 
                 <td class="mono">
-                  {" "}
-                  {formatWeight(option.min)} - {formatWeight(option.max)}
+                  {formatDays(option.min)} - {formatDays(option.max)} days
                   {#if option.settings_count > 1}
                     <span class="tier-badge">{option.settings_count} tiers</span
                     >
@@ -1338,6 +1418,8 @@
   onClose={closeShippingItemModal}
   onSubmit={submitShippingItem}
   {sellers}
+  {categories}
+  {brands}
   onSellerChange={handleModalSellerChange}
   getLocalizedDisplayName={getSellerDisplayName}
   isEditMode={editingShippingItemIndex !== null}
@@ -1405,10 +1487,10 @@
                 <div class="tier-details">
                   <div class="tier-field">
                     <span class="tier-field-label"
-                      >{$_("admin.weight_range") || "Weight"}</span
+                      >{$_("admin.days_range") || "Days"}</span
                     >
                     <span class="tier-field-value">
-                      {formatWeight(setting.min)} - {formatWeight(setting.max)} kg
+                      {formatDays(setting.min)} - {formatDays(setting.max)} days
                     </span>
                   </div>
                   <div class="tier-field">
@@ -1443,7 +1525,31 @@
                         : $_("admin.inactive") || "Inactive"}
                     </span>
                   </div>
-                  {#if getSettingNoteByLocale(setting.note)}
+                  {#if setting.note && typeof setting.note === "object" && (setting.note.en || setting.note.ar)}
+                    <div class="tier-field tier-field--full">
+                      <span class="tier-field-label"
+                        >{$_("admin.note") || "Note"}</span
+                      >
+                      <div class="note-bilingual">
+                        {#if setting.note.en}
+                          <div class="note-lang">
+                            <span class="note-lang-label">EN:</span>
+                            <span class="tier-field-value"
+                              >{setting.note.en}</span
+                            >
+                          </div>
+                        {/if}
+                        {#if setting.note.ar}
+                          <div class="note-lang">
+                            <span class="note-lang-label">AR:</span>
+                            <span class="tier-field-value"
+                              >{setting.note.ar}</span
+                            >
+                          </div>
+                        {/if}
+                      </div>
+                    </div>
+                  {:else if getSettingNoteByLocale(setting.note)}
                     <div class="tier-field">
                       <span class="tier-field-label"
                         >{$_("admin.note") || "Note"}</span
@@ -1630,6 +1736,29 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
+  }
+
+  .tier-field--full {
+    grid-column: 1 / -1;
+  }
+
+  .note-bilingual {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .note-lang {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .note-lang-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #9ca3af;
+    text-transform: uppercase;
   }
 
   .tier-field {
