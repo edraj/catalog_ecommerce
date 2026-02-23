@@ -444,7 +444,6 @@
   function getImageUrl(tile: any): string | null {
     const media = tile.attachments?.media?.[0];
     if (!media) return null;
-    console.log(tile.attachments?.media[0].subpath);
 
     return Dmart.getAttachmentUrl(
       {

@@ -784,8 +784,6 @@
   }
 
   async function uploadProductImages(productShortname: string) {
-    console.log("adding image");
-
     const uploadPromises = selectedImages.map(async (file) => {
       try {
         const result = await attachAttachmentsToEntity(

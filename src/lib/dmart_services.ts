@@ -379,7 +379,6 @@ export async function updateEntity(
   schema_shortname: string,
 ) {
   const contentType = data.content_type || "html";
-  console.log("dmart ", data.body || data);
 
   const attributes: any = {
     is_active: data.is_active,
@@ -3534,7 +3533,6 @@ export async function progressAvailableProductTicket(
 ): Promise<boolean> {
   try {
     const action = mapAvailableProductStateToWorkflowAction(targetState);
-    console.log(action);
 
     if (!action) {
       return false;
