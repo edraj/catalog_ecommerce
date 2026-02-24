@@ -15,7 +15,7 @@
   import { formatNumber } from "@/lib/helpers";
   import { ResourceType } from "@edraj/tsdmart";
   import "./index.css";
-  import { website } from "@/config";
+  import { website, defaultPageSize } from "@/config";
   import ShippingNotesModal from "@/components/sellers/ShippingNotesModal.svelte";
 
   let sellers = $state<any[]>([]);
@@ -36,7 +36,7 @@
 
   // pagination
   let currentPage = $state(1);
-  let itemsPerPage = $state(10);
+  let itemsPerPage = $state(defaultPageSize);
 
   let shippingNoteForm = $state<any>({
     sellerShortname: "",

@@ -26,7 +26,7 @@
     CheckOutline,
     EyeOutline,
   } from "flowbite-svelte-icons";
-  import { website } from "@/config";
+  import { website, defaultPageSize } from "@/config";
   import { formatNumber } from "@/lib/helpers";
 
   $goto;
@@ -67,7 +67,7 @@
   let lowStockCount = $state(0);
 
   let currentPage = $state(1);
-  let itemsPerPage = $state(20);
+  let itemsPerPage = $state(defaultPageSize);
 
   let productForm = $state<any>({
     displayname_en: "",

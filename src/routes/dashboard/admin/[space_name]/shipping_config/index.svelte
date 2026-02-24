@@ -16,7 +16,7 @@
   import { generateUUID } from "@/lib/uuid";
   import { ResourceType } from "@edraj/tsdmart";
   import "./index.css";
-  import { website } from "@/config";
+  import { website, defaultPageSize } from "@/config";
   import ShippingItemModal from "@/components/sellers/ShippingItemModal.svelte";
 
   let sellers = $state<any[]>([]);
@@ -59,7 +59,7 @@
 
   // pagination
   let currentPage = $state(1);
-  let itemsPerPage = $state(10);
+  let itemsPerPage = $state(defaultPageSize);
 
   const isRTL = derived(locale, ($l) => $l === "ar" || $l === "ku");
 

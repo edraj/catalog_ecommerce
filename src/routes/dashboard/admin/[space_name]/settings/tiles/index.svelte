@@ -43,7 +43,6 @@
     region: "hero_region",
     url: "",
     backgroundColor: "#ffffff",
-    font_color: "#000000",
     card_type: "withMessage",
     collection_shortname: "",
     is_active: true,
@@ -61,11 +60,13 @@
   const shapes = [
     { value: "banner", label: "Banner" },
     { value: "carousel", label: "Carousel" },
+    { value: "square", label: "Square" },
   ];
 
   const cardTypes = [
     { value: "withMessage", label: "With Message" },
     { value: "full", label: "Full" },
+    { value: "discount", label: "Discount" },
   ];
 
   onMount(async () => {
@@ -135,6 +136,83 @@
     createModalOpen = true;
   }
 
+  function normalizeZainmartUrlToRelative(rawUrl: string): string | null {
+    const trimmedUrl = rawUrl.trim();
+    if (!trimmedUrl) return null;
+
+    const hasProtocol = /^https?:\/\//i.test(trimmedUrl);
+    const hasZainmartDomainNoProtocol =
+      /^(?:[a-z0-9-]+\.)?zainmart\.com(?::\d+)?(\/|$)/i.test(trimmedUrl);
+
+    if (!hasProtocol && !hasZainmartDomainNoProtocol) {
+      return null;
+    }
+
+    const candidate = hasProtocol ? trimmedUrl : `https://${trimmedUrl}`;
+
+    try {
+      const parsed = new URL(candidate);
+      const hostname = parsed.hostname.toLowerCase();
+      const isZainmartHost =
+        hostname === "zainmart.com" || hostname.endsWith(".zainmart.com");
+
+      if (!isZainmartHost) {
+        return null;
+      }
+
+      const pathSegments = parsed.pathname.split("/").filter(Boolean);
+      const normalizedPath =
+        pathSegments.length > 0 ? `/${pathSegments.join("/")}` : "/";
+      return `${normalizedPath}${parsed.search}${parsed.hash}`;
+    } catch {
+      return null;
+    }
+  }
+
+  function normalizeTileUrl(rawUrl: string): {
+    value: string | null;
+    error?: string;
+  } {
+    const trimmedUrl = rawUrl.trim();
+    if (!trimmedUrl) {
+      return {
+        value: null,
+        error: t("admin.tiles_url_required", "URL is required for banners"),
+      };
+    }
+
+    const normalizedZainmartPath = normalizeZainmartUrlToRelative(trimmedUrl);
+    if (normalizedZainmartPath) {
+      return { value: normalizedZainmartPath };
+    }
+
+    if (trimmedUrl.startsWith("/")) {
+      return { value: trimmedUrl };
+    }
+
+    if (/^https?:\/\//i.test(trimmedUrl)) {
+      return { value: trimmedUrl };
+    }
+
+    if (/zainmart\.com/i.test(trimmedUrl)) {
+      return {
+        value: null,
+        error: t(
+          "admin.tiles_url_format_invalid",
+          "Use a relative path like /...",
+        ),
+      };
+    }
+
+    return {
+      value: null,
+      error: t(
+        "admin.tiles_url_format_invalid",
+        "Use a relative path like /...",
+      ),
+    };
+  }
+
   function openEditModal(tile: any) {
     if (imagePreviewUrl) {
       URL.revokeObjectURL(imagePreviewUrl);
@@ -152,7 +230,6 @@
       region: body.region || "hero_region",
       url: body.url || "",
       backgroundColor: body.style?.backgroundColor || "#ffffff",
-      font_color: body.font_color || "#000000",
       card_type: body.card_type || "withMessage",
       collection_shortname: body.collection_shortname || "",
       is_active: tile.attributes.is_active !== false,
@@ -199,7 +276,6 @@
       region: "hero_region",
       url: "",
       backgroundColor: "#ffffff",
-      font_color: "#000000",
       card_type: "withMessage",
       collection_shortname: "",
       is_active: true,
@@ -220,7 +296,10 @@
       return;
     }
 
-    if (tileForm.shape === "banner" && !tileForm.url.trim()) {
+    if (
+      (tileForm.shape === "banner" || tileForm.shape === "square") &&
+      !tileForm.url.trim()
+    ) {
       errorToastMessage(
         t("admin.tiles_url_required", "URL is required for banners"),
       );
@@ -242,22 +321,40 @@
 
     loading = true;
     try {
+      let normalizedUrl = "";
+      if (tileForm.shape === "banner" || tileForm.shape === "square") {
+        const normalized = normalizeTileUrl(tileForm.url);
+        if (!normalized.value) {
+          errorToastMessage(
+            normalized.error ||
+              t(
+                "admin.tiles_url_format_invalid",
+                "Use a relative path like /...",
+              ),
+          );
+          return;
+        }
+        normalizedUrl = normalized.value;
+      }
+
       const body: any = {
         shape: tileForm.shape,
         region: tileForm.region,
         collection_shortname: tileForm.collection_shortname,
-        font_color: tileForm.font_color,
         style: {
           backgroundColor: tileForm.backgroundColor,
         },
       };
 
-      if (tileForm.shape === "banner") {
-        body.url = tileForm.url;
-        body.collection_shortname = null;
-      } else {
+      if (tileForm.shape === "carousel") {
         body.card_type = tileForm.card_type;
         body.collection_shortname = tileForm.collection_shortname;
+      } else {
+        body.url = normalizedUrl;
+        body.collection_shortname = null;
+        if (tileForm.shape === "banner") {
+          body.card_type = null;
+        }
       }
 
       const shortname = await createEntity(
@@ -318,23 +415,64 @@
       return;
     }
 
+    if (
+      (tileForm.shape === "banner" || tileForm.shape === "square") &&
+      !tileForm.url.trim()
+    ) {
+      errorToastMessage(
+        t("admin.tiles_url_required", "URL is required for banners"),
+      );
+      return;
+    }
+
+    if (
+      tileForm.shape === "carousel" &&
+      !tileForm.collection_shortname.trim()
+    ) {
+      errorToastMessage(
+        t(
+          "admin.tiles_collection_required",
+          "Collection shortname is required for carousels",
+        ),
+      );
+      return;
+    }
+
     loading = true;
     try {
+      let normalizedUrl = "";
+      if (tileForm.shape === "banner" || tileForm.shape === "square") {
+        const normalized = normalizeTileUrl(tileForm.url);
+        if (!normalized.value) {
+          errorToastMessage(
+            normalized.error ||
+              t(
+                "admin.tiles_url_format_invalid",
+                "Use a relative path like /...",
+              ),
+          );
+          return;
+        }
+        normalizedUrl = normalized.value;
+      }
+
       const body: any = {
         shape: tileForm.shape,
         region: tileForm.region,
-        font_color: tileForm.font_color,
         style: {
           backgroundColor: tileForm.backgroundColor,
         },
       };
 
-      if (tileForm.shape === "banner") {
-        body.url = tileForm.url;
-        body.collection_shortname = null;
-      } else {
+      if (tileForm.shape === "carousel") {
         body.card_type = tileForm.card_type;
         body.collection_shortname = tileForm.collection_shortname;
+      } else {
+        body.url = normalizedUrl;
+        body.collection_shortname = null;
+        if (tileForm.shape === "banner") {
+          body.card_type = null;
+        }
       }
 
       const success = await updateEntity(
@@ -743,17 +881,6 @@
           </div>
 
           <div class="form-group">
-            <label for="font_color"
-              >{t("admin.tiles_font_color", "Font Color")}</label
-            >
-            <input
-              id="font_color"
-              type="color"
-              bind:value={tileForm.font_color}
-            />
-          </div>
-
-          <div class="form-group">
             <label for="shape">{t("admin.tiles_shape", "Shape")} *</label>
             <select id="shape" bind:value={tileForm.shape}>
               {#each shapes as shape}
@@ -771,7 +898,7 @@
             </select>
           </div>
 
-          {#if tileForm.shape === "banner"}
+          {#if tileForm.shape === "banner" || tileForm.shape === "square"}
             {@const editImageUrl = getEditModalImageUrl()}
             <div class="form-group">
               <label for="url">{t("common.url", "URL")} *</label>
@@ -779,7 +906,7 @@
                 id="url"
                 type="text"
                 bind:value={tileForm.url}
-                placeholder="/pages/newyear"
+                placeholder="/..."
                 required
               />
             </div>

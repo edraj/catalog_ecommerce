@@ -35,7 +35,7 @@
     DeleteCategoryModal,
   } from "@/components/modals";
   import type { CategoryFormData } from "@/components/modals/CreateCategoryModal.svelte";
-  import { website } from "@/config";
+  import { website, defaultPageSize } from "@/config";
   import { log } from "@/lib/logger";
 
   $goto;
@@ -64,7 +64,7 @@
   let totalInactiveCategories = $state(0);
   let openDropdownId = $state<string | null>(null);
   let currentPage = $state(1);
-  let itemsPerPage = $state(10);
+  let itemsPerPage = $state(defaultPageSize);
 
   onMount(async () => {
     await Promise.all([loadCategories(), loadSpecifications()]);

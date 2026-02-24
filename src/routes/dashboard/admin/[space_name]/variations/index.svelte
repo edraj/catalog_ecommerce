@@ -20,7 +20,7 @@
     DeleteOptionModal,
   } from "@/components/modals";
   import type { OptionFormData } from "@/components/modals/AddOptionModal.svelte";
-  import { website } from "@/config";
+  import { website, defaultPageSize } from "@/config";
 
   $goto;
 
@@ -38,7 +38,7 @@
 
   // Pagination
   let currentPage = $state(1);
-  let itemsPerPage = $state(10);
+  let itemsPerPage = $state(defaultPageSize);
 
   // Modals
   let selectedVariation = $state<any>(null);
