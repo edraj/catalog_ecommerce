@@ -3029,7 +3029,7 @@ export async function fetchWorkflows(space_name: string) {
 export async function createCollection(
   spaceName: string,
   data: any,
-): Promise<string | null> {
+): Promise<boolean> {
   const actionRequest: ActionRequest = {
     space_name: spaceName,
     request_type: RequestType.create,
@@ -3054,15 +3054,13 @@ export async function createCollection(
   };
 
   const response: ActionResponse = await Dmart.request(actionRequest);
-  return response.status === "success" && response.records.length > 0
-    ? response.records[0].shortname
-    : null;
+  return response.status === "success";
 }
 
 export async function updateCollection(
   spaceName: string,
   data: any,
-): Promise<string | null> {
+): Promise<boolean> {
   const actionRequest: ActionRequest = {
     space_name: spaceName,
     request_type: RequestType.update,
@@ -3087,9 +3085,7 @@ export async function updateCollection(
   };
 
   const response: ActionResponse = await Dmart.request(actionRequest);
-  return response.status === "success" && response.records.length > 0
-    ? response.records[0].shortname
-    : null;
+  return response.status === "success";
 }
 
 export async function createRegion(

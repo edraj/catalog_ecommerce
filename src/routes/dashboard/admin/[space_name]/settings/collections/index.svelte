@@ -40,13 +40,13 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response && response.records) {
         collections = response.records;
         successToastMessage(
-          $_("collections.loaded", { values: { count: collections.length } })
+          $_("collections.loaded", { values: { count: collections.length } }),
         );
       }
     } catch (error) {
@@ -106,13 +106,20 @@
 
     isSaving = true;
     try {
+      const payload = isEditing
+        ? {
+            ...formData,
+            shortname: currentCollection?.shortname || formData.shortname,
+          }
+        : formData;
+
       const result = isEditing
-        ? await updateCollection(website.main_space, formData)
-        : await createCollection(website.main_space, formData);
+        ? await updateCollection(website.main_space, payload)
+        : await createCollection(website.main_space, payload);
 
       if (result) {
         successToastMessage(
-          isEditing ? $_("collections.updated") : $_("collections.created")
+          isEditing ? $_("collections.updated") : $_("collections.created"),
         );
         closeModal();
         await loadCollections();
@@ -146,7 +153,7 @@
         collectionToDelete.shortname,
         website.main_space,
         "/settings/collections",
-        ResourceType.content
+        ResourceType.content,
       );
 
       successToastMessage($_("collections.deleted"));
@@ -256,7 +263,7 @@
         <button class="modal-close" onclick={closeModal}>×</button>
       </div>
       <div class="modal-body">
-        <CollectionForm bind:formData bind:validateFn />
+        <CollectionForm bind:formData bind:validateFn {isEditing} />
       </div>
       <div class="modal-footer">
         <button
