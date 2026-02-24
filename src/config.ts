@@ -8,7 +8,9 @@ export const website = {
   default_language: "ar",
   // backend: "http://localhost:8282",
   // websocket: "wss://0.0.0.0:8484/ws",
-  backend: "https://api.dmart.cc",
-  websocket: "wss://api.dmart.cc/ws",
+  // backend: "https://api.dmart.cc",
+  // websocket: "wss://api.dmart.cc/ws",
+  backend: "https://dmart-uat.zainmart.com",
+  websocket: "wss://dmart-uat.zainmart.com/ws",
   main_space: "zainmart",
 };

@@ -416,6 +416,7 @@
   "admin_dashboard.low_stock_quantity_placeholder": "كمية المخزون المنخفض",
   "admin.payment_status": "حالة الدفع",
   "admin.no_products_in_category": "لا ملاحظات",
+  "admin.no_products_description": "لم يتم العثور على منتجات. ابدأ بإنشاء أول منتج لك.",
   "admin.brands": "العلامات التجارية",
   "admin.categories": "الفئات",
   "admin.shipping_tiers": "طبقات الشحن",

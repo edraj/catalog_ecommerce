@@ -364,6 +364,7 @@
   "common.showing": "Showing",
   "common.view": "View",
   "admin.services.view_service": "View Service",
+  "admin.no_products_description": "No products found. Start by creating your first product.",
   "admin.brands": "Brands",
   "admin.categories": "Categories",
   "admin.no_products_in_category": "No Notes",
