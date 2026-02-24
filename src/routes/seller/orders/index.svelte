@@ -1,16 +1,17 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { _ } from "svelte-i18n";
+  import { _, locale } from "svelte-i18n";
   import { getSellerOrders, updateOrderState } from "@/lib/dmart_services";
   import type { Order } from "@/lib/types";
   import OrderDetailsModal from "@/components/modals/OrderDetailsModal.svelte";
-  import {
-    errorToastMessage,
-    successToastMessage,
-  } from "@/lib/toasts_messages";
+  import { errorToastMessage, successToastMessage } from "@/lib/toasts_messages";
   import { user } from "@/stores/user";
   import { website } from "@/config";
+   import { formatNumber } from "@/lib/helpers";
+import { get } from "svelte/store";
+import './index.css';
 
+  // ---- data ----
   let orders: any[] = [];
   let filteredOrders = $state<any[]>([]);
   let loading = $state(false);
@@ -19,6 +20,7 @@
   let error = $state("");
   let currentPage = $state(1);
 
+  // ---- filters ----
   let selectedState = $state("all");
   let selectedPaymentStatus = $state("all");
   let searchQuery = $state("");
@@ -28,43 +30,55 @@
   let dateTo = $state("");
   let searchDebounce = $state<ReturnType<typeof setTimeout> | null>(null);
 
+  // ---- modal ----
   let showOrderDetails = $state(false);
   let selectedOrder = $state<any | null>(null);
 
+  // ---- seller ----
   let sellerShortname = $state("");
   let initialized = false;
 
-  // dropdowns (top bar)
+  // ---- dropdowns (top bar) ----
   let isFiltersOpen = $state(false);
   let isActionsOpen = $state(false);
 
-  // row actions
+  // ---- row actions ----
   let openActionsFor = $state<string | null>(null);
 
+ const t = (key: string, vars?: Record<string, unknown>) => get(_)(key, vars);
+
   const orderStates = [
-    { value: "all", label: "All Orders" },
-    { value: "pending", label: "Pending" },
-    { value: "confirmed", label: "Confirmed" },
-    { value: "processing", label: "Processing" },
-    { value: "delivered", label: "Delivered" },
-    { value: "delivery_confirmed", label: "Delivery Confirmed" },
-    { value: "issue_reported", label: "Issue Reported" },
-    { value: "refund_pending", label: "Refund Pending" },
-    { value: "refunded", label: "Refunded" },
-    { value: "resolved", label: "Resolved" },
-    { value: "cancel", label: "Customer Cancelled" },
-    { value: "customer_cancelled", label: "Customer Cancel" },
+    { value: "all", label: t("admin.all_orders") || "All Orders" },
+    { value: "pending", label: t("admin.pending") || "Pending" },
+    { value: "confirmed", label: t("admin.confirmed") || "Confirmed" },
+    { value: "processing", label: t("admin.processing") || "Processing" },
+    { value: "delivered", label: t("admin.delivered") || "Delivered" },
+    {
+      value: "delivery_confirmed",
+      label: t("admin.delivery_confirmed") || "Delivery Confirmed",
+    },
+    { value: "issue_reported", label: t("admin.issue_reported") || "Issue Reported" },
+    { value: "refund_pending", label: t("admin.refund_pending") || "Refund Pending" },
+    { value: "refunded", label: t("admin.refunded") || "Refunded" },
+    { value: "resolved", label: t("admin.resolved") || "Resolved" },
+    { value: "cancel", label: t("admin.customer_cancelled") || "Customer Cancelled" },
+    { value: "customer_cancelled", label: t("admin.customer_cancel") || "Customer Cancel" },
   ];
 
   const paymentStatuses = [
-    { value: "all", label: "All Payment Status" },
-    { value: "pending", label: "Pending" },
-    { value: "completed", label: "Completed" },
-    { value: "unpaid", label: "Unpaid" },
-    { value: "nopaid", label: "Not Paid" },
-    { value: "failed", label: "Failed" },
+    {
+      value: "all",
+      labelKey: "admin.all_payment_statuses",
+      fallback: "All Payment Statuses",
+    },
+    { value: "pending", labelKey: "admin.payment_pending", fallback: "Pending" },
+    { value: "completed", labelKey: "admin.payment_completed", fallback: "Completed" },
+    { value: "unpaid", labelKey: "admin.payment_unpaid", fallback: "Unpaid" },
+    { value: "nopaid", labelKey: "admin.payment_not_paid", fallback: "Not Paid" },
+    { value: "failed", labelKey: "admin.payment_failed", fallback: "Failed" },
   ];
 
+  // ---- init seller ----
   $effect(() => {
     if ($user && $user.shortname && !initialized) {
       sellerShortname = $user.shortname;
@@ -83,7 +97,7 @@
 
   async function loadOrders() {
     if (!sellerShortname) {
-      error = "Seller information not found";
+      error = t("admin.seller_not_found") || "Seller information not found";
       loading = false;
       return;
     }
@@ -119,10 +133,10 @@
         totalOrders = response.attributes?.total || 0;
         applyClientFilters();
       } else {
-        error = "Failed to load orders";
+        error = t("admin.orders_load_failed") || "Failed to load orders";
       }
     } catch (e) {
-      error = "An error occurred while loading orders";
+      error = t("admin.orders_load_error") || "An error occurred while loading orders";
       console.error(e);
     } finally {
       loading = false;
@@ -138,7 +152,8 @@
       // payment status (client-side as extra safety)
       if (
         selectedPaymentStatus !== "all" &&
-        payload.payment_status !== selectedPaymentStatus
+        String(payload.payment_status || "").toLowerCase() !==
+          String(selectedPaymentStatus).toLowerCase()
       ) {
         return false;
       }
@@ -150,17 +165,12 @@
         const matchesCustomer = payload.user?.displayname
           ?.toLowerCase()
           .includes(q);
-        const matchesTracking = payload.tracking_code
-          ?.toLowerCase()
-          .includes(q);
-        const matchesPhone = payload.user?.phone?.toString().includes(q);
+        const matchesTracking = payload.tracking_code?.toLowerCase().includes(q);
+        const matchesPhone =
+          payload.user?.phone?.toString().toLowerCase().includes(q) ||
+          payload.phone?.toString().toLowerCase().includes(q);
 
-        if (
-          !matchesOrderCode &&
-          !matchesCustomer &&
-          !matchesTracking &&
-          !matchesPhone
-        ) {
+        if (!matchesOrderCode && !matchesCustomer && !matchesTracking && !matchesPhone) {
           return false;
         }
       }
@@ -186,7 +196,8 @@
 
   async function handleStateChange(order: Order, newState: string) {
     const confirmed = confirm(
-      `Are you sure you want to change the order state to "${newState}"?`,
+      (t("admin.confirm_change_state") as string) ||
+        `Are you sure you want to change the order state to "${newState}"?`,
     );
     if (!confirmed) return;
 
@@ -200,13 +211,13 @@
       );
 
       if (success) {
-        successToastMessage("Order state updated successfully");
+        successToastMessage(t("admin.order_state_updated") || "Order state updated successfully");
         await loadOrders();
       } else {
-        errorToastMessage("Failed to update order state");
+        errorToastMessage(t("admin.order_state_update_failed") || "Failed to update order state");
       }
     } catch (e) {
-      errorToastMessage("An error occurred while updating the order");
+      errorToastMessage(t("admin.order_update_error") || "An error occurred while updating the order");
       console.error(e);
     } finally {
       loading = false;
@@ -257,13 +268,43 @@
     });
   }
 
-  // ----- Design pills (3 tones) -----
-  type Tone = "pending" | "solved" | "inactive";
+  // ---- Payment badge helpers (same feel as combined-orders page) ----
+  function normalizePaymentStatus(value: unknown): string {
+    return value?.toString().trim().toLowerCase() || "";
+  }
 
+  function getPaymentStatusClass(status: string): string {
+    const normalized = normalizePaymentStatus(status);
+    const statusClasses: Record<string, string> = {
+      pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
+      completed: "bg-green-50 text-green-700 border-green-200",
+      paid: "bg-green-50 text-green-700 border-green-200",
+      success: "bg-green-50 text-green-700 border-green-200",
+      nopaid: "bg-gray-100 text-gray-700 border-gray-200",
+      unpaid: "bg-gray-100 text-gray-700 border-gray-200",
+      failed: "bg-red-50 text-red-700 border-red-200",
+      cancelled: "bg-red-50 text-red-700 border-red-200",
+    };
+    return statusClasses[normalized] || "bg-gray-100 text-gray-700 border-gray-200";
+  }
+
+  function getPaymentStatusLabel(status: string): string {
+    const normalized = normalizePaymentStatus(status);
+    if (!normalized) return $_("common.not_available") || "N/A";
+    if (normalized === "pending") return $_("admin.payment_pending") || "Pending";
+    if (["completed", "paid", "success"].includes(normalized))
+      return $_("admin.payment_completed") || "Completed";
+    if (["nopaid", "unpaid"].includes(normalized))
+      return $_("admin.payment_not_paid") || "Not Paid";
+    if (normalized === "failed") return $_("admin.payment_failed") || "Failed";
+    return normalized;
+  }
+
+  // ---- State pill tone (like your old page, but used inline) ----
+  type Tone = "pending" | "solved" | "inactive";
   function getStateTone(state?: string): Tone {
     const s = (state || "").toLowerCase();
 
-    // pending-ish
     if (
       s.includes("pending") ||
       s === "processing" ||
@@ -273,24 +314,18 @@
       return "pending";
     }
 
-    // solved-ish
     if (s === "delivered" || s === "resolved" || s === "refunded") {
       return "solved";
     }
 
-    // inactive-ish
-    if (
-      s.includes("cancel") ||
-      s === "issue_reported" ||
-      s === "refund_pending"
-    ) {
+    if (s.includes("cancel") || s === "issue_reported" || s === "refund_pending") {
       return "inactive";
     }
 
     return "pending";
   }
 
-  // ----- Top dropdown logic -----
+  // ---- Top dropdown logic (same UX as combined-orders page) ----
   function closeTopDropdowns() {
     isFiltersOpen = false;
     isActionsOpen = false;
@@ -330,7 +365,7 @@
     return n;
   }
 
-  // ----- Row actions logic -----
+  // ---- Row actions logic ----
   function getRowId(item: any) {
     return String(item?.id ?? item?.shortname ?? crypto.randomUUID());
   }
@@ -345,7 +380,6 @@
   }
 
   function onWindowClick() {
-    // close both top dropdowns and row actions on outside click
     closeTopDropdowns();
     closeRowActions();
   }
@@ -367,15 +401,12 @@
     window.removeEventListener("keydown", onKeydown);
   });
 
-  // prevent outside close when clicking inside dropdowns
   function stop(e: Event) {
     e.stopPropagation();
   }
 
-  // ----- Pagination -----
-  let totalPages = $derived.by(() =>
-    Math.max(1, Math.ceil(totalOrders / itemsPerPage)),
-  );
+  // ---- Pagination (server total) ----
+  let totalPages = $derived.by(() => Math.max(1, Math.ceil(totalOrders / itemsPerPage)));
 
   let visiblePageNumbers = $derived.by(() => {
     const total = totalPages;
@@ -422,20 +453,15 @@
     }
   }
 
-  // When filters change locally, re-apply client filters for dates/search etc.
   $effect(() => {
     dateFrom;
     dateTo;
-    // (server filters are handled by scheduleLoadOrders / onchange handlers)
     if (orders.length > 0) applyClientFilters();
   });
 
-  // ---- Stats (based on filteredOrders, matching the desired page) ----
+  // ---- Stats (based on filteredOrders) ----
   let totalRevenue = $derived.by(() => {
-    return filteredOrders.reduce(
-      (sum, order) => sum + calculateOrderTotal(order),
-      0,
-    );
+    return filteredOrders.reduce((sum, order) => sum + calculateOrderTotal(order), 0);
   });
 
   let totalItems = $derived.by(() => {
@@ -459,7 +485,7 @@
     return Math.min(currentPage * itemsPerPage, totalOrders);
   });
 
-  // Optional: CSV export from current page rows
+  // ---- CSV export ----
   function escapeCsvValue(value: unknown): string {
     if (value === null || value === undefined) return "";
     const s = String(value);
@@ -511,21 +537,11 @@
 </script>
 
 <div class="orders-container">
-  <div class="header">
-    <h1>My Orders</h1>
-  </div>
-
-  <!-- Stats Grid -->
+  <!-- Stats Grid (same layout as combined-orders page) -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="bg-icon">
-        <svg
-          width="36"
-          height="36"
-          viewBox="0 0 36 36"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+      <div class="bg-icon rounded-lg flex items-center justify-center">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
             fill-rule="evenodd"
             clip-rule="evenodd"
@@ -535,20 +551,14 @@
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title">Total Orders</h3>
+        <h3 class="stat-title">{$_("admin.stats_total_orders") || "Total Orders"}</h3>
         <p class="stat-value">{filteredOrders.length}</p>
       </div>
     </div>
 
     <div class="stat-card">
-      <div class="bg-icon">
-        <svg
-          width="36"
-          height="36"
-          viewBox="0 0 36 36"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+      <div class="bg-icon rounded-lg flex items-center justify-center">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
             fill-rule="evenodd"
             clip-rule="evenodd"
@@ -558,43 +568,16 @@
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title">Total Revenue</h3>
-        <p class="stat-value">{formatCurrency(totalRevenue)} IQD</p>
+        <h3 class="stat-title">{$_("admin.stats_total_revenue") || "Total Revenue"}</h3>
+        <p class="stat-value">
+          {formatCurrency(totalRevenue)} {$_("admin.currency") || "IQD"}
+        </p>
       </div>
     </div>
 
     <div class="stat-card">
-      <div class="bg-icon">
-        <svg
-          width="36"
-          height="36"
-          viewBox="0 0 36 36"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
-            d="M18 6C11.3726 6 6 11.3726 6 18C6 24.6274 11.3726 30 18 30C24.6274 30 30 24.6274 30 18C30 11.3726 24.6274 6 18 6ZM3 18C3 9.71573 9.71573 3 18 3C26.2843 3 33 9.71573 33 18C33 26.2843 26.2843 33 18 33C9.71573 33 3 26.2843 3 18ZM18 10.5C18.8284 10.5 19.5 11.1716 19.5 12V19.5C19.5 20.3284 18.8284 21 18 21C17.1716 21 16.5 20.3284 16.5 19.5V12C16.5 11.1716 17.1716 10.5 18 10.5ZM16.5 24C16.5 23.1716 17.1716 22.5 18 22.5H18.015C18.8434 22.5 19.515 23.1716 19.515 24C19.515 24.8284 18.8434 25.5 18.015 25.5H18C17.1716 25.5 16.5 24.8284 16.5 24Z"
-            fill="#3C307F"
-          />
-        </svg>
-      </div>
-      <div class="stat-content">
-        <h3 class="stat-title">Total Items</h3>
-        <p class="stat-value">{totalItems}</p>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="bg-icon">
-        <svg
-          width="36"
-          height="36"
-          viewBox="0 0 36 36"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+      <div class="bg-icon rounded-lg flex items-center justify-center">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
             fill-rule="evenodd"
             clip-rule="evenodd"
@@ -604,91 +587,122 @@
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title">Average Order</h3>
-        <p class="stat-value">{formatCurrency(averageOrder)} IQD</p>
+        <h3 class="stat-title">{$_("admin.stats_total_items") || "Total Items"}</h3>
+        <p class="stat-value">{totalItems}</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="bg-icon rounded-lg flex items-center justify-center">
+        <svg width="36" height="36" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M2.25 2C2.25 1.72386 2.47386 1.5 2.75 1.5H9.25C9.52614 1.5 9.75 1.72386 9.75 2C9.75 2.27614 9.52614 2.5 9.25 2.5H8.5V3.6665C8.5 3.97975 8.40194 4.28484 8.22003 4.53915L7.41216 5.94864C7.40196 5.96644 7.39067 5.98359 7.37836 6C7.39067 6.01641 7.40196 6.03356 7.41216 6.05136L8.22003 7.46084C8.40194 7.71516 8.5 8.02025 8.5 8.3335V9.5H9.25C9.52614 9.5 9.75 9.72386 9.75 10C9.75 10.2761 9.52614 10.5 9.25 10.5H2.75C2.47386 10.5 2.25 10.2761 2.25 10C2.25 9.72386 2.47386 9.5 2.75 9.5H3.5V8.3335C3.5 8.02131 3.5974 7.71722 3.77814 7.46342L4.56339 6.05634C4.57432 6.03676 4.58655 6.01794 4.6 6C4.58655 5.98206 4.57432 5.96324 4.56339 5.94366L3.77813 4.53658C3.5974 4.28278 3.5 3.97869 3.5 3.6665V2.5H2.75C2.47386 2.5 2.25 2.27614 2.25 2ZM4.5 2.5V3.6665C4.5 3.77469 4.53509 3.87995 4.6 3.9665C4.61345 3.98444 4.62568 4.00326 4.63661 4.02284L5.42302 5.43199C5.5381 5.59873 5.6 5.79679 5.6 6C5.6 6.20321 5.5381 6.40127 5.42302 6.56801L4.63661 7.97716C4.62568 7.99674 4.61345 8.01556 4.6 8.0335C4.53509 8.12005 4.5 8.22532 4.5 8.3335V9.5H7.5V8.3335C7.5 8.22531 7.46491 8.12005 7.4 8.0335C7.38769 8.01709 7.37641 7.99994 7.3662 7.98214L6.55725 6.57077C6.44095 6.40346 6.37836 6.20433 6.37836 6C6.37836 5.79567 6.44095 5.59654 6.55725 5.42923L7.3662 4.01786C7.37641 4.00006 7.38769 3.98291 7.4 3.9665C7.46491 3.87995 7.5 3.77469 7.5 3.6665V2.5H4.5Z"
+            fill="#1C398E"
+          />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title">{$_("admin.stats_average_order") || "Average Order"}</h3>
+        <p class="stat-value">
+          {formatCurrency(averageOrder)} {$_("admin.currency") || "IQD"}
+        </p>
       </div>
     </div>
   </div>
 
-  <!-- Search + Filters + Actions (top bar) -->
-  <div class="topbar" onclick={stop}>
+  <!-- Filters Section (same topbar layout as combined-orders page) -->
+  <div
+    class="flex flex-col search-table_header md:flex-row md:items-end justify-between bg-white rounded-t-xl gap-3 w-full p-6"
+    onclick={stop}
+  >
     <!-- SEARCH -->
-    <div class="search-wrap">
-      <div class="search-icon" aria-hidden="true">
-        <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-          <path
-            fill-rule="evenodd"
-            d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-            clip-rule="evenodd"
-          />
-        </svg>
-      </div>
+    <div>
+      <div class="relative w-[256px]">
+        <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+          <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fill-rule="evenodd"
+              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
 
-      <input
-        type="text"
-        bind:value={searchQuery}
-        placeholder="Order code, customer, phone..."
-        class="input-modern"
-        oninput={scheduleLoadOrders}
-      />
+        <input
+          type="text"
+          bind:value={searchQuery}
+          placeholder={$_("admin.search_orders_placeholder") || "Order code, customer, phone..."}
+          class="w-full h-9 pl-9 pr-3 py-2
+          bg-[#F9FAFB]
+          border border-[#E5E7EB]
+          rounded-[12px]
+          shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+          text-sm
+          focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+          oninput={scheduleLoadOrders}
+        />
+      </div>
     </div>
 
     <!-- RIGHT: FILTERS + ACTIONS -->
-    <div class="topbar-right">
-      <!-- FILTERS -->
+    <div class="flex items-end gap-3 justify-end">
+      <!-- FILTERS DROPDOWN -->
       <div class="relative">
         <button
           type="button"
-          class="btn-modern"
           onclick={(e) => {
             e.stopPropagation();
             toggleFilters();
           }}
+          class="h-9 inline-flex items-center justify-between cursor-pointer
+          px-3 py-2 min-w-[170px]
+          bg-[#F9FAFB] border border-[#E5E7EB]
+          rounded-[12px]
+          shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+          text-sm text-gray-700 hover:bg-gray-50"
         >
-          <span class="btn-label">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+          <span class="truncate inline-flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill-rule="evenodd"
                 clip-rule="evenodd"
-                d="M2.46579 4.21134C1.71144 3.34923 2.32369 2 3.46923 2H12.5309C13.6764 2 14.2887 3.34923 13.5343 4.21134L10.0001 8.25049V13C10.0001 13.824 9.05929 14.2944 8.40005 13.8L6.40005 12.3C6.14824 12.1111 6.00005 11.8148 6.00005 11.5V8.25049L2.46579 4.21134Z"
+                d="M2.46579 4.21134C1.71144 3.34923 2.32369 2 3.46923 2H12.5309C13.6764 2 14.2887 3.34923 13.5343 4.21134L10.0001 8.25049V13C10.0001 13.824 9.05929 14.2944 8.40005 13.8L6.40005 12.3C6.14824 12.1111 6.00005 11.8148 6.00005 11.5V8.25049L2.46579 4.21134ZM12.5309 3.33333H3.46923L7.00349 7.37248C7.21616 7.61554 7.33338 7.92753 7.33338 8.25049V11.3333L8.66672 12.3333V8.25049C8.66672 7.92753 8.78394 7.61554 8.99661 7.37248L12.5309 3.33333Z"
                 fill="#4A5565"
               />
             </svg>
-            Filters
+
+            {$_("admin.filters") || "Filters"}
             {#if activeFiltersCount() > 0}
-              <span class="count-badge">{activeFiltersCount()}</span>
+              <span
+                class="inline-flex items-center justify-center px-2 h-5 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
+              >
+                {activeFiltersCount()}
+              </span>
             {/if}
           </span>
 
-          <svg
-            class="chev"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 9l-7 7-7-7"
-            />
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
 
         {#if isFiltersOpen}
-          <div class="dropdown-panel" onclick={stop}>
-            <div class="dropdown-grid">
+          <div
+            class="absolute right-0 z-20 mt-2 w-[360px]
+            rounded-[12px] border border-gray-200 bg-white shadow-lg p-3"
+            onclick={stop}
+          >
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Order State -->
               <div>
-                <label class="field-label">Order State</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1">
+                  {$_("admin.order_status") || "Order State"}
+                </label>
                 <select
                   bind:value={selectedState}
-                  class="field-control"
+                  class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
                   onchange={() => {
                     currentPage = 1;
                     loadOrders();
@@ -700,128 +714,159 @@
                 </select>
               </div>
 
+              <!-- Payment Status -->
               <div>
-                <label class="field-label">Payment Status</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1">
+                  {$_("admin.payment_status") || "Payment Status"}
+                </label>
                 <select
                   bind:value={selectedPaymentStatus}
-                  class="field-control"
+                  class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
                   onchange={() => {
                     currentPage = 1;
                     loadOrders();
                   }}
                 >
-                  {#each paymentStatuses as ps}
-                    <option value={ps.value}>{ps.label}</option>
+                  {#each paymentStatuses as status}
+                    <option value={status.value}>
+                      {$_(status.labelKey) || status.fallback}
+                    </option>
                   {/each}
                 </select>
               </div>
 
+              <!-- Phone -->
               <div>
-                <label class="field-label">Phone</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1">
+                  {$_("admin.phone") || "Phone"}
+                </label>
                 <input
                   type="text"
-                  class="field-control"
-                  placeholder="9647..."
                   bind:value={phoneFilter}
+                  placeholder="9647..."
+                  class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
                   oninput={scheduleLoadOrders}
                 />
               </div>
 
+              <!-- Governorate -->
               <div>
-                <label class="field-label">Governorate</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1">
+                  {$_("admin.governorate") || "Governorate"}
+                </label>
                 <input
                   type="text"
-                  class="field-control"
-                  placeholder="Baghdad"
                   bind:value={governorateFilter}
+                  placeholder="Baghdad"
+                  class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
                   oninput={scheduleLoadOrders}
                 />
               </div>
 
+              <!-- Date From -->
               <div>
-                <label class="field-label">Date From</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1">
+                  {$_("admin.date_from") || "Date From"}
+                </label>
                 <input
                   type="date"
-                  class="field-control"
                   bind:value={dateFrom}
+                  class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
                 />
               </div>
 
+              <!-- Date To -->
               <div>
-                <label class="field-label">Date To</label>
-                <input type="date" class="field-control" bind:value={dateTo} />
+                <label class="block text-xs font-medium text-gray-600 mb-1">
+                  {$_("admin.date_to") || "Date To"}
+                </label>
+                <input
+                  type="date"
+                  bind:value={dateTo}
+                  class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
+                />
               </div>
             </div>
 
-            <div class="dropdown-footer">
-              <button type="button" class="btn-reset" onclick={resetFilters}>
-                Reset
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onclick={resetFilters}
+                class="h-9 inline-flex items-center justify-center
+                px-3 py-2
+                bg-[#F9FAFB] text-gray-700 text-sm font-medium
+                border border-[#E5E7EB]
+                rounded-[12px]
+                hover:bg-gray-50 transition-colors"
+              >
+                {$_("admin.reset") || "Reset"}
               </button>
 
               <button
                 type="button"
-                class="btn-apply"
                 onclick={() => {
-                  // Apply here just closes; date filters are applied client-side automatically
                   isFiltersOpen = false;
-                  applyClientFilters();
+                  applyClientFilters(); // apply date filters immediately
                 }}
+                class="h-9 inline-flex items-center justify-center
+                px-3 py-2
+                bg-[#3C307F] text-white text-sm font-medium
+                rounded-[12px]
+                hover:bg-[#2f2666] transition-colors"
               >
-                Apply
+                {$_("admin.apply") || "Apply"}
               </button>
             </div>
           </div>
         {/if}
       </div>
 
-      <!-- ACTIONS -->
+      <!-- ACTIONS DROPDOWN -->
       <div class="relative">
         <button
           type="button"
-          class="btn-modern"
           onclick={(e) => {
             e.stopPropagation();
             toggleActions();
           }}
+          class="h-9 inline-flex items-center justify-between
+          px-3 py-2 min-w-[140px]
+          bg-[#F9FAFB] border border-[#E5E7EB]
+          rounded-[12px]
+          shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+          text-sm text-gray-700 hover:bg-gray-50"
         >
-          <span class="btn-label">Actions</span>
-          <svg
-            class="chev"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 9l-7 7-7-7"
-            />
+          <span class="truncate">{$_("admin.actions") || "Actions"}</span>
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
 
         {#if isActionsOpen}
-          <div class="dropdown-panel-small" onclick={stop}>
+          <div
+            class="absolute right-0 z-20 mt-2 w-[220px] rounded-[12px] border border-gray-200 bg-white shadow-lg p-2"
+            onclick={stop}
+          >
             <button
               type="button"
-              class="menu-item"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
               onclick={() => {
                 isActionsOpen = false;
                 downloadOrdersCsv();
               }}
             >
-              Download CSV
+              {$_("admin.download_csv") || "Download CSV"}
             </button>
 
             <button
               type="button"
-              class="menu-item"
+              class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50"
               onclick={() => {
                 isActionsOpen = false;
                 loadOrders();
               }}
             >
-              Refresh
+              {$_("common.refresh") || "Refresh"}
             </button>
           </div>
         {/if}
@@ -832,18 +877,18 @@
   {#if loading}
     <div class="loading">
       <div class="spinner"></div>
-      <p>Loading orders...</p>
+      <p>{$_("admin.loading_orders") || "Loading orders..."}</p>
     </div>
   {:else if error}
     <div class="error-message">
       <p>{error}</p>
-      <button class="btn-retry" onclick={loadOrders}>Retry</button>
+      <button class="btn-retry" onclick={loadOrders}>{$_("common.retry") || "Retry"}</button>
     </div>
   {:else if filteredOrders.length === 0}
     <div class="empty-state">
-      <p>No orders found</p>
+      <p>{$_("admin.no_orders_found") || "No orders found"}</p>
       {#if searchQuery || selectedState !== "all" || selectedPaymentStatus !== "all" || phoneFilter || governorateFilter || dateFrom || dateTo}
-        <p class="empty-hint">Try adjusting your filters</p>
+        <p class="empty-hint">{$_("admin.adjust_filters_hint") || "Try adjusting your filters"}</p>
       {/if}
     </div>
   {:else}
@@ -852,13 +897,13 @@
       <table class="orders-table">
         <thead>
           <tr>
-            <th>Order</th>
-            <th>Customer</th>
-            <th class="center">Items</th>
-            <th class="right">Total</th>
-            <th>Payment</th>
-            <th>Status</th>
-            <th>Date</th>
+            <th>{$_("admin.table_order") || "Order"}</th>
+            <th>{$_("admin.customer") || "Customer"}</th>
+            <th class="text-center">{$_("admin.items") || "Items"}</th>
+            <th class="text-right">{$_("admin.total") || "Total"}</th>
+            <th>{$_("admin.payment_status") || "Payment"}</th>
+            <th>{$_("admin.order_status") || "Status"}</th>
+            <th>{$_("admin.date") || "Date"}</th>
           </tr>
         </thead>
 
@@ -868,27 +913,38 @@
             {@const total = calculateOrderTotal(order)}
             {@const state = (order.attributes?.state || "pending").toString()}
             {@const tone = getStateTone(state)}
+            {@const paymentStatus = payload?.payment_status || ""}
+            {@const paymentType = payload?.payment_type || ""}
 
             <tr
-              class="row clickable-row"
+              class="clickable-row hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
               onclick={() => viewOrderDetails(order)}
             >
               <!-- ORDER -->
               <td class="px-6 py-4">
-                <div class="flex-row">
-                  <div class="order-icon" aria-hidden="true">
-                    <span class="hash">#</span>
+                <div class="flex items-center gap-2.5">
+                  <div
+                    class="h-11 w-11 rounded-full flex items-center justify-center"
+                    style="background:#F3F4F6;"
+                    aria-hidden="true"
+                  >
+                    <span style="font-weight:500;font-size:14px;line-height:14px;color:#101828;">#</span>
                   </div>
 
-                  <div class="minw0">
+                  <div class="min-w-0">
                     <div
-                      class="title"
+                      class="truncate"
+                      style="font-weight:500;font-size:16px;line-height:16px;color:#101828;"
                       title={payload?.order_code || order.shortname}
                     >
                       {payload?.order_code || order.shortname}
                     </div>
 
-                    <div class="sub">
+                    <div
+                      class="truncate mt-1"
+                      style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;"
+                      title={payload?.tracking_code || "Tracking: N/A"}
+                    >
                       {payload?.tracking_code || "Tracking: N/A"}
                     </div>
                   </div>
@@ -897,119 +953,151 @@
 
               <!-- CUSTOMER -->
               <td class="px-6 py-4">
-                <div class="minw0">
+                <div class="min-w-0">
                   <div
-                    class="title-sm"
-                    title={payload?.user?.displayname ||
-                      payload?.user?.shortname ||
-                      "N/A"}
+                    class="truncate"
+                    style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                    title={payload?.user?.displayname || payload?.user?.shortname || "N/A"}
                   >
-                    {payload?.user?.displayname ||
-                      payload?.user?.shortname ||
-                      "N/A"}
+                    {payload?.user?.displayname || payload?.user?.shortname || "N/A"}
                   </div>
-                  <div class="sub" title={payload?.user?.phone || "N/A"}>
+                  <div
+                    class="truncate mt-1"
+                    style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;"
+                    title={payload?.user?.phone || "N/A"}
+                  >
                     {payload?.user?.phone || "N/A"}
                   </div>
                 </div>
               </td>
 
               <!-- ITEMS -->
-              <td class="px-6 py-4 center mono">
+              <td
+                class="px-6 py-4 text-center"
+                style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+              >
                 {payload?.items?.length || 0}
               </td>
 
               <!-- TOTAL -->
-              <td class="px-6 py-4 right">
-                <span class="money">{formatCurrency(total)} IQD</span>
+              <td class="px-6 py-4 text-right">
+                <span style="font-weight:500;font-size:14px;line-height:14px;color:#101828;">
+                  {formatCurrency(total)} {$_("admin.currency") || "IQD"}
+                </span>
               </td>
 
               <!-- PAYMENT -->
               <td class="px-6 py-4">
-                <div class="stack">
-                  <span class="mini-pill">
-                    {payload?.payment_status || "pending"}
+                <div class="flex flex-col gap-1">
+                  <span
+                    class={`inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 w-fit ${getPaymentStatusClass(paymentStatus)}`}
+                    style="height:20px;"
+                  >
+                    <span style="font-weight:500;font-size:12px;line-height:16px;">
+                      {getPaymentStatusLabel(paymentStatus)}
+                    </span>
                   </span>
-                  <span class="sub">{payload?.payment_type || "N/A"}</span>
+
+                  <span style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;">
+                    {paymentType || $_("common.not_available") || "N/A"}
+                  </span>
                 </div>
               </td>
 
-              <!-- STATUS (your spec: pending/solved/inactive) -->
+              <!-- STATUS -->
               <td class="px-6 py-4">
-                <span class={"status-pill " + tone}>
-                  {#if tone === "pending"}
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      aria-hidden="true"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        clip-rule="evenodd"
-                        d="M2.25 2C2.25 1.72386 2.47386 1.5 2.75 1.5H9.25C9.52614 1.5 9.75 1.72386 9.75 2C9.75 2.27614 9.52614 2.5 9.25 2.5H8.5V3.6665C8.5 3.97975 8.40194 4.28484 8.22003 4.53915L7.41216 5.94864C7.40196 5.96644 7.39067 5.98359 7.37836 6C7.39067 6.01641 7.40196 6.03356 7.41216 6.05136L8.22003 7.46084C8.40194 7.71516 8.5 8.02025 8.5 8.3335V9.5H9.25C9.52614 9.5 9.75 9.72386 9.75 10C9.75 10.2761 9.52614 10.5 9.25 10.5H2.75C2.47386 10.5 2.25 10.2761 2.25 10C2.25 9.72386 2.47386 9.5 2.75 9.5H3.5V8.3335C3.5 8.02131 3.5974 7.71722 3.77814 7.46342L4.56339 6.05634C4.57432 6.03676 4.58655 6.01794 4.6 6C4.58655 5.98206 4.57432 5.96324 4.56339 5.94366L3.77813 4.53658C3.5974 4.28278 3.5 3.97869 3.5 3.6665V2.5H2.75C2.47386 2.5 2.25 2.27614 2.25 2Z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                  {:else if tone === "solved"}
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      aria-hidden="true"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        clip-rule="evenodd"
-                        d="M9.85885 3.40183C10.0511 3.60001 10.0464 3.91656 9.84818 4.10885L5.21017 8.60885C5.01621 8.79704 4.70781 8.79705 4.51384 8.60887L2.15184 6.31737C1.95365 6.12509 1.94885 5.80854 2.14113 5.61034C2.33341 5.41215 2.64996 5.40735 2.84816 5.59963L4.86198 7.55335L9.15183 3.39115C9.35001 3.19886 9.66656 3.20364 9.85885 3.40183Z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                  {:else}
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      aria-hidden="true"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        clip-rule="evenodd"
-                        d="M9.32268 2.64556C9.51843 2.84033 9.51922 3.15692 9.32445 3.35267L6.70534 5.98493L9.35444 8.64733C9.54921 8.84308 9.54842 9.15966 9.35267 9.35443C9.15692 9.5492 8.84033 9.54841 8.64556 9.35266L6 6.69381L3.35444 9.35266C3.15967 9.54841 2.84308 9.5492 2.64733 9.35443C2.45158 9.15966 2.45079 8.84308 2.64556 8.64733L5.29466 5.98493L2.67555 3.35267C2.48078 3.15692 2.48157 2.84034 2.67732 2.64556C2.87307 2.45079 3.18966 2.45159 3.38443 2.64734L6 5.27604L8.61557 2.64733C8.81035 2.45158 9.12693 2.45079 9.32268 2.64556Z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                  {/if}
-
-                  <span class="cap">{state}</span>
+                <span
+                  class="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 w-fit"
+                  style={`height:20px;${
+                    tone === "pending"
+                      ? "background:#EEF6FF;border-color:#BEDBFF;color:#1C398E;"
+                      : tone === "solved"
+                        ? "background:#ECFDF5;border-color:#A4F4CF;color:#004F3B;"
+                        : "background:#FFF8F1;border-color:#FCD9BD;color:#771D1D;"
+                  }`}
+                >
+                  <span style="font-weight:500;font-size:12px;line-height:16px;text-transform:lowercase;">
+                    {state}
+                  </span>
                 </span>
               </td>
 
               <!-- DATE -->
               <td class="px-6 py-4">
-                <div class="datecell">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
+                <div
+                  class="inline-flex items-center gap-2"
+                  style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                       fill-rule="evenodd"
                       clip-rule="evenodd"
-                      d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333ZM4.66667 8.66667C4.66667 8.29848 4.96514 8 5.33333 8H5.34C5.70819 8 6.00667 8.29848 6.00667 8.66667V8.67333C6.00667 9.04152 5.70819 9.34 5.34 9.34H5.33333C4.96514 9.34 4.66667 9.04152 4.66667 8.67333V8.66667ZM7.33333 8.66667C7.33333 8.29848 7.63181 8 8 8H8.00667C8.37486 8 8.67333 8.29848 8.67333 8.66667V8.67333C8.67333 9.04152 8.37486 9.34 8.00667 9.34H8C7.63181 9.34 7.33333 9.04152 7.33333 8.67333V8.66667ZM10 8.66667C10 8.29848 10.2985 8 10.6667 8H10.6733C11.0415 8 11.34 8.29848 11.34 8.66667V8.67333C11.34 9.04152 11.0415 9.34 10.6733 9.34H10.6667C10.2985 9.34 10 9.04152 10 8.67333V8.66667ZM4.66667 11.3333C4.66667 10.9651 4.96514 10.6667 5.33333 10.6667H5.34C5.70819 10.6667 6.00667 10.9651 6.00667 11.3333V11.34C6.00667 11.7082 5.70819 12.0067 5.34 12.0067H5.33333C4.96514 12.0067 4.66667 11.7082 4.66667 11.34V11.3333ZM7.33333 11.3333C7.33333 10.9651 7.63181 10.6667 8 10.6667H8.00667C8.37486 10.6667 8.67333 10.9651 8.67333 11.3333V11.34C8.67333 11.7082 8.37486 12.0067 8.00667 12.0067H8C7.63181 12.0067 7.33333 11.7082 7.33333 11.34V11.3333ZM10 11.3333C10 10.9651 10.2985 10.6667 10.6667 10.6667H10.6733C11.0415 10.6667 11.34 10.9651 11.34 11.3333V11.34C11.34 11.7082 11.0415 12.0067 10.6733 12.0067H10.6667C10.2985 12.0067 10 11.7082 10 11.34V11.3333Z"
+                      d="M4.66667 2C5.03486 2 5.33333 2.29848 5.33333 2.66667V3.33333H7.33333V2.66667C7.33333 2.29848 7.63181 2 8 2C8.36819 2 8.66667 2.29848 8.66667 2.66667V3.33333H10.6667V2.66667C10.6667 2.29848 10.9651 2 11.3333 2C11.7015 2 12 2.29848 12 2.66667V3.33333H12.6667C13.403 3.33333 14 3.93029 14 4.66667V12.6667C14 13.403 13.403 14 12.6667 14H3.33333C2.59695 14 2 13.403 2 12.6667V4.66667C2 3.93029 2.59695 3.33333 3.33333 3.33333H4L4 2.66667C4 2.29848 4.29848 2 4.66667 2ZM4 4.66667L3.33333 4.66667V6H12.6667V4.66667H12C12 5.03486 11.7015 5.33333 11.3333 5.33333C10.9651 5.33333 10.6667 5.03486 10.6667 4.66667H8.66667C8.66667 5.03486 8.36819 5.33333 8 5.33333C7.63181 5.33333 7.33333 5.03486 7.33333 4.66667H5.33333C5.33333 5.03486 5.03486 5.33333 4.66667 5.33333C4.29848 5.33333 4 5.03486 4 4.66667ZM12.6667 7.33333H3.33333V12.6667H12.6667V7.33333Z"
                       fill="#6A7282"
                     />
                   </svg>
-
                   <span>{formatDateDMY(order.attributes?.created_at)}</span>
+                </div>
+              </td>
+
+              <!-- ACTIONS (... dropdown) -->
+              <td class="px-6 py-4 text-right" onclick={(e) => e.stopPropagation()}>
+                <div class="relative inline-flex justify-end" onclick={(e) => e.stopPropagation()}>
+                  <button
+                    class="h-8 w-8 inline-flex items-center justify-center cursor-pointer rounded-md hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
+                    aria-label={$_("admin.actions") || "Actions"}
+                    aria-haspopup="menu"
+                    aria-expanded={openActionsFor === getRowId(order)}
+                    onclick={() => toggleRowActions(order)}
+                  >
+                    <span class="text-xl leading-none">…</span>
+                  </button>
+
+                  {#if openActionsFor === getRowId(order)}
+                    <div
+                      class="absolute z-20 mt-2 w-56 rounded-lg border border-gray-200 bg-white shadow-lg py-1 right-0"
+                      role="menu"
+                      style="top:22px;"
+                      onclick={stop}
+                    >
+                      <button
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-gray-600"
+                        onclick={() => {
+                          closeRowActions();
+                          viewOrderDetails(order);
+                        }}
+                        role="menuitem"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M4.0117 12C4.02312 12.0329 4.04406 12.0868 4.08184 12.1644C4.16842 12.3421 4.3101 12.5758 4.51263 12.851C4.91651 13.3997 5.51827 14.0535 6.2742 14.6801C7.80015 15.9449 9.83098 17 12 17C14.169 17 16.1999 15.9449 17.7258 14.6801C18.4817 14.0535 19.0835 13.3997 19.4874 12.851C19.6899 12.5758 19.8316 12.3421 19.9182 12.1644C19.9559 12.0868 19.9769 12.0329 19.9883 12C19.9769 11.9671 19.9559 11.9132 19.9182 11.8356C19.8316 11.6579 19.6899 11.4242 19.4874 11.149C19.0835 10.6003 18.4817 9.94649 17.7258 9.3199C16.1999 8.05506 14.169 7 12 7C9.83098 7 7.80015 8.05506 6.2742 9.3199C5.51827 9.94649 4.91651 10.6003 4.51263 11.149C4.3101 11.4242 4.16842 11.6579 4.08184 11.8356C4.04406 11.9132 4.02312 11.9671 4.0117 12ZM4.99787 7.7801C6.72929 6.34495 9.19846 5 12 5C14.8015 5 17.2707 6.34495 19.0021 7.7801C19.8749 8.50351 20.5911 9.2747 21.0981 9.96347C21.351 10.3071 21.5629 10.6452 21.7161 10.9597C21.8554 11.2456 22 11.6185 22 12C22 12.3815 21.8554 12.7544 21.7161 13.0403C21.5629 13.3548 21.351 13.6929 21.0981 14.0365C20.5911 14.7253 19.8749 15.4965 19.0021 16.2199C17.2707 17.6551 14.8015 19 12 19C9.19846 19 6.72929 17.6551 4.99787 16.2199C4.12513 15.4965 3.40886 14.7253 2.9019 14.0365C2.649 13.6929 2.43705 13.3548 2.28385 13.0403C2.14458 12.7544 2 12.3815 2 12C2 11.6185 2.14458 11.2456 2.28385 10.9597C2.43705 10.6452 2.649 10.3071 2.9019 9.96347C3.40886 9.2747 4.12513 8.50351 4.99787 7.7801ZM12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10ZM8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12Z" fill="#101828"/>
+</svg>
+
+                        <span>{$_("view") || "View"}</span>
+                      </button>
+
+                      <div class="h-px bg-gray-100 my-1"></div>
+
+                      <div class="px-3 py-2">
+                        <div class="text-xs font-medium text-gray-600 mb-1">
+                          {$_("admin.change_state") || "Change state"}
+                        </div>
+
+                        <select
+                          class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
+                          value={state}
+                          onchange={(e) => {
+                            const next = (e.currentTarget as HTMLSelectElement).value;
+                            closeRowActions();
+                            handleStateChange(order, next);
+                          }}
+                        >
+                          {#each orderStates.filter((s) => s.value !== "all") as st}
+                            <option value={st.value}>{st.label}</option>
+                          {/each}
+                        </select>
+                      </div>
+                    </div>
+                  {/if}
                 </div>
               </td>
             </tr>
@@ -1018,78 +1106,141 @@
       </table>
     </div>
 
-    <!-- Pagination -->
-    <div class="pagination">
-      <p class="pagination-text">
-        Showing {paginationStart}-{paginationEnd} of {totalOrders}
-      </p>
+    {#if totalPages > 1}
+      <div class="pagination">
+        <!-- Left text -->
+        <div class="pagination-info">
+          <span class="pagination-info__label">
+            {$_("common.showing") || "Showing"}
+          </span>
 
-      <div class="pagination-controls" onclick={stop}>
-        <button
-          type="button"
-          class="pagination-segment pagination-arrow"
-          onclick={previousPage}
-          disabled={currentPage === 1}
-          aria-label="Previous page"
-        >
-          <svg
-            class="pagination-arrow-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
+          <span class="pagination-info__strong">
+            {formatNumber((currentPage - 1) * itemsPerPage + 1, $locale)}
+            -
+            {formatNumber(
+              Math.min(currentPage * itemsPerPage, totalOrders),
+              $locale,
+            )}
+          </span>
+
+          <span class="pagination-info__label">
+            {$_("common.of") || "of"}
+          </span>
+
+          <span class="pagination-info__strong">
+            {formatNumber(totalOrders, $locale)}
+          </span>
+        </div>
+
+        <!-- Right controls -->
+        <div class="pagination-controls">
+          <!-- Prev -->
+          <button
+            class="pager-arrow pager-arrow--left"
+            onclick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            aria-label="Previous page"
+            type="button"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-
-        {#each visiblePageNumbers as segment}
-          {#if segment === "ellipsis"}
-            <span
-              class="pagination-segment pagination-ellipsis"
-              aria-hidden="true">…</span
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
             >
-          {:else}
-            <button
-              type="button"
-              class="pagination-segment pagination-num"
-              class:active={currentPage === segment}
-              onclick={() => goToPage(segment)}
-              aria-label={"Page " + segment}
-              aria-current={currentPage === segment ? "page" : undefined}
-            >
-              {segment}
-            </button>
-          {/if}
-        {/each}
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M4.86195 8.47132C4.6016 8.21097 4.6016 7.78886 4.86195 7.52851L9.52862 2.86185C9.78897 2.6015 10.2111 2.6015 10.4714 2.86185C10.7318 3.1222 10.7318 3.54431 10.4714 3.80466L6.27616 7.99992L10.4714 12.1952C10.7318 12.4555 10.7318 12.8776 10.4714 13.138C10.2111 13.3983 9.78897 13.3983 9.52862 13.138L4.86195 8.47132Z"
+                fill="#101828"
+              />
+            </svg>
+          </button>
 
-        <button
-          type="button"
-          class="pagination-segment pagination-arrow"
-          onclick={nextPage}
-          disabled={currentPage === totalPages}
-          aria-label="Next page"
-        >
-          <svg
-            class="pagination-arrow-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
+          <!-- Pages -->
+          <div class="pagination-pages">
+            {#if totalPages <= 7}
+              {#each Array(totalPages) as _, index}
+                <button
+                  class="page-chip"
+                  class:active={currentPage === index + 1}
+                  onclick={() => goToPage(index + 1)}
+                  type="button"
+                >
+                  {formatNumber(index + 1, $locale)}
+                </button>
+              {/each}
+            {:else}
+              <!-- 1 -->
+              <button
+                class="page-chip"
+                class:active={currentPage === 1}
+                onclick={() => goToPage(1)}
+                type="button"
+              >
+                {formatNumber(1, $locale)}
+              </button>
+
+              {#if currentPage > 3}
+                <span class="page-ellipsis">...</span>
+              {/if}
+
+              {#each Array(totalPages) as _, index}
+                {#if index + 1 > 1 && index + 1 < totalPages && Math.abs(currentPage - (index + 1)) <= 1}
+                  <button
+                    class="page-chip"
+                    class:active={currentPage === index + 1}
+                    onclick={() => goToPage(index + 1)}
+                    type="button"
+                  >
+                    {formatNumber(index + 1, $locale)}
+                  </button>
+                {/if}
+              {/each}
+
+              {#if currentPage < totalPages - 2}
+                <span class="page-ellipsis">...</span>
+              {/if}
+
+              <!-- last -->
+              <button
+                class="page-chip"
+                class:active={currentPage === totalPages}
+                onclick={() => goToPage(totalPages)}
+                type="button"
+              >
+                {formatNumber(totalPages, $locale)}
+              </button>
+            {/if}
+          </div>
+
+          <!-- Next -->
+          <button
+            class="pager-arrow pager-arrow--right"
+            onclick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            aria-label="Next page"
+            type="button"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M11.1381 7.52868C11.3985 7.78903 11.3985 8.21114 11.1381 8.47149L6.47145 13.1382C6.2111 13.3985 5.78899 13.3985 5.52864 13.1382C5.26829 12.8778 5.26829 12.4557 5.52864 12.1953L9.7239 8.00008L5.52864 3.80482C5.26829 3.54447 5.26829 3.12236 5.52864 2.86201C5.78899 2.60166 6.2111 2.60166 6.47145 2.86201L11.1381 7.52868Z"
+                fill="#101828"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
-    </div>
+    {/if}
   {/if}
 </div>
 
@@ -1104,717 +1255,3 @@
     }}
   />
 {/if}
-
-<style>
-  /* Page container */
-  .orders-container {
-    min-height: 100vh;
-    background: #f9fafb;
-    padding: 24px;
-  }
-
-  .header h1 {
-    font-size: 24px;
-    font-weight: 600;
-    color: #101828;
-    margin-bottom: 16px;
-  }
-
-  /* Stats */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-
-  .stat-card {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 1px 0.5px 0.05px rgba(27, 31, 36, 0.04);
-  }
-
-  .bg-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 12px;
-    background: #f3f4f6;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-  }
-
-  .stat-title {
-    font-size: 12px;
-    font-weight: 500;
-    color: #4a5565;
-    margin: 0 0 6px 0;
-  }
-
-  .stat-value {
-    font-size: 20px;
-    font-weight: 600;
-    color: #101828;
-    margin: 0;
-  }
-
-  /* Topbar (search + dropdowns) */
-  .topbar {
-    display: flex;
-    gap: 12px;
-    justify-content: space-between;
-    align-items: end;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-bottom: none;
-    border-radius: 12px 12px 0 0;
-    padding: 16px;
-  }
-
-  .search-wrap {
-    position: relative;
-    width: 256px;
-  }
-
-  .search-icon {
-    position: absolute;
-    inset-block: 0;
-    left: 10px;
-    display: flex;
-    align-items: center;
-    color: #9ca3af;
-    pointer-events: none;
-  }
-
-  .input-modern {
-    width: 100%;
-    height: 36px;
-    padding: 8px 12px 8px 36px;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    box-shadow: 0px 1px 0.5px 0.05px rgba(29, 41, 61, 0.02);
-    font-size: 14px;
-    outline: none;
-  }
-
-  .input-modern:focus {
-    border-color: #a78bfa;
-    box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.5);
-  }
-
-  .topbar-right {
-    display: flex;
-    gap: 12px;
-    align-items: end;
-    justify-content: flex-end;
-  }
-
-  .btn-modern {
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 8px 12px;
-    min-width: 140px;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    box-shadow: 0px 1px 0.5px 0.05px rgba(29, 41, 61, 0.02);
-    font-size: 14px;
-    color: #4a5565;
-    cursor: pointer;
-  }
-
-  .btn-modern:hover {
-    background: #f3f4f6;
-  }
-
-  .btn-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-  }
-
-  .chev {
-    width: 16px;
-    height: 16px;
-    color: #6b7280;
-    flex: 0 0 auto;
-  }
-
-  .count-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 8px;
-    height: 20px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 500;
-    background: #ede9fe;
-    color: #6d28d9;
-  }
-
-  .relative {
-    position: relative;
-  }
-
-  .dropdown-panel {
-    position: absolute;
-    right: 0;
-    z-index: 20;
-    margin-top: 8px;
-    width: 360px;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-    padding: 12px;
-  }
-
-  .dropdown-panel-small {
-    position: absolute;
-    right: 0;
-    z-index: 20;
-    margin-top: 8px;
-    width: 220px;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-    padding: 8px;
-  }
-
-  .dropdown-grid {
-    display: grid;
-    gap: 12px;
-    grid-template-columns: 1fr;
-  }
-
-  @media (min-width: 768px) {
-    .dropdown-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  .field-label {
-    display: block;
-    font-size: 12px;
-    font-weight: 500;
-    color: #4a5565;
-    margin-bottom: 6px;
-  }
-
-  .field-control {
-    width: 100%;
-    height: 36px;
-    padding: 0 12px;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    font-size: 14px;
-    outline: none;
-  }
-
-  .dropdown-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid #f3f4f6;
-  }
-
-  .btn-reset {
-    height: 36px;
-    padding: 8px 12px;
-    border-radius: 12px;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    color: #4a5565;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-
-  .btn-reset:hover {
-    background: #f3f4f6;
-  }
-
-  .btn-apply {
-    height: 36px;
-    padding: 8px 12px;
-    border-radius: 12px;
-    background: #3c307f;
-    border: 1px solid #3c307f;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-
-  .btn-apply:hover {
-    background: #2f2666;
-  }
-
-  .menu-item {
-    width: 100%;
-    text-align: left;
-    padding: 10px 10px;
-    border-radius: 8px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    color: #4a5565;
-  }
-
-  .menu-item:hover {
-    background: #f9fafb;
-  }
-
-  /* Table */
-  .orders-table-wrapper {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-top: none;
-    border-radius: 0 0 12px 12px;
-    overflow: hidden;
-  }
-
-  .orders-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .orders-table thead th {
-    text-align: left;
-    font-size: 12px;
-    font-weight: 500;
-    color: #6a7282;
-    background: #ffffff;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 14px 24px;
-  }
-
-  .orders-table thead th.center {
-    text-align: center;
-  }
-  .orders-table thead th.right {
-    text-align: right;
-  }
-
-  .row td {
-    border-bottom: 1px solid #f3f4f6;
-  }
-
-  .row:hover {
-    background: #f9fafb;
-  }
-
-  .clickable-row {
-    cursor: pointer;
-    transition: background 0.2s ease;
-  }
-
-  .px-6 {
-    padding-left: 24px;
-    padding-right: 24px;
-  }
-  .py-4 {
-    padding-top: 16px;
-    padding-bottom: 16px;
-  }
-
-  .center {
-    text-align: center;
-  }
-  .right {
-    text-align: right;
-  }
-
-  .flex-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-  }
-
-  .order-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 999px;
-    background: #f3f4f6;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-  }
-
-  .hash {
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 14px;
-    color: #101828;
-  }
-
-  .minw0 {
-    min-width: 0;
-  }
-
-  .title {
-    font-weight: 500;
-    font-size: 16px;
-    line-height: 16px;
-    color: #101828;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 320px;
-  }
-
-  .title-sm {
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 14px;
-    color: #101828;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 240px;
-  }
-
-  .sub {
-    font-weight: 400;
-    font-size: 14px;
-    line-height: 14px;
-    color: #4a5565;
-    margin-top: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .mono {
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 14px;
-    color: #101828;
-  }
-
-  .money {
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 14px;
-    color: #101828;
-  }
-
-  .stack {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .mini-pill {
-    display: inline-flex;
-    align-items: center;
-    height: 20px;
-    padding: 0 8px;
-    border-radius: 6px;
-    border: 1px solid #bedbff;
-    background: #eef6ff;
-    color: #1c398e;
-    font-weight: 500;
-    font-size: 12px;
-    line-height: 16px;
-    width: fit-content;
-    text-transform: lowercase;
-  }
-
-  /* STATUS pill (your spec) */
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    height: 20px;
-    padding: 0 12px;
-    border-radius: 6px; /* rounded-sm */
-    border: 1px solid;
-    font-family: inherit;
-    font-weight: 500;
-    font-size: 12px; /* text-xs */
-    line-height: 16px;
-    letter-spacing: 0;
-    text-align: center;
-    width: fit-content;
-    text-transform: lowercase;
-  }
-
-  .status-pill.pending {
-    background: #eef6ff;
-    border-color: #bedbff;
-    color: #1c398e;
-  }
-
-  .status-pill.solved {
-    background: #ecfdf5;
-    border-color: #a4f4cf;
-    color: #004f3b;
-  }
-
-  .status-pill.inactive {
-    background: #fff8f1;
-    border-color: #fcd9bd;
-    color: #771d1d;
-  }
-
-  .cap {
-    display: inline-block;
-    max-width: 160px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .datecell {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 14px;
-    color: #101828;
-  }
-
-  /* Row actions */
-  .row-actions-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    background: transparent;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .row-actions-btn:hover {
-    background: #f4f5fe;
-    border-color: #3c307f;
-  }
-
-  .dots {
-    font-size: 18px;
-    line-height: 1;
-    color: #4a5565;
-  }
-
-  .row-menu {
-    position: absolute;
-    right: 0;
-    margin-top: 8px;
-    z-index: 30;
-    width: 220px;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
-    background: #fff;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-    padding: 8px;
-  }
-
-  .row-menu-item {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 10px;
-    border-radius: 8px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    color: #4a5565;
-    font-size: 14px;
-  }
-
-  .row-menu-item:hover {
-    background: #f9fafb;
-  }
-
-  .row-menu-sep {
-    height: 1px;
-    background: #f3f4f6;
-    margin: 8px 0;
-  }
-
-  .row-menu-group {
-    padding: 6px 6px 2px 6px;
-  }
-
-  .row-menu-label {
-    font-size: 12px;
-    font-weight: 500;
-    color: #6a7282;
-    margin-bottom: 6px;
-  }
-
-  .row-state-select {
-    width: 100%;
-    height: 36px;
-    padding: 0 10px;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
-    background: #f9fafb;
-    font-size: 14px;
-    outline: none;
-  }
-
-  /* Loading/empty/error */
-  .loading,
-  .error-message,
-  .empty-state {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 16px;
-    margin-top: 12px;
-  }
-
-  .btn-retry {
-    margin-top: 10px;
-    height: 36px;
-    padding: 8px 12px;
-    border-radius: 12px;
-    background: #3c307f;
-    border: 1px solid #3c307f;
-    color: #fff;
-    font-weight: 500;
-    cursor: pointer;
-  }
-
-  .btn-retry:hover {
-    background: #2f2666;
-  }
-
-  .empty-hint {
-    color: #6a7282;
-    margin-top: 6px;
-  }
-
-  /* Pagination (segmented) */
-  .pagination {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-top: none;
-    border-radius: 0 0 12px 12px;
-    padding: 14px 16px;
-  }
-
-  .pagination-text {
-    font-size: 14px;
-    color: #4a5565;
-    margin: 0;
-  }
-
-  .pagination-controls {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .pagination-segment {
-    height: 32px;
-    min-width: 32px;
-    padding: 0 10px;
-    border-radius: 10px;
-    border: 1px solid #e5e7eb;
-    background: #f9fafb;
-    color: #4a5565;
-    font-size: 14px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .pagination-segment:hover {
-    background: #f3f4f6;
-  }
-
-  .pagination-num.active {
-    background: #f4f5fe;
-    border-color: #3c307f;
-    color: #3c307f;
-    font-weight: 600;
-  }
-
-  .pagination-arrow {
-    padding: 0;
-  }
-
-  .pagination-arrow-icon {
-    width: 18px;
-    height: 18px;
-  }
-
-  .pagination-ellipsis {
-    border: none;
-    background: transparent;
-    cursor: default;
-    min-width: auto;
-    padding: 0 6px;
-  }
-
-  .pagination-segment:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: 768px) {
-    .orders-container {
-      padding: 16px;
-    }
-    .topbar {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .search-wrap {
-      width: 100%;
-    }
-    .btn-modern {
-      width: 100%;
-    }
-    .topbar-right {
-      width: 100%;
-      justify-content: stretch;
-      flex-direction: column;
-    }
-    .dropdown-panel,
-    .dropdown-panel-small {
-      width: 100%;
-    }
-    .title {
-      max-width: 180px;
-    }
-    .title-sm {
-      max-width: 160px;
-    }
-    .pagination {
-      flex-direction: column;
-      gap: 10px;
-      align-items: flex-start;
-    }
-  }
-</style>

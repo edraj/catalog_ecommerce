@@ -52,10 +52,29 @@
   let isLoadingBrands = $state(false);
 
   let currentPage = $state(1);
-  let itemsPerPage = $state(20);
+  let itemsPerPage = $state(10);
 
+  let totalItemsCount = $derived.by(() => {
+   return filteredWarranties.length;
+  });
+
+  let paginatedItems = $derived.by(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+
+   return filteredWarranties.slice(start, end);
+  });
+
+ 
+
+  $effect(() => {
+    searchTerm; statusFilter; scopeFilter; selectedSeller;
+    currentPage = 1;
+  });
   let filteredWarranties = $derived.by(() => {
-    let filtered = [...warranties];
+  let filtered = [...warranties];
+
+  
 
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
@@ -1244,72 +1263,142 @@
       </table>
     </div>
 
-    {#if totalPages > 1}
-      <div class="pagination">
-        <div class="pagination-info">
-          {$_("common.showing") || "Showing"}
-          {formatNumber((currentPage - 1) * itemsPerPage + 1, $locale)}
-          -
-          {formatNumber(
-            Math.min(currentPage * itemsPerPage, filteredWarranties.length),
-            $locale,
-          )}
-          {$_("common.of") || "of"}
-          {formatNumber(filteredWarranties.length, $locale)}
-          {$_("admin.warranties") || "warranties"}
-        </div>
+   <!-- Pagination -->
+{#if totalPages > 1}
+  <div class="pagination">
+    <!-- Left text -->
+    <div class="pagination-info">
+      <span class="pagination-info__label">
+        {$_("common.showing") || "Showing"}
+      </span>
 
-        <div class="pagination-pages">
-          {#if totalPages <= 7}
-            {#each Array(totalPages) as _, index}
+      <span class="pagination-info__strong">
+        {formatNumber((currentPage - 1) * itemsPerPage + 1, $locale)}
+        -
+        {formatNumber(
+          Math.min(currentPage * itemsPerPage, totalItemsCount),
+          $locale,
+        )}
+      </span>
+
+      <span class="pagination-info__label">
+        {$_("common.of") || "of"}
+      </span>
+
+      <span class="pagination-info__strong">
+        {formatNumber(totalItemsCount, $locale)}
+      </span>
+    </div>
+
+    <!-- Right controls -->
+    <div class="pagination-controls">
+      <!-- Prev -->
+      <button
+        class="pager-arrow pager-arrow--left"
+        onclick={() => goToPage(currentPage - 1)}
+        disabled={currentPage === 1}
+        aria-label="Previous page"
+        type="button"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M4.86195 8.47132C4.6016 8.21097 4.6016 7.78886 4.86195 7.52851L9.52862 2.86185C9.78897 2.6015 10.2111 2.6015 10.4714 2.86185C10.7318 3.1222 10.7318 3.54431 10.4714 3.80466L6.27616 7.99992L10.4714 12.1952C10.7318 12.4555 10.7318 12.8776 10.4714 13.138C10.2111 13.3983 9.78897 13.3983 9.52862 13.138L4.86195 8.47132Z"
+            fill="#101828"
+          />
+        </svg>
+      </button>
+
+      <!-- Pages -->
+      <div class="pagination-pages">
+        {#if totalPages <= 7}
+          {#each Array(totalPages) as _, index}
+            <button
+              class="page-chip"
+              class:active={currentPage === index + 1}
+              onclick={() => goToPage(index + 1)}
+              type="button"
+            >
+              {formatNumber(index + 1, $locale)}
+            </button>
+          {/each}
+        {:else}
+          <!-- 1 -->
+          <button
+            class="page-chip"
+            class:active={currentPage === 1}
+            onclick={() => goToPage(1)}
+            type="button"
+          >
+            {formatNumber(1, $locale)}
+          </button>
+
+          {#if currentPage > 3}
+            <span class="page-ellipsis">...</span>
+          {/if}
+
+          {#each Array(totalPages) as _, index}
+            {#if index + 1 > 1 && index + 1 < totalPages && Math.abs(currentPage - (index + 1)) <= 1}
               <button
-                class="page-btn"
+                class="page-chip"
                 class:active={currentPage === index + 1}
                 onclick={() => goToPage(index + 1)}
+                type="button"
               >
                 {formatNumber(index + 1, $locale)}
               </button>
-            {/each}
-          {:else}
-            <button
-              class="page-btn"
-              class:active={currentPage === 1}
-              onclick={() => goToPage(1)}
-            >
-              {formatNumber(1, $locale)}
-            </button>
-
-            {#if currentPage > 3}
-              <span class="page-ellipsis">...</span>
             {/if}
+          {/each}
 
-            {#each Array(totalPages) as _, index}
-              {#if index + 1 > 1 && index + 1 < totalPages && Math.abs(currentPage - (index + 1)) <= 1}
-                <button
-                  class="page-btn"
-                  class:active={currentPage === index + 1}
-                  onclick={() => goToPage(index + 1)}
-                >
-                  {formatNumber(index + 1, $locale)}
-                </button>
-              {/if}
-            {/each}
-
-            {#if currentPage < totalPages - 2}
-              <span class="page-ellipsis">...</span>
-            {/if}
-
-            <button
-              class="page-btn"
-              class:active={currentPage === totalPages}
-              onclick={() => goToPage(totalPages)}
-            >
-              {formatNumber(totalPages, $locale)}
-            </button>
+          {#if currentPage < totalPages - 2}
+            <span class="page-ellipsis">...</span>
           {/if}
-        </div>
+
+          <!-- last -->
+          <button
+            class="page-chip"
+            class:active={currentPage === totalPages}
+            onclick={() => goToPage(totalPages)}
+            type="button"
+          >
+            {formatNumber(totalPages, $locale)}
+          </button>
+        {/if}
       </div>
-    {/if}
+
+      <!-- Next -->
+      <button
+        class="pager-arrow pager-arrow--right"
+        onclick={() => goToPage(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        aria-label="Next page"
+        type="button"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M11.1381 7.52868C11.3985 7.78903 11.3985 8.21114 11.1381 8.47149L6.47145 13.1382C6.2111 13.3985 5.78899 13.3985 5.52864 13.1382C5.26829 12.8778 5.26829 12.4557 5.52864 12.1953L9.7239 8.00008L5.52864 3.80482C5.26829 3.54447 5.26829 3.12236 5.52864 2.86201C5.78899 2.60166 6.2111 2.60166 6.47145 2.86201L11.1381 7.52868Z"
+            fill="#101828"
+          />
+        </svg>
+      </button>
+    </div>
+  </div>
+{/if}
   {/if}
 </div>
 
@@ -1354,14 +1443,12 @@
     align-items: center;
     padding: 20px;
     border-top: 1px solid #e5e7eb;
-    margin-top: 16px;
     gap: 20px;
   }
 
   .pagination-pages {
     display: flex;
     align-items: center;
-    gap: 4px;
     flex-wrap: wrap;
   }
 
