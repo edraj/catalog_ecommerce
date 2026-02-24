@@ -8,9 +8,11 @@
   let {
     formData = $bindable(),
     validateFn = $bindable(),
+    isEditing = false,
   }: {
     formData: any;
     validateFn: () => boolean;
+    isEditing?: boolean;
   } = $props();
 
   let form;
@@ -55,7 +57,7 @@
         "managed",
         1000,
         0,
-        false
+        false,
       );
 
       const userMap = new Map();
@@ -65,7 +67,7 @@
             user.shortname,
             user.attributes?.displayname?.en ||
               user.attributes?.displayname?.ar ||
-              user.shortname
+              user.shortname,
           );
         });
       }
@@ -76,7 +78,7 @@
         "managed",
         1000,
         0,
-        false
+        false,
       );
 
       if (response && response.records) {
@@ -108,12 +110,12 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       if (response && response.records) {
         availableProducts = response.records.filter(
-          (record) => record.attributes?.is_active === true
+          (record) => record.attributes?.is_active === true,
         );
       }
     } catch (error) {
@@ -228,7 +230,7 @@
             s.displayname?.toLowerCase().includes(lowerSearch)
           );
         })
-      : sellers
+      : sellers,
   );
 </script>
 
@@ -248,6 +250,7 @@
         bind:value={formData.shortname}
         pattern="^[a-zA-Z0-9_]&#123;1,64&#125;$"
         required
+        readonly={isEditing}
         placeholder={$_("collection.shortnamePlaceholder")}
       />
     </div>
