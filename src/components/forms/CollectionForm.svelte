@@ -49,6 +49,36 @@
     await loadSellers();
   });
 
+  function getVariantStock(variant: any): number {
+    const stockCandidates = [
+      variant?.qty,
+      variant?.stock,
+      variant?.stock_qty,
+      variant?.stock_quantity,
+      variant?.quantity,
+      variant?.inventory,
+    ];
+
+    for (const candidate of stockCandidates) {
+      const numericValue = Number(candidate);
+      if (!Number.isNaN(numericValue)) {
+        return numericValue;
+      }
+    }
+
+    return 0;
+  }
+
+  function getInStockVariants(availableProduct: any): any[] {
+    const variants =
+      availableProduct?.attributes?.payload?.body?.variants || [];
+    return variants.filter((variant) => getVariantStock(variant) > 0);
+  }
+
+  function hasInStockVariants(availableProduct: any): boolean {
+    return getInStockVariants(availableProduct).length > 0;
+  }
+
   async function loadSellers() {
     try {
       const usersResponse: any = await getSpaceContents(
@@ -78,14 +108,19 @@
         "managed",
         1000,
         0,
-        false,
+        true,
       );
 
       if (response && response.records) {
         const sellerSet = new Set();
         response.records.forEach((record) => {
           const parts = record.subpath.split("/");
-          if (parts.length >= 2 && parts[0] === "available_products") {
+          if (
+            parts.length >= 2 &&
+            parts[0] === "available_products" &&
+            record.attributes?.is_active === true &&
+            hasInStockVariants(record)
+          ) {
             sellerSet.add(parts[1]);
           }
         });
@@ -115,7 +150,8 @@
 
       if (response && response.records) {
         availableProducts = response.records.filter(
-          (record) => record.attributes?.is_active === true,
+          (record) =>
+            record.attributes?.is_active === true && hasInStockVariants(record),
         );
       }
     } catch (error) {
@@ -172,7 +208,7 @@
     selectedAvailableProduct = availableProduct;
     showProductSelector = false;
 
-    const variants = availableProduct.attributes?.payload?.body?.variants || [];
+    const variants = getInStockVariants(availableProduct);
     if (variants.length > 0) {
       showVariantSelector = true;
     } else {
@@ -625,8 +661,7 @@
                 </div>
                 <div class="product-item-meta">
                   <span class="meta-badge">
-                    {availableProduct.attributes?.payload?.body?.variants
-                      ?.length || 0} variants
+                    {getInStockVariants(availableProduct).length} variants
                   </span>
                   <span class="meta-badge">
                     {availableProduct.attributes?.payload?.body
@@ -659,41 +694,45 @@
           {$_("collection.product")}: {selectedAvailableProduct.attributes
             ?.displayname?.en || selectedAvailableProduct.shortname}
         </p>
-        <div class="variant-list">
-          {#each selectedAvailableProduct.attributes?.payload?.body?.variants || [] as variant}
-            <button
-              type="button"
-              class="variant-item"
-              onclick={() => selectVariant(variant)}
-            >
-              <div class="variant-header">
-                <span class="variant-key">{variant.key}</span>
-                <span class="variant-price">{variant.retail_price} IQD</span>
-              </div>
-              <div class="variant-details">
-                <span class="variant-detail">Qty: {variant.qty}</span>
-                {#if variant.sku}
-                  <span class="variant-detail">SKU: {variant.sku}</span>
-                {/if}
-                {#if variant.discount?.value > 0}
-                  <span class="variant-detail discount">
-                    Discount: {variant.discount.value}
-                    {variant.discount.type === "percentage" ? "%" : "IQD"}
-                  </span>
-                {/if}
-              </div>
-              {#if variant.options && variant.options.length > 0}
-                <div class="variant-options">
-                  {#each variant.options as option}
-                    <span class="option-badge">
-                      {option.variation_shortname}: {option.key}
-                    </span>
-                  {/each}
+        {#if getInStockVariants(selectedAvailableProduct).length === 0}
+          <p class="empty-message">{$_("validation.noVariantsAvailable")}</p>
+        {:else}
+          <div class="variant-list">
+            {#each getInStockVariants(selectedAvailableProduct) as variant}
+              <button
+                type="button"
+                class="variant-item"
+                onclick={() => selectVariant(variant)}
+              >
+                <div class="variant-header">
+                  <span class="variant-key">{variant.key}</span>
+                  <span class="variant-price">{variant.retail_price} IQD</span>
                 </div>
-              {/if}
-            </button>
-          {/each}
-        </div>
+                <div class="variant-details">
+                  <span class="variant-detail">Qty: {variant.qty}</span>
+                  {#if variant.sku}
+                    <span class="variant-detail">SKU: {variant.sku}</span>
+                  {/if}
+                  {#if variant.discount?.value > 0}
+                    <span class="variant-detail discount">
+                      Discount: {variant.discount.value}
+                      {variant.discount.type === "percentage" ? "%" : "IQD"}
+                    </span>
+                  {/if}
+                </div>
+                {#if variant.options && variant.options.length > 0}
+                  <div class="variant-options">
+                    {#each variant.options as option}
+                      <span class="option-badge">
+                        {option.variation_shortname}: {option.key}
+                      </span>
+                    {/each}
+                  </div>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        {/if}
       </div>
     </div>
   </div>

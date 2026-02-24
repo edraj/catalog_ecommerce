@@ -13,7 +13,7 @@
   import { getLocalizedDisplayName } from "@/lib/utils/sellerUtils";
   import { formatNumber } from "@/lib/helpers";
   import "./index.css";
-  import { website } from "@/config";
+  import { website, defaultPageSize } from "@/config";
 
   let sellers = $state<any[]>([]);
   let selectedSeller = $state("all");
@@ -28,7 +28,7 @@
   let totalProductsCount = $state(0);
 
   let currentPage = $state(1);
-  let itemsPerPage = 20;
+  let itemsPerPage = defaultPageSize;
 
   let isFiltersOpen = $state(false);
   let isDetailsModalOpen = $state(false);

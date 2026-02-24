@@ -5,6 +5,7 @@
     getWidgets,
     updateWidget,
     uploadWidgetMedia,
+    getSpaceContents,
   } from "@/lib/dmart_services";
   import { website } from "@/config";
   import {
@@ -16,9 +17,10 @@
 
   let loading = $state(true);
   let widgets = $state<any[]>([]);
-  let bannersWidget = $state<any>(null);
   let brandsWidget = $state<any>(null);
   let categoriesWidget = $state<any>(null);
+  let availableBrands = $state<any[]>([]);
+  let availableCategories = $state<any[]>([]);
 
   let activeWidget = $state<string | null>(null);
   let editingItems = $state<any[]>([]);
@@ -29,6 +31,7 @@
   let newItemTextEn = $state("");
   let newItemTextAr = $state("");
   let newItemImage = $state<File | null>(null);
+  let editingItemIndex = $state<number | null>(null);
 
   onMount(async () => {
     await loadWidgets();
@@ -37,10 +40,31 @@
   async function loadWidgets() {
     loading = true;
     try {
-      const response = await getWidgets(website.main_space);
-      widgets = response.records || [];
+      const [widgetsResponse, brandsResponse, categoriesResponse] =
+        await Promise.all([
+          getWidgets(website.main_space),
+          getSpaceContents(
+            website.main_space,
+            "brands",
+            "managed",
+            1000,
+            0,
+            true,
+          ),
+          getSpaceContents(
+            website.main_space,
+            "categories",
+            "managed",
+            1000,
+            0,
+            true,
+          ),
+        ]);
 
-      bannersWidget = widgets.find((w) => w.shortname === "banners");
+      widgets = widgetsResponse.records || [];
+      availableBrands = brandsResponse?.records || [];
+      availableCategories = categoriesResponse?.records || [];
+
       brandsWidget = widgets.find((w) => w.shortname === "brands");
       categoriesWidget = widgets.find((w) => w.shortname === "categories");
     } catch (error) {
@@ -64,6 +88,7 @@
     showModal = false;
     activeWidget = null;
     editingItems = [];
+    editingItemIndex = null;
     resetForm();
   }
 
@@ -73,6 +98,17 @@
     newItemTextEn = "";
     newItemTextAr = "";
     newItemImage = null;
+    editingItemIndex = null;
+  }
+
+  function startEditCategoryItem(index: number) {
+    if (activeWidget !== "categories") return;
+    const item = editingItems[index];
+    if (!item) return;
+
+    newItemKey = item.key || "";
+    newItemImage = null;
+    editingItemIndex = index;
   }
 
   async function addItem() {
@@ -142,7 +178,13 @@
         }
       }
 
-      editingItems = [...editingItems, { key: newItemKey }];
+      if (editingItemIndex !== null && editingItemIndex >= 0) {
+        editingItems = editingItems.map((item, index) =>
+          index === editingItemIndex ? { ...item, key: newItemKey } : item,
+        );
+      } else {
+        editingItems = [...editingItems, { key: newItemKey }];
+      }
     }
 
     resetForm();
@@ -150,6 +192,9 @@
 
   function removeItem(index: number) {
     editingItems = editingItems.filter((_, i) => i !== index);
+    if (editingItemIndex === index) {
+      resetForm();
+    }
   }
 
   function moveItem(index: number, direction: "up" | "down") {
@@ -230,31 +275,6 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Banners Widget -->
-          <tr>
-            <td>
-              <div class="widget-name">{$_("widgets.banners.title")}</div>
-            </td>
-            <td>
-              <div class="widget-description">
-                {$_("widgets.banners.description")}
-              </div>
-            </td>
-            <td>
-              <span class="widget-count">
-                {bannersWidget?.attributes?.payload?.body?.items?.length || 0}
-              </span>
-            </td>
-            <td>
-              <button
-                class="btn-primary"
-                onclick={() => openEditModal("banners")}
-              >
-                {$_("widgets.edit")}
-              </button>
-            </td>
-          </tr>
-
           <!-- Brands Widget -->
           <tr>
             <td>
@@ -377,21 +397,33 @@
             <div class="form-group">
               <!-- svelte-ignore a11y_label_has_associated_control -->
               <label>{$_("widgets.brands.key")}</label>
-              <input
-                type="text"
-                bind:value={newItemKey}
-                placeholder={$_("widgets.brands.keyPlaceholder")}
-              />
+              <select bind:value={newItemKey}>
+                <option value="">Lookup</option>
+                {#each availableBrands as brand}
+                  <option value={brand.shortname}>
+                    {brand.attributes?.displayname?.en ||
+                      brand.attributes?.displayname?.ar ||
+                      brand.shortname}
+                    ({brand.shortname})
+                  </option>
+                {/each}
+              </select>
             </div>
           {:else if activeWidget === "categories"}
             <div class="form-group">
               <!-- svelte-ignore a11y_label_has_associated_control -->
               <label>{$_("widgets.categories.key")}</label>
-              <input
-                type="text"
-                bind:value={newItemKey}
-                placeholder={$_("widgets.categories.keyPlaceholder")}
-              />
+              <select bind:value={newItemKey}>
+                <option value="">Lookup</option>
+                {#each availableCategories as category}
+                  <option value={category.shortname}>
+                    {category.attributes?.displayname?.en ||
+                      category.attributes?.displayname?.ar ||
+                      category.shortname}
+                    ({category.shortname})
+                  </option>
+                {/each}
+              </select>
             </div>
             <div class="form-group">
               <!-- svelte-ignore a11y_label_has_associated_control -->
@@ -404,7 +436,9 @@
             </div>
           {/if}
 
-          <button class="btn-add" onclick={addItem}>{$_("widgets.add")}</button>
+          <button class="btn-add" onclick={addItem}>
+            {activeWidget === "categories" ? "Lookup" : $_("widgets.add")}
+          </button>
         </div>
 
         <!-- Items List -->
@@ -467,6 +501,12 @@
                 </div>
 
                 <div class="item-actions">
+                  {#if activeWidget === "categories"}
+                    <button
+                      class="btn-move"
+                      onclick={() => startEditCategoryItem(index)}>✎</button
+                    >
+                  {/if}
                   <button
                     class="btn-move"
                     onclick={() => moveItem(index, "up")}

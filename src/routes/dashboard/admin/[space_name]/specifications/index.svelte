@@ -25,7 +25,7 @@
     DeleteSpecificationModal,
   } from "@/components/modals";
   import type { SpecificationFormData } from "@/components/modals/CreateSpecificationModal.svelte";
-  import { website } from "@/config";
+  import { website, defaultPageSize } from "@/config";
 
   $goto;
 
@@ -49,7 +49,7 @@
 
   // Pagination (client-side)
   let currentPage = $state(1);
-  let itemsPerPage = $state(12);
+  let itemsPerPage = $state(defaultPageSize);
 
   // ---------------- helpers ----------------
   function truncateText(text: string, max = 25) {
@@ -533,7 +533,10 @@
           />
         </div>
 
-        <button class='inline-flex items-center justify-center mx-2 h-9 cursor-pointer px-3 py-2 bg-[#3C307F] text-white text-sm font-medium rounded-[12px] shadow-[0px_1px_0.5px_0.05px_#1D293D05] hover:bg-[#2f2666] transition-colors duration-200 s-YJT1Gee9Kcm3 s-PDCyVhHr-VbL' onclick={openCreateModal}>
+        <button
+          class="inline-flex items-center justify-center mx-2 h-9 cursor-pointer px-3 py-2 bg-[#3C307F] text-white text-sm font-medium rounded-[12px] shadow-[0px_1px_0.5px_0.05px_#1D293D05] hover:bg-[#2f2666] transition-colors duration-200 s-YJT1Gee9Kcm3 s-PDCyVhHr-VbL"
+          onclick={openCreateModal}
+        >
           <PlusOutline size="sm" />
           <span
             >{$_("admin_dashboard.create_specification") ||

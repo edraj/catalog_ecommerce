@@ -14,3 +14,5 @@ export const website = {
   websocket: "wss://dmart-uat.zainmart.com/ws",
   main_space: "zainmart",
 };
+
+export const defaultPageSize = 30;

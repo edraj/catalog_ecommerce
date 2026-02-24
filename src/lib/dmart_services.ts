@@ -3298,13 +3298,28 @@ export async function uploadWidgetMedia(
   attachment: File,
 ): Promise<boolean> {
   try {
-    const result = await attachAttachmentsToEntity(
-      parentWidgetType,
-      spaceName,
-      "/settings/widgets",
-      attachment,
-    );
-    return result;
+    const fileTypeInfo = getFileType(attachment);
+    if (!fileTypeInfo) {
+      throw new Error(`Unsupported file type: ${attachment.type}`);
+    }
+
+    const { contentType, resourceType } = fileTypeInfo;
+    const response = await Dmart.uploadWithPayload({
+      space_name: spaceName,
+      subpath: `/settings/widgets/${parentWidgetType}`,
+      shortname,
+      resource_type: resourceType,
+      payload_file: attachment,
+      attributes: {
+        slug: shortname,
+        payload: {
+          content_type: contentType,
+          body: {},
+        },
+      },
+    });
+
+    return response.status == "success" && response.records.length > 0;
   } catch (error) {
     console.error("Error uploading widget media:", error);
     return false;

@@ -9,8 +9,16 @@
     },
     { path: "tiles", label: $_("admin.settings_tiles") || "Tiles" },
     {
+      path: "navigation",
+      label: $_("admin.settings_navigation") || "Navigation",
+    },
+    {
       path: "payment_methods",
       label: $_("admin.settings_payment_methods") || "Payment Methods",
+    },
+    {
+      path: "states",
+      label: $_("admin.settings_states") || $_("admin.states") || "States",
     },
     { path: "widgets", label: $_("admin.settings_widgets") || "Widgets" },
   ];

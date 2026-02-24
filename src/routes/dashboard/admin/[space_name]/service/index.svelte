@@ -14,7 +14,7 @@
   import { getLocalizedDisplayName } from "@/lib/utils/sellerUtils";
   import { formatNumber } from "@/lib/helpers";
   import "./index.css";
-  import { website } from "@/config";
+  import { website, defaultPageSize } from "@/config";
   import { ResourceType } from "@edraj/tsdmart";
 
   let serviceFolders = $state<any[]>([]);
@@ -34,7 +34,7 @@
 
   let totalServicesCount = $state(0);
   let currentPage = $state(1);
-  let itemsPerPage = $state(10);
+  let itemsPerPage = $state(defaultPageSize);
 
   // Header dropdowns (same edits)
   let isFiltersOpen = $state(false);

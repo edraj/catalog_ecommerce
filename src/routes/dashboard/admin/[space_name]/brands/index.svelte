@@ -15,7 +15,7 @@
     errorToastMessage,
     successToastMessage,
   } from "@/lib/toasts_messages";
-  import { website } from "@/config";
+  import { website, defaultPageSize } from "@/config";
   import { formatNumber } from "@/lib/helpers";
   import { Dmart, ResourceType } from "@edraj/tsdmart";
 
@@ -46,7 +46,7 @@
   let topFilter = $state<"all" | "top" | "regular">("all");
   let statusFilter = $state<"all" | "active" | "inactive">("all");
 
-  const itemsPerPage = 10;
+  const itemsPerPage = defaultPageSize;
   let currentPage = $state(1);
   let totalItems = $state(0);
 

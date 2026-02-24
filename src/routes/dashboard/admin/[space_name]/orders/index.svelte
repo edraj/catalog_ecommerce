@@ -10,7 +10,7 @@
     errorToastMessage,
     successToastMessage,
   } from "@/lib/toasts_messages";
-  import { website } from "@/config";
+  import { website, defaultPageSize } from "@/config";
   import OrderDetailsModal from "./OrderDetailsModal.svelte";
 
   let combinedOrders = $state([]);
@@ -21,7 +21,7 @@
   let combinedOrderSuborders = $state(new Map());
 
   let currentPage = $state(1);
-  let itemsPerPage = 20;
+  let itemsPerPage = defaultPageSize;
 
   let selectedPaymentStatus = $state("all");
   let selectedOrderStatus = $state("all");
