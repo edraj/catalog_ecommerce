@@ -209,6 +209,18 @@
 {/if}
 
 <style>
+ .modal-container{
+        width: 80%;
+  }
+  .modal-title{
+    color: #111827;
+  }
+  .close-icon{
+    color:#281F51;
+  }
+  .modal-header{
+    background-color: white;
+  }
   .form-section {
     margin-bottom: 2rem;
     padding-bottom: 1.5rem;

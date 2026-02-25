@@ -95,6 +95,11 @@
   let totalPages = $derived.by(() => {
     return Math.max(1, Math.ceil(totalCouponsCount / itemsPerPage));
   });
+  let totalItemsCount = $derived.by(() => totalCouponsCount);
+  function goToPage(page: number) {
+  if (page < 1 || page > totalPages) return;
+  currentPage = page;
+}
 
   let newCoupon = $state({
     code: "",
@@ -1417,13 +1422,125 @@
       </table>
     </div>
 
-    <Pagination
-      {currentPage}
-      {totalPages}
-      totalItems={totalCouponsCount}
-      {itemsPerPage}
-      onPageChange={handlePageChange}
-    />
+   {#if totalPages > 1}
+  <div class="pagination">
+    <!-- Left text -->
+    <div class="pagination-info">
+      <span class="pagination-info__label">
+        {$_("common.showing") || "Showing"}
+      </span>
+
+      <span class="pagination-info__strong">
+        {formatNumber((currentPage - 1) * itemsPerPage + 1, $locale)}
+        -
+        {formatNumber(
+          Math.min(currentPage * itemsPerPage, totalItemsCount),
+          $locale,
+        )}
+      </span>
+
+      <span class="pagination-info__label">
+        {$_("common.of") || "of"}
+      </span>
+
+      <span class="pagination-info__strong">
+        {formatNumber(totalItemsCount, $locale)}
+      </span>
+    </div>
+
+    <!-- Right controls -->
+    <div class="pagination-controls">
+      <!-- Prev -->
+      <button
+        class="pager-arrow pager-arrow--left"
+        onclick={() => goToPage(currentPage - 1)}
+        disabled={currentPage === 1}
+        aria-label="Previous page"
+        type="button"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M4.86195 8.47132C4.6016 8.21097 4.6016 7.78886 4.86195 7.52851L9.52862 2.86185C9.78897 2.6015 10.2111 2.6015 10.4714 2.86185C10.7318 3.1222 10.7318 3.54431 10.4714 3.80466L6.27616 7.99992L10.4714 12.1952C10.7318 12.4555 10.7318 12.8776 10.4714 13.138C10.2111 13.3983 9.78897 13.3983 9.52862 13.138L4.86195 8.47132Z"
+            fill="#101828"
+          />
+        </svg>
+      </button>
+
+      <!-- Pages -->
+      <div class="pagination-pages">
+        {#if totalPages <= 7}
+          {#each Array(totalPages) as _, index}
+            <button
+              class="page-chip"
+              class:active={currentPage === index + 1}
+              onclick={() => goToPage(index + 1)}
+              type="button"
+            >
+              {formatNumber(index + 1, $locale)}
+            </button>
+          {/each}
+        {:else}
+          <!-- 1 -->
+          <button
+            class="page-chip"
+            class:active={currentPage === 1}
+            onclick={() => goToPage(1)}
+            type="button"
+          >
+            {formatNumber(1, $locale)}
+          </button>
+
+          {#if currentPage > 3}
+            <span class="page-ellipsis">...</span>
+          {/if}
+
+          {#each Array(totalPages) as _, index}
+            {#if index + 1 > 1 && index + 1 < totalPages && Math.abs(currentPage - (index + 1)) <= 1}
+              <button
+                class="page-chip"
+                class:active={currentPage === index + 1}
+                onclick={() => goToPage(index + 1)}
+                type="button"
+              >
+                {formatNumber(index + 1, $locale)}
+              </button>
+            {/if}
+          {/each}
+
+          {#if currentPage < totalPages - 2}
+            <span class="page-ellipsis">...</span>
+          {/if}
+
+          <!-- last -->
+          <button
+            class="page-chip"
+            class:active={currentPage === totalPages}
+            onclick={() => goToPage(totalPages)}
+            type="button"
+          >
+            {formatNumber(totalPages, $locale)}
+          </button>
+        {/if}
+      </div>
+
+      <!-- Next -->
+      <button
+        class="pager-arrow pager-arrow--right"
+        onclick={() => goToPage(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        aria-label="Next page"
+        type="button"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M11.1381 7.52868C11.3985 7.78903 11.3985 8.21114 11.1381 8.47149L6.47145 13.1382C6.2111 13.3985 5.78899 13.3985 5.52864 13.1382C5.26829 12.8778 5.26829 12.4557 5.52864 12.1953L9.7239 8.00008L5.52864 3.80482C5.26829 3.54447 5.26829 3.12236 5.52864 2.86201C5.78899 2.60166 6.2111 2.60166 6.47145 2.86201L11.1381 7.52868Z"
+            fill="#101828"
+          />
+        </svg>
+      </button>
+    </div>
+  </div>
+{/if}
   {/if}
 </div>
 

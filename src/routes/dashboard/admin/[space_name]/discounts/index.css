@@ -11,6 +11,11 @@
 .page-header {
   margin-bottom: 2rem;
 }
+  .bg-icon {
+    background-color: #f4f5fe;
+    height: 70px;
+    width: 70px;
+  }
 .stat-card {
   background: white;
   border-radius: 0.75rem;

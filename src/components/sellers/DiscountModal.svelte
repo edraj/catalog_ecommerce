@@ -43,15 +43,15 @@
 </script>
 
 {#if show}
-  <div class="modal-overlay" onclick={onClose}>
-    <div class="modal-container" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">
-        <h2 class="modal-title" class:rtl={isRTL}>
+  <div class="modern-modal-overlay" onclick={onClose}>
+    <div class="modern-modal-container" onclick={(e) => e.stopPropagation()}>
+      <div class="modern-modal-header">
+        <h2 class="modern-modal-title" class:rtl={isRTL}>
           {isEditMode
             ? $_("seller_dashboard.edit_discount") || "Edit Discount"
             : $_("seller_dashboard.create_discount") || "Create Discount"}
         </h2>
-        <button class="modal-close-button" onclick={onClose}>
+        <button class="modern-modal-close-button" onclick={onClose}>
           <svg
             class="close-icon"
             viewBox="0 0 24 24"
@@ -68,7 +68,7 @@
         </button>
       </div>
 
-      <form class="modal-body" onsubmit={handleSubmit}>
+      <form class="modern-modal-body" onsubmit={handleSubmit}>
         <div class="form-group">
           <label class="form-label" class:rtl={isRTL}>
             <span
@@ -249,11 +249,11 @@
           </div>
         </div>
 
-        <div class="modal-footer">
-          <button type="button" class="modal-button cancel" onclick={onClose}>
+        <div class="modern-modal-footer">
+          <button type="button" class="btn-secondary" onclick={onClose}>
             {$_("seller_dashboard.cancel") || "Cancel"}
           </button>
-          <button type="submit" class="modal-button submit">
+          <button type="submit" class="btn-primary">
             {$_("seller_dashboard.create") || "Create"}
           </button>
         </div>
@@ -280,4 +280,36 @@
       grid-template-columns: 1fr;
     }
   }
+  .form-label {
+    display: flex;
+    margin-top:10px;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.75rem;
+}
+.form-select {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    color: #2d3748;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.form-input, .form-textarea {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    color: #2d3748;
+    background: white;
+    transition: all 0.3s ease;
+    font-family: "uthmantn", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
 </style>

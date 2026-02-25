@@ -523,7 +523,6 @@
   .seller-page-container,
   .seller-page-content {
     background: #f9fafb;
-    min-height: 100vh;
   }
 
   /* Stats grid */

@@ -29,6 +29,25 @@ function buildCrumbs(pathname: string) {
   const HOME_PATH = isSuperAdmin ? ADMIN_HOME : "/";
   const HOME_LABEL = isSuperAdmin ? "Dashboard" : "Home";
 
+  // --------------------------
+  // Seller routes (✅ start with /seller not Home)
+  // --------------------------
+  const isSellerRoute = segments[0] === "seller";
+  if (isSellerRoute) {
+    const crumbs: Crumb[] = [{ label: "Seller", href: "/seller", isHome: true }];
+
+    // /seller -> only Seller
+    if (segments.length === 1) return crumbs;
+
+    let acc = "/seller";
+    for (const seg of segments.slice(1)) {
+      acc += `/${seg}`;
+      crumbs.push({ label: titleize(seg), href: acc });
+    }
+
+    return crumbs;
+  }
+
   // Always start with Home/Dashboard
   const crumbs: Crumb[] = [{ label: HOME_LABEL, href: HOME_PATH, isHome: true }];
 
@@ -38,17 +57,13 @@ function buildCrumbs(pathname: string) {
   const isAdminRoute = segments[0] === "dashboard" && segments[1] === "admin";
 
   if (isAdminRoute) {
-    // Cases:
-    // 1) /dashboard/admin                       -> only Dashboard
-    // 2) /dashboard/admin/users                 -> Dashboard > Users
-    // 3) /dashboard/admin/:space/products       -> Dashboard > Products  (skip :space)
     if (segments.length <= 2) return crumbs;
 
-    const isSpaceScoped = segments.length >= 4; // has /dashboard/admin/:space/...
+    const isSpaceScoped = segments.length >= 4;
     const space = isSpaceScoped ? segments[2] : null;
 
     const base = space ? `/dashboard/admin/${space}` : ADMIN_HOME;
-    const tail = space ? segments.slice(3) : segments.slice(2); // ✅ skip dashboard/admin/(space)
+    const tail = space ? segments.slice(3) : segments.slice(2);
 
     let acc = base;
     for (const seg of tail) {

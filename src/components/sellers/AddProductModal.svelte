@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { _ } from "@/i18n";
+  import { _ } from "@/i18n"; 
 
   type Props = {
     show: boolean;
@@ -848,6 +848,7 @@
     position: absolute;
     left: 1rem;
     width: 20px;
+    top:20%;
     height: 20px;
     stroke: #9ca3af;
     pointer-events: none;
