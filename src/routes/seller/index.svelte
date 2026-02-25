@@ -8,7 +8,10 @@
   import { getSellerOrders } from "@/lib/dmart_services";
   import { errorToastMessage } from "@/lib/toasts_messages";
 
-  const isRTL = derived(locale, ($locale) => $locale === "ar" || $locale === "ku");
+  const isRTL = derived(
+    locale,
+    ($locale) => $locale === "ar" || $locale === "ku",
+  );
 
   // Theme
   const PRIMARY = "#281f51";
@@ -65,7 +68,7 @@
       buckets.push({
         key: dt.toISOString().slice(0, 10),
         date: dt,
-        count: 0
+        count: 0,
       });
     }
 
@@ -117,11 +120,7 @@
     const isActive = (d: any) => {
       // Flexible matching: true-ish flags or status strings
       const flag =
-        d?.active ??
-        d?.enabled ??
-        d?.is_active ??
-        d?.isEnabled ??
-        d?.isActive;
+        d?.active ?? d?.enabled ?? d?.is_active ?? d?.isEnabled ?? d?.isActive;
 
       if (typeof flag === "boolean") return flag;
 
@@ -142,20 +141,38 @@
       const sellerShortname = $user?.shortname;
 
       // -----------------------------
-      // Products (count)
+      // Products (ACTIVE only)
       // -----------------------------
-      // Your existing loadProducts uses pagination (modalItemsPerPage).
-      // For the dashboard KPI, we fetch a large page size for counting.
       const productsRes = await getSpaceContents(
         website.main_space,
         "products",
         "managed",
         1000,
         0,
-        true
+        true,
       );
 
-      productsCount = Array.isArray(productsRes?.records) ? productsRes.records.length : 0;
+      const allProducts = Array.isArray(productsRes?.records)
+        ? productsRes.records
+        : [];
+
+      // Detect active product safely
+      function isProductActive(p: any) {
+        const flag = p?.attributes.is_active;
+
+        if (typeof flag === "boolean") return flag;
+
+        const status = ( p?.attributes?.is_active 
+        )
+          .toString()
+          .toLowerCase();
+
+        if (["active", "enabled", "published", "live"].includes(status))
+          return true;
+
+        return false;
+      }
+      productsCount = allProducts.filter(isProductActive).length;
 
       // -----------------------------
       // Discounts (count active)
@@ -166,7 +183,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       const configEntry =
@@ -194,12 +211,16 @@
         undefined,
         undefined,
         undefined,
-        undefined
+        undefined,
       );
 
       if (ordersRes?.status === "success") {
-        const records = Array.isArray(ordersRes?.records) ? ordersRes.records : [];
-        totalOrders = safeNumber(ordersRes?.attributes?.total ?? records.length);
+        const records = Array.isArray(ordersRes?.records)
+          ? ordersRes.records
+          : [];
+        totalOrders = safeNumber(
+          ordersRes?.attributes?.total ?? records.length,
+        );
 
         // Build last 14 days trend from returned orders
         buildDailyTrend(records, 14);
@@ -218,7 +239,7 @@
         "managed",
         100,
         0,
-        true
+        true,
       );
 
       const shippingConfig =
@@ -227,7 +248,9 @@
           : { attributes: { payload: { body: { items: [] } } } };
 
       const shippingItems = shippingConfig?.attributes?.payload?.body?.items;
-      shippingRulesCount = Array.isArray(shippingItems) ? shippingItems.length : 0;
+      shippingRulesCount = Array.isArray(shippingItems)
+        ? shippingItems.length
+        : 0;
 
       // -----------------------------
       // Warranties (count)
@@ -238,10 +261,12 @@
         "managed",
         1000,
         0,
-        true
+        true,
       );
 
-      warrantiesCount = Array.isArray(warrantiesRes?.records) ? warrantiesRes.records.length : 0;
+      warrantiesCount = Array.isArray(warrantiesRes?.records)
+        ? warrantiesRes.records.length
+        : 0;
     } catch (e) {
       console.error("Error loading seller dashboard stats:", e);
       errorToastMessage("Error loading dashboard stats");
@@ -258,14 +283,16 @@
 <div class="seller-dashboard-container">
   <div class="seller-dashboard-content">
     <!-- Header -->
-    <div class="dashboard-header">
-      <div class="header-content">
-        <div class="header-right">
-          <button class="refresh-btn" on:click={loadDashboardStats} disabled={isLoading}>
+    <div>
+        <div class="header-right w-full flex justify-end items-center">
+          <button
+            class="refresh-btn"
+            on:click={loadDashboardStats}
+            disabled={isLoading}
+          >
             {isLoading ? "Loading..." : "Refresh"}
           </button>
         </div>
-      </div>
     </div>
 
     <!-- KPI Cards -->
@@ -303,7 +330,9 @@
         <div class="chart-header">
           <div class="chart-title">Orders Trend (Last 14 days)</div>
           <div class="chart-subtitle" style="color: {TEXT_MUTED}">
-            {ordersTrend?.length ? `${ordersTrend.reduce((a,b)=>a+b,0)} orders in range` : "No data"}
+            {ordersTrend?.length
+              ? `${ordersTrend.reduce((a, b) => a + b, 0)} orders in range`
+              : "No data"}
           </div>
         </div>
 
@@ -311,13 +340,30 @@
           <div class="chart-skeleton"></div>
         {:else if ordersTrend?.length}
           <div class="svg-wrap">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="trend-svg" aria-label="Orders trend chart">
+            <svg
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              class="trend-svg"
+              aria-label="Orders trend chart"
+            >
               <!-- area fill -->
               <path d={svgAreaPath(ordersTrend)} fill="rgba(40,31,81,0.10)" />
               <!-- line -->
-              <path d={svgLinePath(ordersTrend)} fill="none" stroke={PRIMARY} stroke-width="2.2" />
+              <path
+                d={svgLinePath(ordersTrend)}
+                fill="none"
+                stroke={PRIMARY}
+                stroke-width="2.2"
+              />
               <!-- baseline -->
-              <line x1="0" y1="100" x2="100" y2="100" stroke="rgba(229,231,235,1)" stroke-width="1" />
+              <line
+                x1="0"
+                y1="100"
+                x2="100"
+                y2="100"
+                stroke="rgba(229,231,235,1)"
+                stroke-width="1"
+              />
             </svg>
           </div>
 
@@ -355,7 +401,12 @@
               <div
                 class="progress-bar"
                 style="
-                  width: {Math.min(100, productsCount ? (activeDiscountsCount / Math.max(1, productsCount)) * 100 : 0)}%;
+                  width: {Math.min(
+                  100,
+                  productsCount
+                    ? (activeDiscountsCount / Math.max(1, productsCount)) * 100
+                    : 0,
+                )}%;
                 "
               ></div>
             </div>
@@ -421,15 +472,18 @@
   .kpi-card {
     grid-column: span 12;
     background: #fff;
-    border: 1px solid var(--colors-border-border-base-medium, rgba(229,231,235,0.9));
+    border: 1px solid
+      var(--colors-border-border-base-medium, rgba(229, 231, 235, 0.9));
     border-radius: 1rem;
     padding: 1.1rem 1.15rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .kpi-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 25px rgba(0,0,0,0.06);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.06);
   }
 
   .kpi-label {
@@ -456,7 +510,8 @@
   .chart-card {
     grid-column: span 12;
     background: #fff;
-    border: 1px solid var(--colors-border-border-base-medium, rgba(229,231,235,0.9));
+    border: 1px solid
+      var(--colors-border-border-base-medium, rgba(229, 231, 235, 0.9));
     border-radius: 1.1rem;
     padding: 1.25rem;
   }
@@ -483,7 +538,7 @@
     width: 100%;
     border-radius: 0.9rem;
     border: 1px solid rgba(229, 231, 235, 0.8);
-    background: linear-gradient(180deg, rgba(249,250,251,0.9), #fff);
+    background: linear-gradient(180deg, rgba(249, 250, 251, 0.9), #fff);
     padding: 0.75rem;
   }
 
@@ -518,24 +573,38 @@
   .chart-skeleton {
     height: 220px;
     border-radius: 0.9rem;
-    background: linear-gradient(90deg, rgba(243,244,246,1), rgba(229,231,235,1), rgba(243,244,246,1));
+    background: linear-gradient(
+      90deg,
+      rgba(243, 244, 246, 1),
+      rgba(229, 231, 235, 1),
+      rgba(243, 244, 246, 1)
+    );
     animation: shimmer 1.2s infinite linear;
     background-size: 200% 100%;
-    border: 1px solid rgba(229,231,235,0.8);
+    border: 1px solid rgba(229, 231, 235, 0.8);
   }
 
   .insights-skeleton {
     height: 160px;
     border-radius: 0.9rem;
-    background: linear-gradient(90deg, rgba(243,244,246,1), rgba(229,231,235,1), rgba(243,244,246,1));
+    background: linear-gradient(
+      90deg,
+      rgba(243, 244, 246, 1),
+      rgba(229, 231, 235, 1),
+      rgba(243, 244, 246, 1)
+    );
     animation: shimmer 1.2s infinite linear;
     background-size: 200% 100%;
-    border: 1px solid rgba(229,231,235,0.8);
+    border: 1px solid rgba(229, 231, 235, 0.8);
   }
 
   @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
   }
 
   .insights-list {
@@ -565,9 +634,9 @@
   .progress {
     height: 10px;
     border-radius: 999px;
-    background: rgba(229,231,235,1);
+    background: rgba(229, 231, 235, 1);
     overflow: hidden;
-    border: 1px solid rgba(229,231,235,0.7);
+    border: 1px solid rgba(229, 231, 235, 0.7);
   }
 
   .progress-bar {
@@ -586,7 +655,7 @@
 
   .divider {
     height: 1px;
-    background: rgba(229,231,235,0.8);
+    background: rgba(229, 231, 235, 0.8);
     margin: 0.4rem 0;
   }
 

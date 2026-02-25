@@ -87,7 +87,6 @@
     // If it gives a name like "ShoppingBagSolid" map it
     const key = String(icon || "").toLowerCase();
 
-    console.log(key);
     // common aliases
     if (key.includes("shoppingbagsolid")) return ICONS.shoppingBag;
     if (key.includes("badgechecksolid")) return ICONS.discount;
