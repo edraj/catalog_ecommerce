@@ -306,6 +306,15 @@
 {/if}
 
 <style>
+  .modal-container{
+        width: 80%;
+  }
+  .close-icon{
+    color:#281F51;
+  }
+  .modal-header{
+    background-color: white;
+  }
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;

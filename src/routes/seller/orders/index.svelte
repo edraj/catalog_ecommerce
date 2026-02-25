@@ -1,16 +1,16 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { _, locale } from "svelte-i18n";
+  import { _ } from "svelte-i18n";
   import { getSellerOrders, updateOrderState } from "@/lib/dmart_services";
   import type { Order } from "@/lib/types";
   import OrderDetailsModal from "@/components/modals/OrderDetailsModal.svelte";
-  import { errorToastMessage, successToastMessage } from "@/lib/toasts_messages";
+  import {
+    errorToastMessage,
+    successToastMessage,
+  } from "@/lib/toasts_messages";
   import { user } from "@/stores/user";
   import { website } from "@/config";
-   import { formatNumber } from "@/lib/helpers";
-import { get } from "svelte/store";
-import './index.css';
-
+  import { get } from "svelte/store";
   // ---- data ----
   let orders: any[] = [];
   let filteredOrders = $state<any[]>([]);
@@ -45,7 +45,7 @@ import './index.css';
   // ---- row actions ----
   let openActionsFor = $state<string | null>(null);
 
- const t = (key: string, vars?: Record<string, unknown>) => get(_)(key, vars);
+  const t = (key: string, vars?: Record<string, unknown>) => get(_)(key, vars);
 
   const orderStates = [
     { value: "all", label: t("admin.all_orders") || "All Orders" },
@@ -57,12 +57,24 @@ import './index.css';
       value: "delivery_confirmed",
       label: t("admin.delivery_confirmed") || "Delivery Confirmed",
     },
-    { value: "issue_reported", label: t("admin.issue_reported") || "Issue Reported" },
-    { value: "refund_pending", label: t("admin.refund_pending") || "Refund Pending" },
+    {
+      value: "issue_reported",
+      label: t("admin.issue_reported") || "Issue Reported",
+    },
+    {
+      value: "refund_pending",
+      label: t("admin.refund_pending") || "Refund Pending",
+    },
     { value: "refunded", label: t("admin.refunded") || "Refunded" },
     { value: "resolved", label: t("admin.resolved") || "Resolved" },
-    { value: "cancel", label: t("admin.customer_cancelled") || "Customer Cancelled" },
-    { value: "customer_cancelled", label: t("admin.customer_cancel") || "Customer Cancel" },
+    {
+      value: "cancel",
+      label: t("admin.customer_cancelled") || "Customer Cancelled",
+    },
+    {
+      value: "customer_cancelled",
+      label: t("admin.customer_cancel") || "Customer Cancel",
+    },
   ];
 
   const paymentStatuses = [
@@ -71,10 +83,22 @@ import './index.css';
       labelKey: "admin.all_payment_statuses",
       fallback: "All Payment Statuses",
     },
-    { value: "pending", labelKey: "admin.payment_pending", fallback: "Pending" },
-    { value: "completed", labelKey: "admin.payment_completed", fallback: "Completed" },
+    {
+      value: "pending",
+      labelKey: "admin.payment_pending",
+      fallback: "Pending",
+    },
+    {
+      value: "completed",
+      labelKey: "admin.payment_completed",
+      fallback: "Completed",
+    },
     { value: "unpaid", labelKey: "admin.payment_unpaid", fallback: "Unpaid" },
-    { value: "nopaid", labelKey: "admin.payment_not_paid", fallback: "Not Paid" },
+    {
+      value: "nopaid",
+      labelKey: "admin.payment_not_paid",
+      fallback: "Not Paid",
+    },
     { value: "failed", labelKey: "admin.payment_failed", fallback: "Failed" },
   ];
 
@@ -136,7 +160,9 @@ import './index.css';
         error = t("admin.orders_load_failed") || "Failed to load orders";
       }
     } catch (e) {
-      error = t("admin.orders_load_error") || "An error occurred while loading orders";
+      error =
+        t("admin.orders_load_error") ||
+        "An error occurred while loading orders";
       console.error(e);
     } finally {
       loading = false;
@@ -165,12 +191,19 @@ import './index.css';
         const matchesCustomer = payload.user?.displayname
           ?.toLowerCase()
           .includes(q);
-        const matchesTracking = payload.tracking_code?.toLowerCase().includes(q);
+        const matchesTracking = payload.tracking_code
+          ?.toLowerCase()
+          .includes(q);
         const matchesPhone =
           payload.user?.phone?.toString().toLowerCase().includes(q) ||
           payload.phone?.toString().toLowerCase().includes(q);
 
-        if (!matchesOrderCode && !matchesCustomer && !matchesTracking && !matchesPhone) {
+        if (
+          !matchesOrderCode &&
+          !matchesCustomer &&
+          !matchesTracking &&
+          !matchesPhone
+        ) {
           return false;
         }
       }
@@ -211,13 +244,21 @@ import './index.css';
       );
 
       if (success) {
-        successToastMessage(t("admin.order_state_updated") || "Order state updated successfully");
+        successToastMessage(
+          t("admin.order_state_updated") || "Order state updated successfully",
+        );
         await loadOrders();
       } else {
-        errorToastMessage(t("admin.order_state_update_failed") || "Failed to update order state");
+        errorToastMessage(
+          t("admin.order_state_update_failed") ||
+            "Failed to update order state",
+        );
       }
     } catch (e) {
-      errorToastMessage(t("admin.order_update_error") || "An error occurred while updating the order");
+      errorToastMessage(
+        t("admin.order_update_error") ||
+          "An error occurred while updating the order",
+      );
       console.error(e);
     } finally {
       loading = false;
@@ -285,13 +326,16 @@ import './index.css';
       failed: "bg-red-50 text-red-700 border-red-200",
       cancelled: "bg-red-50 text-red-700 border-red-200",
     };
-    return statusClasses[normalized] || "bg-gray-100 text-gray-700 border-gray-200";
+    return (
+      statusClasses[normalized] || "bg-gray-100 text-gray-700 border-gray-200"
+    );
   }
 
   function getPaymentStatusLabel(status: string): string {
     const normalized = normalizePaymentStatus(status);
     if (!normalized) return $_("common.not_available") || "N/A";
-    if (normalized === "pending") return $_("admin.payment_pending") || "Pending";
+    if (normalized === "pending")
+      return $_("admin.payment_pending") || "Pending";
     if (["completed", "paid", "success"].includes(normalized))
       return $_("admin.payment_completed") || "Completed";
     if (["nopaid", "unpaid"].includes(normalized))
@@ -318,7 +362,11 @@ import './index.css';
       return "solved";
     }
 
-    if (s.includes("cancel") || s === "issue_reported" || s === "refund_pending") {
+    if (
+      s.includes("cancel") ||
+      s === "issue_reported" ||
+      s === "refund_pending"
+    ) {
       return "inactive";
     }
 
@@ -406,7 +454,9 @@ import './index.css';
   }
 
   // ---- Pagination (server total) ----
-  let totalPages = $derived.by(() => Math.max(1, Math.ceil(totalOrders / itemsPerPage)));
+  let totalPages = $derived.by(() =>
+    Math.max(1, Math.ceil(totalOrders / itemsPerPage)),
+  );
 
   let visiblePageNumbers = $derived.by(() => {
     const total = totalPages;
@@ -461,7 +511,10 @@ import './index.css';
 
   // ---- Stats (based on filteredOrders) ----
   let totalRevenue = $derived.by(() => {
-    return filteredOrders.reduce((sum, order) => sum + calculateOrderTotal(order), 0);
+    return filteredOrders.reduce(
+      (sum, order) => sum + calculateOrderTotal(order),
+      0,
+    );
   });
 
   let totalItems = $derived.by(() => {
@@ -541,7 +594,13 @@ import './index.css';
   <div class="stats-grid">
     <div class="stat-card">
       <div class="bg-icon rounded-lg flex items-center justify-center">
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             fill-rule="evenodd"
             clip-rule="evenodd"
@@ -551,14 +610,22 @@ import './index.css';
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title">{$_("admin.stats_total_orders") || "Total Orders"}</h3>
+        <h3 class="stat-title">
+          {$_("admin.stats_total_orders") || "Total Orders"}
+        </h3>
         <p class="stat-value">{filteredOrders.length}</p>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="bg-icon rounded-lg flex items-center justify-center">
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             fill-rule="evenodd"
             clip-rule="evenodd"
@@ -568,16 +635,25 @@ import './index.css';
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title">{$_("admin.stats_total_revenue") || "Total Revenue"}</h3>
+        <h3 class="stat-title">
+          {$_("admin.stats_total_revenue") || "Total Revenue"}
+        </h3>
         <p class="stat-value">
-          {formatCurrency(totalRevenue)} {$_("admin.currency") || "IQD"}
+          {formatCurrency(totalRevenue)}
+          {$_("admin.currency") || "IQD"}
         </p>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="bg-icon rounded-lg flex items-center justify-center">
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             fill-rule="evenodd"
             clip-rule="evenodd"
@@ -587,14 +663,22 @@ import './index.css';
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title">{$_("admin.stats_total_items") || "Total Items"}</h3>
+        <h3 class="stat-title">
+          {$_("admin.stats_total_items") || "Total Items"}
+        </h3>
         <p class="stat-value">{totalItems}</p>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="bg-icon rounded-lg flex items-center justify-center">
-        <svg width="36" height="36" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 12 12"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             fill-rule="evenodd"
             clip-rule="evenodd"
@@ -604,9 +688,12 @@ import './index.css';
         </svg>
       </div>
       <div class="stat-content">
-        <h3 class="stat-title">{$_("admin.stats_average_order") || "Average Order"}</h3>
+        <h3 class="stat-title">
+          {$_("admin.stats_average_order") || "Average Order"}
+        </h3>
         <p class="stat-value">
-          {formatCurrency(averageOrder)} {$_("admin.currency") || "IQD"}
+          {formatCurrency(averageOrder)}
+          {$_("admin.currency") || "IQD"}
         </p>
       </div>
     </div>
@@ -620,8 +707,14 @@ import './index.css';
     <!-- SEARCH -->
     <div>
       <div class="relative w-[256px]">
-        <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-          <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+        <div
+          class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none"
+        >
+          <svg
+            class="w-4 h-4 text-gray-400"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
             <path
               fill-rule="evenodd"
               d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
@@ -633,7 +726,8 @@ import './index.css';
         <input
           type="text"
           bind:value={searchQuery}
-          placeholder={$_("admin.search_orders_placeholder") || "Order code, customer, phone..."}
+          placeholder={$_("admin.search_orders_placeholder") ||
+            "Order code, customer, phone..."}
           class="w-full h-9 pl-9 pr-3 py-2
           bg-[#F9FAFB]
           border border-[#E5E7EB]
@@ -664,7 +758,13 @@ import './index.css';
           text-sm text-gray-700 hover:bg-gray-50"
         >
           <span class="truncate inline-flex items-center gap-2">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <path
                 fill-rule="evenodd"
                 clip-rule="evenodd"
@@ -683,8 +783,18 @@ import './index.css';
             {/if}
           </span>
 
-          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          <svg
+            class="w-4 h-4 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </button>
 
@@ -788,7 +898,9 @@ import './index.css';
               </div>
             </div>
 
-            <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+            <div
+              class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100"
+            >
               <button
                 type="button"
                 onclick={resetFilters}
@@ -837,8 +949,18 @@ import './index.css';
           text-sm text-gray-700 hover:bg-gray-50"
         >
           <span class="truncate">{$_("admin.actions") || "Actions"}</span>
-          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          <svg
+            class="w-4 h-4 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </button>
 
@@ -882,13 +1004,17 @@ import './index.css';
   {:else if error}
     <div class="error-message">
       <p>{error}</p>
-      <button class="btn-retry" onclick={loadOrders}>{$_("common.retry") || "Retry"}</button>
+      <button class="btn-retry" onclick={loadOrders}
+        >{$_("common.retry") || "Retry"}</button
+      >
     </div>
   {:else if filteredOrders.length === 0}
     <div class="empty-state">
       <p>{$_("admin.no_orders_found") || "No orders found"}</p>
       {#if searchQuery || selectedState !== "all" || selectedPaymentStatus !== "all" || phoneFilter || governorateFilter || dateFrom || dateTo}
-        <p class="empty-hint">{$_("admin.adjust_filters_hint") || "Try adjusting your filters"}</p>
+        <p class="empty-hint">
+          {$_("admin.adjust_filters_hint") || "Try adjusting your filters"}
+        </p>
       {/if}
     </div>
   {:else}
@@ -904,6 +1030,7 @@ import './index.css';
             <th>{$_("admin.payment_status") || "Payment"}</th>
             <th>{$_("admin.order_status") || "Status"}</th>
             <th>{$_("admin.date") || "Date"}</th>
+            <th class="text-right">{$_("admin.actions") || "Actions"}</th>
           </tr>
         </thead>
 
@@ -928,7 +1055,10 @@ import './index.css';
                     style="background:#F3F4F6;"
                     aria-hidden="true"
                   >
-                    <span style="font-weight:500;font-size:14px;line-height:14px;color:#101828;">#</span>
+                    <span
+                      style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                      >#</span
+                    >
                   </div>
 
                   <div class="min-w-0">
@@ -957,9 +1087,13 @@ import './index.css';
                   <div
                     class="truncate"
                     style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
-                    title={payload?.user?.displayname || payload?.user?.shortname || "N/A"}
+                    title={payload?.user?.displayname ||
+                      payload?.user?.shortname ||
+                      "N/A"}
                   >
-                    {payload?.user?.displayname || payload?.user?.shortname || "N/A"}
+                    {payload?.user?.displayname ||
+                      payload?.user?.shortname ||
+                      "N/A"}
                   </div>
                   <div
                     class="truncate mt-1"
@@ -981,8 +1115,11 @@ import './index.css';
 
               <!-- TOTAL -->
               <td class="px-6 py-4 text-right">
-                <span style="font-weight:500;font-size:14px;line-height:14px;color:#101828;">
-                  {formatCurrency(total)} {$_("admin.currency") || "IQD"}
+                <span
+                  style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
+                >
+                  {formatCurrency(total)}
+                  {$_("admin.currency") || "IQD"}
                 </span>
               </td>
 
@@ -993,12 +1130,16 @@ import './index.css';
                     class={`inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 w-fit ${getPaymentStatusClass(paymentStatus)}`}
                     style="height:20px;"
                   >
-                    <span style="font-weight:500;font-size:12px;line-height:16px;">
+                    <span
+                      style="font-weight:500;font-size:12px;line-height:16px;"
+                    >
                       {getPaymentStatusLabel(paymentStatus)}
                     </span>
                   </span>
 
-                  <span style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;">
+                  <span
+                    style="font-weight:400;font-size:14px;line-height:14px;color:#4A5565;"
+                  >
                     {paymentType || $_("common.not_available") || "N/A"}
                   </span>
                 </div>
@@ -1016,7 +1157,9 @@ import './index.css';
                         : "background:#FFF8F1;border-color:#FCD9BD;color:#771D1D;"
                   }`}
                 >
-                  <span style="font-weight:500;font-size:12px;line-height:16px;text-transform:lowercase;">
+                  <span
+                    style="font-weight:500;font-size:12px;line-height:16px;text-transform:lowercase;"
+                  >
                     {state}
                   </span>
                 </span>
@@ -1028,7 +1171,13 @@ import './index.css';
                   class="inline-flex items-center gap-2"
                   style="font-weight:500;font-size:14px;line-height:14px;color:#101828;"
                 >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
                     <path
                       fill-rule="evenodd"
                       clip-rule="evenodd"
@@ -1041,8 +1190,14 @@ import './index.css';
               </td>
 
               <!-- ACTIONS (... dropdown) -->
-              <td class="px-6 py-4 text-right" onclick={(e) => e.stopPropagation()}>
-                <div class="relative inline-flex justify-end" onclick={(e) => e.stopPropagation()}>
+              <td
+                class="px-6 py-4 text-right"
+                onclick={(e) => e.stopPropagation()}
+              >
+                <div
+                  class="relative inline-flex justify-end"
+                  onclick={(e) => e.stopPropagation()}
+                >
                   <button
                     class="h-8 w-8 inline-flex items-center justify-center cursor-pointer rounded-md hover:bg-[#f4f5fe] hover:border hover:border-[#3C307F] transition"
                     aria-label={$_("admin.actions") || "Actions"}
@@ -1068,9 +1223,20 @@ import './index.css';
                         }}
                         role="menuitem"
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M4.0117 12C4.02312 12.0329 4.04406 12.0868 4.08184 12.1644C4.16842 12.3421 4.3101 12.5758 4.51263 12.851C4.91651 13.3997 5.51827 14.0535 6.2742 14.6801C7.80015 15.9449 9.83098 17 12 17C14.169 17 16.1999 15.9449 17.7258 14.6801C18.4817 14.0535 19.0835 13.3997 19.4874 12.851C19.6899 12.5758 19.8316 12.3421 19.9182 12.1644C19.9559 12.0868 19.9769 12.0329 19.9883 12C19.9769 11.9671 19.9559 11.9132 19.9182 11.8356C19.8316 11.6579 19.6899 11.4242 19.4874 11.149C19.0835 10.6003 18.4817 9.94649 17.7258 9.3199C16.1999 8.05506 14.169 7 12 7C9.83098 7 7.80015 8.05506 6.2742 9.3199C5.51827 9.94649 4.91651 10.6003 4.51263 11.149C4.3101 11.4242 4.16842 11.6579 4.08184 11.8356C4.04406 11.9132 4.02312 11.9671 4.0117 12ZM4.99787 7.7801C6.72929 6.34495 9.19846 5 12 5C14.8015 5 17.2707 6.34495 19.0021 7.7801C19.8749 8.50351 20.5911 9.2747 21.0981 9.96347C21.351 10.3071 21.5629 10.6452 21.7161 10.9597C21.8554 11.2456 22 11.6185 22 12C22 12.3815 21.8554 12.7544 21.7161 13.0403C21.5629 13.3548 21.351 13.6929 21.0981 14.0365C20.5911 14.7253 19.8749 15.4965 19.0021 16.2199C17.2707 17.6551 14.8015 19 12 19C9.19846 19 6.72929 17.6551 4.99787 16.2199C4.12513 15.4965 3.40886 14.7253 2.9019 14.0365C2.649 13.6929 2.43705 13.3548 2.28385 13.0403C2.14458 12.7544 2 12.3815 2 12C2 11.6185 2.14458 11.2456 2.28385 10.9597C2.43705 10.6452 2.649 10.3071 2.9019 9.96347C3.40886 9.2747 4.12513 8.50351 4.99787 7.7801ZM12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10ZM8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12Z" fill="#101828"/>
-</svg>
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            fill-rule="evenodd"
+                            clip-rule="evenodd"
+                            d="M4.0117 12C4.02312 12.0329 4.04406 12.0868 4.08184 12.1644C4.16842 12.3421 4.3101 12.5758 4.51263 12.851C4.91651 13.3997 5.51827 14.0535 6.2742 14.6801C7.80015 15.9449 9.83098 17 12 17C14.169 17 16.1999 15.9449 17.7258 14.6801C18.4817 14.0535 19.0835 13.3997 19.4874 12.851C19.6899 12.5758 19.8316 12.3421 19.9182 12.1644C19.9559 12.0868 19.9769 12.0329 19.9883 12C19.9769 11.9671 19.9559 11.9132 19.9182 11.8356C19.8316 11.6579 19.6899 11.4242 19.4874 11.149C19.0835 10.6003 18.4817 9.94649 17.7258 9.3199C16.1999 8.05506 14.169 7 12 7C9.83098 7 7.80015 8.05506 6.2742 9.3199C5.51827 9.94649 4.91651 10.6003 4.51263 11.149C4.3101 11.4242 4.16842 11.6579 4.08184 11.8356C4.04406 11.9132 4.02312 11.9671 4.0117 12ZM4.99787 7.7801C6.72929 6.34495 9.19846 5 12 5C14.8015 5 17.2707 6.34495 19.0021 7.7801C19.8749 8.50351 20.5911 9.2747 21.0981 9.96347C21.351 10.3071 21.5629 10.6452 21.7161 10.9597C21.8554 11.2456 22 11.6185 22 12C22 12.3815 21.8554 12.7544 21.7161 13.0403C21.5629 13.3548 21.351 13.6929 21.0981 14.0365C20.5911 14.7253 19.8749 15.4965 19.0021 16.2199C17.2707 17.6551 14.8015 19 12 19C9.19846 19 6.72929 17.6551 4.99787 16.2199C4.12513 15.4965 3.40886 14.7253 2.9019 14.0365C2.649 13.6929 2.43705 13.3548 2.28385 13.0403C2.14458 12.7544 2 12.3815 2 12C2 11.6185 2.14458 11.2456 2.28385 10.9597C2.43705 10.6452 2.649 10.3071 2.9019 9.96347C3.40886 9.2747 4.12513 8.50351 4.99787 7.7801ZM12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10ZM8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12Z"
+                            fill="#101828"
+                          />
+                        </svg>
 
                         <span>{$_("view") || "View"}</span>
                       </button>
@@ -1086,7 +1252,8 @@ import './index.css';
                           class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
                           value={state}
                           onchange={(e) => {
-                            const next = (e.currentTarget as HTMLSelectElement).value;
+                            const next = (e.currentTarget as HTMLSelectElement)
+                              .value;
                             closeRowActions();
                             handleStateChange(order, next);
                           }}
@@ -1106,141 +1273,85 @@ import './index.css';
       </table>
     </div>
 
-    {#if totalPages > 1}
-      <div class="pagination">
-        <!-- Left text -->
-        <div class="pagination-info">
-          <span class="pagination-info__label">
-            {$_("common.showing") || "Showing"}
-          </span>
+    <!-- Pagination (same layout as combined-orders page) -->
+    <div class="pagination">
+      <p class="pagination-text">
+        {$_("admin.pagination_showing", {
+          values: {
+            start: paginationStart,
+            end: paginationEnd,
+            total: totalOrders,
+          },
+        }) || `Showing ${paginationStart}-${paginationEnd} of ${totalOrders}`}
+      </p>
 
-          <span class="pagination-info__strong">
-            {formatNumber((currentPage - 1) * itemsPerPage + 1, $locale)}
-            -
-            {formatNumber(
-              Math.min(currentPage * itemsPerPage, totalOrders),
-              $locale,
-            )}
-          </span>
-
-          <span class="pagination-info__label">
-            {$_("common.of") || "of"}
-          </span>
-
-          <span class="pagination-info__strong">
-            {formatNumber(totalOrders, $locale)}
-          </span>
-        </div>
-
-        <!-- Right controls -->
-        <div class="pagination-controls">
-          <!-- Prev -->
-          <button
-            class="pager-arrow pager-arrow--left"
-            onclick={() => goToPage(currentPage - 1)}
-            disabled={currentPage === 1}
-            aria-label="Previous page"
-            type="button"
+      <div class="pagination-controls" onclick={stop}>
+        <button
+          type="button"
+          class="pagination-segment pagination-arrow"
+          onclick={previousPage}
+          disabled={currentPage === 1}
+          aria-label={$_("admin.previous_page") || "Previous page"}
+        >
+          <svg
+            class="pagination-arrow-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+
+        {#each visiblePageNumbers as segment}
+          {#if segment === "ellipsis"}
+            <span
+              class="pagination-segment pagination-ellipsis"
+              aria-hidden="true">…</span
             >
-              <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
-                d="M4.86195 8.47132C4.6016 8.21097 4.6016 7.78886 4.86195 7.52851L9.52862 2.86185C9.78897 2.6015 10.2111 2.6015 10.4714 2.86185C10.7318 3.1222 10.7318 3.54431 10.4714 3.80466L6.27616 7.99992L10.4714 12.1952C10.7318 12.4555 10.7318 12.8776 10.4714 13.138C10.2111 13.3983 9.78897 13.3983 9.52862 13.138L4.86195 8.47132Z"
-                fill="#101828"
-              />
-            </svg>
-          </button>
+          {:else}
+            <button
+              type="button"
+              class="pagination-segment pagination-num"
+              class:active={currentPage === segment}
+              onclick={() => goToPage(segment)}
+              aria-label={"Page " + segment}
+              aria-current={currentPage === segment ? "page" : undefined}
+            >
+              {segment}
+            </button>
+          {/if}
+        {/each}
 
-          <!-- Pages -->
-          <div class="pagination-pages">
-            {#if totalPages <= 7}
-              {#each Array(totalPages) as _, index}
-                <button
-                  class="page-chip"
-                  class:active={currentPage === index + 1}
-                  onclick={() => goToPage(index + 1)}
-                  type="button"
-                >
-                  {formatNumber(index + 1, $locale)}
-                </button>
-              {/each}
-            {:else}
-              <!-- 1 -->
-              <button
-                class="page-chip"
-                class:active={currentPage === 1}
-                onclick={() => goToPage(1)}
-                type="button"
-              >
-                {formatNumber(1, $locale)}
-              </button>
-
-              {#if currentPage > 3}
-                <span class="page-ellipsis">...</span>
-              {/if}
-
-              {#each Array(totalPages) as _, index}
-                {#if index + 1 > 1 && index + 1 < totalPages && Math.abs(currentPage - (index + 1)) <= 1}
-                  <button
-                    class="page-chip"
-                    class:active={currentPage === index + 1}
-                    onclick={() => goToPage(index + 1)}
-                    type="button"
-                  >
-                    {formatNumber(index + 1, $locale)}
-                  </button>
-                {/if}
-              {/each}
-
-              {#if currentPage < totalPages - 2}
-                <span class="page-ellipsis">...</span>
-              {/if}
-
-              <!-- last -->
-              <button
-                class="page-chip"
-                class:active={currentPage === totalPages}
-                onclick={() => goToPage(totalPages)}
-                type="button"
-              >
-                {formatNumber(totalPages, $locale)}
-              </button>
-            {/if}
-          </div>
-
-          <!-- Next -->
-          <button
-            class="pager-arrow pager-arrow--right"
-            onclick={() => goToPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            aria-label="Next page"
-            type="button"
+        <button
+          type="button"
+          class="pagination-segment pagination-arrow"
+          onclick={nextPage}
+          disabled={currentPage === totalPages}
+          aria-label={$_("admin.next_page") || "Next page"}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
-                d="M11.1381 7.52868C11.3985 7.78903 11.3985 8.21114 11.1381 8.47149L6.47145 13.1382C6.2111 13.3985 5.78899 13.3985 5.52864 13.1382C5.26829 12.8778 5.26829 12.4557 5.52864 12.1953L9.7239 8.00008L5.52864 3.80482C5.26829 3.54447 5.26829 3.12236 5.52864 2.86201C5.78899 2.60166 6.2111 2.60166 6.47145 2.86201L11.1381 7.52868Z"
-                fill="#101828"
-              />
-            </svg>
-          </button>
-        </div>
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M11.1381 7.52868C11.3985 7.78903 11.3985 8.21114 11.1381 8.47149L6.47145 13.1382C6.2111 13.3985 5.78899 13.3985 5.52864 13.1382C5.26829 12.8778 5.26829 12.4557 5.52864 12.1953L9.7239 8.00008L5.52864 3.80482C5.26829 3.54447 5.26829 3.12236 5.52864 2.86201C5.78899 2.60166 6.2111 2.60166 6.47145 2.86201L11.1381 7.52868Z"
+              fill="#101828"
+            />
+          </svg>
+        </button>
       </div>
-    {/if}
+    </div>
   {/if}
 </div>
 

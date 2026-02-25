@@ -1317,6 +1317,8 @@
   user-select: none;
 }
 
+/* modal styling */
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1347,6 +1349,7 @@
   justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid #e5e7eb;
+  background: white !important;
 }
 
 .modal-header-left {
@@ -1360,7 +1363,7 @@
   font-size: 18px;
   font-weight: 500;
   line-height: 28px;
-  color: #111827;
+  color: #111827 !important;
 }
 
 .modal-subtitle {

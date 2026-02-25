@@ -630,7 +630,7 @@
     <button
       type="button"
       onclick={openCouponModal}
-      class="inline-flex items-center justify-center
+      class="inline-flex items-center justify-center cursor-pointer
         h-9 px-3 py-2
         bg-[#3C307F] text-white text-sm font-medium
         rounded-[12px]

@@ -698,24 +698,24 @@
 
 {#if isOpen}
   <div
-    class="modal-overlay"
+    class="modern-modal-overlay"
     role="button"
     tabindex="0"
     aria-label={$_("admin.close_modal") || "Close modal"}
     onclick={handleBackdropClick}
     onkeydown={handleBackdropKeydown}
   >
-    <div class="modal-container">
+    <div class="modern-modal-container">
       <!-- Header (Figma) -->
-      <div class="modal-header">
-        <div class="modal-header-left">
-          <h2 class="modal-title">
+      <div class="modern-modal-header">
+        <div class="modern-modal-header-left">
+          <h2 class="modern-modal-title">
             {$_("admin.combined_order_details") || "Combined Order Details"}
           </h2>
 
           {#if combinedOrder}
             {@const payload = combinedOrder.attributes?.payload?.body}
-            <div class="modal-subtitle">
+            <div class="modern-modal-subtitle">
               {payload?.combined_order_id || combinedOrder.shortname}
             </div>
           {/if}
@@ -736,7 +736,7 @@
         </button>
       </div>
 
-      <div class="modal-body">
+      <div class="modern-modal-body">
         {#if combinedOrder}
           {@const payload = combinedOrder.attributes?.payload?.body}
           {@const customerShortname = payload?.user_shortname}
@@ -2566,4 +2566,36 @@
       max-width: 220px;
     }
   }
+   .form-label {
+    display: flex;
+    margin-top:10px;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.75rem;
+}
+.form-select {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    color: #2d3748;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.form-input, .form-textarea {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    color: #2d3748;
+    background: white;
+    transition: all 0.3s ease;
+    font-family: "uthmantn", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
 </style>

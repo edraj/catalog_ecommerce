@@ -733,7 +733,7 @@
                 rounded-[12px]
                 shadow-[0px_1px_0.5px_0.05px_#1D293D05]
                 hover:bg-[#2f2666]
-                transition-colors duration-200"
+                transition-colors duration-200 cursor-pointer"
           >
             <svg
               width="16"
