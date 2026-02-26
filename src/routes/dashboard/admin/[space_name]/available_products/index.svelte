@@ -7,9 +7,13 @@
   import { _, locale } from "@/i18n";
   import { derived } from "svelte/store";
   import {
+    createEntity,
+    deleteEntity,
     getSpaceContents,
     progressAvailableProductTicket,
+    updateEntity,
   } from "@/lib/dmart_services";
+  import { ResourceType } from "@edraj/tsdmart";
   import { getLocalizedDisplayName } from "@/lib/utils/sellerUtils";
   import { formatNumber } from "@/lib/helpers";
   import "./index.css";
@@ -33,6 +37,34 @@
   let isFiltersOpen = $state(false);
   let isDetailsModalOpen = $state(false);
   let selectedProductDetails = $state<any | null>(null);
+
+  type EditableVariant = {
+    key: string;
+    qty: number;
+    sku: string;
+    retail_price: number;
+    discountType: string;
+    discountValue: number;
+    options: Array<{ key: string; variation_shortname: string }>;
+  };
+
+  let isUpsertModalOpen = $state(false);
+  let isUpsertEditMode = $state(false);
+  let isSavingUpsert = $state(false);
+  let editingAvailability = $state<any | null>(null);
+  let upsertSeller = $state("");
+  let upsertProduct = $state("");
+  let upsertWarranty = $state("");
+  let upsertCommissionCategory = $state("");
+  let upsertHasFastDelivery = $state(false);
+  let upsertHasFreeShipping = $state(false);
+  let upsertShippingFrom = $state(1);
+  let upsertShippingTo = $state(5);
+  let upsertVariants = $state<EditableVariant[]>([]);
+  let productSelectSearch = $state("");
+  let categories = $state<any[]>([]);
+  let sellerWarranties = $state<any[]>([]);
+  let previousUpsertSeller = $state("");
 
   const isRTL = derived(
     locale,
@@ -111,6 +143,356 @@
   function onDetailsBackdropClick(e: MouseEvent) {
     if (e.target === e.currentTarget) {
       closeDetailsModal();
+    }
+  }
+
+  function getSellerShortnameFromItem(item: any): string {
+    return item?.subpath?.split("/")?.[1] || "";
+  }
+
+  function getAllProductsList(): any[] {
+    return Array.from(productsMap.values());
+  }
+
+  let selectableProducts = $derived.by(() => {
+    const source = getAllProductsList();
+    if (!productSelectSearch.trim()) {
+      return source;
+    }
+
+    const searchLower = productSelectSearch.trim().toLowerCase();
+    return source.filter((product) => {
+      const name = getLocalizedDisplayName(product, $locale).toLowerCase();
+      return (
+        name.includes(searchLower) ||
+        product.shortname?.toLowerCase?.().includes(searchLower)
+      );
+    });
+  });
+
+  function createVariantKey(index: number): string {
+    return `variant_${Date.now()}_${index}`;
+  }
+
+  function buildVariantCombinations(
+    groups: Array<Array<{ key: string; variation_shortname: string }>>,
+  ) {
+    if (groups.length === 0) return [[]];
+
+    let result: Array<Array<{ key: string; variation_shortname: string }>> = [
+      [],
+    ];
+
+    for (const group of groups) {
+      const next: Array<Array<{ key: string; variation_shortname: string }>> =
+        [];
+      for (const base of result) {
+        for (const option of group) {
+          next.push([...base, option]);
+        }
+      }
+      result = next;
+    }
+
+    return result;
+  }
+
+  function buildVariantsFromProduct(
+    productShortname: string,
+  ): EditableVariant[] {
+    const product = productsMap.get(productShortname);
+    const variationOptions =
+      product?.attributes?.payload?.body?.variation_options || [];
+
+    const optionGroups = variationOptions
+      .map((variation: any) => {
+        const variationShortname = variation?.variation_shortname;
+        const values = Array.isArray(variation?.values) ? variation.values : [];
+
+        return values.map((valueKey: string) => ({
+          key: valueKey,
+          variation_shortname: variationShortname,
+        }));
+      })
+      .filter((group: any[]) => group.length > 0);
+
+    const combinations = buildVariantCombinations(optionGroups);
+    if (combinations.length === 0) {
+      return [
+        {
+          key: createVariantKey(0),
+          qty: 0,
+          sku: "",
+          retail_price: 0,
+          discountType: "amount",
+          discountValue: 0,
+          options: [],
+        },
+      ];
+    }
+
+    return combinations.map((combination, index) => ({
+      key: createVariantKey(index),
+      qty: 0,
+      sku: "",
+      retail_price: 0,
+      discountType: "amount",
+      discountValue: 0,
+      options: combination,
+    }));
+  }
+
+  function resetUpsertForm() {
+    isUpsertEditMode = false;
+    editingAvailability = null;
+    upsertSeller = selectedSeller !== "all" ? selectedSeller : "";
+    previousUpsertSeller = "";
+    upsertProduct = "";
+    upsertWarranty = "";
+    upsertCommissionCategory = "";
+    upsertHasFastDelivery = false;
+    upsertHasFreeShipping = false;
+    upsertShippingFrom = 1;
+    upsertShippingTo = 5;
+    upsertVariants = [];
+    productSelectSearch = "";
+    sellerWarranties = [];
+  }
+
+  async function openCreateAvailabilityModal() {
+    resetUpsertForm();
+    if (upsertSeller) {
+      await loadSellerWarranties(upsertSeller);
+    }
+    isUpsertModalOpen = true;
+  }
+
+  async function openEditAvailabilityModal(item: any) {
+    const body = item?.attributes?.payload?.body || {};
+
+    isUpsertEditMode = true;
+    editingAvailability = item;
+    upsertSeller = getSellerShortnameFromItem(item);
+    upsertProduct = body?.product_shortname || "";
+    upsertWarranty = body?.warranty_shortname || "";
+    upsertCommissionCategory = body?.commission_category || "";
+    upsertHasFastDelivery = Boolean(body?.has_fast_delivery);
+    upsertHasFreeShipping = Boolean(body?.has_free_shipping);
+    upsertShippingFrom = Number(body?.est_shipping_days?.from || 1);
+    upsertShippingTo = Number(body?.est_shipping_days?.to || 5);
+    upsertVariants = (body?.variants || []).map(
+      (variant: any, index: number) => ({
+        key: variant?.key || createVariantKey(index),
+        qty: Number(variant?.qty || 0),
+        sku: variant?.sku || "",
+        retail_price: Number(variant?.retail_price || 0),
+        discountType: variant?.discount?.type || "amount",
+        discountValue: Number(variant?.discount?.value || 0),
+        options: variant?.options || [],
+      }),
+    );
+    await loadSellerWarranties(upsertSeller);
+    isUpsertModalOpen = true;
+  }
+
+  function closeUpsertModal() {
+    isUpsertModalOpen = false;
+    resetUpsertForm();
+  }
+
+  function updateVariantField(
+    index: number,
+    field: "qty" | "sku" | "retail_price",
+    value: string,
+  ) {
+    if (!upsertVariants[index]) return;
+
+    if (field === "sku") {
+      upsertVariants[index] = {
+        ...upsertVariants[index],
+        sku: value,
+      };
+      return;
+    }
+
+    const parsed = Number(value);
+    upsertVariants[index] = {
+      ...upsertVariants[index],
+      [field]: Number.isFinite(parsed) ? parsed : 0,
+    };
+  }
+
+  async function submitAvailabilityForm() {
+    if (!upsertSeller) {
+      errorToastMessage("Please select a seller");
+      return;
+    }
+
+    if (!upsertProduct) {
+      errorToastMessage("Please select a product");
+      return;
+    }
+
+    if (upsertShippingFrom > upsertShippingTo) {
+      errorToastMessage(
+        "Shipping from days must be less than or equal to to days",
+      );
+      return;
+    }
+
+    const preparedVariants = upsertVariants
+      .filter(
+        (variant) =>
+          variant.retail_price > 0 || variant.qty > 0 || variant.sku.trim(),
+      )
+      .map((variant) => ({
+        key: variant.key,
+        qty: Number(variant.qty || 0),
+        sku: variant.sku?.trim?.() || "",
+        retail_price: Number(variant.retail_price || 0),
+        discount: {
+          type: variant.discountType || "amount",
+          value: Number(variant.discountValue || 0),
+        },
+        options: variant.options || [],
+      }));
+
+    if (preparedVariants.length === 0) {
+      errorToastMessage(
+        "Please provide at least one variant with stock, SKU, or price",
+      );
+      return;
+    }
+
+    const selectedWarrantyShortname =
+      sellerWarranties.find((warranty) => warranty.shortname === upsertWarranty)
+        ?.shortname ||
+      upsertWarranty ||
+      "";
+
+    const selectedCategoryShortname =
+      categories.find(
+        (category) => category.shortname === upsertCommissionCategory,
+      )?.shortname ||
+      upsertCommissionCategory ||
+      "";
+
+    const payloadBody = {
+      sku: "",
+      variants: preparedVariants,
+      est_shipping_days: {
+        from: Number(upsertShippingFrom || 1),
+        to: Number(upsertShippingTo || 5),
+      },
+      has_fast_delivery: upsertHasFastDelivery,
+      has_free_shipping: upsertHasFreeShipping,
+      product_shortname: upsertProduct,
+      warranty_shortname: selectedWarrantyShortname,
+      commission_category: selectedCategoryShortname,
+    };
+
+    const product = productsMap.get(upsertProduct);
+    const displayname = product?.attributes?.displayname || {
+      en: upsertProduct,
+      ar: upsertProduct,
+      ku: upsertProduct,
+    };
+
+    isSavingUpsert = true;
+    try {
+      let success = false;
+
+      if (isUpsertEditMode && editingAvailability?.shortname) {
+        success = await updateEntity(
+          editingAvailability.shortname,
+          website.main_space,
+          `available_products/${upsertSeller}`,
+          ResourceType.ticket,
+          {
+            displayname_en: displayname?.en || upsertProduct,
+            displayname_ar: displayname?.ar || upsertProduct,
+            displayname_ku: displayname?.ku || upsertProduct,
+            body: payloadBody,
+          },
+          "availability",
+          "",
+        );
+      } else {
+        const createdShortname = await createEntity(
+          {
+            displayname_en: displayname?.en || upsertProduct,
+            displayname_ar: displayname?.ar || upsertProduct,
+            displayname_ku: displayname?.ku || upsertProduct,
+            body: payloadBody,
+            is_active: true,
+          },
+          website.main_space,
+          `available_products/${upsertSeller}`,
+          ResourceType.ticket,
+          "availability",
+          "",
+        );
+        success = Boolean(createdShortname);
+      }
+
+      if (!success) {
+        errorToastMessage(
+          isUpsertEditMode
+            ? "Failed to update product availability"
+            : "Failed to create product availability",
+        );
+        return;
+      }
+
+      successToastMessage(
+        isUpsertEditMode
+          ? "Product availability updated successfully"
+          : "Product availability created successfully",
+      );
+
+      closeUpsertModal();
+      await loadSellerProducts();
+    } catch (error) {
+      console.error("Error saving product availability:", error);
+      errorToastMessage("Failed to save product availability");
+    } finally {
+      isSavingUpsert = false;
+    }
+  }
+
+  async function deleteAvailability(item: any) {
+    const productName = item.attributes?.displayname?.en || item.shortname;
+    const confirmMessage = `Are you sure you want to delete "${productName}"? This action cannot be undone.`;
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      const sellerShortname = item.subpath?.split("/").pop();
+
+      if (!sellerShortname) {
+        errorToastMessage("Cannot determine seller for this product");
+        return;
+      }
+
+      const success = await deleteEntity(
+        item.shortname,
+        website.main_space,
+        `available_products/${sellerShortname}`,
+        ResourceType.ticket,
+      );
+
+      if (!success) {
+        errorToastMessage("Failed to delete product availability");
+        return;
+      }
+
+      successToastMessage("Product availability deleted successfully");
+      await loadSellerProducts();
+    } catch (error) {
+      console.error("Error deleting product availability:", error);
+      errorToastMessage("Failed to delete product availability");
     }
   }
 
@@ -229,7 +611,12 @@
   });
 
   onMount(async () => {
-    await Promise.all([loadSellers(), loadAllVariations(), loadAllProducts()]);
+    await Promise.all([
+      loadSellers(),
+      loadAllVariations(),
+      loadAllProducts(),
+      loadAllCategories(),
+    ]);
     await loadSellerProducts();
     window.addEventListener("click", onWindowClick);
   });
@@ -294,6 +681,50 @@
       }
     } catch (error) {
       console.error("Error loading products:", error);
+    }
+  }
+
+  async function loadAllCategories() {
+    try {
+      const response = await getSpaceContents(
+        website.main_space,
+        "categories",
+        "managed",
+        1000,
+        0,
+        true,
+      );
+      if (response?.records) {
+        categories = response.records;
+      }
+    } catch (error) {
+      console.error("Error loading categories:", error);
+    }
+  }
+
+  async function loadSellerWarranties(sellerShortname: string) {
+    if (!sellerShortname) {
+      sellerWarranties = [];
+      return;
+    }
+
+    try {
+      const response = await getSpaceContents(
+        website.main_space,
+        `warranties/${sellerShortname}`,
+        "managed",
+        1000,
+        0,
+        true,
+      );
+      if (response?.records) {
+        sellerWarranties = response.records;
+      } else {
+        sellerWarranties = [];
+      }
+    } catch (error) {
+      console.error("Error loading seller warranties:", error);
+      sellerWarranties = [];
     }
   }
 
@@ -474,6 +905,29 @@
   $effect(() => {
     if (currentPage > totalPages) currentPage = totalPages;
   });
+
+  $effect(() => {
+    if (isUpsertModalOpen && !isUpsertEditMode && upsertProduct) {
+      upsertVariants = buildVariantsFromProduct(upsertProduct);
+    }
+  });
+
+  $effect(() => {
+    if (!isUpsertModalOpen) return;
+    if (upsertSeller === previousUpsertSeller) return;
+
+    previousUpsertSeller = upsertSeller;
+    loadSellerWarranties(upsertSeller);
+
+    if (
+      upsertWarranty &&
+      !sellerWarranties.some(
+        (warranty) => warranty.shortname === upsertWarranty,
+      )
+    ) {
+      upsertWarranty = "";
+    }
+  });
 </script>
 
 <div class="admin-page-container">
@@ -630,6 +1084,31 @@
 
         <!-- RIGHT: FILTERS DROPDOWN -->
         <div class="flex items-end gap-3 justify-end">
+          <button
+            type="button"
+            onclick={openCreateAvailabilityModal}
+            class="h-9 inline-flex items-center justify-center cursor-pointer
+              px-3 py-2
+              bg-[#3C307F] text-white text-sm font-medium
+              rounded-[12px]
+              shadow-[0px_1px_0.5px_0.05px_#1D293D05]
+              hover:bg-[#2f2666]"
+          >
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                d="M10 5v10M5 10h10"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span class="ml-2">{$_("common.add") || "Add"}</span>
+          </button>
+
           <div class="relative" onclick={(e) => e.stopPropagation()}>
             <button
               type="button"
@@ -795,6 +1274,7 @@
                 <th>{$_("admin.sku") || "SKU"}</th>
                 <th>{$_("common.status") || "Status"}</th>
                 <th>{$_("admin.shipping") || "Shipping"}</th>
+                <th>{$_("common.actions") || "Actions"}</th>
               </tr>
             </thead>
 
@@ -1012,6 +1492,29 @@
                       {/if}
                     </div>
                   </td>
+
+                  <td class="px-6 py-4" onclick={(e) => e.stopPropagation()}>
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        class="h-8 inline-flex items-center justify-center px-3
+                          bg-[#F9FAFB] text-gray-700 text-xs font-medium
+                          border border-[#E5E7EB] rounded-[10px] hover:bg-gray-50"
+                        onclick={() => openEditAvailabilityModal(item)}
+                      >
+                        {$_("common.edit") || "Edit"}
+                      </button>
+                      <button
+                        type="button"
+                        class="h-8 inline-flex items-center justify-center px-3
+                          bg-red-50 text-red-700 text-xs font-medium
+                          border border-red-200 rounded-[10px] hover:bg-red-100"
+                        onclick={() => deleteAvailability(item)}
+                      >
+                        {$_("common.delete") || "Delete"}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               {/each}
             </tbody>
@@ -1158,6 +1661,304 @@
     {/if}
   </div>
 </div>
+
+{#if isUpsertModalOpen}
+  <div
+    class="modal-overlay"
+    role="button"
+    tabindex="0"
+    aria-label={$_("common.close") || "Close"}
+    onclick={(e) => {
+      if (e.target === e.currentTarget) closeUpsertModal();
+    }}
+    onkeydown={(e) => {
+      if (e.key === "Escape") closeUpsertModal();
+    }}
+  >
+    <div class="modal-container" style="max-width: 980px;">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <h2 class="modal-title">
+            {isUpsertEditMode
+              ? $_("common.edit") || "Edit"
+              : $_("admin.add") || "Add"}
+            {" "}
+            {$_("seller_dashboard.availability") || "Availability"}
+          </h2>
+          <div class="modal-subtitle">
+            {isUpsertEditMode
+              ? "Update seller product availability"
+              : "Create seller product availability"}
+          </div>
+        </div>
+        <button
+          class="close-button"
+          type="button"
+          onclick={closeUpsertModal}
+          aria-label={$_("common.close") || "Close"}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path
+              d="M18 6L6 18M6 6l12 12"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-section">
+          <div class="section-title-small">
+            {$_("admin.quick_overview") || "Quick Overview"}
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="details-card">
+              <div class="details-label">{$_("admin.seller") || "Seller"}</div>
+              <select
+                bind:value={upsertSeller}
+                class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
+              >
+                <option value="">{$_("admin.seller") || "Seller"}</option>
+                {#each sellers as seller}
+                  <option value={seller.shortname}
+                    >{getSellerDisplayName(seller)}</option
+                  >
+                {/each}
+              </select>
+            </div>
+
+            <div class="details-card">
+              <div class="details-label">
+                {$_("admin.product_name") || "Product"}
+              </div>
+              <div class="space-y-2">
+                {#if !isUpsertEditMode}
+                  <input
+                    type="text"
+                    bind:value={productSelectSearch}
+                    class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
+                    placeholder={$_("common.search") || "Search"}
+                  />
+                {/if}
+
+                <select
+                  bind:value={upsertProduct}
+                  disabled={isUpsertEditMode}
+                  class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm disabled:opacity-70"
+                >
+                  <option value=""
+                    >{$_("admin.product_name") || "Product"}</option
+                  >
+                  {#each selectableProducts as product}
+                    <option value={product.shortname}
+                      >{getItemDisplayName(product)}</option
+                    >
+                  {/each}
+                </select>
+              </div>
+            </div>
+
+            <div class="details-card">
+              <div class="details-label">
+                {$_("seller_dashboard.warranty_shortname") || "Warranty"}
+              </div>
+              <select
+                bind:value={upsertWarranty}
+                class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
+                disabled={!upsertSeller}
+              >
+                <option value=""
+                  >{$_("seller_dashboard.warranty_shortname") ||
+                    "Warranty"}</option
+                >
+                {#each sellerWarranties as warranty}
+                  <option value={warranty.shortname}
+                    >{getItemDisplayName(warranty)}</option
+                  >
+                {/each}
+              </select>
+            </div>
+
+            <div class="details-card">
+              <div class="details-label">
+                {$_("common.category") || "Category"}
+              </div>
+              <select
+                bind:value={upsertCommissionCategory}
+                class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
+              >
+                <option value="">{$_("common.category") || "Category"}</option>
+                {#each categories as category}
+                  <option value={category.shortname}
+                    >{getItemDisplayName(category)}</option
+                  >
+                {/each}
+              </select>
+            </div>
+
+            <div class="details-card">
+              <div class="details-label">
+                {$_("seller_dashboard.est_shipping_from") || "Shipping From"}
+              </div>
+              <input
+                type="number"
+                min="1"
+                bind:value={upsertShippingFrom}
+                class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
+              />
+            </div>
+
+            <div class="details-card">
+              <div class="details-label">
+                {$_("seller_dashboard.est_shipping_to") || "Shipping To"}
+              </div>
+              <input
+                type="number"
+                min="1"
+                bind:value={upsertShippingTo}
+                class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-sm"
+              />
+            </div>
+          </div>
+
+          <div class="mt-3 flex flex-wrap gap-4">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" bind:checked={upsertHasFastDelivery} />
+              <span>{$_("admin.fast_delivery") || "Fast Delivery"}</span>
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" bind:checked={upsertHasFreeShipping} />
+              <span>{$_("admin.free_shipping") || "Free Shipping"}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <div class="section-title-small">
+            {$_("admin.variants") || "Variants"} ({upsertVariants.length})
+          </div>
+
+          {#if upsertVariants.length === 0}
+            <div class="details-sub">
+              {$_("admin.no_products_hint") ||
+                "Select a product to generate variants"}
+            </div>
+          {:else}
+            <div class="variants-list">
+              {#each upsertVariants as variant, index}
+                <div class="variant-row">
+                  <div class="variant-main" style="flex: 1;">
+                    <div class="variant-index">#{index + 1}</div>
+                    <div class="variant-meta" style="width: 100%;">
+                      <div class="variant-sku">
+                        {#if variant.options?.length}
+                          {variant.options
+                            .map((option) =>
+                              resolveOptionKey(
+                                option.key,
+                                option.variation_shortname,
+                              ),
+                            )
+                            .join(" • ")}
+                        {:else}
+                          -
+                        {/if}
+                      </div>
+
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                        <div class="details-label">
+                          {$_("admin.sku") || "SKU"}
+                        </div>
+                        <div class="details-label">
+                          {$_("admin.stock") || "Stock"}
+                        </div>
+                        <div class="details-label">
+                          {$_("admin.price") || "Price"}
+                        </div>
+                      </div>
+
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                        <input
+                          type="text"
+                          value={variant.sku}
+                          oninput={(e) =>
+                            updateVariantField(
+                              index,
+                              "sku",
+                              e.currentTarget.value,
+                            )}
+                          class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[10px] text-sm"
+                          placeholder={$_("admin.sku") || "SKU"}
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          value={variant.qty}
+                          oninput={(e) =>
+                            updateVariantField(
+                              index,
+                              "qty",
+                              e.currentTarget.value,
+                            )}
+                          class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[10px] text-sm"
+                          placeholder={$_("admin.stock") || "Stock"}
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          value={variant.retail_price}
+                          oninput={(e) =>
+                            updateVariantField(
+                              index,
+                              "retail_price",
+                              e.currentTarget.value,
+                            )}
+                          class="w-full h-9 px-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[10px] text-sm"
+                          placeholder={$_("admin.price") || "Price"}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <div class="modal-header" style="justify-content: flex-end; gap: 10px;">
+        <button
+          type="button"
+          class="h-9 inline-flex items-center justify-center
+            px-3 py-2 bg-[#F9FAFB] text-gray-700 text-sm font-medium
+            border border-[#E5E7EB] rounded-[12px] hover:bg-gray-50"
+          onclick={closeUpsertModal}
+          disabled={isSavingUpsert}
+        >
+          {$_("common.cancel") || "Cancel"}
+        </button>
+
+        <button
+          type="button"
+          class="h-9 inline-flex items-center justify-center
+            px-3 py-2 bg-[#3C307F] text-white text-sm font-medium
+            rounded-[12px] hover:bg-[#2f2666] disabled:opacity-70"
+          onclick={submitAvailabilityForm}
+          disabled={isSavingUpsert}
+        >
+          {#if isSavingUpsert}
+            {$_("common.loading") || "Loading..."}
+          {:else if isUpsertEditMode}
+            {$_("common.update") || "Update"}
+          {:else}
+            {$_("admin.add") || "Add"}
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 {#if isDetailsModalOpen && selectedProductDetails}
   {@const details = selectedProductDetails}
