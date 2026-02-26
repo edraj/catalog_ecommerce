@@ -6,6 +6,7 @@
     getSpaceContents,
     updateUserRoles,
     updateEntity,
+    createSeller,
   } from "@/lib/dmart_services";
   import {
     errorToastMessage,
@@ -18,7 +19,7 @@
 
   const isRTL = derived(
     locale,
-    ($locale) => $locale === "ar" || $locale === "ku"
+    ($locale) => $locale === "ar" || $locale === "ku",
   );
 
   let users = $state([]);
@@ -33,6 +34,23 @@
   let selectedRoleFilter = $state("");
   let roleSearchTerm = $state("");
   let filteredRoles = $state([]);
+  let showAddUserModal = $state(false);
+  let isCreatingUser = $state(false);
+  let addUserForm = $state({
+    displayname: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    roles: [] as string[],
+  });
+  let addUserErrors = $state({
+    displayname: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    roles: "",
+    submit: "",
+  });
 
   let showConfirmModal = $state(false);
   let confirmAction = $state(null);
@@ -55,12 +73,12 @@
         usersResponse = await filterUserByRole(
           selectedRoleFilter,
           itemsPerPage,
-          (currentPage - 1) * itemsPerPage
+          (currentPage - 1) * itemsPerPage,
         );
       } else {
         usersResponse = await getAllUsers(
           itemsPerPage,
-          (currentPage - 1) * itemsPerPage
+          (currentPage - 1) * itemsPerPage,
         );
       }
 
@@ -94,7 +112,7 @@
       const rolesResponse = await getSpaceContents(
         "management",
         "roles",
-        "managed"
+        "managed",
       );
 
       if (rolesResponse.status === "success") {
@@ -123,7 +141,7 @@
           user.shortname.toLowerCase().includes(term) ||
           user.displayname.toLowerCase().includes(term) ||
           user.email.toLowerCase().includes(term) ||
-          user.roles.some((role) => role.toLowerCase().includes(term))
+          user.roles.some((role) => role.toLowerCase().includes(term)),
       );
     }
 
@@ -166,7 +184,7 @@
       (role) =>
         role.shortname.toLowerCase().includes(term) ||
         role.displayname.toLowerCase().includes(term) ||
-        role.description.toLowerCase().includes(term)
+        role.description.toLowerCase().includes(term),
     );
   }
 
@@ -177,11 +195,11 @@
     try {
       const success = await updateUserRoles(
         selectedUser.shortname,
-        selectedRoles
+        selectedRoles,
       );
       if (success) {
         const userIndex = users.findIndex(
-          (u) => u.shortname === selectedUser.shortname
+          (u) => u.shortname === selectedUser.shortname,
         );
         if (userIndex > -1) {
           users[userIndex].roles = [...selectedRoles];
@@ -257,12 +275,12 @@
         ResourceType.user,
         updateData,
         "",
-        ""
+        "",
       );
 
       if (result) {
         const userIndex = users.findIndex(
-          (u) => u.shortname === userToUpdate.shortname
+          (u) => u.shortname === userToUpdate.shortname,
         );
         if (userIndex > -1) {
           users[userIndex].is_active = newStatus;
@@ -273,17 +291,17 @@
           ? $_("activated") || "activated"
           : $_("deactivated") || "deactivated";
         successToastMessage(
-          `${userToUpdate.displayname} has been ${statusText}`
+          `${userToUpdate.displayname} has been ${statusText}`,
         );
       } else {
         errorToastMessage(
-          $_("failed_to_update_user_status") || "Failed to update user status"
+          $_("failed_to_update_user_status") || "Failed to update user status",
         );
       }
     } catch (error) {
       console.error("Error toggling user activation:", error);
       errorToastMessage(
-        $_("failed_to_update_user_status") || "Failed to update user status"
+        $_("failed_to_update_user_status") || "Failed to update user status",
       );
     }
   }
@@ -312,6 +330,136 @@
   async function handleRoleFilterChange() {
     currentPage = 1;
     await loadUsers();
+  }
+
+  function openAddUserModal() {
+    addUserForm = {
+      displayname: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      roles: [],
+    };
+    addUserErrors = {
+      displayname: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      roles: "",
+      submit: "",
+    };
+    showAddUserModal = true;
+  }
+
+  function closeAddUserModal() {
+    if (isCreatingUser) return;
+    showAddUserModal = false;
+  }
+
+  function toggleAddUserRole(roleShortname: string) {
+    const exists = addUserForm.roles.includes(roleShortname);
+    addUserForm = {
+      ...addUserForm,
+      roles: exists
+        ? addUserForm.roles.filter((role) => role !== roleShortname)
+        : [...addUserForm.roles, roleShortname],
+    };
+  }
+
+  async function createUserByAdmin() {
+    addUserErrors = {
+      displayname: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      roles: "",
+      submit: "",
+    };
+
+    const displayname = addUserForm.displayname.trim();
+    const email = addUserForm.email.trim().toLowerCase();
+    const password = addUserForm.password;
+    const confirmPassword = addUserForm.confirmPassword;
+
+    let hasError = false;
+
+    if (!email) {
+      addUserErrors.email = $_("EmailRequired") || "Email is required";
+      hasError = true;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      addUserErrors.email = $_("InvalidEmail") || "Invalid email address";
+      hasError = true;
+    }
+
+    if (!password) {
+      addUserErrors.password = $_("PasswordRequired") || "Password is required";
+      hasError = true;
+    } else if (password.length < 6) {
+      addUserErrors.password =
+        $_("PasswordTooShort") || "Password must be at least 6 characters";
+      hasError = true;
+    }
+
+    if (!confirmPassword) {
+      addUserErrors.confirmPassword =
+        $_("ConfirmPasswordRequired") || "Confirm password is required";
+      hasError = true;
+    } else if (password !== confirmPassword) {
+      addUserErrors.confirmPassword =
+        $_("PasswordsDoNotMatch") || "Passwords do not match";
+      hasError = true;
+    }
+
+    if (addUserForm.roles.length === 0) {
+      addUserErrors.roles =
+        $_("admin_users.roles_required") || "Please assign at least one role";
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    isCreatingUser = true;
+    try {
+      const primaryRole = addUserForm.roles[0];
+      const createdUserShortname = await createSeller({
+        displayname,
+        email,
+        password,
+        role: primaryRole,
+      });
+
+      if (createdUserShortname) {
+        if (addUserForm.roles.length > 1) {
+          const rolesUpdated = await updateUserRoles(
+            createdUserShortname,
+            addUserForm.roles,
+          );
+
+          if (!rolesUpdated) {
+            addUserErrors.submit =
+              $_("failed_to_update_user_roles") ||
+              "User created but failed to assign all roles";
+            return;
+          }
+        }
+
+        successToastMessage(
+          $_("admin_users.user_created") || "User created successfully",
+        );
+        closeAddUserModal();
+        await loadUsers();
+      } else {
+        addUserErrors.submit =
+          $_("admin_users.create_user_failed") || "Failed to create user";
+      }
+    } catch (error: any) {
+      addUserErrors.submit =
+        error?.message ||
+        $_("admin_users.create_user_failed") ||
+        "Failed to create user";
+    } finally {
+      isCreatingUser = false;
+    }
   }
 
   $effect(() => {
@@ -355,7 +503,7 @@
         <div class="stat-number">
           {formatNumber(
             users.filter((u) => u.roles.length === 0).length,
-            $locale
+            $locale,
           )}
         </div>
         <div class="stat-label">{$_("users_without_roles")}</div>
@@ -388,6 +536,9 @@
             {/each}
           </select>
         </div>
+        <button class="btn add-user-btn" onclick={openAddUserModal}>
+          {$_("admin_users.add_user") || "Add User"}
+        </button>
       </div>
     </div>
 
@@ -721,6 +872,153 @@
   </div>
 {/if}
 
+{#if showAddUserModal}
+  <div
+    class="modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="add-user-modal-title"
+    tabindex="-1"
+    onkeydown={(e) => {
+      if (e.key === "Escape") closeAddUserModal();
+    }}
+    onclick={closeAddUserModal}
+  >
+    <div
+      class="modal"
+      role="dialog"
+      tabindex="-1"
+      onkeydown={(e) => e.stopPropagation()}
+      onclick={(e) => e.stopPropagation()}
+    >
+      <div class="modal-header">
+        <h3 id="add-user-modal-title">
+          {$_("admin_users.add_user") || "Add User"}
+        </h3>
+        <button class="close-btn" onclick={closeAddUserModal}>×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group-modal">
+          <label for="add-user-displayname"
+            >{$_("DisplayName") || "Display Name"}</label
+          >
+          <input
+            id="add-user-displayname"
+            type="text"
+            class="role-search-input"
+            bind:value={addUserForm.displayname}
+            placeholder={$_("DisplayName") || "Display Name"}
+            disabled={isCreatingUser}
+          />
+          {#if addUserErrors.displayname}
+            <p class="error-text-small">{addUserErrors.displayname}</p>
+          {/if}
+        </div>
+
+        <div class="form-group-modal">
+          <label for="add-user-email">{$_("Email") || "Email"}</label>
+          <input
+            id="add-user-email"
+            type="email"
+            class="role-search-input"
+            bind:value={addUserForm.email}
+            placeholder={$_("EmailPlaceholder") || "Enter email"}
+            disabled={isCreatingUser}
+          />
+          {#if addUserErrors.email}
+            <p class="error-text-small">{addUserErrors.email}</p>
+          {/if}
+        </div>
+
+        <div class="form-group-modal">
+          <label for="add-user-password">{$_("Password") || "Password"}</label>
+          <input
+            id="add-user-password"
+            type="password"
+            class="role-search-input"
+            bind:value={addUserForm.password}
+            placeholder={$_("Password") || "Password"}
+            disabled={isCreatingUser}
+          />
+          {#if addUserErrors.password}
+            <p class="error-text-small">{addUserErrors.password}</p>
+          {/if}
+        </div>
+
+        <div class="form-group-modal">
+          <label for="add-user-confirm-password"
+            >{$_("ConfirmPassword") || "Confirm Password"}</label
+          >
+          <input
+            id="add-user-confirm-password"
+            type="password"
+            class="role-search-input"
+            bind:value={addUserForm.confirmPassword}
+            placeholder={$_("ConfirmPassword") || "Confirm Password"}
+            disabled={isCreatingUser}
+          />
+          {#if addUserErrors.confirmPassword}
+            <p class="error-text-small">{addUserErrors.confirmPassword}</p>
+          {/if}
+        </div>
+
+        <div class="form-group-modal">
+          <span class="form-label-modal">{$_("roles") || "Roles"}</span>
+          <div class="roles-selection">
+            {#each availableRoles as role}
+              <label class="role-option">
+                <input
+                  type="checkbox"
+                  checked={addUserForm.roles.includes(role.shortname)}
+                  onchange={() => toggleAddUserRole(role.shortname)}
+                  disabled={isCreatingUser}
+                />
+                <div class="role-content">
+                  <div class="role-name">{role.displayname}</div>
+                  <div class="role-description">{role.description}</div>
+                </div>
+              </label>
+            {/each}
+          </div>
+          {#if addUserErrors.roles}
+            <p class="error-text-small">{addUserErrors.roles}</p>
+          {/if}
+        </div>
+
+        {#if addUserErrors.submit}
+          <div class="alert alert-warning">
+            <div class="alert-icon">⚠</div>
+            <div>{addUserErrors.submit}</div>
+          </div>
+        {/if}
+      </div>
+
+      <div class="modal-footer">
+        <button
+          class="btn btn-secondary"
+          onclick={closeAddUserModal}
+          disabled={isCreatingUser}
+        >
+          {$_("cancel") || "Cancel"}
+        </button>
+        <button
+          class="btn add-user-btn"
+          onclick={createUserByAdmin}
+          disabled={isCreatingUser}
+        >
+          {#if isCreatingUser}
+            <div class="spinner small"></div>
+            {$_("saving") || "Saving..."}
+          {:else}
+            {$_("admin_users.create_user") || "Create User"}
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 {#if showConfirmModal && confirmUser}
   <div
     class="modal-overlay"
@@ -854,6 +1152,36 @@
 
   .role-filter-container {
     min-width: 200px;
+  }
+
+  .add-user-btn {
+    background: #281f51;
+    color: #fff;
+    border: none;
+    white-space: nowrap;
+  }
+
+  .add-user-btn:hover:not(:disabled) {
+    background: #221a45;
+  }
+
+  .form-group-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .form-group-modal label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .form-label-modal {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
   }
 
   .role-filter-select {

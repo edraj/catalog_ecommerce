@@ -34,14 +34,18 @@
     displayname: {
       en: formData.displayname?.en || "",
       ar: formData.displayname?.ar || "",
-      ku: formData.displayname?.ku || "",
     },
     description: {
       en: formData.description?.en || "",
       ar: formData.description?.ar || "",
-      ku: formData.description?.ku || "",
     },
-    items: formData.items || [],
+    items: (formData.items || []).map((item: any) => ({
+      ...item,
+      message: {
+        en: item?.message?.en || "",
+        ar: item?.message?.ar || "",
+      },
+    })),
     is_active: formData.is_active ?? true,
   };
 
@@ -106,15 +110,18 @@
         website.main_space,
         "/available_products",
         "managed",
-        1000,
+        2000,
         0,
-        true,
+        false,
       );
 
       if (response && response.records) {
         const sellerSet = new Set();
         response.records.forEach((record) => {
-          const parts = record.subpath.split("/");
+          const normalizedSubpath = String(record.subpath || "")
+            .replace(/^\/+/, "")
+            .replace(/\/+$/, "");
+          const parts = normalizedSubpath.split("/");
           if (
             parts.length >= 2 &&
             parts[0] === "available_products" &&
@@ -174,17 +181,8 @@
       return false;
     }
 
-    if (formData.items.length > 20) {
-      alert($_("validation.maxProductsExceeded"));
-      return false;
-    }
-
     for (const item of formData.items) {
-      if (
-        !item.product_shortname ||
-        !item.variant_key ||
-        !item.available_product_shortname
-      ) {
+      if (!item.product_shortname || !item.variant_key) {
         alert($_("validation.incompleteItem"));
         return false;
       }
@@ -244,6 +242,22 @@
 
   function removeItem(index: number) {
     formData.items = formData.items.filter((_, i) => i !== index);
+  }
+
+  function updateItemMessage(index: number, lang: "en" | "ar", value: string) {
+    const nextItems = [...formData.items];
+    const currentMessage = nextItems[index]?.message || {
+      en: "",
+      ar: "",
+    };
+    nextItems[index] = {
+      ...nextItems[index],
+      message: {
+        ...currentMessage,
+        [lang]: value,
+      },
+    };
+    formData.items = nextItems;
   }
 
   function moveItem(index: number, direction: "up" | "down") {
@@ -319,19 +333,6 @@
           placeholder={$_("collection.titlePlaceholder")}
         />
       </div>
-
-      <div class="form-group">
-        <label class="form-label" for="displayname_ku">
-          {$_("collection.titleKu")}
-        </label>
-        <input
-          id="displayname_ku"
-          type="text"
-          class="form-input"
-          bind:value={formData.displayname.ku}
-          placeholder={$_("collection.titlePlaceholder")}
-        />
-      </div>
     </div>
 
     <div class="form-group">
@@ -360,19 +361,6 @@
           placeholder={$_("collection.descriptionPlaceholder")}
         ></textarea>
       </div>
-
-      <div class="form-group">
-        <label class="form-label" for="description_ku">
-          {$_("collection.descriptionKu")}
-        </label>
-        <textarea
-          id="description_ku"
-          class="form-textarea"
-          bind:value={formData.description.ku}
-          rows="3"
-          placeholder={$_("collection.descriptionPlaceholder")}
-        ></textarea>
-      </div>
     </div>
 
     <div class="form-group">
@@ -392,11 +380,11 @@
         <p class="card-subtitle">
           {#if formData.items.length < 4}
             <span class="status-badge error">
-              {formData.items.length}/20 items - Minimum 4 required
+              {formData.items.length} items - Minimum 4 required
             </span>
           {:else}
             <span class="status-badge success">
-              {formData.items.length}/20 items
+              {formData.items.length} items
             </span>
           {/if}
         </p>
@@ -516,7 +504,9 @@
                     >
                       <rect x="1" y="1" width="10" height="10" rx="1" />
                     </svg>
-                    {item.variant_key.substring(0, 8)}...
+                    {item?.variant_key
+                      ? `${item.variant_key.substring(0, 8)}...`
+                      : "-"}
                   </span>
                   <span class="meta-badge seller">
                     <svg
@@ -535,8 +525,44 @@
                     </svg>
                     {item.seller_displayname ||
                       item.seller_shortname ||
-                      item.available_product_shortname}
+                      item.available_product_shortname ||
+                      "-"}
                   </span>
+                </div>
+
+                <div class="item-messages-grid">
+                  <div class="item-message-field">
+                    <span class="item-message-label"
+                      >{$_("collection.customMessageEn")}</span
+                    >
+                    <input
+                      type="text"
+                      class="form-input"
+                      value={item?.message?.en || ""}
+                      oninput={(event) =>
+                        updateItemMessage(
+                          index,
+                          "en",
+                          (event.currentTarget as HTMLInputElement).value,
+                        )}
+                    />
+                  </div>
+                  <div class="item-message-field">
+                    <span class="item-message-label"
+                      >{$_("collection.customMessageAr")}</span
+                    >
+                    <input
+                      type="text"
+                      class="form-input"
+                      value={item?.message?.ar || ""}
+                      oninput={(event) =>
+                        updateItemMessage(
+                          index,
+                          "ar",
+                          (event.currentTarget as HTMLInputElement).value,
+                        )}
+                    />
+                  </div>
                 </div>
               </div>
               <div class="item-actions">
@@ -835,7 +861,6 @@
   }
 
   .form-input,
-  .form-select,
   .form-textarea {
     width: 100%;
     padding: 0.625rem;
@@ -846,7 +871,6 @@
   }
 
   .form-input:focus,
-  .form-select:focus,
   .form-textarea:focus {
     outline: none;
     border-color: #3b82f6;
@@ -1024,6 +1048,21 @@
     gap: 0.5rem;
   }
 
+  .item-messages-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .item-message-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+  }
+
   .meta-badge {
     font-size: 0.75rem;
     padding: 0.3125rem 0.625rem;
@@ -1095,27 +1134,6 @@
     height: 16px;
   }
 
-  .btn-icon {
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    background: white;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: all 0.2s;
-  }
-
-  .btn-icon:hover:not(:disabled) {
-    background: #f3f4f6;
-  }
-
-  .btn-icon:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
   .btn-delete {
     color: #ef4444;
     font-size: 1.5rem;
@@ -1125,12 +1143,6 @@
 
   .btn-delete:hover {
     background: #fee2e2;
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 2rem;
-    color: #6b7280;
   }
 
   .empty-state-modern {
@@ -1253,7 +1265,6 @@
   }
 
   .variant-list,
-  .seller-list,
   .product-list {
     display: flex;
     flex-direction: column;
@@ -1359,5 +1370,11 @@
     text-align: center;
     color: #6b7280;
     padding: 1rem;
+  }
+
+  @media (max-width: 900px) {
+    .item-messages-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

@@ -20,7 +20,45 @@
 .filter-bar {
   display: flex;
   gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
   margin-bottom: 2rem;
+}
+
+.filter-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.category-filter-select {
+  min-width: 260px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2937;
+}
+
+.collection-search-input {
+  min-width: 300px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2937;
+}
+
+.collection-search-input:focus {
+  outline: none;
+  border-color: #281f51;
+  box-shadow: 0 0 0 2px rgba(40, 31, 81, 0.1);
+}
+
+.category-filter-select:focus {
+  outline: none;
+  border-color: #281f51;
+  box-shadow: 0 0 0 2px rgba(40, 31, 81, 0.1);
 }
 
 .filter-btn {
@@ -159,6 +197,21 @@
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+}
+
+.collection-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.category-chip {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.75rem;
+  line-height: 1.2;
 }
 
 .info-item {
@@ -311,4 +364,75 @@
   gap: 0.75rem;
   padding: 1.5rem;
   border-top: 1px solid #e5e7eb;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.detail-item {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.detail-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.detail-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.detail-block {
+  margin-top: 1rem;
+}
+
+.detail-block h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.detail-block p {
+  margin-bottom: 0.4rem;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.details-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.details-item-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.details-item-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.details-item-body p {
+  margin-bottom: 0.35rem;
+}
+
+.empty-message {
+  color: #6b7280;
 }
