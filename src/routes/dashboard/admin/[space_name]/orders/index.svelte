@@ -446,6 +446,25 @@
     }
   }
 
+  async function handleCombinedOrderEdited() {
+    if (!selectedCombinedOrder) {
+      await loadCombinedOrders();
+      return;
+    }
+
+    const currentKey = getCombinedOrderKey(selectedCombinedOrder);
+    await loadCombinedOrders();
+
+    const refreshedOrder = combinedOrders.find(
+      (order) => getCombinedOrderKey(order) === currentKey,
+    );
+
+    if (refreshedOrder) {
+      selectedCombinedOrder = refreshedOrder;
+      await viewCombinedOrder(refreshedOrder);
+    }
+  }
+
   function formatDate(dateString: string): string {
     const date = new Date(dateString);
     return date.toLocaleString();
@@ -1752,5 +1771,6 @@
     combinedOrder={selectedCombinedOrderDetails}
     onClose={closeOrderDetails}
     onStateChange={handleIndividualOrderStateChange}
+    onOrderEdited={handleCombinedOrderEdited}
   />
 {/if}

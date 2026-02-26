@@ -4,10 +4,13 @@
   import {
     createOrderComment,
     deleteComment,
+    getSpaceContents,
     getOrderDetails,
     getVariationOptionsByShortname,
     progressOrderTicket,
+    updateCombinedOrderPayload,
     updateOrderActiveStatus,
+    updateOrderPayload,
   } from "@/lib/dmart_services";
   import { website } from "@/config";
   import {
@@ -25,6 +28,7 @@
       orderShortname: string,
       newState: string,
     ) => void;
+    onOrderEdited?: () => void;
   }
 
   let {
@@ -32,6 +36,7 @@
     combinedOrder,
     onClose,
     onStateChange,
+    onOrderEdited,
   }: Props = $props();
 
   const t = (key: string, vars?: Record<string, unknown>) => {
@@ -180,6 +185,570 @@
     Record<string, { displayname: any; options: any[] }>
   >({});
   let variationOptionsLoading = $state<Record<string, boolean>>({});
+  let orderEditMode = $state<Record<string, boolean>>({});
+  let orderEditDrafts = $state<Record<string, any>>({});
+  let orderEditSaving = $state<Record<string, boolean>>({});
+  let orderCoupons = $state<Record<string, any[]>>({});
+  let orderCouponsLoading = $state<Record<string, boolean>>({});
+  let selectedCouponCodes = $state<Record<string, string>>({});
+  let availableProducts = $state<Record<string, any[]>>({});
+  let availableProductsLoading = $state<Record<string, boolean>>({});
+  let productSearchQuery = $state<Record<string, string>>({});
+
+  function toNumber(value: unknown, fallback = 0): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function normalizeOrderItem(item: any): any {
+    const quantity = Math.max(1, toNumber(item?.quantity, 1));
+    const unitPrice = toNumber(
+      item?.price_at_purchase,
+      item?.subtotal ?? item?.item_subtotal ?? 0,
+    );
+    const subtotal = Math.max(0, quantity * unitPrice);
+
+    return {
+      ...item,
+      quantity,
+      price_at_purchase: unitPrice,
+      subtotal,
+      item_subtotal: subtotal,
+      sku: item?.sku || "",
+      product_shortname: item?.product_shortname || item?.sku || "",
+      displayname: item?.displayname || { en: "", ar: "", ku: "" },
+      options: Array.isArray(item?.options) ? item.options : [],
+    };
+  }
+
+  function calculateCouponDiscount(
+    coupon: any,
+    itemsSubtotal: number,
+    shippingCost: number,
+  ): number {
+    if (!coupon) return 0;
+
+    const isShipping = Boolean(coupon.is_shipping);
+    const baseAmount = isShipping ? shippingCost : itemsSubtotal + shippingCost;
+    if (baseAmount <= 0) return 0;
+
+    const minimumSpend = toNumber(coupon.minimum_spend, 0);
+    if (!isShipping && minimumSpend > 0 && itemsSubtotal < minimumSpend) {
+      return 0;
+    }
+
+    const discountType = coupon.discount_type?.toString().toLowerCase() || "";
+    const discountValue = toNumber(coupon.discount_value, 0);
+
+    let discount = 0;
+    if (discountType === "percentage") {
+      discount = (baseAmount * discountValue) / 100;
+    } else {
+      discount = discountValue;
+    }
+
+    const maximumAmount = toNumber(coupon.maximum_amount, 0);
+    if (maximumAmount > 0) {
+      discount = Math.min(discount, maximumAmount);
+    }
+
+    return Math.max(0, Math.min(discount, baseAmount));
+  }
+
+  function recalculateOrderPayload(payload: any): any {
+    const normalizedItems = (payload?.items || []).map((item) =>
+      normalizeOrderItem(item),
+    );
+    const shipping = {
+      ...(payload?.shipping || {}),
+      min: toNumber(payload?.shipping?.min, 0),
+      max: toNumber(payload?.shipping?.max, 0),
+      cost: toNumber(payload?.shipping?.cost, 0),
+      minimum_retail: toNumber(payload?.shipping?.minimum_retail, 0),
+    };
+
+    const itemsSubtotal = normalizedItems.reduce(
+      (sum: number, item: any) => sum + toNumber(item.subtotal, 0),
+      0,
+    );
+    const shippingCost = toNumber(shipping.cost, 0);
+    const coupon = payload?.coupon ? { ...payload.coupon } : null;
+    const discountAmount = coupon
+      ? calculateCouponDiscount(coupon, itemsSubtotal, shippingCost)
+      : 0;
+
+    if (coupon) {
+      coupon.discount_amount = discountAmount;
+    }
+
+    const totalAmount = Math.max(
+      0,
+      itemsSubtotal + shippingCost - discountAmount,
+    );
+
+    return {
+      ...payload,
+      items: normalizedItems,
+      shipping,
+      coupon,
+      total_amount: totalAmount,
+    };
+  }
+
+  function buildCouponValue(selectedCoupon: any): any {
+    const couponBody = selectedCoupon?.coupon_body || selectedCoupon;
+    return {
+      code: couponBody?.code || "",
+      type: couponBody?.type || selectedCoupon?.type || "",
+      coupon_body: couponBody,
+      is_shipping: Boolean(couponBody?.is_shipping),
+      discount_type: couponBody?.discount_type || "amount",
+      discount_value: toNumber(couponBody?.discount_value, 0),
+      maximum_amount: toNumber(couponBody?.maximum_amount, 0),
+      minimum_spend: toNumber(couponBody?.minimum_spend, 0),
+      discount_amount: 0,
+    };
+  }
+
+  function getCouponOptionLabel(coupon: any): string {
+    const sourceLabel = coupon.type === "global" ? "Global" : "Seller";
+    const discountLabel =
+      coupon.discount_type === "percentage"
+        ? `${toNumber(coupon.discount_value, 0)}%`
+        : `${formatNumberValue(coupon.discount_value)} ${t("admin.currency") || "IQD"}`;
+    return `${coupon.code} (${sourceLabel} · ${discountLabel})`;
+  }
+
+  async function loadCouponsForOrder(order: any) {
+    orderCouponsLoading = { ...orderCouponsLoading, [order.shortname]: true };
+    try {
+      const [globalResponse, sellerResponse] = await Promise.all([
+        getSpaceContents(
+          website.main_space,
+          "coupons/global",
+          "managed",
+          500,
+          0,
+          true,
+        ),
+        getSpaceContents(
+          website.main_space,
+          `coupons/${order.seller_shortname}`,
+          "managed",
+          500,
+          0,
+          true,
+        ),
+      ]);
+
+      const mapCoupons = (records: any[] = []) =>
+        records
+          .map((record) => record?.attributes?.payload?.body)
+          .filter((body) => body?.code)
+          .map((body) => ({
+            ...body,
+            coupon_body: body,
+          }));
+
+      const globalCoupons = mapCoupons(globalResponse?.records).map(
+        (coupon) => ({
+          ...coupon,
+          type: "global",
+        }),
+      );
+      const sellerCoupons = mapCoupons(sellerResponse?.records).map(
+        (coupon) => ({
+          ...coupon,
+          type: "individual",
+        }),
+      );
+
+      orderCoupons = {
+        ...orderCoupons,
+        [order.shortname]: [...globalCoupons, ...sellerCoupons],
+      };
+    } catch (error) {
+      console.error("Error loading coupons for order:", error);
+      orderCoupons = {
+        ...orderCoupons,
+        [order.shortname]: [],
+      };
+    } finally {
+      orderCouponsLoading = {
+        ...orderCouponsLoading,
+        [order.shortname]: false,
+      };
+    }
+  }
+
+  async function loadAvailableProducts(order: any) {
+    availableProductsLoading = {
+      ...availableProductsLoading,
+      [order.shortname]: true,
+    };
+    try {
+      const response = await getSpaceContents(
+        website.main_space,
+        `available_products/${order.seller_shortname}`,
+        "managed",
+        1000,
+        0,
+        true,
+      );
+
+      const products =
+        response?.records
+          ?.map((record) => {
+            const body = record?.attributes?.payload?.body;
+            if (!body) return null;
+
+            return {
+              shortname: record.shortname,
+              sku: body.sku || record.shortname,
+              product_shortname: body.product_shortname || record.shortname,
+              displayname: body.displayname || record.attributes?.displayname,
+              price: body.price || body.retail_price || 0,
+              available_shortname: record.shortname,
+              brand_shortname: body.brand_shortname || "",
+              main_category_shortname: body.main_category_shortname || "",
+              commission_category: body.commission_category || "",
+              variant_key: body.variant_key || "",
+            };
+          })
+          .filter(Boolean) || [];
+
+      availableProducts = {
+        ...availableProducts,
+        [order.shortname]: products,
+      };
+    } catch (error) {
+      console.error("Error loading available products:", error);
+      availableProducts = {
+        ...availableProducts,
+        [order.shortname]: [],
+      };
+    } finally {
+      availableProductsLoading = {
+        ...availableProductsLoading,
+        [order.shortname]: false,
+      };
+    }
+  }
+
+  function startEditOrder(order: any) {
+    const payload = order.attributes?.payload?.body || {};
+    const draft = recalculateOrderPayload({
+      ...payload,
+      items: Array.isArray(payload.items) ? payload.items : [],
+      shipping: payload.shipping || {},
+    });
+
+    orderEditMode = { ...orderEditMode, [order.shortname]: true };
+    orderEditDrafts = { ...orderEditDrafts, [order.shortname]: draft };
+    selectedCouponCodes = {
+      ...selectedCouponCodes,
+      [order.shortname]: draft.coupon?.code || "__none__",
+    };
+    productSearchQuery = { ...productSearchQuery, [order.shortname]: "" };
+
+    loadCouponsForOrder(order);
+    loadAvailableProducts(order);
+  }
+
+  function cancelEditOrder(orderShortname: string) {
+    orderEditMode = { ...orderEditMode, [orderShortname]: false };
+  }
+
+  function updateDraft(orderShortname: string, nextDraft: any) {
+    orderEditDrafts = {
+      ...orderEditDrafts,
+      [orderShortname]: recalculateOrderPayload(nextDraft),
+    };
+  }
+
+  function addDraftItem(orderShortname: string) {
+    const draft = orderEditDrafts[orderShortname];
+    if (!draft) return;
+
+    const nextItems = [
+      ...(draft.items || []),
+      normalizeOrderItem({
+        sku: "",
+        product_shortname: "",
+        quantity: 1,
+        price_at_purchase: 0,
+        subtotal: 0,
+        displayname: { en: "", ar: "", ku: "" },
+        available_shortname: "",
+        brand_shortname: "",
+        main_category_shortname: "",
+        commission_category: "",
+        variant_key: "",
+      }),
+    ];
+
+    updateDraft(orderShortname, {
+      ...draft,
+      items: nextItems,
+    });
+  }
+
+  function selectProductForItem(
+    orderShortname: string,
+    itemIndex: number,
+    product: any,
+  ) {
+    const draft = orderEditDrafts[orderShortname];
+    if (!draft) return;
+
+    const nextItems = (draft.items || []).map((item: any, index: number) => {
+      if (index !== itemIndex) return item;
+
+      return normalizeOrderItem({
+        ...item,
+        sku: product.sku,
+        product_shortname: product.product_shortname,
+        price_at_purchase: toNumber(product.price, 0),
+        displayname: product.displayname || { en: product.sku, ar: "", ku: "" },
+        available_shortname: product.available_shortname,
+        brand_shortname: product.brand_shortname,
+        main_category_shortname: product.main_category_shortname,
+        commission_category: product.commission_category,
+        variant_key: product.variant_key,
+      });
+    });
+
+    updateDraft(orderShortname, {
+      ...draft,
+      items: nextItems,
+    });
+  }
+
+  function getFilteredProducts(orderShortname: string): any[] {
+    const products = availableProducts[orderShortname] || [];
+    const query = (productSearchQuery[orderShortname] || "").toLowerCase();
+    if (!query) return products.slice(0, 50);
+
+    return products
+      .filter((product) => {
+        const sku = (product.sku || "").toLowerCase();
+        const productShortname = (
+          product.product_shortname || ""
+        ).toLowerCase();
+        const displaynameEn = (product.displayname?.en || "").toLowerCase();
+        const displaynameAr = (product.displayname?.ar || "").toLowerCase();
+
+        return (
+          sku.includes(query) ||
+          productShortname.includes(query) ||
+          displaynameEn.includes(query) ||
+          displaynameAr.includes(query)
+        );
+      })
+      .slice(0, 50);
+  }
+
+  function getProductDisplayLabel(product: any): string {
+    const name =
+      product.displayname?.en || product.displayname?.ar || product.sku;
+    const price = formatNumberValue(product.price);
+    return `${name} - ${product.sku} (${price} ${t("admin.currency") || "IQD"})`;
+  }
+
+  function removeDraftItem(orderShortname: string, itemIndex: number) {
+    const draft = orderEditDrafts[orderShortname];
+    if (!draft) return;
+
+    const nextItems = (draft.items || []).filter(
+      (_: any, index: number) => index !== itemIndex,
+    );
+
+    updateDraft(orderShortname, {
+      ...draft,
+      items: nextItems,
+    });
+  }
+
+  function updateDraftItemField(
+    orderShortname: string,
+    itemIndex: number,
+    field: string,
+    rawValue: string,
+  ) {
+    const draft = orderEditDrafts[orderShortname];
+    if (!draft) return;
+
+    const nextItems = (draft.items || []).map((item: any, index: number) => {
+      if (index !== itemIndex) return item;
+      const nextItem = { ...item };
+
+      if (field === "quantity" || field === "price_at_purchase") {
+        nextItem[field] = toNumber(rawValue, 0);
+      } else {
+        nextItem[field] = rawValue;
+      }
+
+      return normalizeOrderItem(nextItem);
+    });
+
+    updateDraft(orderShortname, {
+      ...draft,
+      items: nextItems,
+    });
+  }
+
+  function updateDraftShippingField(
+    orderShortname: string,
+    field: string,
+    rawValue: string,
+  ) {
+    const draft = orderEditDrafts[orderShortname];
+    if (!draft) return;
+
+    const shipping = { ...(draft.shipping || {}) };
+    if (["min", "max", "cost", "minimum_retail"].includes(field)) {
+      shipping[field] = toNumber(rawValue, 0);
+    } else {
+      shipping[field] = rawValue;
+    }
+
+    updateDraft(orderShortname, {
+      ...draft,
+      shipping,
+    });
+  }
+
+  function handleCouponSelection(order: any, couponCode: string) {
+    const orderShortname = order.shortname;
+    const draft = orderEditDrafts[orderShortname];
+    if (!draft) return;
+
+    selectedCouponCodes = {
+      ...selectedCouponCodes,
+      [orderShortname]: couponCode,
+    };
+
+    if (couponCode === "__none__") {
+      updateDraft(orderShortname, {
+        ...draft,
+        coupon: null,
+      });
+      return;
+    }
+
+    const coupons = orderCoupons[orderShortname] || [];
+    const selectedCoupon = coupons.find((coupon) => coupon.code === couponCode);
+    if (!selectedCoupon) return;
+
+    updateDraft(orderShortname, {
+      ...draft,
+      coupon: buildCouponValue(selectedCoupon),
+    });
+  }
+
+  async function saveOrderEdits(order: any) {
+    const draft = orderEditDrafts[order.shortname];
+    if (!draft) return;
+
+    orderEditSaving = { ...orderEditSaving, [order.shortname]: true };
+
+    try {
+      const normalizedPayload = recalculateOrderPayload(draft);
+      const orderUpdated = await updateOrderPayload(
+        website.main_space,
+        order.seller_shortname,
+        order.shortname,
+        normalizedPayload,
+      );
+
+      if (!orderUpdated) {
+        errorToastMessage(
+          t("admin.order_update_failed") || "Failed to update order details",
+        );
+        return;
+      }
+
+      order.attributes = {
+        ...order.attributes,
+        payload: {
+          ...(order.attributes?.payload || {}),
+          content_type: "json",
+          body: normalizedPayload,
+        },
+      };
+
+      const updatedOrders = (combinedOrder.individualOrders || []).map(
+        (item: any) => {
+          if (item.shortname !== order.shortname) return item;
+          return {
+            ...item,
+            attributes: {
+              ...item.attributes,
+              payload: {
+                ...(item.attributes?.payload || {}),
+                content_type: "json",
+                body: normalizedPayload,
+              },
+            },
+          };
+        },
+      );
+
+      const combinedPayload = {
+        ...(combinedOrder.attributes?.payload?.body || {}),
+      };
+      combinedPayload.total_amount = updatedOrders.reduce(
+        (sum: number, item: any) =>
+          sum + toNumber(item.attributes?.payload?.body?.total_amount, 0),
+        0,
+      );
+
+      if (updatedOrders.length === 1) {
+        if (normalizedPayload.coupon) {
+          combinedPayload.coupon = normalizedPayload.coupon;
+        } else {
+          delete combinedPayload.coupon;
+        }
+      }
+
+      const combinedUpdated = await updateCombinedOrderPayload(
+        website.main_space,
+        combinedOrder.shortname,
+        combinedPayload,
+        combinedOrder.attributes?.is_active,
+      );
+
+      if (combinedUpdated) {
+        combinedOrder.individualOrders = updatedOrders;
+        combinedOrder.attributes = {
+          ...combinedOrder.attributes,
+          payload: {
+            ...(combinedOrder.attributes?.payload || {}),
+            content_type: "json",
+            body: combinedPayload,
+          },
+        };
+      }
+
+      orderEditMode = { ...orderEditMode, [order.shortname]: false };
+      successToastMessage(
+        t("admin.order_updated_successfully") ||
+          "Order details updated successfully",
+      );
+
+      if (onOrderEdited) {
+        onOrderEdited();
+      }
+    } catch (error) {
+      console.error("Error while saving order edits:", error);
+      errorToastMessage(
+        t("admin.order_update_error") ||
+          "An error occurred while updating order details",
+      );
+    } finally {
+      orderEditSaving = { ...orderEditSaving, [order.shortname]: false };
+    }
+  }
 
   async function handleStateChange(
     order: any,
@@ -848,7 +1417,12 @@
               </h3>
 
               {#each individualOrders as order, index}
-                {@const orderPayload = order.attributes?.payload?.body}
+                {@const originalOrderPayload = order.attributes?.payload?.body}
+                {@const orderPayload =
+                  orderEditMode[order.shortname] &&
+                  orderEditDrafts[order.shortname]
+                    ? orderEditDrafts[order.shortname]
+                    : originalOrderPayload}
                 {@const orderState = order.attributes?.state || "pending"}
                 {@const paymentStatus =
                   orderPayload?.payment_status || "pending"}
@@ -957,6 +1531,19 @@
                           {$_("admin.activate_order") || "Activate"}
                         {/if}
                       </button>
+
+                      <button
+                        type="button"
+                        class="btn-activation-toggle"
+                        onclick={() =>
+                          orderEditMode[order.shortname]
+                            ? cancelEditOrder(order.shortname)
+                            : startEditOrder(order)}
+                      >
+                        {orderEditMode[order.shortname]
+                          ? $_("common.cancel") || "Cancel"
+                          : $_("admin.edit_order") || "Edit Order"}
+                      </button>
                     </div>
                   </div>
 
@@ -1010,6 +1597,301 @@
                         >
                           {$_("admin.confirm_cancel") || "Confirm Cancel"}
                         </button>
+                      </div>
+                    </div>
+                  {/if}
+
+                  {#if orderEditMode[order.shortname]}
+                    {@const draft =
+                      orderEditDrafts[order.shortname] || orderPayload}
+                    <div
+                      class="mt-4 border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-4"
+                    >
+                      <div class="flex items-center justify-between">
+                        <h4 class="text-sm font-semibold text-gray-800">
+                          {$_("admin.edit_order_details") ||
+                            "Edit order details"}
+                        </h4>
+                        <button
+                          type="button"
+                          class="btn-comment"
+                          onclick={() => saveOrderEdits(order)}
+                          disabled={orderEditSaving[order.shortname]}
+                        >
+                          {orderEditSaving[order.shortname]
+                            ? $_("common.updating") || "Updating..."
+                            : $_("common.save") || "Save"}
+                        </button>
+                      </div>
+
+                      <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                          <div class="text-sm font-medium text-gray-700">
+                            {$_("admin.items") || "Items"}
+                          </div>
+                          <button
+                            type="button"
+                            class="px-3 py-1.5 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-100"
+                            onclick={() => addDraftItem(order.shortname)}
+                          >
+                            {$_("admin.add_article") || "Add article"}
+                          </button>
+                        </div>
+
+                        {#if (draft.items || []).length === 0}
+                          <div class="text-xs text-gray-500">
+                            {$_("admin.no_items") || "No items in this order"}
+                          </div>
+                        {/if}
+
+                        {#each draft.items || [] as item, itemIndex}
+                          <div
+                            class="grid grid-cols-12 gap-2 items-end border border-gray-200 bg-white rounded-md p-2"
+                          >
+                            <div class="col-span-12 md:col-span-6">
+                              <div class="block text-xs text-gray-600 mb-1">
+                                {$_("admin.select_product") || "Select product"}
+                              </div>
+                              {#if availableProductsLoading[order.shortname]}
+                                <div
+                                  class="w-full h-9 px-2 border border-gray-300 rounded-md text-sm flex items-center text-gray-500"
+                                >
+                                  {$_("common.loading") || "Loading..."}
+                                </div>
+                              {:else if (availableProducts[order.shortname] || []).length === 0}
+                                <div
+                                  class="w-full h-9 px-2 border border-gray-300 rounded-md text-sm flex items-center text-gray-400"
+                                >
+                                  {$_("admin.no_products_available") ||
+                                    "No products available"}
+                                </div>
+                              {:else}
+                                <div class="relative">
+                                  <input
+                                    type="text"
+                                    class="w-full h-9 px-2 border border-gray-300 rounded-md text-sm"
+                                    placeholder={$_("admin.search_products") ||
+                                      "Search by name, SKU..."}
+                                    value={productSearchQuery[
+                                      order.shortname
+                                    ] || ""}
+                                    oninput={(e) => {
+                                      productSearchQuery[order.shortname] =
+                                        e.currentTarget.value;
+                                    }}
+                                  />
+                                  {#if productSearchQuery[order.shortname]?.length >= 1}
+                                    {@const filtered = getFilteredProducts(
+                                      order.shortname,
+                                    )}
+                                    {#if filtered.length > 0}
+                                      <div
+                                        class="absolute z-50 w-full mt-1 max-h-60 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg"
+                                      >
+                                        {#each filtered as product}
+                                          <button
+                                            type="button"
+                                            class="w-full px-3 py-2 text-left text-sm hover:bg-blue-50 border-b border-gray-100 last:border-b-0"
+                                            onclick={() => {
+                                              selectProductForItem(
+                                                order.shortname,
+                                                itemIndex,
+                                                product,
+                                              );
+                                              productSearchQuery[
+                                                order.shortname
+                                              ] = "";
+                                            }}
+                                          >
+                                            {getProductDisplayLabel(product)}
+                                          </button>
+                                        {/each}
+                                      </div>
+                                    {/if}
+                                  {/if}
+                                </div>
+                                {#if item.product_shortname}
+                                  <div
+                                    class="mt-1 text-xs text-gray-600 truncate"
+                                  >
+                                    {item.displayname || item.product_shortname}
+                                    - {item.sku || "N/A"}
+                                  </div>
+                                {/if}
+                              {/if}
+                            </div>
+
+                            <div class="col-span-6 md:col-span-2">
+                              <div class="block text-xs text-gray-600 mb-1">
+                                {$_("admin.quantity") || "Qty"}
+                              </div>
+                              <input
+                                type="number"
+                                min="1"
+                                class="w-full h-9 px-2 border border-gray-300 rounded-md text-sm"
+                                value={item.quantity ?? 1}
+                                oninput={(e) =>
+                                  updateDraftItemField(
+                                    order.shortname,
+                                    itemIndex,
+                                    "quantity",
+                                    e.currentTarget.value,
+                                  )}
+                              />
+                            </div>
+
+                            <div class="col-span-6 md:col-span-2">
+                              <div class="block text-xs text-gray-600 mb-1">
+                                {$_("admin.price") || "Price"}
+                              </div>
+                              <input
+                                type="number"
+                                min="0"
+                                class="w-full h-9 px-2 border border-gray-300 rounded-md text-sm"
+                                value={item.price_at_purchase ?? 0}
+                                oninput={(e) =>
+                                  updateDraftItemField(
+                                    order.shortname,
+                                    itemIndex,
+                                    "price_at_purchase",
+                                    e.currentTarget.value,
+                                  )}
+                              />
+                            </div>
+
+                            <div
+                              class="col-span-12 md:col-span-2 flex items-end justify-between gap-2"
+                            >
+                              <div class="text-xs text-gray-600">
+                                {formatNumberValue(item.subtotal)}
+                                {$_("admin.currency") || "IQD"}
+                              </div>
+                              <button
+                                type="button"
+                                class="px-2 py-1 text-xs rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                                onclick={() =>
+                                  removeDraftItem(order.shortname, itemIndex)}
+                              >
+                                {$_("common.remove") || "Remove"}
+                              </button>
+                            </div>
+                          </div>
+                        {/each}
+                      </div>
+
+                      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div>
+                          <div class="block text-xs text-gray-600 mb-1">
+                            {$_("admin.shipping_cost") || "Shipping cost"}
+                          </div>
+                          <input
+                            type="number"
+                            min="0"
+                            class="w-full h-9 px-2 border border-gray-300 rounded-md text-sm"
+                            value={draft.shipping?.cost ?? 0}
+                            oninput={(e) =>
+                              updateDraftShippingField(
+                                order.shortname,
+                                "cost",
+                                e.currentTarget.value,
+                              )}
+                          />
+                        </div>
+
+                        <div>
+                          <div class="block text-xs text-gray-600 mb-1">
+                            {$_("admin.shipping_min_days") || "Min days"}
+                          </div>
+                          <input
+                            type="number"
+                            min="0"
+                            class="w-full h-9 px-2 border border-gray-300 rounded-md text-sm"
+                            value={draft.shipping?.min ?? 0}
+                            oninput={(e) =>
+                              updateDraftShippingField(
+                                order.shortname,
+                                "min",
+                                e.currentTarget.value,
+                              )}
+                          />
+                        </div>
+
+                        <div>
+                          <div class="block text-xs text-gray-600 mb-1">
+                            {$_("admin.shipping_max_days") || "Max days"}
+                          </div>
+                          <input
+                            type="number"
+                            min="0"
+                            class="w-full h-9 px-2 border border-gray-300 rounded-md text-sm"
+                            value={draft.shipping?.max ?? 0}
+                            oninput={(e) =>
+                              updateDraftShippingField(
+                                order.shortname,
+                                "max",
+                                e.currentTarget.value,
+                              )}
+                          />
+                        </div>
+
+                        <div>
+                          <div class="block text-xs text-gray-600 mb-1">
+                            {$_("admin.minimum_retail") || "Minimum retail"}
+                          </div>
+                          <input
+                            type="number"
+                            min="0"
+                            class="w-full h-9 px-2 border border-gray-300 rounded-md text-sm"
+                            value={draft.shipping?.minimum_retail ?? 0}
+                            oninput={(e) =>
+                              updateDraftShippingField(
+                                order.shortname,
+                                "minimum_retail",
+                                e.currentTarget.value,
+                              )}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div class="block text-xs text-gray-600 mb-1">
+                          {$_("admin.coupon") || "Coupon"}
+                        </div>
+                        <select
+                          class="w-full h-9 px-2 border border-gray-300 rounded-md text-sm bg-white"
+                          value={selectedCouponCodes[order.shortname] ||
+                            "__none__"}
+                          onchange={(e) =>
+                            handleCouponSelection(order, e.currentTarget.value)}
+                        >
+                          <option value="__none__">
+                            {$_("admin.no_coupon") || "No coupon"}
+                          </option>
+                          {#each orderCoupons[order.shortname] || [] as couponOption}
+                            <option value={couponOption.code}>
+                              {getCouponOptionLabel(couponOption)}
+                            </option>
+                          {/each}
+                        </select>
+                        {#if orderCouponsLoading[order.shortname]}
+                          <div class="text-xs text-gray-500 mt-1">
+                            {$_("admin.loading_coupons") ||
+                              "Loading coupons..."}
+                          </div>
+                        {/if}
+                        <div class="text-xs text-gray-500 mt-1">
+                          {$_("admin.coupon_scope_hint") ||
+                            "Coupons include global coupons and this seller's coupons."}
+                        </div>
+                      </div>
+
+                      <div
+                        class="text-xs text-gray-700 bg-white border border-gray-200 rounded-md p-2"
+                      >
+                        {$_("admin.preview_total") || "Preview total"}: {formatNumberValue(
+                          draft.total_amount,
+                        )}
+                        {$_("admin.currency") || "IQD"}
                       </div>
                     </div>
                   {/if}

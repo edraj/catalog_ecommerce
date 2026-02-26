@@ -347,8 +347,8 @@ export async function createSeller(data: any) {
         attributes: {
           email: data.email,
           displayname: {
-            en: "",
-            ar: "",
+            en: data.displayname || "",
+            ar: data.displayname || "",
           },
           password: data.password,
           description: { en: data.description },
@@ -3589,6 +3589,78 @@ export async function updateOrderActiveStatus(
     return response.status === "success";
   } catch (error) {
     console.error("Error updating order active status:", error);
+    return false;
+  }
+}
+
+export async function updateOrderPayload(
+  spaceName: string,
+  sellerShortname: string,
+  orderShortname: string,
+  payloadBody: any,
+): Promise<boolean> {
+  try {
+    const actionRequest: ActionRequest = {
+      space_name: spaceName,
+      request_type: RequestType.update,
+      records: [
+        {
+          resource_type: ResourceType.ticket,
+          shortname: orderShortname,
+          subpath: `orders/${sellerShortname}`,
+          attributes: {
+            payload: {
+              content_type: "json",
+              body: payloadBody,
+            },
+          },
+        },
+      ],
+    };
+
+    const response: ActionResponse = await Dmart.request(actionRequest);
+    return response.status === "success";
+  } catch (error) {
+    console.error("Error updating order payload:", error);
+    return false;
+  }
+}
+
+export async function updateCombinedOrderPayload(
+  spaceName: string,
+  combinedOrderShortname: string,
+  payloadBody: any,
+  isActive?: boolean,
+): Promise<boolean> {
+  try {
+    const attributes: any = {
+      payload: {
+        content_type: "json",
+        body: payloadBody,
+      },
+    };
+
+    if (typeof isActive === "boolean") {
+      attributes.is_active = isActive;
+    }
+
+    const actionRequest: ActionRequest = {
+      space_name: spaceName,
+      request_type: RequestType.update,
+      records: [
+        {
+          resource_type: ResourceType.content,
+          shortname: combinedOrderShortname,
+          subpath: "combined_orders",
+          attributes,
+        },
+      ],
+    };
+
+    const response: ActionResponse = await Dmart.request(actionRequest);
+    return response.status === "success";
+  } catch (error) {
+    console.error("Error updating combined order payload:", error);
     return false;
   }
 }
